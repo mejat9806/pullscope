@@ -336,7 +336,8 @@ function timeline(b) {
       default: break; // subscribed, unsubscribed, mentioned: hidden by GitHub as well
     }
   }
-  return `${bar}<div class="TL">${out.join('')}${on && out.length === 0 ? '<div class="diff-empty">Nothing from the selected accounts.</div>' : ''}</div>${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}`;
+  const foldAll = `<div class="fold-bar"><button class="btn small" id="foldallconv" title="Collapse or expand every comment, review and thread">${icon('chevron-down')} <span>Collapse all conversations</span></button></div>`;
+  return `${bar}${foldAll}<div class="TL">${out.join('')}${on && out.length === 0 ? '<div class="diff-empty">Nothing from the selected accounts.</div>' : ''}</div>${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}`;
 }
 const checkState = (c) => (c.status !== 'completed' ? 'pending' : c.conclusion === 'success' ? 'pass' : ['skipped', 'neutral'].includes(c.conclusion) ? 'skip' : 'fail');
 const CK = { pass: ['check-circle-fill', 'Passed'], fail: ['x-circle-fill', 'Failed'], pending: ['dot-fill', 'In progress'], skip: ['circle-slash', 'Skipped'] };
@@ -1129,6 +1130,18 @@ function bind() {
   document.querySelectorAll('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
   const keep = (fn) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
   // Folding only flips a class and the chevron: no redraw, so the scroll position and images stay put.
+  { const els = [...document.querySelectorAll('.TL [data-fold]')], l = $('#foldallconv span'); if (l && els.length && els.every((x) => isFolded(x.dataset.fold, x.dataset.def === '1'))) l.textContent = 'Expand all conversations'; }
+  $('#foldallconv')?.addEventListener('click', () => {
+    const els = [...document.querySelectorAll('.TL [data-fold]')]; if (!els.length) return;
+    const now = els.some((x) => !isFolded(x.dataset.fold, x.dataset.def === '1'));
+    els.forEach((x) => {
+      S.fold[x.dataset.fold] = now;
+      const box = x.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
+      const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
+    });
+    try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ }
+    $('#foldallconv span').textContent = now ? 'Expand all conversations' : 'Collapse all conversations';
+  });
   document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => {
     e.stopPropagation(); if (e.target.closest('a')) return;
     const k = el.dataset.fold, now = !isFolded(k, el.dataset.def === '1'); S.fold[k] = now; localStorage.setItem('fold', JSON.stringify(S.fold));

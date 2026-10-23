@@ -782,3 +782,5 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .mb-ck b { font-weight: 500; } .mb-ck i { font-style: normal; color: var(--fgColor-muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mb-ck.pass svg { color: var(--fgColor-success); } .mb-ck.fail svg { color: var(--fgColor-danger); } .mb-ck.skip svg, .mb-ck.pending svg { color: var(--fgColor-muted); }
 .mb-warn .mb-h { align-items: flex-start; }
+
+.fold-bar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
