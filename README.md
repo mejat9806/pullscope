@@ -58,7 +58,7 @@ write actions (comment, reply, review, merge, close/reopen).
 
 ## Installers for macOS, Windows and Linux
 
-`.github/workflows/release.yml` builds the app on each platform (macOS Apple Silicon + Intel, Windows, Linux).
+`.github/workflows/release.yml` builds the app on each platform (macOS Apple Silicon, Windows, Linux).
 Run it from the Actions tab ("Build installers" -> Run workflow) to get the installers as downloadable artifacts,
 or push a tag (`git tag v0.1.0 && git push --tags`) to publish them as a draft GitHub Release.
 
