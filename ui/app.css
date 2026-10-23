@@ -734,3 +734,7 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 
 .split.flip { flex-direction: row-reverse; }
 .flip-btn { font-size: 14px; line-height: 1; width: auto; padding: 4px 6px; }
+
+/* resize handle: keep it above sticky bars, and follow the flip */
+.gutter { z-index: 30; }
+.split.flip > .gutter { left: auto; right: calc(var(--lw) - 9px); }
