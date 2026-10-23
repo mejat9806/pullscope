@@ -670,13 +670,13 @@ input, select, .sel, .input { border-radius: 8px; border: 0; box-shadow: 0 0 0 .
 .seg-ctl { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--bgColor-neutral-muted); }
 .seg-ctl button { border: 0; background: transparent; color: var(--fgColor-muted); font: inherit; font-size: 12px; padding: 3px 12px; border-radius: 6px; cursor: pointer; transition: background .15s, color .15s; }
 .seg-ctl button.on { background: var(--bgColor-default); color: var(--fgColor-default); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
-table.diff.split { table-layout: fixed; width: 100%; }
-table.diff.split td.code { width: auto; overflow-wrap: anywhere; white-space: pre-wrap; }
-table.diff.split td.code + td.num { border-left: 1px solid var(--borderColor-muted); }
-table.diff.split td.empty { background: var(--bgColor-muted); }
-table.diff.split td.num.add { background: var(--d-add-num); } table.diff.split td.code.add { background: var(--d-add-line); }
-table.diff.split td.num.del { background: var(--d-del-num); } table.diff.split td.code.del { background: var(--d-del-line); }
-table.diff.split tr.hunk td { background: var(--d-hunk-line); color: var(--fgColor-muted); }
+table.diff.sbs { table-layout: fixed; width: 100%; }
+table.diff.sbs td.code { width: auto; overflow-wrap: anywhere; white-space: pre-wrap; }
+table.diff.sbs td.code + td.num { border-left: 1px solid var(--borderColor-muted); }
+table.diff.sbs td.empty { background: var(--bgColor-muted); }
+table.diff.sbs td.num.add { background: var(--d-add-num); } table.diff.sbs td.code.add { background: var(--d-add-line); }
+table.diff.sbs td.num.del { background: var(--d-del-num); } table.diff.sbs td.code.del { background: var(--d-del-line); }
+table.diff.sbs tr.hunk td { background: var(--d-hunk-line); color: var(--fgColor-muted); }
 .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-built_in { color: #cf222e; }
 .hljs-string, .hljs-regexp, .hljs-attr { color: #0a3069; }
 .hljs-number, .hljs-meta, .hljs-symbol { color: #0550ae; }
@@ -704,3 +704,13 @@ tr:hover > td.num .lc-plus { opacity: 1; transform: translateY(-50%) scale(1); }
 .lc-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 .sug-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
 .sug-note { font-size: 12px; color: var(--fgColor-muted); }
+
+/* diff gutters: room for the "+" button, numbers never touch code */
+table.diff td.num { box-sizing: border-box; width: 64px; min-width: 64px; padding: 0 10px 0 22px; text-align: right; }
+table.diff td.code { padding-left: 24px; }
+table.diff.sbs td.code { padding-left: 24px; border-right: 0; }
+table.diff.sbs td.num + td.code { border-right: 1px solid var(--borderColor-muted); }
+table.diff.sbs td.code:last-child { border-right: 0; }
+table.diff.sbs tr.hunk td.num { width: 64px; }
+.lc { padding: 8px 12px 10px 24px; }
+.lc-plus { left: 3px; }
