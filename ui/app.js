@@ -209,10 +209,12 @@ function parsePatch(patch) {
 const codeHtml = (text, path) => (window.hlLine && window.hlLine(text, path)) ?? esc(text);
 // "+" button + inline editor + saved draft comments for one line
 const lineKey = (path, line, side) => `${path}\u001f${side}\u001f${line}`;
-function lineExtras(path, line, side, cols, canComment) {
+// Pending comments are Markdown; show code fences (incl. suggestions) as blocks, everything else as plain text.
+const lcBody = (md) => String(md).split(/```/).map((p, i) => i % 2 ? (() => { const m = p.match(/^(\w*)\n?([\s\S]*)$/); return `<pre class="lc-code${m[1] === 'suggestion' ? ' sug' : ''}">${m[1] === 'suggestion' ? '<b>Suggested change</b>\n' : ''}${esc(m[2].replace(/\n$/, ''))}</pre>`; })() : esc(p).replace(/\n/g, '<br>')).join('');
+function lineExtras(path, line, side, cols, canComment, text) {
   const k = lineKey(path, line, side), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
-  const cards = mine.map((c) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${esc(c.body)}</div><button class="lc-x" data-lcdel="${c.id}" title="Delete draft comment">${icon('x')}</button></div>`).join('');
-  const open = canComment && S.lcOpen === k ? `<div class="lc-edit"><textarea id="lctext" placeholder="Leave a comment on this line" rows="3"></textarea><div class="lc-btns"><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
+  const cards = mine.map((c) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${lcBody(c.body)}</div><button class="lc-x" data-lcdel="${c.id}" title="Delete draft comment">${icon('x')}</button></div>`).join('');
+  const open = canComment && S.lcOpen === k ? `<div class="lc-edit">${draftBox('lc', 'Leave a comment on this line', 3)}<div class="lc-btns">${side === 'RIGHT' && text !== undefined ? `<button class="btn small" id="lcsuggest" data-code="${esc(text)}" title="Insert a suggested change for this line">± Suggest change</button>` : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
   return cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '';
 }
 function diffTable(patch, path, canComment) {
@@ -224,13 +226,13 @@ function diffTable(patch, path, canComment) {
       const r = rows[i];
       if (r.t === 'hunk') { out.push(`<tr class="hunk"><td class="num"></td><td class="code" colspan="3">${esc(r.text)}</td></tr>`); i++; continue; }
       if (r.t === 'note') { i++; continue; }
-      if (r.t === 'ctx') { out.push(`<tr><td class="num">${r.o}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 4, canComment)}`); i++; continue; }
+      if (r.t === 'ctx') { out.push(`<tr><td class="num">${r.o}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 4, canComment, r.text)}`); i++; continue; }
       const dels = [], adds = [];
       while (rows[i] && rows[i].t === 'del') dels.push(rows[i++]);
       while (rows[i] && rows[i].t === 'add') adds.push(rows[i++]);
       for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
         const d = dels[k], a = adds[k];
-        out.push(`<tr><td class="num${d ? ' del' : ' empty'}">${d ? d.o + plus(d.o, 'LEFT') : ''}</td><td class="code${d ? ' del' : ' empty'}" ${d ? 'data-marker="-"' : ''}>${d ? codeHtml(d.text, path) : ''}</td><td class="num${a ? ' add' : ' empty'}">${a ? a.n + plus(a.n, 'RIGHT') : ''}</td><td class="code${a ? ' add' : ' empty'}" ${a ? 'data-marker="+"' : ''}>${a ? codeHtml(a.text, path) : ''}</td></tr>${d ? lineExtras(path, d.o, 'LEFT', 4, canComment) : ''}${a ? lineExtras(path, a.n, 'RIGHT', 4, canComment) : ''}`);
+        out.push(`<tr><td class="num${d ? ' del' : ' empty'}">${d ? d.o + plus(d.o, 'LEFT') : ''}</td><td class="code${d ? ' del' : ' empty'}" ${d ? 'data-marker="-"' : ''}>${d ? codeHtml(d.text, path) : ''}</td><td class="num${a ? ' add' : ' empty'}">${a ? a.n + plus(a.n, 'RIGHT') : ''}</td><td class="code${a ? ' add' : ' empty'}" ${a ? 'data-marker="+"' : ''}>${a ? codeHtml(a.text, path) : ''}</td></tr>${d ? lineExtras(path, d.o, 'LEFT', 4, canComment) : ''}${a ? lineExtras(path, a.n, 'RIGHT', 4, canComment, a.text) : ''}`);
       }
     }
     return `<table class="diff sbs"><colgroup><col style="width:64px"><col><col style="width:64px"><col></colgroup>${out.join('')}</table>`;
@@ -238,9 +240,9 @@ function diffTable(patch, path, canComment) {
   for (const r of rows) {
     if (r.t === 'hunk') out.push(`<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">${esc(r.text)}</td></tr>`);
     else if (r.t === 'note') out.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(r.text)}</td></tr>`);
-    else if (r.t === 'add') out.push(`<tr class="add"><td class="num"></td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker="+">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment)}`);
+    else if (r.t === 'add') out.push(`<tr class="add"><td class="num"></td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker="+">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment, r.text)}`);
     else if (r.t === 'del') out.push(`<tr class="del"><td class="num">${r.o}${plus(r.o, 'LEFT')}</td><td class="num"></td><td class="code" data-marker="-">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.o, 'LEFT', 3, canComment)}`);
-    else out.push(`<tr><td class="num">${r.o}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment)}`);
+    else out.push(`<tr><td class="num">${r.o}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment, r.text)}`);
   }
   return `<table class="diff"><colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>${out.join('')}</table>`;
 }
@@ -757,7 +759,7 @@ function bindWrite() {
   document.querySelectorAll('.tt[data-draft]').forEach((host) => {
     const key = host.dataset.draft;
     if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
-    const send = () => (key === 'comment' ? $('#docomment') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
+    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
     const mount = () => (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }));
     // Editors are heavy: build each one only when its box is near the viewport.
     const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
@@ -790,12 +792,16 @@ function bindWrite() {
     });
   }));
   document.querySelectorAll('[data-dmode]').forEach((b) => b.addEventListener('click', () => { S.diffMode = b.dataset.dmode; localStorage.setItem('diffmode', S.diffMode); S.keepScroll = true; render(); S.keepScroll = false; }));
-  document.querySelectorAll('[data-lc]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.lcOpen = b.dataset.lc; S.keepScroll = true; render(); S.keepScroll = false; $('#lctext')?.focus(); }));
-  $('#lccancel')?.addEventListener('click', () => { S.lcOpen = ''; S.keepScroll = true; render(); S.keepScroll = false; });
+  document.querySelectorAll('[data-lc]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.lcOpen = b.dataset.lc; S.keepScroll = true; render(); S.keepScroll = false; setTimeout(() => S.eds?.at(-1)?.focus?.(), 200); }));
+  $('#lccancel')?.addEventListener('click', () => { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#lcsuggest')?.addEventListener('click', (ev) => {
+    const cur = (S.draft.lc || '').trimEnd(); S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${ev.currentTarget.dataset.code}\n\`\`\`\n`; saveDrafts();
+    S.keepScroll = true; render(); S.keepScroll = false; setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
+  });
   $('#lcadd')?.addEventListener('click', () => {
-    const body = $('#lctext').value.trim(); if (!body || !S.lcOpen) return;
+    const body = (S.draft.lc || '').trim(); if (!body || !S.lcOpen) return;
     const [path, side, line] = S.lcOpen.split('\u001f'); (S.pending[pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body }); savePending();
-    S.lcOpen = ''; S.keepScroll = true; render(); S.keepScroll = false;
+    S.lcOpen = ''; delete S.draft.lc; saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false;
   });
   document.querySelectorAll('[data-lcdel]').forEach((b) => b.addEventListener('click', () => { S.pending[pendKey()] = pendList().filter((c) => String(c.id) !== b.dataset.lcdel); savePending(); S.keepScroll = true; render(); S.keepScroll = false; }));
   $('#finishrev')?.addEventListener('click', reviewDialog);

@@ -738,3 +738,10 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 /* resize handle: keep it above sticky bars, and follow the flip */
 .gutter { z-index: 30; }
 .split.flip > .gutter { left: auto; right: calc(var(--lw) - 9px); }
+
+.lc-edit .tt { border-radius: 10px; }
+.lc-btns .sp { flex: 1; }
+.lc-body { line-height: 1.5; }
+.lc-code { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--bgColor-neutral-muted); font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+.lc-code.sug { background: var(--d-add-line); border: 1px solid var(--d-add-num); }
+.lc-code b { display: block; font: 600 11px -apple-system, system-ui, sans-serif; color: var(--fgColor-success); margin-bottom: 2px; }
