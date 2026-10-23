@@ -871,9 +871,13 @@ function render() {
   const scroll = $('.main')?.scrollTop || 0;
   const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('.main > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
+  // Anchor on the first element with an id that is on screen, so a redraw keeps *it* where it was
+  // (heights above the viewport can change between renders, which made the view creep upward).
+  let anchor = null;
+  { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
   $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
-  if (S.keepScroll || same()) { $('.main').scrollTop = scroll; document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
+  if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
   syncUnread();
