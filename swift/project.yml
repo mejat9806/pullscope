@@ -1,0 +1,64 @@
+name: Reviewer
+options:
+  bundleIdPrefix: dev.local
+  deploymentTarget: { macOS: "14.0", iOS: "17.0" }
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    GENERATE_INFOPLIST_FILE: YES
+    INFOPLIST_KEY_CFBundleDisplayName: Reviewer
+targets:
+  Reviewer-macOS:
+    type: application
+    platform: macOS
+    sources: [Reviewer]
+    settings:
+      base:
+        PRODUCT_NAME: Reviewer
+        PRODUCT_BUNDLE_IDENTIFIER: dev.local.reviewer.mac
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_APP_SANDBOX: NO
+        ENABLE_HARDENED_RUNTIME: NO
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+  Reviewer-iOS:
+    type: application
+    platform: iOS
+    sources: [Reviewer, Shared]
+    dependencies:
+      - target: ReviewerWidgets
+    info:
+      path: Reviewer-iOS-Info.plist
+      properties:
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [dev.local.reviewer.refresh]
+    settings:
+      base:
+        PRODUCT_NAME: Reviewer
+        PRODUCT_BUNDLE_IDENTIFIER: dev.local.reviewer.ios
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+  ReviewerWidgets:
+    type: app-extension
+    platform: iOS
+    sources: [ReviewerWidgets, Shared]
+    info:
+      path: ReviewerWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Reviewer Activity
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.local.reviewer.ios.widgets
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES

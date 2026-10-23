@@ -1,0 +1,851 @@
+// GitHub pull request page renderer. Data arrives from the Rust backend (Tauri `fetch_pr`),
+// or from a recorded bundle (`?fixture=file.json`) when previewed in a plain browser.
+const tauri = window.__TAURI__ && window.__TAURI__.core;
+// Clicking a native notification: open that PR and jump to the comment.
+if (window.__TAURI__ && window.__TAURI__.event) window.__TAURI__.event.listen('notif-click', (e) => { const { ref, target } = e.payload || {}; if (!ref) return; S.nav = false; S.bell = false; S.focus = target || ''; openPr(ref); });
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const icon = (name, size = 16, cls = '') => {
+  const k = name + (size === 24 ? '-24' : '');
+  return `<svg class="octicon ${cls}" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">${(window.OCTICONS || {})[k] || ''}</svg>`;
+};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function when(iso, lead = 'on ') {
+  const d = new Date(iso), now = new Date(), diff = (now - d) / 1000;
+  const abs = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${d.getUTCFullYear() !== now.getUTCFullYear() ? ', ' + d.getUTCFullYear() : ''}`;
+  const title = d.toUTCString();
+  let t;
+  if (diff < 30 * 86400 && diff >= 0) {
+    const n = (v, u) => `${v} ${u}${v === 1 ? '' : 's'} ago`;
+    t = diff < 60 ? 'now' : diff < 3600 ? n(Math.floor(diff / 60), 'minute') : diff < 86400 ? n(Math.floor(diff / 3600), 'hour') : n(Math.floor(diff / 86400), 'day');
+    return `<span title="${title}">${t}</span>`;
+  }
+  return `<span title="${title}">${lead}${abs}</span>`;
+}
+function fullDate(iso) {
+  const d = new Date(iso);
+  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+const user = (u) => (u ? `<a class="actor" href="${esc(u.html_url)}">${esc(u.login)}</a>` : '<span class="actor">ghost</span>');
+const avatar = (u, s = 40) => `<img class="av" src="${esc(u?.avatar_url || '')}${u?.avatar_url ? (u.avatar_url.includes('?') ? '&' : '?') + 's=' + s * 2 : ''}" width="${s}" height="${s}" alt="@${esc(u?.login || 'ghost')}" style="border-radius:50%;display:block">`;
+const ASSOC = { CONTRIBUTOR: 'Contributor', MEMBER: 'Member', OWNER: 'Owner', COLLABORATOR: 'Collaborator', FIRST_TIME_CONTRIBUTOR: 'First-time contributor', FIRST_TIMER: 'First-timer', MANNEQUIN: 'Mannequin' };
+const REACTS = [['+1', '👍'], ['-1', '👎'], ['laugh', '😄'], ['hooray', '🎉'], ['confused', '😕'], ['heart', '❤️'], ['rocket', '🚀'], ['eyes', '👀']];
+
+const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+let S = { bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
+S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || []; } catch { return []; } })();
+
+const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+function applyMode() {
+  const d = document.documentElement, dark = isDark();
+  d.setAttribute('data-color-mode', dark ? 'dark' : 'light'); d.setAttribute('data-light-theme', 'light'); d.setAttribute('data-dark-theme', 'dark'); d.setAttribute('data-t', dark ? 'dark' : 'light');
+}
+
+const KEY_RECENT = 'recent';
+const compact = (n) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Math.floor(n / 1000) + 'k+' : (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k');
+
+// Native-app chrome: toolbar (history, address bar, actions) and a recent-PRs sidebar.
+function toolbar() {
+  const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
+  return `<header class="toolbar" data-tauri-drag-region>
+  <button class="tb-btn nav-btn" id="navbtn" title="Repositories">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
+  <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>
+  <div class="tb-group"><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
+}
+function sideRecent() {
+  const tabs = `<div class="sb-tabs"><button data-side="repos" class="${S.sideTab === 'repos' ? 'on' : ''}">Repos</button>${S.repo ? `<button data-side="prs" class="${S.sideTab === 'prs' ? 'on' : ''}">PRs</button>` : ''}<button data-side="recent" class="${S.sideTab === 'recent' ? 'on' : ''}">Recent</button></div>`;
+  let list;
+  if (S.sideTab === 'prs' && S.repo) {
+    list = prSide();
+  } else if (S.sideTab === 'recent') {
+    list = S.recent.map((r) => `<a class="rc ${S.bundle && r.ref === `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` ? 'on' : ''}" data-open="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="rc-t"><b>${esc(r.title)}</b><i>${esc(r.ref)}</i></span><button class="rc-x" data-rm="${esc(r.ref)}" title="Remove">${icon('x')}</button></a>`).join('') || '<div class="sb-empty">Pull requests you open appear here.</div>';
+  } else if (!S.hasToken) {
+    list = '<div class="sb-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="sb-btn" id="addtoken">Add token</button></div>';
+  } else if (S.reposErr) {
+    list = `<div class="sb-empty err">${esc(S.reposErr)}</div>`;
+  } else if (!S.repos) {
+    list = '<div class="sb-empty">Loading repositories…</div>';
+  } else {
+    const f = S.repoFilter.toLowerCase();
+    list = `<input class="input sb-filter" id="repofilter" placeholder="Find a repository…" value="${esc(S.repoFilter)}">` + (S.repos.filter((r) => r.full_name.toLowerCase().includes(f)).map((r) => `<a class="rc ${S.repo === r.full_name ? 'on' : ''}" data-repo="${esc(r.full_name)}"><span class="rc-i ${r.private ? 'closed' : ''}" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="rc-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}</i></span></a>`).join('') || '<div class="sb-empty">No matches.</div>');
+  }
+  return `<aside class="sidebar">${tabs}<div class="sb-list">${list}</div><div class="sb-foot">${S.hasToken ? 'Signed in with token' : 'Anonymous · 60 requests/hour'}</div></aside>`;
+}
+
+const PSORT = { updated: 'Recently updated', created: 'Newest', oldest: 'Oldest', number: 'Number', title: 'Title A–Z', author: 'Author' };
+const PGROUP = { none: 'No grouping', status: 'Status', author: 'Author', label: 'Label', base: 'Base branch' };
+const prStatus = (p) => (p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open');
+const PICON = { open: 'git-pull-request', draft: 'git-pull-request-draft', merged: 'git-merge', closed: 'git-pull-request-closed' };
+function prSide() {
+  const cur = S.bundle && S.view === 'pr' ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '';
+  const f = S.pf.toLowerCase();
+  const sel = (id, opts, v) => `<select class="input sb-sel" id="${id}">${Object.entries(opts).map(([k, t]) => `<option value="${k}"${k === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
+  const head = `<div class="sb-repo"><button class="fold-btn" data-side="repos" title="All repositories">${icon('chevron-left')}</button><b title="${esc(S.repo)}">${esc(S.repo)}</b></div>
+  <div class="seg sb-seg">${['open', 'closed', 'all'].map((s) => `<button data-sps="${s}" class="${S.prState === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
+  <input class="input sb-filter" id="prfilter" placeholder="Filter by title, #, author, label…" value="${esc(S.pf)}">
+  <div class="sb-ctl"><label>Sort${sel('prsort', PSORT, S.psort)}</label><label>Group${sel('prgroup', PGROUP, S.pgroup)}</label></div>`;
+  if (!S.prs) return head + '<div class="sb-empty">Loading pull requests…</div>';
+  const list = S.prs.filter((p) => !f || `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map((l) => l.name).join(' ')}`.toLowerCase().includes(f));
+  const by = { updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number }[S.psort];
+  list.sort(by);
+  const row = (p) => { const st = prStatus(p), ref = `${S.repo}#${p.number}`; return `<a class="rc ${ref === cur ? 'on' : ''}" data-open="${esc(ref)}"><span class="rc-i ${st}">${icon(PICON[st])}</span><span class="rc-t"><b>${esc(p.title)}</b><i>#${p.number} · ${esc(p.user.login)} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}</i></span></a>`; };
+  if (!list.length) return head + `<div class="sb-empty">${S.pf ? 'No matches.' : 'No pull requests.'}</div>`;
+  if (S.pgroup === 'none') return head + `<div class="sb-count">${list.length} pull request${list.length === 1 ? '' : 's'}</div>` + list.map(row).join('');
+  const groups = new Map(), put = (k, p) => (groups.get(k) || groups.set(k, []).get(k)).push(p);
+  list.forEach((p) => {
+    if (S.pgroup === 'status') put({ open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' }[prStatus(p)], p);
+    else if (S.pgroup === 'author') put(p.user.login, p);
+    else if (S.pgroup === 'base') put(p.base?.ref || '—', p);
+    else if ((p.labels || []).length) p.labels.forEach((l) => put(l.name, p)); else put('No label', p);
+  });
+  const order = S.pgroup === 'status' ? ['Open', 'Draft', 'Merged', 'Closed'] : [...groups.keys()].sort((a, b) => (a === 'No label') - (b === 'No label') || a.localeCompare(b));
+  return head + order.filter((k) => groups.has(k)).map((k) => { const key = 'pg:' + S.pgroup + ':' + k; return `<div class="pg${folded(key)}"><div class="pg-h" data-fold="${esc(key)}">${icon(isFolded(key) ? 'chevron-right' : 'chevron-down')}<span>${esc(k)}</span><i>${groups.get(k).length}</i></div><div class="pg-b">${groups.get(k).map(row).join('')}</div></div>`; }).join('');
+}
+
+function prList() {
+  const head = `<div class="prl-head"><div><span class="repo-ic">${icon('repo', 16)}</span> <b>${esc(S.repo)}</b></div><div class="seg">${['open', 'closed', 'all'].map((s) => `<button data-ps="${s}" class="${S.prState === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div></div>`;
+  let body;
+  if (S.error) body = `<div class="err" style="padding:16px">${esc(S.error)}</div>`;
+  else if (!S.prs) body = '<div class="spinner" style="margin:48px auto">Loading pull requests…</div>';
+  else body = S.prs.map((p) => {
+    const st = p.merged_at ? ['merged', 'git-merge'] : p.state === 'closed' ? ['closed', 'git-pull-request-closed'] : p.draft ? ['draft', 'git-pull-request-draft'] : ['open', 'git-pull-request'];
+    const lbl = (p.labels || []).map((l) => `<span class="pill-label" style="background:#${esc(l.color)}33;color:#${esc(l.color)};border-color:#${esc(l.color)};margin:0 0 0 4px">${esc(l.name)}</span>`).join('');
+    return `<a class="prl-row" data-open="${esc(S.repo)}#${p.number}"><span class="rc-i ${st[0]}">${icon(st[1])}</span><span class="prl-main"><b>${esc(p.title)}</b>${lbl}<i>#${p.number} ${p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : 'opened'} ${when(p.merged_at || p.closed_at || p.created_at).replace(/<\/?span[^>]*>/g, '')} by ${esc(p.user.login)}</i></span><img src="${esc(p.user.avatar_url)}&s=40" width="20" height="20" style="border-radius:50%"></a>`;
+  }).join('') || '<div class="diff-empty">No pull requests.</div>';
+  return `<div class="pr-page"><div class="repoline" style="padding-bottom:16px"></div><div class="prl">${head}${body}</div></div>`;
+}
+
+function repoHeader(p) {
+  return `<div class="repoline"><a href="${esc(p.base.repo.html_url)}" data-ext>${esc(p.base.repo.full_name)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}</div>`;
+}
+
+function stateOf(p) {
+  if (p.merged) return ['merged', 'git-merge', 'Merged'];
+  if (p.state === 'closed') return ['closed', 'git-pull-request-closed', 'Closed'];
+  if (p.draft) return ['draft', 'git-pull-request-draft', 'Draft'];
+  return ['open', 'git-pull-request', 'Open'];
+}
+
+function prHeader(b) {
+  const p = b.pull, [st, ic, label] = stateOf(p), n = p.number;
+  const commentsTotal = p.comments + p.review_comments + b.timeline.filter((e) => e.event === 'reviewed').length;
+  const sq = (() => { const t = p.additions + p.deletions || 1; const small = t <= 5; const a = small ? p.additions : Math.round((p.additions / t) * 5); const d = small ? p.deletions : 5 - a; const arr = []; for (let i = 0; i < 5; i++) arr.push(i < a ? 'a' : i < a + d ? 'd' : ''); return arr.map((c) => `<i class="${c}"></i>`).join(''); })();
+  const who = st === 'merged' ? `<a class="author" style="text-decoration:underline;text-underline-offset:2px" href="${esc(p.merged_by.html_url)}">${esc(p.merged_by.login)}</a> merged ${p.commits} commit${p.commits === 1 ? '' : 's'} into` : `<a class="author" href="${esc(p.user.html_url)}">${esc(p.user.login)}</a> wants to merge ${p.commits} commit${p.commits === 1 ? '' : 's'} into`;
+  const at = st === 'merged' ? p.merged_at : st === 'closed' ? p.closed_at : p.created_at;
+  const splitOk = S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline';
+  const tabs = [['conversation', 'comment-discussion', 'Conversation', commentsTotal + 0], ['timeline', 'clock', 'Timeline', b.timeline.length],['commits', 'git-commit', 'Commits', p.commits], ['checks', 'checklist', 'Checks', (b.checks || []).length], ['files', 'file-diff', 'Files changed', p.changed_files]];
+  return `<div class="pr-title-area"><h1 class="pr-title"><span>${esc(p.title)}</span><span class="num">#${n}</span></h1>
+  <div class="pr-meta"><span class="state-pill state-${st}">${icon(ic)} ${label}</span><span>${who}</span> <span class="branch" title="${esc(p.base.repo.full_name)}:${esc(p.base.ref)}">${esc(p.base.label)}</span> <span>from</span> <span class="branch">${esc(p.head.label)}</span><button class="copy-btn" id="copybranch" aria-label="Copy head branch name to clipboard">${icon('copy')}</button><span>${when(at)}</span></div></div>
+  <div class="pr-tabs"><span class="mini" title="${esc(p.title)}"><b>#${n}</b> ${esc(p.title)}</span><nav>${tabs.map(([k, i, t, c]) => `<a data-tab="${k}" class="${S.tab === k || (k === 'commits' && false) ? 'sel' : ''}">${icon(i)}${t}<span class="counter">${c}</span></a>`).join('')}</nav>
+  <div class="tools"><button class="split-btn" id="review" title="Submit a review">${icon('eye')}<span>Review</span></button><button class="split-btn ${S.hide.side || S.split ? '' : 'on'}" id="sidetoggle" title="Show or hide the details panel" ${S.tab !== 'conversation' || S.split ? 'disabled' : ''} style="${S.tab !== 'conversation' ? 'visibility:hidden' : ''}">${icon('sidebar-expand')}<span>Details</span></button><button class="split-btn ${splitOk && S.split ? 'on' : ''}" id="split" title="${splitOk ? 'Split view: commits beside conversation' : 'Split view is available on the Conversation and Commits tabs'}" ${splitOk ? '' : 'disabled'}>${icon('columns')}<span>Split view</span></button><div class="diffstat"><span class="add">+${p.additions}</span><span class="del">-${p.deletions}</span><span class="sq">${sq}</span></div></div></div>`;
+}
+
+const isFolded = (k, def = false) => (k in S.fold ? S.fold[k] : def);
+const folded = (k, def = false) => (isFolded(k, def) ? ' folded' : '');
+const foldBtn = (k, title = 'Collapse / expand', def = false) => `<button class="fold-btn" data-fold="${esc(k)}" data-def="${def ? 1 : 0}" title="${title}">${icon(isFolded(k, def) ? 'chevron-right' : 'chevron-down')}</button>`;
+
+function reactionsHtml(r, kind, id) {
+  r = r || {};
+  const items = REACTS.filter(([k]) => r[k] > 0).map(([k, e]) => `<span class="reaction"><span class="e">${e}</span><span>${r[k]}</span></span>`);
+  const add = kind && id ? `<span class="react-wrap"><button class="react-add" data-rk="${kind}" data-rid="${id}" title="Add reaction">${icon('smiley')}</button></span>` : '';
+  return items.length || add ? `<div class="reactions">${items.join('')}${add}</div>` : '';
+}
+
+function commentBox(c, { isPr = false } = {}) {
+  const u = c.user || c.actor;
+  const assoc = ASSOC[c.author_association];
+  const body = c.body_html && c.body_html.trim() ? `<div class="markdown-body">${c.body_html}</div>` : '<span class="empty">No description provided.</span>';
+  return `<div class="tl-comment${folded('c:' + c.id)}" id="c-${esc(c.id ?? '')}"><div class="avatar-col"><a href="${esc(u?.html_url)}">${avatar(u, 40)}</a></div>
+  <div class="cbox"><div class="chead"><div>${foldBtn('c:' + c.id, 'Hide this comment')} <a class="author u" href="${esc(u?.html_url)}"><span class="author" style="font-weight:600;color:var(--fgColor-default)">${esc(u?.login || 'ghost')}</span></a> ${isPr ? 'commented' : 'commented'} <a class="ts" href="${esc(c.html_url || '#')}">${when(c.created_at || c.submitted_at)}</a></div>
+  <div class="rt">${assoc ? `<span class="assoc">${assoc}</span>` : ''}<button class="cm-btn" data-cm="${esc(c.id)}" title="Comment actions">⋯</button></div></div>
+  <div class="cbody">${body}</div>${reactionsHtml(c.reactions, isPr ? 'pr' : 'issue_comment', c.id)}</div></div>`;
+}
+
+function diffHunkTable(hunk) {
+  const rows = []; let o = 0, n = 0;
+  for (const line of hunk.split('\n')) {
+    if (line.startsWith('@@')) { const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/); if (m) { o = +m[1]; n = +m[2]; } rows.push(`<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">${esc(line)}</td></tr>`); continue; }
+    const t = line[0], txt = line.slice(1);
+    if (t === '+') rows.push(`<tr class="add"><td class="num"></td><td class="num">${n++}</td><td class="code" data-marker="+">${esc(txt)}</td></tr>`);
+    else if (t === '-') rows.push(`<tr class="del"><td class="num">${o++}</td><td class="num"></td><td class="code" data-marker="-">${esc(txt)}</td></tr>`);
+    else if (t === '\\') rows.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(line)}</td></tr>`);
+    else rows.push(`<tr><td class="num">${o++}</td><td class="num">${n++}</td><td class="code" data-marker=" ">${esc(txt)}</td></tr>`);
+  }
+  return `<table class="diff"><colgroup><col style="width:50px"><col style="width:50px"><col></colgroup>${rows.join('')}</table>`;
+}
+
+function reviewBlock(e, b) {
+  const resolved = new Set(b.resolved_ids || []), isRes = (list) => list.some((c) => resolved.has(c.id));
+  const stateMap = { approved: ['check', 'success', 'approved these changes'], changes_requested: ['file-diff', 'danger', 'requested changes'], commented: ['eye', '', 'reviewed'], dismissed: ['x', '', 'dismissed a review'] };
+  const [ic, kind, verb] = stateMap[e.state.toLowerCase()] || ['eye', '', 'reviewed'];
+  const cs = b.review_comments.filter((c) => c.pull_request_review_id === e.id && (!S.who.length || S.who.includes(e.user?.login) || S.who.includes(c.user?.login)));
+  const hasBody = e.body_html && e.body_html.trim();
+  const byPath = {};
+  cs.forEach((c) => (byPath[`${c.path}\u0000${c.original_position ?? c.position}`] ||= []).push(c));
+  const all = Object.values(byPath), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
+  const lists = S.unres ? all.filter((l) => !isRes(l)) : all;
+  if (S.unres && !lists.length) return '';
+  const threads = lists.map((list) => `<div class="thread${folded('t:' + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ''}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || '')}</div>${list.map((c) => `<div class="tc" id="c-${esc(c.id)}"><a href="${esc(c.user.html_url)}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user.login)}</span> <span>${when(c.created_at)}</span><button class="cm-btn" data-cm="${esc(c.id)}" data-root="${list[0].id}" title="Comment actions">⋯</button></div><div class="markdown-body" style="margin-top:8px">${c.body_html || ''}</div>${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`).join('')}<div class="reply">${draftBox('reply-' + list[0].id, 'Reply…', 2)}${errLine('reply-' + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join('');
+  const sum = all.length ? `<span class="rev-sum${allRes ? ' ok' : ''}">${allRes ? icon('check') + ' All resolved' : `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}`}</span>` : '';
+  return `<div class="TLI rev${folded(rk, allRes)}"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e.user, 20)}</div><div class="TLI-body"><div class="row">${foldBtn(rk, 'Collapse / expand this review', allRes)}${user(e.user)} <span>${verb}</span> <a class="time" href="${esc(e.html_url)}">${when(e.submitted_at).replace(/<\/?span[^>]*>/g, '')}</a>${sum}</div>
+  ${hasBody ? `<div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">${e.body_html}</div></div></div>` : ''}${threads ? `<div>${threads}</div>` : ''}</div></div>`;
+}
+
+function commitRow(msg, sha, author, url, verification, trailing = '') {
+  const first = String(msg || '').split('\n')[0];
+  const unv = verification && !verification.verified;
+  return `<div class="commit-row">${author ? `<span class="TLI-avatar" style="margin-right:8px">${avatar(author, 20)}</span>` : ''}<span class="msg" style="flex:0 1 auto"><a href="${esc(url || '#')}">${esc(first)}</a></span>${trailing}<span class="cm-ic">${icon('comment')}</span><span style="flex:1"></span>${verification ? `<span class="label-pill ${unv ? 'warn' : 'ok'}">${unv ? 'Unverified' : 'Verified'}</span>` : ''}<a class="sha" href="${esc(url || '#')}">${esc(String(sha).slice(0, 7))}</a></div>`;
+}
+
+function timeline(b) {
+  const p = b.pull, out = [];
+  const evUser = (e) => { const u = e.user || e.actor || e.author; return u?.login || u?.name || ''; };
+  const people = new Map(), bump = (u) => { if (!u?.login) return; const r = people.get(u.login) || { u, n: 0 }; r.n++; people.set(u.login, r); };
+  bump(p.user); b.timeline.forEach((e) => { if (e.event === 'commented' || e.event === 'reviewed') bump(e.user); }); b.review_comments.forEach((c) => bump(c.user));
+  S.who = S.who.filter((w) => people.has(w));
+  const who = S.who, on = who.length > 0;
+  const byUser = on ? b.timeline.filter((e) => who.includes(evUser(e)) || (e.event === 'reviewed' && b.review_comments.some((c) => c.pull_request_review_id === e.id && who.includes(c.user?.login)))) : b.timeline;
+  const keep = S.unres ? byUser.filter((e) => e.event === 'reviewed') : byUser;
+  const bar = people.size > 1 ? `<div class="who-bar"><span class="who-l">${icon('person')}Show</span><button class="who-chip ${on ? '' : 'on'}" data-whoclear="1">Everyone</button>${[...people.values()].sort((x, y) => y.n - x.n).map(({ u, n }) => `<button class="who-chip ${who.includes(u.login) ? 'on' : ''}" data-who="${esc(u.login)}" title="${n} comment${n === 1 ? '' : 's'}">${avatar(u, 18)}<span>${esc(u.login)}</span><i>${n}</i></button>`).join('')}</div>` : '';
+  if (!S.unres && (!on || who.includes(p.user.login))) out.push(commentBox({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
+  // Long runs of commits collapse into one row (the Commits tab lists them), so comments stay reachable.
+  const evs = [];
+  for (let i = 0; i < keep.length;) {
+    let j = i; while (j < keep.length && keep[j].event === 'committed') j++;
+    if (j - i >= 6) { evs.push({ event: 'commit-run', n: j - i, first: keep[i], last: keep[j - 1] }); i = j; } else { evs.push(keep[i]); i++; }
+  }
+  const info = b.commit_info || {};
+  let merged = false;
+  for (const e of evs) {
+    switch (e.event) {
+      case 'commented': out.push(commentBox(e)); break;
+      case 'commit-run': out.push(`<div class="TLI"><div class="TLI-badge">${icon('git-commit')}</div><div class="TLI-body"><div class="row"><a data-tab="commits" class="run"><b>${e.n} commits</b> <span class="mono">${esc(e.first.sha.slice(0, 7))} … ${esc(e.last.sha.slice(0, 7))}</span> · view in Commits</a></div></div></div>`); break;
+      case 'reviewed': out.push(reviewBlock(e, b)); break;
+      case 'committed': out.push(`<div class="TLI"><div class="TLI-badge">${icon('git-commit')}</div><div class="TLI-body">${commitRow(e.message, e.sha, info[e.sha]?.author || (e.author?.avatar_url ? e.author : null), e.html_url, e.verification)}</div></div>`); break;
+      case 'referenced': {
+        const ci = info[e.commit_id];
+        const ml = ci ? ci.message.split('\n')[0] : '';
+        const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
+        out.push(`<div class="TLI"><div class="TLI-badge">${icon('cross-reference')}</div><div class="TLI-body stack"><div class="row" style="min-height:32px">${user(e.actor)} <span>added a commit that referenced this pull request</span> <a class="time">${when(e.created_at).replace(/<\/?span[^>]*>/g, '')}</a></div>${ci ? `<div class="line2"><div class="commit-row"><span class="TLI-avatar" style="margin:0 8px 0 0">${avatar(ci.author || e.actor, 20)}</span><span class="msg" style="flex:0 1 auto"><a href="${esc(ci.html_url)}">${linked}</a></span><span class="mono" style="background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px">…</span><span class="cm-ic">${icon('comment')}</span><span style="flex:1"></span><a class="sha" href="${esc(ci.html_url)}">${esc(ci.sha.slice(0, 7))}</a></div></div>` : ''}</div></div>`);
+        break;
+      }
+      case 'merged': merged = true; out.push(`<div class="TLI mergedrow"><div class="TLI-badge done">${icon('git-merge')}</div><div class="TLI-avatar">${avatar(e.actor, 20)}</div><div class="TLI-body"><div class="row">${user(e.actor)} <span>merged commit <b class="mono" style="color:var(--fgColor-default);font-size:12px">${esc((e.commit_id || '').slice(0, 7))}</b> into <span class="branch">${esc(p.base.label)}</span></span> <a class="time">${when(e.created_at).replace(/<\/?span[^>]*>/g, '')}</a></div></div></div>`); out.push('<div class="TLI-break"></div>'); break;
+      case 'closed': if (!p.merged) out.push(simple(e, 'git-pull-request-closed', 'closed this', 'danger')); break;
+      case 'reopened': out.push(simple(e, 'git-pull-request', 'reopened this', 'success')); break;
+      case 'cross-referenced': {
+        const i = e.source?.issue; if (!i) break;
+        const isPr = !!i.pull_request;
+        out.push(`<div class="TLI"><div class="TLI-badge">${icon('cross-reference')}</div><div class="TLI-body"><div class="row">${user(e.actor)} <span>mentioned this ${isPr ? 'pull request' : 'issue'}</span> <a class="time">${when(e.created_at).replace(/<\/?span[^>]*>/g, '')}</a></div>
+        <div class="ref-card"><span style="color:var(--fgColor-${i.state === 'open' ? 'success' : 'done'});margin-top:2px">${icon(isPr ? (i.state === 'open' ? 'git-pull-request' : 'git-merge') : 'issue-opened')}</span><div><a class="t" href="${esc(i.html_url)}" style="color:var(--fgColor-default)">${esc(i.title.split('\n')[0].slice(0, 120))}</a><span class="r">${esc(i.repository?.full_name || '')}#${i.number}</span></div></div></div></div>`);
+        break;
+      }
+      case 'labeled': case 'unlabeled': out.push(`<div class="TLI condensed"><div class="TLI-badge">${icon('tag')}</div><div class="TLI-avatar">${avatar(e.actor, 20)}</div><div class="TLI-body">${user(e.actor)} <span>${e.event === 'labeled' ? 'added' : 'removed'}</span> <span class="pill-label" style="background:#${esc(e.label?.color)};color:#fff;margin:0">${esc(e.label?.name)}</span> <span>label</span> <a class="time">${when(e.created_at).replace(/<\/?span[^>]*>/g, '')}</a></div></div>`); break;
+      case 'assigned': case 'unassigned': out.push(simple(e, 'person', `${e.event} ${e.assignee ? esc(e.assignee.login) : ''}`)); break;
+      case 'review_requested': out.push(simple(e, 'eye', `requested a review from ${esc(e.requested_reviewer?.login || e.requested_team?.name || '')}`)); break;
+      case 'renamed': out.push(simple(e, 'pencil', `changed the title <s>${esc(e.rename?.from)}</s> ${esc(e.rename?.to)}`)); break;
+      case 'head_ref_force_pushed': out.push(simple(e, 'repo-push', 'force-pushed the head branch')); break;
+      case 'head_ref_deleted': out.push(simple(e, 'git-branch', 'deleted the head branch')); break;
+      case 'ready_for_review': out.push(simple(e, 'eye', 'marked this pull request as ready for review')); break;
+      case 'convert_to_draft': out.push(simple(e, 'git-pull-request-draft', 'marked this pull request as draft')); break;
+      case 'milestoned': out.push(simple(e, 'milestone', `added this to the ${esc(e.milestone?.title)} milestone`)); break;
+      case 'locked': out.push(simple(e, 'lock', 'locked this conversation')); break;
+      default: break; // subscribed, unsubscribed, mentioned: hidden by GitHub as well
+    }
+  }
+  return `${bar}<div class="TL">${out.join('')}${on && out.length === 0 ? '<div class="diff-empty">Nothing from the selected accounts.</div>' : ''}</div>${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}`;
+}
+const checkState = (c) => (c.status !== 'completed' ? 'pending' : c.conclusion === 'success' ? 'pass' : ['skipped', 'neutral'].includes(c.conclusion) ? 'skip' : 'fail');
+const CK = { pass: ['check-circle-fill', 'Passed'], fail: ['x-circle-fill', 'Failed'], pending: ['dot-fill', 'In progress'], skip: ['circle-slash', 'Skipped'] };
+function checksView(b) {
+  const list = (b.checks || []).map((c) => ({ ...c, st: checkState(c) }));
+  if (!list.length) return '<div class="diff-empty">No checks reported for the latest commit.</div>';
+  const n = (s) => list.filter((c) => c.st === s).length;
+  const rank = { fail: 0, pending: 1, pass: 2, skip: 3 };
+  list.sort((x, y) => rank[x.st] - rank[y.st] || String(x.name).localeCompare(String(y.name)));
+  const head = n('fail') ? ['fail', `${n('fail')} failing`] : n('pending') ? ['pending', `${n('pending')} in progress`] : ['pass', 'All checks passed'];
+  const dur = (c) => { const s = Date.parse(c.started_at), e = Date.parse(c.completed_at); if (!s || !e || e < s) return ''; const t = Math.round((e - s) / 1000); return t >= 60 ? `${Math.floor(t / 60)}m ${t % 60}s` : `${t}s`; };
+  return `<div class="checks"><div class="ck-head ${head[0]}">${icon(CK[head[0]][0], 20)}<div><b>${head[1]}</b><span>${[n('fail') && `${n('fail')} failing`, n('pending') && `${n('pending')} in progress`, n('pass') && `${n('pass')} passed`, n('skip') && `${n('skip')} skipped`].filter(Boolean).join(' · ')}</span></div></div>${list.map((c) => `<a class="ck-row ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}><span class="ck-i">${icon(CK[c.st][0])}</span><span class="ck-n"><b>${esc(c.name)}</b><i>${esc(c.description || (c.app ? c.app : ''))}</i></span><span class="ck-s">${c.st === 'fail' && c.conclusion && c.conclusion !== 'failure' ? esc(c.conclusion.replace(/_/g, ' ')) : CK[c.st][1]}</span><span class="ck-d">${dur(c)}</span></a>`).join('')}</div>`;
+}
+
+function unresolvedRoots(b) {
+  const res = new Set(b.resolved_ids || []);
+  return b.review_comments.filter((c) => !c.in_reply_to_id && !res.has(c.id));
+}
+function attention(b) {
+  const p = b.pull, rc = b.review_comments, roots = rc.filter((c) => !c.in_reply_to_id), open = unresolvedRoots(b);
+  const known = S.hasToken || (b.resolved_ids || []).length > 0;
+  const latest = new Map();
+  b.timeline.filter((e) => e.event === 'reviewed' && e.user).forEach((e) => { const st = e.state.toLowerCase(); if (st === 'commented' && latest.has(e.user.login)) return; latest.set(e.user.login, st); });
+  const cr = [...latest.values()].filter((s) => s === 'changes_requested').length, ap = [...latest.values()].filter((s) => s === 'approved').length;
+  const ck = (b.checks || []).map(checkState), fail = ck.filter((s) => s === 'fail').length, pend = ck.filter((s) => s === 'pending').length, pass = ck.filter((s) => s === 'pass').length;
+  const it = [];
+  const add = (k, ic, text, attr = '') => it.push(`<button class="att-i ${k}" ${attr}>${icon(ic)}<span>${text}</span></button>`);
+  if (roots.length) {
+    if (!known) add('', 'comment', `${roots.length} review thread${roots.length === 1 ? '' : 's'}`);
+    else if (open.length) add('bad', 'comment', `${open.length} unresolved thread${open.length === 1 ? '' : 's'}`, 'id="nextun" title="Jump to the next unresolved thread"');
+    else add('ok', 'check-circle-fill', 'All threads resolved');
+  }
+  add(cr ? 'bad' : ap ? 'ok' : '', cr ? 'file-diff' : ap ? 'check' : 'eye', cr ? `${cr} requesting changes` : ap ? `${ap} approved` : 'No approvals yet');
+  if (ck.length) add(fail ? 'bad' : pend ? 'warn' : 'ok', fail ? 'x-circle-fill' : pend ? 'dot-fill' : 'check-circle-fill', fail ? `${fail} check${fail === 1 ? '' : 's'} failing` : pend ? `${pend} check${pend === 1 ? '' : 's'} running` : `${pass} check${pass === 1 ? '' : 's'} passed`, 'data-tab="checks" title="Open checks"');
+  if (p.merged) add('done', 'git-merge', 'Merged'); else if (p.state === 'closed') add('bad', 'git-pull-request-closed', 'Closed');
+  else if (p.mergeable === false || p.mergeable_state === 'dirty') add('bad', 'alert', 'Has conflicts');
+  else if (p.mergeable_state === 'clean') add('ok', 'git-merge', 'Ready to merge');
+  else if (p.draft) add('', 'git-pull-request-draft', 'Draft');
+  return `<div class="attn">${it.join('')}${roots.length ? `<span class="sp"></span><button class="att-tog ${S.unres ? 'on' : ''}" id="unres" title="Hide everything except review threads that are still open">${icon('comment')}Unresolved only</button>` : ''}</div>`;
+}
+function jumpUnresolved() {
+  const b = S.bundle, list = unresolvedRoots(b); if (!list.length) return;
+  const c = list[S.unIdx % list.length]; S.unIdx++;
+  const first = b.review_comments.find((x) => x.pull_request_review_id === c.pull_request_review_id && x.path === c.path && (x.original_position ?? x.position) === (c.original_position ?? c.position)) || c;
+  S.fold['r:' + c.pull_request_review_id] = false; S.fold['t:' + first.id] = false; S.fold['c:' + c.id] = false;
+  localStorage.setItem('fold', JSON.stringify(S.fold));
+  S.keepScroll = true; render(); S.keepScroll = false;
+  const el = document.getElementById('c-' + c.id);
+  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+}
+
+function simple(e, ic, text, kind = '') {
+  return `<div class="TLI"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e.actor, 20)}</div><div class="TLI-body"><div class="row">${user(e.actor)} <span>${text}</span> <a class="time">${when(e.created_at).replace(/<\/?span[^>]*>/g, '')}</a></div></div></div>`;
+}
+
+function mergeBox(b) {
+  const p = b.pull;
+  const head = p.head.label.split(':')[1];
+  if (p.merged) {
+    return `<div class="TL"><div class="TLI-break" style="margin-left:0"></div><div class="merge-box"><div class="badge"><span class="state-merged" style="background:var(--bgColor-done-emphasis)">${icon('git-merge')}</span></div><div class="merge-card merged-card"><div class="row"><div><h3>Pull request successfully merged and closed</h3><p style="font-size:14px;margin-top:4px">You're all set — the <span class="branch">${esc(head)}</span> branch can be safely deleted.</p></div></div></div></div></div>`;
+  }
+  if (p.state === 'closed') {
+    return `<div class="merge-box"><div class="badge"><span class="state-closed" style="background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))">${icon('git-pull-request-closed')}</span></div><div class="merge-card"><div class="row"><div><h3>Closed with unmerged commits</h3><p style="font-size:14px;margin-top:4px">This pull request is closed, but the <span class="branch">${esc(head)}</span> branch has unmerged commits.</p></div></div></div></div>`;
+  }
+  const clean = p.mergeable_state === 'clean' || p.mergeable !== false;
+  return `<div class="merge-box"><div class="badge"><span style="background:var(--bgColor-success-emphasis)">${icon('git-pull-request')}</span></div><div class="merge-card">
+  <div class="row"><div class="ic ${clean ? 'ok-ic' : 'bad-ic'}">${icon(clean ? 'check-circle-fill' : 'alert', 24 === 24 ? 16 : 16)}</div><div><h3>${clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</h3><p>${clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</p></div></div>
+  </div></div>`;
+}
+
+function sidebar(b) {
+  const p = b.pull;
+  const reviewers = new Map();
+  p.requested_reviewers.forEach((u) => reviewers.set(u.login, { u, st: 'req' }));
+  b.timeline.filter((e) => e.event === 'reviewed').forEach((e) => { const st = e.state.toLowerCase(); const cur = reviewers.get(e.user.login); if (!cur || st === 'approved' || st === 'changes_requested' || cur.st === 'req') reviewers.set(e.user.login, { u: e.user, st }); });
+  const rv = [...reviewers.values()];
+  const canRe = !p.merged && p.state === 'open';
+  const rvHtml = (r) => `<div class="reviewer"><a href="${esc(r.u.html_url)}">${avatar(r.u, 20)}</a><a class="nm" href="${esc(r.u.html_url)}">${esc(r.u.login)}</a><span class="st ${r.st === 'approved' ? 'ok' : r.st === 'changes_requested' ? 'bad' : ''}">${icon(r.st === 'approved' ? 'check' : r.st === 'changes_requested' ? 'file-diff' : r.st === 'req' ? 'dot-fill' : 'comment')}</span>${canRe && r.st !== 'req' && r.u.login !== p.user.login ? `<button class="rerequest" data-rerequest="${esc(r.u.login)}" title="Ask ${esc(r.u.login)} to review again">${icon('sync')}</button>` : ''}</div>`;
+  const first = rv.length > 1 ? `<button class="sb-toggle" id="rvtoggle"><span>${rv.length - 0} reviewers</span>${icon(S.showAllReviewers ? 'chevron-up' : 'chevron-down')}</button>` : '';
+  const rvSection = rv.length ? `${rv.length > 1 ? `<button class="sb-toggle" id="rvtoggle"><span>${rv.length} more reviewers</span>${icon(S.showAllReviewers ? 'chevron-up' : 'chevron-down')}</button>` : ''}${S.showAllReviewers || rv.length === 1 ? rv.map(rvHtml).join('') : ''}` : '<div class="sb-none">No reviews</div>';
+  const people = new Map();
+  [p.user, ...b.timeline.map((e) => e.user || e.actor || e.author)].forEach((u) => u && u.login && !people.has(u.login) && people.set(u.login, u));
+  const labels = p.labels.length ? p.labels.map((l) => `<span class="pill-label" style="background:#${esc(l.color)}33;color:#${esc(l.color)};border-color:#${esc(l.color)}">${esc(l.name)}</span>`).join('') : '<span class="sb-none">None yet</span>';
+  const assignees = p.assignees.length ? p.assignees.map((u) => `<div class="reviewer"><a href="${esc(u.html_url)}">${avatar(u, 20)}</a><a class="nm" href="${esc(u.html_url)}">${esc(u.login)}</a></div>`).join('') : '<span class="sb-none">No one—</span>';
+  const head = (t) => `<div class="sb-head">${foldBtn('sb:' + t, 'Hide section')}<span>${t}</span>${icon('gear', 16, 'gear')}</div>`;
+  const item = (k, inner) => `<div class="sb-item${folded('sb:' + k)}">${inner}</div>`;
+  return `<div class="pr-side-inner">${item('Reviewers', `<div class="sb-head">${foldBtn('sb:Reviewers', 'Hide section')}<span>Reviewers</span></div>${rvSection}`)}
+  ${item('Assignees', head('Assignees') + assignees)}
+  ${item('Labels', head('Labels') + labels)}
+  ${item('Milestone', head('Milestone') + (p.milestone ? `<a class="sb-link" href="${esc(p.milestone.html_url)}">${esc(p.milestone.title)}</a>` : '<span class="sb-none">No milestone</span>'))}
+  <div class="sb-item${folded('sb:people')}"><div class="sb-head">${foldBtn('sb:people', 'Hide section')}<span>${people.size} participant${people.size === 1 ? '' : 's'}</span></div><div class="participants">${[...people.values()].slice(0, 30).map((u) => `<a href="${esc(u.html_url)}" title="${esc(u.login)}">${avatar(u, 32)}</a>`).join('')}</div></div></div>`;
+}
+
+function filesView(b) { return filesList(b.files); }
+function filesList(files) {
+  if (!files.length) return '<div class="diff-empty">No files changed.</div>';
+  const all = files.every((f) => S.fold['f:' + f.filename]);
+  return `<div class="files-bar"><button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f) => {
+    const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
+    const sq = Array.from({ length: 5 }, (_, i) => `<i class="${i < a ? 'a' : i < a + d ? 'd' : ''}"></i>`).join('');
+    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${f.patch ? diffHunkTable(f.patch) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
+  }).join('');
+}
+
+function commitsView(b) {
+  const info = b.commit_info || {};
+  const c = b.timeline.filter((e) => e.event === 'committed');
+  return `<div style="border:1px solid var(--borderColor-default);border-radius:6px">${c.map((e) => `<div style="padding:16px;border-bottom:1px solid var(--borderColor-muted)">${commitRow(e.message, e.sha, e.author?.avatar_url ? e.author : null, e.html_url, e.verification)}</div>`).join('') || '<div class="diff-empty">No commits listed.</div>'}</div>`;
+}
+
+function commitList(b) {
+  if (b.commits && b.commits.length) return b.commits.map((c) => ({ sha: c.sha, message: c.commit.message, author: c.author, name: c.commit.author?.name, date: c.commit.author?.date, url: c.html_url }));
+  return b.timeline.filter((e) => e.event === 'committed').map((e) => ({ sha: e.sha, message: e.message, author: e.author?.avatar_url ? e.author : null, name: e.author?.name, date: e.author?.date, url: e.html_url }));
+}
+
+function splitView(b) {
+  const cs = commitList(b), sha = S.sel;
+  const cnt = (c) => b.review_comments.filter((r) => r.original_commit_id === c || r.commit_id === c).length;
+  const row = (c) => `<div class="cm ${sha === c.sha ? 'on' : ''}" data-sha="${esc(c.sha)}"><span class="cm-av">${c.author ? avatar(c.author, 24) : `<i>${esc((c.name || '?')[0])}</i>`}</span><span class="cm-t"><b>${esc(String(c.message).split('\n')[0])}</b><i>${esc(c.name || c.author?.login || '')} · ${when(c.date).replace(/<\/?span[^>]*>/g, '')}</i></span>${cnt(c.sha) ? `<span class="cm-n">${icon('comment')}${cnt(c.sha)}</span>` : ''}<code>${esc(c.sha.slice(0, 7))}</code></div>`;
+  const all = `<div class="cm all ${sha ? '' : 'on'}" data-sha=""><span class="cm-av"><i>${icon('diff')}</i></span><span class="cm-t"><b>All changes</b><i>${b.pull.changed_files} files · +${b.pull.additions} −${b.pull.deletions}</i></span></div>`;
+  let diff;
+  if (!sha) diff = filesList(b.files);
+  else {
+    const d = S.cdiff[sha];
+    diff = d === undefined || d === 'loading' ? '<div class="diff-empty">Loading commit…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d);
+  }
+  const hl = S.hide.l, hr = S.hide.r;
+  const rail = (k, label, ic) => `<button class="pane-rail" data-show="${k}" title="Show ${label}">${icon(ic)}<span>${label}</span></button>`;
+  const left = hl ? rail('l', 'Commits', 'git-commit') : `<section class="pane pane-l"><div class="pane-h">${icon('git-commit')}<span>Commits</span><span class="counter">${cs.length}</span><span class="sp"></span>${foldBtn('cm-list', 'Collapse commit list')}<button class="fold-btn" data-hide="l" title="Hide this panel">${icon('x')}</button></div>${S.fold['cm-list'] ? '' : `<div class="cm-list">${all}${cs.map(row).join('')}</div>`}<div class="pane-h sub">${icon('file-diff')}<span>${sha ? 'Commit ' + esc(sha.slice(0, 7)) : 'All changes'}</span><span class="sp"></span>${foldBtn('cm-diff', 'Collapse changes')}</div>${S.fold['cm-diff'] ? '' : `<div class="pane-body">${diff}</div>`}</section>`;
+  const right = hr ? rail('r', 'Conversation', 'comment-discussion') : `<section class="pane pane-r"><div class="pane-h">${icon('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn" data-hide="r" title="Hide this panel">${icon('x')}</button></div><div class="pane-body">${attention(b)}${timeline(b)}</div></section>`;
+  return `<div class="split ${hl ? 'hl' : ''} ${hr ? 'hr' : ''}" style="--lw:${S.lw}%">${left}${hl || hr ? '' : '<div class="gutter" id="gutter" title="Drag to resize"></div>'}${right}</div>`;
+}
+
+async function selectCommit(sha) {
+  S.sel = sha || null; render();
+  if (!sha || S.cdiff[sha] !== undefined) return;
+  S.cdiff[sha] = 'loading';
+  try {
+    if (!tauri) throw new Error('Per-commit diffs are available in the desktop app.');
+    S.cdiff[sha] = (await tauri.invoke('fetch_commit', { repo: S.bundle.pull.base.repo.full_name, sha })).files || [];
+  } catch (e) { S.cdiff[sha] = String(e).replace(/^Error: /, ''); }
+  if (S.sel === sha) render();
+}
+
+// Notifications: poll watched PRs and report new comments, commits, reviews and state changes.
+const snap = (p) => ({ commits: p.commits, comments: p.comments, rc: p.review_comments, state: p.merged ? 'merged' : p.state });
+const seen = load('seen', {});
+function noteAdd(ref, title, text, target = '') {
+  S.notes = [{ id: Date.now() + Math.random(), ref, title, text, target, at: new Date().toISOString(), read: false }, ...S.notes].slice(0, 200);
+  localStorage.setItem('notes', JSON.stringify(S.notes));
+  if (tauri) tauri.invoke('notify', { title: `${ref} · ${title}`.slice(0, 80), body: text, prRef: ref, target }).catch(() => {});
+}
+function noteDiff(ref, title, was, now, fresh = []) {
+  const out = [], d = (a, b) => b - a;
+  if (d(was.commits, now.commits) > 0) out.push(`${d(was.commits, now.commits)} new commit${d(was.commits, now.commits) > 1 ? 's' : ''}`);
+  if (d(was.comments, now.comments) > 0) out.push(`${d(was.comments, now.comments)} new comment${d(was.comments, now.comments) > 1 ? 's' : ''}`);
+  if (d(was.rc, now.rc) > 0) out.push(`${d(was.rc, now.rc)} new review comment${d(was.rc, now.rc) > 1 ? 's' : ''}`);
+  if (was.state !== now.state) out.push(`now ${now.state}`);
+  const last = fresh.filter((f) => !was.at || f.created_at > was.at).sort((x, y) => (x.created_at < y.created_at ? -1 : 1)).pop();
+  if (last) out.push(`“${last.body.replace(/\s+/g, ' ').slice(0, 60)}” — ${last.user}`);
+  if (out.length) noteAdd(ref, title, out.join(', '), last ? String(last.id) : '');
+}
+function remember(ref, p) { seen[ref] = { ...snap(p), at: p.updated_at || new Date().toISOString() }; localStorage.setItem('seen', JSON.stringify(seen)); }
+let polling = false;
+// Background fetch: the full PR is loaded as soon as a change is noticed, so opening it from a notification needs no wait.
+// Tiny TanStack-Query-style cache: in-flight de-duplication, staleTime, stale-while-revalidate, invalidation.
+const qc = {
+  m: new Map(), inflight: new Map(), STALE: 30000,
+  peek(k) { return this.m.get(k); },
+  fresh(k, ms = this.STALE) { const e = this.m.get(k); return !!e && Date.now() - e.at < ms; },
+  set(k, data) { this.m.set(k, { data, at: Date.now() }); },
+  invalidate(k) { const e = this.m.get(k); if (e) e.at = 0; },
+  fetch(k, fn) {
+    if (this.inflight.has(k)) return this.inflight.get(k);
+    const p = fn().then((d) => { this.set(k, d); return d; }).finally(() => this.inflight.delete(k));
+    this.inflight.set(k, p); return p;
+  },
+};
+const loadPr = (input) => (tauri ? tauri.invoke('fetch_pr', { url: input }) : fetch(new URL(input, location.href)).then((r) => r.json()));
+function prefetch(ref) { if (tauri && !qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref)).catch(() => {}); }
+async function pollNotes() {
+  if (!tauri || polling) return;
+  polling = true; const before = S.notes.length;
+  const cur = S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : null;
+  const refs = S.hasToken ? S.recent.slice(0, 8).map((r) => r.ref) : (cur ? [cur] : []);
+  for (const ref of refs) {
+    const m = ref.match(/^(.+)#(\d+)$/); if (!m) continue;
+    try {
+      const p = await tauri.invoke('check_pr', { repo: m[1], number: +m[2], since: seen[ref]?.at || null });
+      const now = snap(p);
+      const n0 = S.notes.length;
+      if (seen[ref]) noteDiff(ref, p.title, seen[ref], now, p.fresh);
+      if (S.notes.length !== n0) prefetch(ref); // warm it now so clicking the notification is instant
+      remember(ref, p);
+    } catch { /* offline or rate limited: try again next round */ }
+  }
+  polling = false; if (S.notes.length !== before && !document.activeElement?.closest?.('.tt')) render();
+}
+function notePanel() {
+  if (!S.bell) return '';
+  const rows = S.notes.map((n) => `<a class="note ${n.read ? '' : 'new'}" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>`).join('') || '<div class="note-empty">No notifications yet. New comments, commits and reviews on PRs you opened will show up here.</div>';
+  return `<div class="note-panel"><div class="note-h"><b>Notifications</b><span><button id="noteall">View all</button> <button id="notecheck">Check now</button> <button id="noteclear">Clear all</button></span></div>${rows}</div>`;
+}
+
+
+// ---- Fun: entrance stagger, ripples, confetti ----
+function enterAnim() {
+  document.querySelectorAll('.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area').forEach((el, i) => { el.style.setProperty('--i', Math.min(i, 14)); el.classList.add('enter-in'); });
+  clearTimeout(enterAnim.t); enterAnim.t = setTimeout(() => document.querySelectorAll('.enter-in').forEach((el) => el.classList.remove('enter-in')), 1800);
+}
+document.addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('.btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add');
+  if (!b || b.disabled) return;
+  const r = b.getBoundingClientRect(), d = Math.max(r.width, r.height) * 2, rip = document.createElement('span');
+  rip.className = 'ripple'; rip.style.cssText = `width:${d}px;height:${d}px;left:${e.clientX - r.left - d / 2}px;top:${e.clientY - r.top - d / 2}px`;
+  if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+  b.style.overflow = 'hidden'; b.appendChild(rip); setTimeout(() => rip.remove(), 650);
+  if (b.matches('.reaction, .react-add')) burst(e.clientX, e.clientY, b.textContent.trim().slice(0, 2) || '✨', 6);
+});
+function burst(x, y, ch, n) {
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement('span'); p.className = 'burst'; p.textContent = ch;
+    const a = (Math.PI * 2 * i) / n + Math.random() * 0.6, v = 40 + Math.random() * 50;
+    p.style.cssText = `left:${x}px;top:${y}px;--dx:${Math.cos(a) * v}px;--dy:${Math.sin(a) * v - 30}px`;
+    document.body.appendChild(p); setTimeout(() => p.remove(), 900);
+  }
+}
+function confetti() {
+  const c = document.createElement('canvas'); c.className = 'confetti'; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c);
+  const g = c.getContext('2d'), cols = ['#0969da', '#1f883d', '#8250df', '#f2cc60', '#cf222e', '#ff8fb1'];
+  const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.6, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 14, r: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[(Math.random() * cols.length) | 0] }));
+  let t = 0;
+  (function f() {
+    g.clearRect(0, 0, c.width, c.height); t++;
+    ps.forEach((p) => { p.vy += 0.35; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.a += p.va; g.save(); g.translate(p.x, p.y); g.rotate(p.a); g.fillStyle = p.c; g.globalAlpha = Math.max(0, 1 - t / 130); g.fillRect(-p.r, -p.r / 2, p.r * 2, p.r); g.restore(); });
+    if (t < 130) requestAnimationFrame(f); else c.remove();
+  })();
+}
+// ---- Write actions (comment, reply, review, merge, close/reopen) ----
+const peopleList = () => { const b = S.bundle; if (!b) return []; const s = new Set(); [b.pull.user, ...b.timeline.map((e) => e.user || e.actor || e.author), ...b.review_comments.map((c) => c.user)].forEach((u) => u?.login && s.add(u.login)); return [...s]; };
+const drafts = load('drafts', {});
+function saveDrafts() { if (!S.draftRef) return; const d = Object.fromEntries(Object.entries(S.draft).filter(([, v]) => v && v.trim())); if (Object.keys(d).length) drafts[S.draftRef] = d; else delete drafts[S.draftRef]; try { localStorage.setItem('drafts', JSON.stringify(drafts)); } catch { /* storage full */ } }
+const prRef = () => ({ repo: S.bundle.pull.base.repo.full_name, number: S.bundle.pull.number });
+const draftBox = (key, ph, rows = 4) => `<div class="tt" data-draft="${key}" data-ph="${esc(ph)} — type / for blocks" style="--rows:${rows}"></div>`;
+const errLine = (k) => (S.actErr && S.actErr.k === k ? `<div class="act-err">${esc(S.actErr.m)}</div>` : '');
+
+function composer(b) {
+  const p = b.pull, closed = p.state === 'closed', busy = S.busy === 'comment';
+  return `<div class="composer"><div class="composer-h">${icon('comment')}<b>Add a comment</b></div>${draftBox('comment', 'Write a comment… (Markdown supported)')}${errLine('comment')}
+  <div class="composer-f"><span class="hint">⌘↵ to send</span><span style="flex:1"></span>
+  ${p.merged ? '' : `<button class="btn ghost" id="doclose">${closed ? 'Reopen pull request' : 'Close pull request'}</button>`}
+  <button class="btn primary" id="docomment" ${busy ? 'disabled' : ''}>${busy ? 'Sending…' : 'Comment'}</button></div></div>`;
+}
+
+function mergeActions(b) {
+  const p = b.pull; if (p.merged || p.state === 'closed') return '';
+  const busy = S.busy === 'merge';
+  return `<div class="merge-act"><select class="sel" id="mmethod"><option value="merge">Create a merge commit</option><option value="squash">Squash and merge</option><option value="rebase">Rebase and merge</option></select><button class="btn primary" id="domerge" ${busy ? 'disabled' : ''}>${busy ? 'Merging…' : 'Merge pull request'}</button>${errLine('merge')}</div>`;
+}
+
+function reviewDialog() {
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2>${draftBox('review', 'Leave a review comment (required unless approving)', 5)}
+  <div class="radios"><label><input type="radio" name="rev" value="COMMENT" checked> <b>Comment</b> <span>Submit general feedback without explicit approval.</span></label>
+  <label><input type="radio" name="rev" value="APPROVE"> <b>Approve</b> <span>Submit feedback and approve merging these changes.</span></label>
+  <label><input type="radio" name="rev" value="REQUEST_CHANGES"> <b>Request changes</b> <span>Submit feedback that must be addressed before merging.</span></label></div>
+  <div id="reverr"></div><div class="btns"><button class="btn" id="revcancel">Cancel</button><button class="btn primary" id="revsubmit">Submit review</button></div></div></div>`;
+  render();
+  $('#revcancel').onclick = () => { S.dialog = ''; render(); };
+  $('#revsubmit').onclick = async () => {
+    const ev = document.querySelector('input[name=rev]:checked').value;
+    const r = await act('review', { body: S.draft.review || '', event: ev }, 'review', true);
+    if (r === undefined) return;
+    delete S.draft.review; S.dialog = ''; await refreshPr(); 
+  };
+}
+
+function confirmDlg(title, text, label, danger, fn) {
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="btns"><button class="btn" id="cfcancel">Cancel</button><button class="btn ${danger ? 'danger' : 'primary'}" id="cfok">${esc(label)}</button></div></div></div>`;
+  render();
+  $('#cfcancel').onclick = () => { S.dialog = ''; render(); };
+  $('#cfok').onclick = async () => { S.dialog = ''; render(); await fn(); };
+}
+
+// Runs a write action. Returns the API response, or undefined after showing an error under `key`.
+async function act(action, args, key, inDialog = false) {
+  S.actErr = '';
+  if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; if (inDialog) $('#reverr').innerHTML = `<div class="act-err">${S.actErr.m}</div>`; else render(); return undefined; }
+  S.busy = key; if (!inDialog) render();
+  try {
+    const r = await tauri.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, ...args });
+    S.busy = ''; if (action === 'merge' || (action === 'review' && args.event === 'APPROVE')) confetti(); return r ?? {};
+  } catch (e) {
+    S.busy = ''; S.actErr = { k: key, m: String(e).replace(/^Error: /, '') };
+    if (inDialog) { const el = $('#reverr'); if (el) el.innerHTML = `<div class="act-err">${esc(S.actErr.m)}</div>`; } else render();
+    return undefined;
+  }
+}
+const refreshPr = (focus = '') => { qc.invalidate(`${prRef().repo}#${prRef().number}`); saveDrafts(); S.focus = focus ? String(focus) : ''; return openPr(`${prRef().repo}#${prRef().number}`, { nav: true, keepTab: true }); };
+
+function cmAction(id, root, how) {
+  const b = S.bundle, c = [...b.timeline, ...b.review_comments].find((x) => String(x.id) === String(id)) || (String(b.pull.id) === String(id) ? b.pull : null); if (!c) return;
+  if (how === 'link') return navigator.clipboard?.writeText(c.html_url || '');
+  if (how === 'md') return navigator.clipboard?.writeText(c.body || '');
+  const key = root ? 'reply-' + root : 'comment', q = (c.body || '').split('\n').map((l) => '> ' + l).join('\n');
+  S.draft[key] = (S.draft[key] ? S.draft[key] + '\n\n' : '') + `@${(c.user || c.actor || {}).login || ''}\n\n${q}\n\n`;
+  saveDrafts(); S.eds = []; S.keepScroll = true; render(); S.keepScroll = false;
+  setTimeout(() => document.querySelector(`[data-draft="${key}"]`)?.scrollIntoView({ block: 'center' }), 50);
+}
+// Show a just-posted comment from the API reply instead of re-fetching the whole PR.
+function addLocal(kind, r, rootId) {
+  const b = S.bundle; if (!b || !r || !r.id || !r.body_html) return false;
+  if (kind === 'commented') b.timeline.push({ ...r, event: 'commented', actor: r.user });
+  else { const root = b.review_comments.find((c) => c.id === rootId); if (!root) return false; b.review_comments.push({ ...r, pull_request_review_id: root.pull_request_review_id, path: root.path, diff_hunk: root.diff_hunk, position: root.position, original_position: root.original_position }); }
+  qc.set(`${prRef().repo}#${prRef().number}`, b); qc.invalidate(`${prRef().repo}#${prRef().number}`); qc.m.get(`${prRef().repo}#${prRef().number}`).at = Date.now() - 20000;
+  S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false;
+  const el = document.getElementById('c-' + r.id); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash', 'pop-in'); }
+  return true;
+}
+// Click outside (or Esc) closes the notifications drawer; opening it marks everything read, as closing via the bell does.
+document.addEventListener('mousedown', (e) => {
+  if (!S.bell || e.target.closest('.note-panel, #bell')) return;
+  S.bell = false; S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false;
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) { S.bell = false; S.keepScroll = true; render(); S.keepScroll = false; } });
+function bindWrite() {
+  document.querySelectorAll('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.stopPropagation(); document.querySelector('.react-pop')?.remove();
+    const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
+    pop.innerHTML = '<button data-h="link">Copy link</button><button data-h="md">Copy Markdown</button><button data-h="quote">Quote reply</button>';
+    const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
+    pop.onclick = (ev) => { const h = ev.target.dataset.h; if (h) { pop.remove(); cmAction(btn.dataset.cm, btn.dataset.root, h); } };
+    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+  }));
+  document.querySelectorAll('.tt[data-draft]').forEach((host) => {
+    const key = host.dataset.draft;
+    if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
+    const send = () => (key === 'comment' ? $('#docomment') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
+    const mount = () => (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }));
+    // Editors are heavy: build each one only when its box is near the viewport.
+    const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
+    io.observe(host);
+  });
+  document.querySelectorAll('[data-rerequest]').forEach((b) => b.addEventListener('click', async (e) => {
+    e.stopPropagation(); b.disabled = true; b.classList.add('spin');
+    const r = await act('rerequest', { body: b.dataset.rerequest }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
+    await refreshPr();
+  }));
+  $('#docomment')?.addEventListener('click', async () => {
+    const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
+    delete S.draft.comment; if (!addLocal('commented', r)) await refreshPr(r.id);
+  });
+  document.querySelectorAll('[data-sendreply]').forEach((btn) => btn.addEventListener('click', async () => {
+    const id = btn.dataset.sendreply, r = await act('reply', { id: +id, body: S.draft['reply-' + id] || '' }, 'reply-' + id); if (r === undefined) return;
+    delete S.draft['reply-' + id]; if (!addLocal('reply', r, +id)) await refreshPr(r.id);
+  }));
+  document.querySelectorAll('.react-add').forEach((btn) => btn.addEventListener('click', (e) => {
+    e.stopPropagation(); document.querySelector('.react-pop')?.remove();
+    const pop = document.createElement('div'); pop.className = 'react-pop';
+    pop.innerHTML = REACTS.map(([k, em]) => `<button data-c="${k}">${em}</button>`).join('');
+    const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
+    document.body.appendChild(pop);
+    pop.addEventListener('click', async (ev) => {
+      const c = ev.target.closest('[data-c]')?.dataset.c; if (!c) return; pop.remove();
+      const r2 = await act('react', { kind: btn.dataset.rk, id: +btn.dataset.rid, content: c }, 'react'); if (r2 !== undefined) await refreshPr(btn.dataset.rk === 'pr' ? '' : btn.dataset.rid);
+    });
+    setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
+  }));
+  $('#doclose')?.addEventListener('click', () => {
+    const closed = S.bundle.pull.state === 'closed';
+    confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });
+  });
+  $('#domerge')?.addEventListener('click', () => {
+    const m = $('#mmethod').value, p = S.bundle.pull, names = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
+    confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
+  });
+  $('#review')?.addEventListener('click', reviewDialog);
+}
+
+function landing() {
+  return `<div class="landing">${icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"')}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br>Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}</div>`;
+}
+
+const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
+function notesPage() {
+  const f = S.nf || 'all', unread = S.notes.filter((n) => !n.read).length;
+  const list = S.notes.filter((n) => f === 'all' || (f === 'unread' ? !n.read : n.read));
+  const rows = list.map((n) => `<div class="np-row ${n.read ? '' : 'new'}"><button class="np-dot" data-nread="${n.id}" title="${n.read ? 'Mark as unread' : 'Mark as read'}"></button>
+    <a class="np-main" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}" data-note="${n.id}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>
+    <button class="np-act" data-nread="${n.id}">${n.read ? 'Mark unread' : 'Mark read'}</button><button class="np-act del" data-ndel="${n.id}" title="Delete">${icon('x')}</button></div>`).join('')
+    || `<div class="note-empty np-empty">${f === 'unread' ? 'You are all caught up.' : f === 'read' ? 'Nothing read yet.' : 'No notifications yet. New comments, commits and reviews on PRs you opened will show up here.'}</div>`;
+  return `<div class="notes-page"><div class="np-head"><h1>${icon('bell')} Notifications</h1><div class="np-tools"><button class="btn small" id="npcheck">Check now</button><button class="btn small" id="npreadall" ${unread ? '' : 'disabled'}>Mark all as read</button><button class="btn small ghost" id="npclear" ${S.notes.length ? '' : 'disabled'}>Clear all</button></div></div>
+  <div class="np-tabs">${[['all', 'All', S.notes.length], ['unread', 'Unread', unread], ['read', 'Read', S.notes.length - unread]].map(([k, l, c]) => `<button class="${f === k ? 'sel' : ''}" data-nf="${k}">${l}<span>${c}</span></button>`).join('')}</div>
+  <div class="np-list">${rows}</div></div>`;
+}
+
+function page() {
+  const b = S.bundle;
+  if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i) => `<div class="sk-row" style="--i:${i}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join('')}</div>`;
+  if (S.view === 'notes') return notesPage();
+  if (S.view === 'repo') return prList();
+  if (!b) return landing();
+  if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return `<div class="pr-page is-split">${repoHeader(b.pull)}${prHeader(b)}${splitView(b)}</div>`;
+  const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
+  const side = S.tab !== 'conversation' ? '' : S.hide.side ? `<button class="pane-rail side-rail" data-show="side" title="Show details">${icon('columns')}<span>Details</span></button>` : `<aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">${icon('x')}</button></div>${sidebar(b)}</aside>`;
+  return `<div class="pr-page">${repoHeader(b.pull)}${prHeader(b)}<div class="pr-layout"><main class="pr-main">${body}</main>${side}</div></div>`;
+}
+
+function render() {
+  (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
+  applyMode();
+  const scroll = $('.main')?.scrollTop || 0;
+  const inner = S.keepScroll ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
+  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
+  if (S.keepScroll) { $('.main').scrollTop = scroll; document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
+  bind();
+  // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
+  if (S.flashId && Date.now() < S.flashUntil) document.getElementById('c-' + S.flashId)?.classList.add('flash'); else S.flashId = '';
+  document.title = S.bundle ? `${S.bundle.pull.title} · ${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : 'GitHub PR View';
+}
+
+const go = (n) => { const t = S.hi + n; if (t < 0 || t >= S.hist.length) return; S.hi = t; (S.hist[t].startsWith('repo:') ? openRepo(S.hist[t].slice(5), { nav: true }) : openPr(S.hist[t], { nav: true })); };
+function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
+const openExternal = (url) => (tauri ? tauri.invoke('open_external', { url }) : window.open(url, '_blank'));
+
+function bind() {
+  bindWrite();
+  document.querySelectorAll('[data-side]').forEach((el) => el.addEventListener('click', () => { S.sideTab = el.dataset.side; render(); }));
+  $('#prfilter')?.addEventListener('input', (e) => { S.pf = e.target.value; const p = e.target.selectionStart; render(); const n = $('#prfilter'); n.focus(); n.setSelectionRange(p, p); });
+  $('#prsort')?.addEventListener('change', (e) => { S.psort = e.target.value; localStorage.setItem('psort', S.psort); render(); });
+  $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = e.target.value; localStorage.setItem('pgroup', S.pgroup); render(); });
+  document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
+  $('#addtoken')?.addEventListener('click', tokenDialog);
+  $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
+  document.querySelectorAll('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo)));
+  document.querySelectorAll('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps; openRepo(S.repo, { nav: true }); }));
+  $('#back')?.addEventListener('click', () => go(-1));
+  $('#fwd')?.addEventListener('click', () => go(1));
+  $('#reload')?.addEventListener('click', reload);
+  $('#external')?.addEventListener('click', () => openExternal(S.bundle.pull.html_url));
+  $('#mode')?.addEventListener('click', (e) => {
+    const btn = e.currentTarget, r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    S.mode = isDark() ? 'light' : 'dark'; localStorage.setItem('mode', S.mode);
+    const swap = () => { applyMode(); btn.classList.toggle('dark', isDark()); btn.setAttribute('aria-checked', isDark()); btn.title = `Switch to ${isDark() ? 'light' : 'dark'} mode`; };
+    btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+    if (!document.startViewTransition) { swap(); return; }
+    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    document.documentElement.classList.add('vt');
+    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished.finally(() => document.documentElement.classList.remove('vt')));
+  });
+  $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($('#addrinput').value); $('#addrinput').blur(); });
+  $('#signin')?.addEventListener('click', tokenDialog);
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } openPr(el.dataset.open); }));
+  document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
+  document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
+  $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); S.bell = !S.bell; if (!S.bell) { S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); } S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
+  $('#npcheck')?.addEventListener('click', () => pollNotes());
+  $('#npreadall')?.addEventListener('click', () => { S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#npclear')?.addEventListener('click', () => { S.notes = []; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
+  document.querySelectorAll('[data-nf]').forEach((b) => b.addEventListener('click', () => { S.nf = b.dataset.nf; S.keepScroll = true; render(); S.keepScroll = false; }));
+  document.querySelectorAll('[data-nread]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const n = S.notes.find((x) => String(x.id) === b.dataset.nread); if (n) { n.read = !n.read; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; } }));
+  document.querySelectorAll('[data-ndel]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.notes = S.notes.filter((x) => String(x.id) !== b.dataset.ndel); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; }));
+  $('#notecheck')?.addEventListener('click', () => pollNotes());
+  $('#noteclear')?.addEventListener('click', () => { S.notes = []; localStorage.setItem('notes', '[]'); S.keepScroll = true; render(); S.keepScroll = false; });
+  document.querySelectorAll('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
+  const keep = (fn) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
+  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('a')) return; keep(() => { const k = el.dataset.fold; S.fold[k] = !isFolded(k, el.dataset.def === '1'); localStorage.setItem('fold', JSON.stringify(S.fold)); }); }));
+  document.querySelectorAll('[data-foldall]').forEach((el) => el.addEventListener('click', () => keep(() => { el.dataset.files.split('\n').forEach((n) => { S.fold['f:' + n] = el.dataset.foldall === 'close'; }); localStorage.setItem('fold', JSON.stringify(S.fold)); })));
+  document.querySelectorAll('[data-hide]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.hide] = true; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
+  document.querySelectorAll('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
+  document.querySelectorAll('[data-who]').forEach((el) => el.addEventListener('click', () => keep(() => { const w = el.dataset.who; S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; })));
+  document.querySelectorAll('[data-whoclear]').forEach((el) => el.addEventListener('click', () => keep(() => { S.who = []; })));
+  $('#navbtn')?.addEventListener('click', (e) => { e.stopPropagation(); keep(() => { S.nav = !S.nav; }); });
+  $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
+  $('#nextun')?.addEventListener('click', jumpUnresolved);
+  $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
+  const ta = $('.pr-title-area'), tb = $('.pr-tabs');
+  (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
+  if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
+  $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
+  $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
+  document.querySelectorAll('[data-sha]').forEach((el) => el.addEventListener('click', () => selectCommit(el.dataset.sha)));
+  $('#sbgrip')?.addEventListener('mousedown', (e) => {
+    e.preventDefault(); const sh = $('.shell'), x0 = e.clientX, w0 = S.sbw;
+    const mv = (ev) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); sh.style.setProperty('--sbw', S.sbw + 'px'); };
+    const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('sbw', String(Math.round(S.sbw))); };
+    document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  });
+  $('#sbgrip')?.addEventListener('dblclick', () => { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#gutter')?.addEventListener('mousedown', (e) => {
+    e.preventDefault(); const sp = $('.split'), r = sp.getBoundingClientRect();
+    const mv = (ev) => { S.lw = Math.max(25, Math.min(75, ((ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
+    const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('lw', String(Math.round(S.lw))); };
+    document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  });
+  $('#rvtoggle')?.addEventListener('click', () => { S.showAllReviewers = !S.showAllReviewers; S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#copybranch')?.addEventListener('click', () => navigator.clipboard?.writeText(S.bundle.pull.head.ref));
+  document.querySelectorAll('a[href]').forEach((a) => a.addEventListener('click', (e) => {
+    e.preventDefault(); const h = a.getAttribute('href');
+    if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h)) openPr(h); else if (/^https?:\/\//.test(h)) openExternal(h);
+  }));
+}
+
+document.addEventListener('keydown', (e) => {
+  if (!(e.metaKey || e.ctrlKey)) { if (e.key === 'Escape' && S.dialog) { S.dialog = ''; render(); } return; }
+  if (e.key === 'l') { e.preventDefault(); focusAddr(); }
+  else if (e.key === 'r') { e.preventDefault(); reload(); }
+  else if (e.key === '[') { e.preventDefault(); go(-1); }
+  else if (e.key === ']') { e.preventDefault(); go(1); }
+  else if (e.key === ',') { e.preventDefault(); tokenDialog(); }
+});
+
+function tokenDialog() {
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Reviewer">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_…" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
+  render();
+  $('#tokcancel').onclick = () => { S.dialog = ''; render(); };
+  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); if (S.hasToken) loadRepos(); else { S.repos = null; } } catch (e) { alert(e); } S.dialog = ''; render(); };
+}
+
+async function loadRepos() {
+  S.reposErr = ''; S.repos = null;
+  try { S.repos = await tauri.invoke('list_repos'); } catch (e) { S.reposErr = String(e); }
+  render();
+}
+async function openRepo(name, { nav = false } = {}) {
+  S.view = 'repo'; S.repo = name; S.prs = null; S.error = ''; S.bundle = nav && S.bundle ? S.bundle : S.bundle;
+  if (!nav) { S.hist = S.hist.slice(0, S.hi + 1); S.hist.push('repo:' + name); S.hi = S.hist.length - 1; }
+  S.sideTab = 'prs'; render();
+  try { S.prs = tauri ? await tauri.invoke('list_prs', { repo: name, state: S.prState }) : []; } catch (e) { S.error = String(e); S.prs = []; }
+  render();
+}
+// Loads the sidebar's PR list without leaving the pull request being read.
+async function loadPrs() {
+  const name = S.repo; S.prs = null; render();
+  try { const r = tauri ? await tauri.invoke('list_prs', { repo: name, state: S.prState }) : []; if (S.repo === name) S.prs = r; } catch (e) { if (S.repo === name) S.prs = []; }
+  if (S.repo === name) { S.keepScroll = true; render(); S.keepScroll = false; }
+}
+const reload = () => S.view === 'repo' ? openRepo(S.repo, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
+
+async function openPr(input, { nav = false, keepTab = false, manual = false } = {}) {
+  S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = 'conversation'; S.sel = null;
+  // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
+  if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
+  const mem = qc.peek(input);
+  const disk = mem || (tauri && !keepTab ? await tauri.invoke('cached_pr', { url: input }).then((b) => b && { data: b }).catch(() => null) : null);
+  const fresh = !!mem && qc.fresh(input) && !keepTab, stale = !!disk && !fresh;
+  const had = fresh || stale || (keepTab && S.bundle);
+  if (fresh) { S.bundle = mem.data; S.loading = false; }
+  else if (disk) { S.bundle = disk.data; S.refreshing = false; S.loading = false; }
+  else if (keepTab && S.bundle) { S.refreshing = manual; S.loading = false; }
+  else S.loading = true;
+  const hot = fresh;
+  S.keepScroll = keepTab; render(); S.keepScroll = false;
+  // Jump to the comment from the copy already on screen; the refresh below only tops it up.
+  const focusNow = () => {
+    if (!S.bundle || !S.focus) return false;
+    if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
+    const el = document.getElementById('c-' + S.focus);
+    if (!el) return false;
+    S.flashId = S.focus; S.flashUntil = Date.now() + 2500; S.focus = ''; el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); return true;
+  };
+  const focused = focusNow();
+  try {
+    S.bundle = hot ? mem.data : await qc.fetch(input, () => loadPr(input));
+    const p = S.bundle.pull, ref = `${p.base.repo.full_name}#${p.number}`, [st, ic] = stateOf(p);
+    if (!nav) { S.hist = S.hist.slice(0, S.hi + 1); S.hist.push(ref); S.hi = S.hist.length - 1; }
+    S.recent = [{ ref, title: p.title, state: st, icon: ic }, ...S.recent.filter((r) => r.ref !== ref)].slice(0, 30);
+    localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent));
+    localStorage.setItem('last', ref); remember(ref, p);
+    if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
+    if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
+  } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
+  S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId) enterAnim();
+  if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
+  if (S.bundle && S.focus) {
+    const id = S.focus; S.focus = '';
+    if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
+    const el = document.getElementById('c-' + id);
+    if (el) { S.flashId = id; S.flashUntil = Date.now() + 2500; el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); }
+  }
+}
+
+const q = new URLSearchParams(location.search);
+if (q.get('mode')) S.mode = q.get('mode');
+if (q.get('tab')) S.tab = q.get('tab');
+if (q.get('split')) S.split = q.get('split') === '1';
+if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; render(); if (v) loadRepos(); });
+render();
+if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
+else if (tauri) tauri.invoke('initial_arg').then((arg) => { const last = localStorage.getItem('last'); if (arg || last) openPr(arg || last); });
+
+setInterval(pollNotes, 60000);
+// refetchOnWindowFocus: coming back to the app tops up a PR that has gone stale.
+addEventListener('focus', () => { const b = S.bundle; if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) return; const k = `${b.pull.base.repo.full_name}#${b.pull.number}`; if (!qc.fresh(k, 60000)) openPr(k, { nav: true, keepTab: true }); });
+setTimeout(pollNotes, 8000);
+if (new URLSearchParams(location.search).get('demonote')) { S.notes = [{ id: 1, ref: 'octocat/Hello-World#6', title: 'New line at end of file.', text: '3 new commits, 2 new comments', at: new Date().toISOString(), read: false }, { id: 2, ref: 'octocat/Hello-World#6', title: 'New line at end of file.', text: 'now merged', at: new Date(Date.now() - 36e5).toISOString(), read: true }]; S.bell = true; render(); }

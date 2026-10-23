@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Reviewer",
+  "version": "0.1.0",
+  "identifier": "dev.local.github-pr-view",
+  "build": { "frontendDist": "../ui" },
+  "app": {
+    "windows": [
+      { "title": "Reviewer", "width": 1280, "height": 1000, "titleBarStyle": "Overlay", "hiddenTitle": true, "trafficLightPosition": { "x": 20, "y": 20 }, "minWidth": 480, "minHeight": 480 }
+    ],
+    "withGlobalTauri": true,
+    "security": { "csp": null }
+  },
+  "bundle": { "active": false }
+}

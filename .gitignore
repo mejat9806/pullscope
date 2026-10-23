@@ -1,0 +1,11 @@
+target/
+node_modules/
+src-tauri/gen/
+dist/
+swift/Reviewer.xcodeproj/
+
+*.ipa
+*.ipa.zip
+evidence/
+.DS_Store
+swift/build/

@@ -1,0 +1,18 @@
+{
+  "name": "ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fontsource-variable/mona-sans": "^5.3.0",
+    "@primer/css": "^22.3.2",
+    "@primer/octicons": "^19.41.0",
+    "@primer/primitives": "^11.10.0"
+  }
+}
