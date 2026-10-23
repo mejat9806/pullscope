@@ -534,9 +534,8 @@ async function pollNotes() {
   polling = false; if (S.notes.length !== before && !document.activeElement?.closest?.('.tt')) render();
 }
 function notePanel() {
-  if (!S.bell) return '';
   const rows = S.notes.map((n) => `<a class="note ${n.read ? '' : 'new'}" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>`).join('') || '<div class="note-empty">No notifications yet. New comments, commits and reviews on PRs you opened will show up here.</div>';
-  return `<div class="note-panel"><div class="note-h"><b>Notifications</b><span><button id="noteall">View all</button> <button id="notecheck">Check now</button> <button id="noteclear">Clear all</button></span></div>${rows}</div>`;
+  return `<div class="note-panel${S.bell ? ' open' : ''}"><div class="note-h"><b>Notifications</b><span><button id="noteall">View all</button> <button id="notecheck">Check now</button> <button id="noteclear">Clear all</button></span></div>${rows}</div>`;
 }
 
 
@@ -724,12 +723,22 @@ function addLocal(kind, r, rootId) {
   const el = document.getElementById('c-' + r.id); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash', 'pop-in'); }
   return true;
 }
+// Opening/closing the drawer only toggles a class — no page redraw, so nothing underneath moves.
+function setBell(open) {
+  S.bell = open;
+  $('.note-panel')?.classList.toggle('open', open);
+  if (!open && S.notes.some((n) => !n.read)) {
+    S.notes.forEach((n) => (n.read = true)); saveNotes();
+    document.querySelectorAll('.note-panel .note.new').forEach((el) => el.classList.remove('new'));
+    $('#bell .dot')?.remove();
+  }
+}
 // Click outside (or Esc) closes the notifications drawer; opening it marks everything read, as closing via the bell does.
 document.addEventListener('mousedown', (e) => {
   if (!S.bell || e.target.closest('.note-panel, #bell')) return;
-  S.bell = false; S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false;
+  setBell(false);
 });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) { S.bell = false; S.keepScroll = true; render(); S.keepScroll = false; } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) setBell(false); });
 const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 function bindWrite() {
   document.querySelectorAll('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
@@ -920,7 +929,7 @@ function bind() {
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } openPr(el.dataset.open); }));
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
-  $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); S.bell = !S.bell; if (!S.bell) { S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); } S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
   $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
   $('#inboxbtn')?.addEventListener('click', openInbox);
   $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
@@ -935,16 +944,20 @@ function bind() {
   $('#noteclear')?.addEventListener('click', () => { S.notes = []; localStorage.setItem('notes', '[]'); S.keepScroll = true; render(); S.keepScroll = false; });
   document.querySelectorAll('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
   const keep = (fn) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
-  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('a')) return; keep(() => { const k = el.dataset.fold; S.fold[k] = !isFolded(k, el.dataset.def === '1'); localStorage.setItem('fold', JSON.stringify(S.fold)); });
-    // After expanding, bring the opened block into the middle of the view (or its top if it is taller than the view).
-    const k = el.dataset.fold;
-    if (!isFolded(k, el.dataset.def === '1')) requestAnimationFrame(() => {
-      const nel = [...document.querySelectorAll('[data-fold]')].find((x) => x.dataset.fold === k); if (!nel) return;
-      const box = nel.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane') || nel, main = $('.main');
-      if (!main || main.contains(box) === false) return;
-      const tall = box.getBoundingClientRect().height > main.clientHeight * 0.85;
-      box.scrollIntoView({ block: tall ? 'start' : 'center', behavior: 'smooth' });
+  // Folding only flips a class and the chevron: no redraw, so the scroll position and images stay put.
+  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => {
+    e.stopPropagation(); if (e.target.closest('a')) return;
+    const k = el.dataset.fold, now = !isFolded(k, el.dataset.def === '1'); S.fold[k] = now; localStorage.setItem('fold', JSON.stringify(S.fold));
+    document.querySelectorAll('[data-fold]').forEach((x) => {
+      if (x.dataset.fold !== k) return;
+      const box = x.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
+      const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
+    if (now) return;
+    // Opened: make sure the block is on screen (only scroll when part of it is cut off).
+    const box = el.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
+    const r = box.getBoundingClientRect(), m = main.getBoundingClientRect();
+    if (r.bottom > m.bottom - 8 || r.top < m.top) box.scrollIntoView({ block: r.height > m.height * 0.85 ? 'start' : 'center', behavior: 'smooth' });
   }));
   document.querySelectorAll('[data-foldall]').forEach((el) => el.addEventListener('click', () => keep(() => { el.dataset.files.split('\n').forEach((n) => { S.fold['f:' + n] = el.dataset.foldall === 'close'; }); localStorage.setItem('fold', JSON.stringify(S.fold)); })));
   document.querySelectorAll('[data-hide]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.hide] = true; localStorage.setItem('hide', JSON.stringify(S.hide)); })));

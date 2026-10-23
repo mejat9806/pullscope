@@ -726,3 +726,5 @@ button.is-busy { position: relative; pointer-events: none; opacity: .75; }
 button.is-busy::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rspin .7s linear infinite; }
 .tb-btn.is-busy::before, .cm-btn.is-busy::before, .rerequest.is-busy::before { margin: 0; position: absolute; inset: 0; margin: auto; }
 .tb-btn.is-busy svg { opacity: 0; }
+
+.note-panel:not(.open) { display: none; }
