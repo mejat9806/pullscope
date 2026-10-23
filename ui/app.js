@@ -248,7 +248,8 @@ function diffTable(patch, path, canComment) {
 // ```suggestion blocks in a review comment can be applied as a commit on the PR branch
 const sugOf = (c) => { const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/); return m ? m[1] : null; };
 function suggestBtn(c, b, list) {
-  const t = sugOf(c); if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return '';
+  const t = sugOf(c); if (t !== null && S.applied?.has(String(c.id))) return '<div class="sug-row"><span class="sug-note">Applying suggestion…</span></div>';
+  if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return '';
   const p = b.pull, mine = p.head.repo && !p.head.repo.fork || (p.head.repo && p.head.repo.full_name === p.base.repo.full_name);
   if (!c.line) return '<div class="sug-row"><span class="sug-note">Outdated suggestion — the lines have changed.</span></div>';
   return `<div class="sug-row"><button class="btn small primary" data-sug="${c.id}" ${p.head.repo ? '' : 'disabled'}>Apply suggestion</button><span class="sug-note">Commits to <code>${esc(p.head.ref)}</code>${mine ? '' : ' (fork — needs push access)'}</span></div>`;
@@ -720,6 +721,7 @@ document.addEventListener('mousedown', (e) => {
   S.bell = false; S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false;
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) { S.bell = false; S.keepScroll = true; render(); S.keepScroll = false; } });
+const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 function bindWrite() {
   document.querySelectorAll('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
     e.stopPropagation(); document.querySelector('.react-pop')?.remove();
@@ -744,16 +746,24 @@ function bindWrite() {
     await refreshPr();
   }));
   document.querySelectorAll('[data-thread]').forEach((btn) => btn.addEventListener('click', async (e) => {
-    e.stopPropagation(); btn.disabled = true; btn.textContent = 'Working…';
-    const r = await act(btn.dataset.res, { body: btn.dataset.thread }, 'thread'); if (r === undefined) { btn.disabled = false; alert(S.actErr?.m || 'Could not update the thread.'); render(); return; }
-    await refreshPr();
+    e.stopPropagation();
+    // Optimistic: flip the thread locally right away, sync with GitHub in the background, undo on failure.
+    const b = S.bundle, node = btn.dataset.thread, root = Object.keys(b.thread_ids || {}).find((k) => b.thread_ids[k] === node);
+    const ids = [Number(root), ...b.review_comments.filter((c) => String(c.in_reply_to_id) === String(root)).map((c) => c.id)].filter(Boolean);
+    const prev = [...(b.resolved_ids || [])], res = btn.dataset.res === 'resolve';
+    b.resolved_ids = res ? [...new Set([...prev, ...ids])] : prev.filter((x) => !ids.includes(x));
+    rerender();
+    const r = await act(btn.dataset.res, { body: node }, 'thread', true);
+    if (r === undefined) { b.resolved_ids = prev; rerender(); alert(S.actErr?.m || 'Could not update the thread.'); return; }
+    refreshPr();
   }));
   document.querySelectorAll('[data-sug]').forEach((btn) => btn.addEventListener('click', async (e) => {
     e.stopPropagation(); const b = S.bundle, c = b.review_comments.find((x) => String(x.id) === btn.dataset.sug); if (!c) return;
     confirmDlg('Apply suggestion?', `This commits the change to ${c.path} on ${b.pull.head.ref}.`, 'Commit suggestion', false, async () => {
-      const r = await act('suggest', { extra: { head_repo: b.pull.head.repo.full_name, branch: b.pull.head.ref, path: c.path, line: c.line, start_line: c.start_line || null, text: sugOf(c) } }, 'sug');
-      if (r === undefined) { alert(S.actErr?.m || 'Could not apply the suggestion.'); render(); return; }
-      await refreshPr();
+      (S.applied ||= new Set()).add(String(c.id)); rerender();
+      const r = await act('suggest', { extra: { head_repo: b.pull.head.repo.full_name, branch: b.pull.head.ref, path: c.path, line: c.line, start_line: c.start_line || null, text: sugOf(c) } }, 'sug', true);
+      if (r === undefined) { S.applied.delete(String(c.id)); rerender(); alert(S.actErr?.m || 'Could not apply the suggestion.'); return; }
+      refreshPr().finally(() => { S.applied.delete(String(c.id)); });
     });
   }));
   document.querySelectorAll('[data-dmode]').forEach((b) => b.addEventListener('click', () => { S.diffMode = b.dataset.dmode; localStorage.setItem('diffmode', S.diffMode); S.keepScroll = true; render(); S.keepScroll = false; }));
