@@ -148,7 +148,7 @@ function prHeader(b) {
   const at = st === 'merged' ? p.merged_at : st === 'closed' ? p.closed_at : p.created_at;
   const splitOk = S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline';
   const tabs = [['conversation', 'comment-discussion', 'Conversation', commentsTotal + 0], ['timeline', 'clock', 'Timeline', b.timeline.length],['commits', 'git-commit', 'Commits', p.commits], ['checks', 'checklist', 'Checks', (b.checks || []).length], ['files', 'file-diff', 'Files changed', p.changed_files]];
-  return `<div class="pr-title-area"><h1 class="pr-title"><span>${esc(p.title)}</span><span class="num">#${n}</span></h1>
+  return `<div class="pr-title-area"><h1 class="pr-title"><span>${esc(p.title)}</span><span class="num">#${n}</span>${p.state === 'open' && !p.merged ? `<button class="copy-btn" id="editpr" title="Edit title and description">${icon('pencil')}</button>` : ''}</h1>
   <div class="pr-meta"><span class="state-pill state-${st}">${icon(ic)} ${label}</span><span>${who}</span> <span class="branch" title="${esc(p.base.repo.full_name)}:${esc(p.base.ref)}">${esc(p.base.label)}</span> <span>from</span> <span class="branch">${esc(p.head.label)}</span><button class="copy-btn" id="copybranch" aria-label="Copy head branch name to clipboard">${icon('copy')}</button><span>${when(at)}</span></div></div>
   <div class="pr-tabs"><span class="mini" title="${esc(p.title)}"><b>#${n}</b> ${esc(p.title)}</span><nav>${tabs.map(([k, i, t, c]) => `<a data-tab="${k}" class="${S.tab === k || (k === 'commits' && false) ? 'sel' : ''}">${icon(i)}${t}<span class="counter">${c}</span></a>`).join('')}</nav>
   <div class="tools"><button class="split-btn" id="review" title="Submit a review">${icon('eye')}<span>Review</span></button><button class="split-btn ${S.hide.side || S.split ? '' : 'on'}" id="sidetoggle" title="Show or hide the details panel" ${S.tab !== 'conversation' || S.split ? 'disabled' : ''} style="${S.tab !== 'conversation' ? 'visibility:hidden' : ''}">${icon('sidebar-expand')}<span>Details</span></button><button class="split-btn ${splitOk && S.split ? 'on' : ''}" id="split" title="${splitOk ? 'Split view: commits beside conversation' : 'Split view is available on the Conversation and Commits tabs'}" ${splitOk ? '' : 'disabled'}>${icon('columns')}<span>Split view</span></button><div class="diffstat"><span class="add">+${p.additions}</span><span class="del">-${p.deletions}</span><span class="sq">${sq}</span></div></div></div>`;
@@ -402,9 +402,23 @@ function mergeBox(b) {
     return `<div class="merge-box"><div class="badge"><span class="state-closed" style="background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))">${icon('git-pull-request-closed')}</span></div><div class="merge-card"><div class="row"><div><h3>Closed with unmerged commits</h3><p style="font-size:14px;margin-top:4px">This pull request is closed, but the <span class="branch">${esc(head)}</span> branch has unmerged commits.</p></div></div></div></div>`;
   }
   const clean = p.mergeable_state === 'clean' || p.mergeable !== false;
-  return `<div class="merge-box"><div class="badge"><span style="background:var(--bgColor-success-emphasis)">${icon('git-pull-request')}</span></div><div class="merge-card">
-  <div class="row"><div class="ic ${clean ? 'ok-ic' : 'bad-ic'}">${icon(clean ? 'check-circle-fill' : 'alert', 24 === 24 ? 16 : 16)}</div><div><h3>${clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</h3><p>${clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</p></div></div>
-  </div></div>`;
+  const latest = new Map();
+  b.timeline.filter((e) => e.event === 'reviewed' && e.user).forEach((e) => { const st = e.state.toLowerCase(); if (st === 'commented' && latest.has(e.user.login)) return; latest.set(e.user.login, st); });
+  const ap = [...latest.values()].filter((x) => x === 'approved').length, cr = [...latest.values()].filter((x) => x === 'changes_requested').length, pendRev = (p.requested_reviewers || []).length;
+  const rvHead = cr ? ['bad', 'x-circle-fill', 'Changes requested', `${cr} reviewer${cr === 1 ? '' : 's'} requested changes`] : ap ? ['ok', 'check-circle-fill', 'Changes approved', `${ap} approving review${ap === 1 ? '' : 's'}`] : ['', 'eye', 'Review not yet submitted', pendRev ? `${pendRev} pending review${pendRev === 1 ? '' : 's'}` : 'No reviews yet'];
+  const list = (b.checks || []).map((c) => ({ ...c, st: checkState(c) })), cnt = (k) => list.filter((c) => c.st === k).length;
+  const ckHead = cnt('fail') ? ['bad', 'x-circle-fill', `${cnt('fail')} check${cnt('fail') === 1 ? '' : 's'} failing`] : cnt('pending') ? ['', 'dot-fill', `${cnt('pending')} check${cnt('pending') === 1 ? '' : 's'} in progress`] : ['ok', 'check-circle-fill', 'All checks have passed'];
+  const ckSub = [cnt('skip') && `${cnt('skip')} neutral`, cnt('pass') && `${cnt('pass')} successful`, cnt('fail') && `${cnt('fail')} failing`, cnt('pending') && `${cnt('pending')} pending`].filter(Boolean).join(', ');
+  const grp = (k, title) => { const g = list.filter((c) => c.st === k); if (!g.length) return ''; const open = S.mbOpen?.has('g' + k) ?? k !== 'pass';
+    return `<button class="mb-grp" data-mb="g${k}">${title} ${icon(open ? 'chevron-up' : 'chevron-down', 12)}</button>${open ? g.map((c) => `<a class="mb-ck ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}>${icon(CK[c.st][0], 14)}<b>${esc(c.name)}</b><i>${esc(c.description || c.app || '')}</i></a>`).join('') : ''}`; };
+  const rerunable = list.some((c) => c.st === 'fail' && /\/actions\/runs\//.test(c.url || ''));
+  const sec = (k, h, body) => { const open = S.mbOpen?.has(k); return `<div class="mb-sec"><button class="mb-h ${h[0]}" data-mb="${k}"><span class="mb-ic">${icon(h[1], 22)}</span><span class="mb-t"><b>${h[2]}</b><i>${h[3] || ''}</i></span>${k === 'ck' && rerunable ? '<span class="btn small" id="rerunck" role="button">Re-run failed</span>' : ''}${icon(open ? 'chevron-up' : 'chevron-down', 16)}</button>${open && body ? `<div class="mb-body">${body}</div>` : ''}</div>`; };
+  const rvBody = `<div class="mb-line">${icon('check', 14)} ${ap} approval${ap === 1 ? '' : 's'}</div>${cr ? `<div class="mb-line bad">${icon('x-circle-fill', 14)} ${cr} requested changes</div>` : ''}<div class="mb-line">${icon('person', 14)} ${pendRev} pending review${pendRev === 1 ? '' : 's'}${pendRev ? `: ${p.requested_reviewers.map((u) => esc(u.login)).join(', ')}` : ''}</div>`;
+  const behind = p.mergeable_state === 'behind';
+  const upd = behind ? `<div class="mb-sec mb-warn"><div class="mb-h"><span class="mb-ic">${icon('alert', 22)}</span><span class="mb-t"><b>This branch is out-of-date with the base branch</b><i>Merge the latest changes from ${esc(p.base.ref)} into this branch.</i></span><button class="btn" id="updbranch">${S.busy === 'update_branch' ? 'Updating…' : 'Update branch'}</button></div></div>` : '';
+  const st = p.draft ? `<div class="mb-sec"><div class="mb-h"><span class="mb-ic">${icon('git-pull-request-draft', 22)}</span><span class="mb-t"><b>This pull request is still a work in progress</b><i>Draft pull requests cannot be merged.</i></span><button class="btn primary" id="doready">${S.busy === 'ready' ? 'Updating…' : 'Ready for review'}</button></div></div>${errLine('ready')}` : '';
+  const conf = `<div class="mb-sec"><div class="mb-h ${clean ? 'ok' : 'bad'}"><span class="mb-ic">${icon(clean ? 'check-circle-fill' : 'alert', 22)}</span><span class="mb-t"><b>${clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</b><i>${clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</i></span></div></div>`;
+  return `<div class="merge-box"><div class="badge"><span style="background:var(--bgColor-success-emphasis)">${icon('git-pull-request')}</span></div><div class="merge-card mb-card">${st}${sec('rv', rvHead, rvBody)}${list.length ? sec('ck', ckHead.concat(ckSub), grp('fail', 'Failing checks') + grp('pending', 'In progress') + grp('skip', 'Neutral checks') + grp('pass', 'Successful checks')) : ''}${upd}${conf}${errLine('update_branch')}</div></div>`;
 }
 
 function sidebar(b) {
@@ -692,8 +706,13 @@ function composer(b) {
 
 function mergeActions(b) {
   const p = b.pull; if (p.merged || p.state === 'closed') return '';
-  const busy = S.busy === 'merge';
-  return `<div class="merge-act"><select class="sel" id="mmethod"><option value="merge">Create a merge commit</option><option value="squash">Squash and merge</option><option value="rebase">Rebase and merge</option></select><button class="btn primary" id="domerge" ${busy ? 'disabled' : ''}>${busy ? 'Merging…' : 'Merge pull request'}</button>${errLine('merge')}</div>`;
+  const busy = S.busy === 'merge', am = p.auto_merge, blocked = p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
+  const opts = (sel) => [['merge', 'Create a merge commit'], ['squash', 'Squash and merge'], ['rebase', 'Rebase and merge']].map(([v, t]) => `<option value="${v}" ${sel === v ? 'selected' : ''}>${t}</option>`).join('');
+  const cur = am ? ({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' }[am.merge_method] || 'merge') : 'merge';
+  if (p.draft) return `<div class="merge-act"><button class="btn ghost" id="doclose">Close pull request</button>${errLine('merge')}</div>`;
+  return `<div class="merge-act"><select class="sel" id="mmethod">${opts(cur)}</select><button class="btn primary" id="domerge" ${busy ? 'disabled' : ''}>${busy ? 'Merging…' : 'Merge pull request'}</button>
+  ${am ? `<button class="btn" id="noauto" title="Auto-merge is on (${esc(am.merge_method.toLowerCase())})">${S.busy === 'disable_automerge' ? 'Turning off…' : 'Disable auto-merge'}</button>` : blocked ? `<button class="btn" id="doauto" title="Merge automatically once required checks and reviews pass">${S.busy === 'automerge' ? 'Enabling…' : 'Enable auto-merge'}</button>` : ''}
+  <button class="btn ghost" id="todraft" title="Mark as draft again">Convert to draft</button>${errLine('merge')}${errLine('automerge')}</div>`;
 }
 
 function reviewDialog() {
@@ -710,6 +729,19 @@ function reviewDialog() {
     const r = await act('review', { body: S.draft.review || '', event: ev, extra: lines }, 'review', true);
     if (r === undefined) return;
     delete S.draft.review; delete S.pending[pendKey()]; savePending(); S.dialog = ''; await refreshPr(); 
+  };
+}
+
+function editPrDialog() {
+  const p = S.bundle.pull; S.draft.prbody = p.body || '';
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit pull request</h2><label class="np-l">Title</label><input class="input" id="eptitle" value="${esc(p.title)}" style="width:100%;box-sizing:border-box;height:34px"><label class="np-l">Description</label>${draftBox('prbody', 'Describe your changes', 8)}<div id="reverr">${errLine('editpr')}</div><div class="btns"><button class="btn" id="epcancel">Cancel</button><button class="btn primary" id="epsave">Save</button></div></div></div>`;
+  render();
+  $('#epcancel').onclick = () => { delete S.draft.prbody; S.dialog = ''; render(); };
+  $('#epsave').onclick = async () => {
+    const title = $('#eptitle').value;
+    const r = await act('edit', { body: S.draft.prbody ?? '', extra: { title } }, 'editpr', true);
+    if (r === undefined) return;
+    delete S.draft.prbody; S.dialog = ''; await refreshPr();
   };
 }
 
@@ -862,6 +894,14 @@ function bindWrite() {
     const closed = S.bundle.pull.state === 'closed';
     confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });
   });
+  document.querySelectorAll('[data-mb]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('#rerunck')) return; S.mbOpen = S.mbOpen || new Set(); const k = el.dataset.mb; S.mbOpen.has(k) ? S.mbOpen.delete(k) : S.mbOpen.add(k); rerender(); }));
+  $('#rerunck')?.addEventListener('click', async (e) => { e.stopPropagation(); const urls = (S.bundle.checks || []).filter((c) => checkState(c) === 'fail' && c.url).map((c) => c.url); setBusy(e.currentTarget, true); const r = await act('rerun', { extra: urls }, 'rerun'); if (r !== undefined) { S.actErr = null; await refreshPr(); } else setBusy(e.currentTarget, false); });
+  $('#updbranch')?.addEventListener('click', async () => { const r = await act('update_branch', {}, 'update_branch'); if (r !== undefined) await refreshPr(); });
+  $('#doready')?.addEventListener('click', async () => { const r = await act('ready', {}, 'ready'); if (r !== undefined) await refreshPr(); });
+  $('#todraft')?.addEventListener('click', () => confirmDlg('Convert to draft?', 'Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.', 'Convert to draft', false, async () => { const r = await act('draft', {}, 'merge'); if (r !== undefined) await refreshPr(); }));
+  $('#doauto')?.addEventListener('click', async () => { const r = await act('automerge', { method: $('#mmethod').value }, 'automerge'); if (r !== undefined) await refreshPr(); });
+  $('#noauto')?.addEventListener('click', async () => { const r = await act('disable_automerge', {}, 'automerge'); if (r !== undefined) await refreshPr(); });
+  $('#editpr')?.addEventListener('click', editPrDialog);
   $('#domerge')?.addEventListener('click', () => {
     const m = $('#mmethod').value, p = S.bundle.pull, names = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
     confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
@@ -914,13 +954,30 @@ function newPrPage() {
     <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div>
     <label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}">
     <label class="np-l">Description</label>${draftBox('newpr', 'Describe your changes', 8)}
+    ${npMeta(n)}
     <label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
     ${n.err ? `<div class="act-err">${esc(n.err)}</div>` : ''}
     <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n.draft ? 'Create draft pull request' : 'Create pull request'}</button></div>
   </div></div>`;
 }
+// Reviewers / assignees / labels / milestone / linked issues pickers
+function npMeta(n) {
+  const m = n.meta?.[n.repo]; if (!m) return '';
+  const ppl = m.people.map((x) => x.login), me = S.me || '';
+  const chips = (k, label) => `<span class="np-chip" data-npdel="${k}" data-v="${esc(label)}" title="Remove">${esc(label)} ×</span>`;
+  const add = (k, title, list) => { const free = list.filter((x) => !n[k].includes(x)); return free.length ? `<select class="sel np-add" data-npadd="${k}"><option value="">${title}</option>${free.map((x) => `<option>${esc(x)}</option>`).join('')}</select>` : ''; };
+  const row = (k, name, list) => `<div class="np-meta"><label class="np-l">${name}</label><div class="np-chips">${n[k].map((x) => chips(k, x)).join('')}${add(k, `Add ${name.toLowerCase()}…`, list)}</div></div>`;
+  return `<div class="np-metas">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
+    <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>${m.milestones.map((x) => `<option value="${x.number}" ${String(n.milestone) === String(x.number) ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>
+    <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value="${esc(n.issues)}"></div></div>`;
+}
+async function npLoadMeta(repo) {
+  const n = S.np; if (!repo || !tauri || n.meta[repo]) return;
+  try { n.meta[repo] = await tauri.invoke('repo_meta', { repo }); } catch { n.meta[repo] = { people: [], labels: [], milestones: [] }; }
+  if (S.np === n) rerender();
+}
 async function npLoadBranches(repo) {
-  const n = S.np; if (!repo || n.branches[repo]) return npPickDefaults();
+  const n = S.np; npLoadMeta(repo); if (!repo || n.branches[repo]) return npPickDefaults();
   if (!tauri) { n.err = 'Creating pull requests needs the desktop app.'; return render(); }
   try { n.branches[repo] = await tauri.invoke('list_branches', { repo }); n.err = ''; } catch (e) { n.err = String(e).replace(/^Error: /, ''); n.branches[repo] = { default: '', branches: [] }; }
   npPickDefaults();
@@ -944,7 +1001,7 @@ async function npCompare() {
 }
 function openNewPr(repo, head) {
   const cur = (typeof repo === 'string' && repo) || S.bundle?.pull.base.repo.full_name || S.repo || '';
-  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
+  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: '', issues: '', cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
   delete S.draft.newpr; render();
   if (tauri && !S.repos) loadRepos().then(() => { if (!S.np.repo && S.repos?.[0]) S.np.repo = S.repos[0].full_name; npLoadBranches(S.np.repo); }); else npLoadBranches(cur);
 }
@@ -1043,11 +1100,19 @@ function bind() {
   $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np.base, S.np.head] = [S.np.head, S.np.base]; }); npCompare(); });
   $('#nptitle')?.addEventListener('input', (e) => { S.np.title = e.target.value; S.np.titleTouched = true; const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === 'object' && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head; const b = $('#npcreate'); if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
   $('#npdraft')?.addEventListener('change', (e) => { S.np.draft = e.target.checked; const b = $('#npcreate'); if (b) b.textContent = S.np.draft ? 'Create draft pull request' : 'Create pull request'; });
+  document.querySelectorAll('[data-npadd]').forEach((el) => el.addEventListener('change', (e) => { if (e.target.value) { S.np[el.dataset.npadd].push(e.target.value); rerender(); } }));
+  document.querySelectorAll('[data-npdel]').forEach((el) => el.addEventListener('click', () => { const k = el.dataset.npdel; S.np[k] = S.np[k].filter((x) => x !== el.dataset.v); rerender(); }));
+  $('#npmile')?.addEventListener('change', (e) => { S.np.milestone = e.target.value; });
+  $('#npissues')?.addEventListener('input', (e) => { S.np.issues = e.target.value; });
   $('#npcreate')?.addEventListener('click', async (e) => {
     const n = S.np, btn = e.currentTarget; setBusy(btn, true); n.err = '';
     try {
-      const r = await tauri.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body: S.draft.newpr || '', draft: n.draft });
-      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true });
+      const nums = [...new Set((n.issues.match(/\d+/g) || []))];
+      const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();
+      const extra = { reviewers: n.reviewers, assignees: n.assignees, labels: n.labels, milestone: n.milestone ? Number(n.milestone) : null };
+      const r = await tauri.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body, draft: n.draft, extra });
+      const warn = r.warnings?.length ? `Created, but ${r.warnings.join(' · ')}` : '';
+      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
     } catch (err) { setBusy(btn, false); n.err = String(err).replace(/^Error: /, ''); rerender(); }
   });
   $('#inboxbtn')?.addEventListener('click', openInbox);

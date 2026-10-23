@@ -148,16 +148,51 @@ async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Array(out))
 }
 
-/// Open a new pull request; returns GitHub's response (number, html_url).
+/// Assignable people, labels and open milestones of a repository, for the New pull request page.
 #[tauri::command]
-async fn create_pr(repo: String, base: String, head: String, title: String, body: String, draft: bool) -> Result<serde_json::Value, String> {
+async fn repo_meta(repo: String) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    let token = github::load_token().ok_or("Add an access token first.")?;
+    let c = github::client();
+    let t = Some(token.as_str());
+    let (u1, u2, u3) = (format!("https://api.github.com/repos/{repo}/assignees?per_page=100"), format!("https://api.github.com/repos/{repo}/labels?per_page=100"), format!("https://api.github.com/repos/{repo}/milestones?state=open&per_page=100"));
+    let (people, labels, miles) = tokio::join!(github::get_paged(&c, &u1, t, 3), github::get_paged(&c, &u2, t, 3), github::get_paged(&c, &u3, t, 2));
+    let pick = |v: Result<Vec<serde_json::Value>, String>, f: &dyn Fn(&serde_json::Value) -> serde_json::Value| -> Vec<serde_json::Value> { v.unwrap_or_default().iter().map(|x| f(x)).collect() };
+    Ok(serde_json::json!({
+        "people": pick(people, &|x| serde_json::json!({ "login": x["login"], "avatar": x["avatar_url"] })),
+        "labels": pick(labels, &|x| serde_json::json!({ "name": x["name"], "color": x["color"] })),
+        "milestones": pick(miles, &|x| serde_json::json!({ "number": x["number"], "title": x["title"] })),
+    }))
+}
+
+/// Open a new pull request; returns GitHub's response (number, html_url). `extra` may carry
+/// reviewers, assignees, labels and milestone, applied right after creation (failures come back as `warnings`).
+#[tauri::command]
+async fn create_pr(repo: String, base: String, head: String, title: String, body: String, draft: bool, extra: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
     if !valid_repo(&repo) || !valid_ref(&base) || !valid_ref(&head) { return Err("bad branch name".into()); }
     if title.trim().is_empty() { return Err("A title is required.".into()); }
     let token = github::load_token().ok_or("Add an access token to create pull requests.")?;
-    let r = github::send(&github::client(), reqwest::Method::POST, &format!("https://api.github.com/repos/{repo}/pulls"), Some(&token),
+    let c = github::client();
+    let r = github::send(&c, reqwest::Method::POST, &format!("https://api.github.com/repos/{repo}/pulls"), Some(&token),
         serde_json::json!({ "title": title.trim(), "head": head, "base": base, "body": body, "draft": draft })).await?;
     PR_LIST_CACHE.invalidate_all();
-    Ok(serde_json::json!({ "number": r["number"], "html_url": r["html_url"] }))
+    let n = r["number"].as_u64().unwrap_or(0);
+    let mut warnings: Vec<String> = Vec::new();
+    if let (Some(x), true) = (extra, n > 0) {
+        let list = |k: &str| -> Vec<String> { x[k].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).map(String::from).collect()).unwrap_or_default() };
+        let (reviewers, assignees, labels) = (list("reviewers"), list("assignees"), list("labels"));
+        if !reviewers.is_empty() {
+            if let Err(e) = github::send(&c, reqwest::Method::POST, &format!("https://api.github.com/repos/{repo}/pulls/{n}/requested_reviewers"), Some(&token), serde_json::json!({ "reviewers": reviewers })).await { warnings.push(format!("reviewers: {e}")); }
+        }
+        let mut patch = serde_json::Map::new();
+        if !assignees.is_empty() { patch.insert("assignees".into(), serde_json::json!(assignees)); }
+        if !labels.is_empty() { patch.insert("labels".into(), serde_json::json!(labels)); }
+        if let Some(m) = x["milestone"].as_u64() { patch.insert("milestone".into(), serde_json::json!(m)); }
+        if !patch.is_empty() {
+            if let Err(e) = github::send(&c, reqwest::Method::PATCH, &format!("https://api.github.com/repos/{repo}/issues/{n}"), Some(&token), serde_json::Value::Object(patch)).await { warnings.push(format!("assignees/labels/milestone: {e}")); }
+        }
+    }
+    Ok(serde_json::json!({ "number": r["number"], "html_url": r["html_url"], "warnings": warnings }))
 }
 
 /// Every repository the token can see (owned, collaborator, organization), most recently pushed first.
@@ -296,6 +331,57 @@ async fn pr_action(repo: String, number: u64, action: String, body: Option<Strin
             };
             (Method::POST, url, serde_json::json!({ "content": c }))
         }
+        "update_branch" => (Method::PUT, format!("{base}/pulls/{number}/update-branch"), serde_json::json!({})),
+        "edit" => {
+            let mut p = serde_json::Map::new();
+            if let Some(t) = extra.as_ref().and_then(|x| x["title"].as_str()) {
+                if t.trim().is_empty() { return Err("The title can't be empty.".into()); }
+                p.insert("title".into(), serde_json::json!(t.trim()));
+            }
+            if body.is_some() { p.insert("body".into(), serde_json::json!(text)); }
+            (Method::PATCH, format!("{base}/pulls/{number}"), serde_json::Value::Object(p))
+        }
+        "ready" | "draft" | "automerge" | "disable_automerge" => {
+            let c = github::client();
+            let t = token.as_deref();
+            let pr = github::get(&c, &format!("{base}/pulls/{number}"), t).await?;
+            let node = pr["node_id"].as_str().ok_or("pull request id missing")?;
+            let (q, vars) = match action.as_str() {
+                "ready" => ("mutation($id:ID!){markPullRequestReadyForReview(input:{pullRequestId:$id}){pullRequest{id}}}", serde_json::json!({ "id": node })),
+                "draft" => ("mutation($id:ID!){convertPullRequestToDraft(input:{pullRequestId:$id}){pullRequest{id}}}", serde_json::json!({ "id": node })),
+                "automerge" => {
+                    let mm = method.unwrap_or_else(|| "merge".into()).to_uppercase();
+                    if !["MERGE", "SQUASH", "REBASE"].contains(&mm.as_str()) { return Err("bad merge method".into()); }
+                    ("mutation($id:ID!,$m:PullRequestMergeMethod!){enablePullRequestAutoMerge(input:{pullRequestId:$id,mergeMethod:$m}){pullRequest{id}}}", serde_json::json!({ "id": node, "m": mm }))
+                }
+                _ => ("mutation($id:ID!){disablePullRequestAutoMerge(input:{pullRequestId:$id}){pullRequest{id}}}", serde_json::json!({ "id": node })),
+            };
+            let r = github::send(&c, Method::POST, "https://api.github.com/graphql", t, serde_json::json!({ "query": q, "variables": vars })).await?;
+            if let Some(m) = r["errors"][0]["message"].as_str() { return Err(m.to_string()); }
+            PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+            PR_LIST_CACHE.invalidate_all();
+            return Ok(r);
+        }
+        "rerun" => {
+            // `extra` = URLs of the failed checks; GitHub Actions runs are re-run (failed jobs only).
+            let mut runs: Vec<String> = Vec::new();
+            for u in extra.as_ref().and_then(|x| x.as_array()).cloned().unwrap_or_default() {
+                let Some(u) = u.as_str() else { continue };
+                if let Some(i) = u.find("/actions/runs/") {
+                    let id: String = u[i + 14..].chars().take_while(|c| c.is_ascii_digit()).collect();
+                    if !id.is_empty() && !runs.contains(&id) { runs.push(id); }
+                }
+            }
+            if runs.is_empty() { return Err("None of the failed checks can be re-run from here (only GitHub Actions runs).".into()); }
+            let c = github::client();
+            let mut errs: Vec<String> = Vec::new();
+            for id in &runs {
+                if let Err(e) = github::send(&c, Method::POST, &format!("{base}/actions/runs/{id}/rerun-failed-jobs"), token.as_deref(), serde_json::json!({})).await { errs.push(e); }
+            }
+            PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+            if errs.len() == runs.len() { return Err(errs.remove(0)); }
+            return Ok(serde_json::json!({ "rerun": runs.len() - errs.len() }));
+        }
         "close" => (Method::PATCH, format!("{base}/pulls/{number}"), serde_json::json!({ "state": "closed" })),
         "reopen" => (Method::PATCH, format!("{base}/pulls/{number}"), serde_json::json!({ "state": "open" })),
         "comment" | "reply" => return Err("Write something first.".into()),
@@ -430,7 +516,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
