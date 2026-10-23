@@ -134,15 +134,16 @@ async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
     let c = github::client();
     let info = github::get(&c, &format!("https://api.github.com/repos/{repo}"), Some(&token)).await?;
     let default = info["default_branch"].as_str().unwrap_or("").to_string();
-    let events = github::get(&c, &format!("https://api.github.com/repos/{repo}/events?per_page=40"), Some(&token)).await?;
+    let (owner, name) = repo.split_once('/').unwrap();
+    let q = "query($o:String!,$n:String!){repository(owner:$o,name:$n){refs(refPrefix:\"refs/heads/\",first:100){nodes{name target{... on Commit{committedDate author{user{login}}}}}}}}";
+    let g = github::send(&c, reqwest::Method::POST, "https://api.github.com/graphql", Some(&token), serde_json::json!({ "query": q, "variables": { "o": owner, "n": name } })).await?;
     let open = github::get_paged(&c, &format!("https://api.github.com/repos/{repo}/pulls?state=open&per_page=100"), Some(&token), 3).await.unwrap_or_default();
     let open_heads: Vec<String> = open.iter().filter_map(|p| p["head"]["ref"].as_str().map(String::from)).collect();
     let mut out: Vec<serde_json::Value> = Vec::new();
-    for e in events.as_array().cloned().unwrap_or_default() {
-        if e["type"] != "PushEvent" { continue; }
-        let Some(b) = e["payload"]["ref"].as_str().and_then(|s| s.strip_prefix("refs/heads/")) else { continue };
-        if b == default || open_heads.iter().any(|h| h == b) || out.iter().any(|o| o["branch"] == b) { continue; }
-        out.push(serde_json::json!({ "branch": b, "at": e["created_at"], "actor": e["actor"]["login"], "repo": repo }));
+    for n in g["data"]["repository"]["refs"]["nodes"].as_array().cloned().unwrap_or_default() {
+        let Some(b) = n["name"].as_str() else { continue };
+        if b == default || open_heads.iter().any(|h| h == b) { continue; }
+        out.push(serde_json::json!({ "branch": b, "at": n["target"]["committedDate"], "actor": n["target"]["author"]["user"]["login"], "repo": repo }));
     }
     Ok(serde_json::Value::Array(out))
 }
