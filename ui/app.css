@@ -635,3 +635,7 @@ input, select, .sel, .input { border-radius: 8px; border: 0; box-shadow: 0 0 0 .
 .reviewer { position: relative; } .rerequest { margin-left: 6px; border: 0; background: none; color: var(--fgColor-muted); cursor: pointer; width: 24px; height: 24px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s, background .15s; flex: none; }
 .reviewer:hover .rerequest, .rerequest:focus-visible, .rerequest.spin { opacity: 1; } .rerequest:hover { background: rgba(120, 120, 128, .16); color: var(--fgColor-accent); }
 .rerequest.spin svg { animation: rspin .8s linear infinite; } @keyframes rspin { to { transform: rotate(360deg); } }
+
+/* Windows / Linux use the native title bar, so no room is kept for macOS traffic lights. */
+.not-mac .toolbar { padding-left: 14px; }
+@media (max-width: 900px) { .not-mac .toolbar { padding-left: 10px; } }

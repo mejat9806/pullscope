@@ -209,16 +209,25 @@ async fn check_pr(repo: String, number: u64, since: Option<String>) -> Result<se
     }))
 }
 
-/// Native macOS notification; clicking it opens `pr_ref` (and jumps to `target`).
+/// Desktop notification. macOS uses a native banner that opens `pr_ref` (and jumps to `target`) when clicked;
+/// Windows and Linux use the notification plugin (a plain banner, not clickable).
 #[tauri::command]
-fn notify(title: String, body: String, pr_ref: Option<String>, target: Option<String>) {
+fn notify(app: tauri::AppHandle, title: String, body: String, pr_ref: Option<String>, target: Option<String>) {
     #[cfg(target_os = "macos")]
-    if native_notify::send(&title, &body, pr_ref.as_deref().unwrap_or(""), target.as_deref().unwrap_or("")) { return; }
-    // Unbundled dev runs: plain banner, not clickable.
-    let _ = (&pr_ref, &target);
-    let esc = |s: &str| s.replace('\\', " ").replace('"', "'");
-    let script = format!("display notification \"{}\" with title \"{}\"", esc(&body), esc(&title));
-    let _ = std::process::Command::new("osascript").args(["-e", &script]).spawn();
+    {
+        let _ = &app;
+        if native_notify::send(&title, &body, pr_ref.as_deref().unwrap_or(""), target.as_deref().unwrap_or("")) { return; }
+        // Unbundled dev runs: plain banner, not clickable.
+        let esc = |s: &str| s.replace('\\', " ").replace('"', "'");
+        let script = format!("display notification \"{}\" with title \"{}\"", esc(&body), esc(&title));
+        let _ = std::process::Command::new("osascript").args(["-e", &script]).spawn();
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        use tauri_plugin_notification::NotificationExt;
+        let _ = (&pr_ref, &target);
+        let _ = app.notification().builder().title(title).body(body).show();
+    }
 }
 
 #[tauri::command]
@@ -226,7 +235,13 @@ fn open_external(url: String) -> Result<(), String> {
     if !(url.starts_with("https://") || url.starts_with("http://")) {
         return Err("only http(s) links can be opened".into());
     }
-    std::process::Command::new("open").arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
+    #[cfg(target_os = "macos")]
+    let mut cmd = std::process::Command::new("open");
+    #[cfg(windows)]
+    let mut cmd = { let mut c = std::process::Command::new("cmd"); c.args(["/C", "start", ""]); c };
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    let mut cmd = std::process::Command::new("xdg-open");
+    cmd.arg(&url).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 /// A PR reference passed on the command line (`github-pr-view octocat/Hello-World#6`).
@@ -246,7 +261,10 @@ fn set_token(token: String) -> Result<(), String> {
 }
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(not(target_os = "macos"))]
+    let builder = builder.plugin(tauri_plugin_notification::init());
+    builder
         .setup(|_app| {
             #[cfg(target_os = "macos")]
             native_notify::setup(_app.handle().clone());

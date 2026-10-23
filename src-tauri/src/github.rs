@@ -216,8 +216,16 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
 
 /// ~/Library/Caches/github-pr-view/<owner>_<repo>_<n>.json
 pub fn cache_path(pr: &PrRef) -> Option<std::path::PathBuf> {
-    let home = std::env::var_os("HOME")?;
-    Some(std::path::Path::new(&home).join("Library/Caches/github-pr-view").join(format!("{}_{}_{}.json", pr.owner, pr.repo, pr.number)))
+    let name = format!("{}_{}_{}.json", pr.owner, pr.repo, pr.number);
+    let home = || std::env::var_os("HOME").map(std::path::PathBuf::from);
+    let dir = if cfg!(target_os = "macos") {
+        home()?.join("Library/Caches/github-pr-view")
+    } else if cfg!(windows) {
+        std::path::PathBuf::from(std::env::var_os("LOCALAPPDATA")?).join("github-pr-view").join("cache")
+    } else {
+        std::env::var_os("XDG_CACHE_HOME").map(std::path::PathBuf::from).or_else(|| home().map(|h| h.join(".cache")))?.join("github-pr-view")
+    };
+    Some(dir.join(name))
 }
 
 const SERVICE: &str = "github-pr-view";

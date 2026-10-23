@@ -54,3 +54,14 @@ write actions (comment, reply, review, merge, close/reopen).
 - **Dynamic Island (iOS):** Actions menu, "Show in Dynamic Island" pins a PR as a Live Activity (unresolved threads, checks,
   review decision, latest comment). It refreshes whenever the app polls. Starting one needs the app in the foreground.
 - Not ported yet: rich editor, split view, reactions.
+
+
+## Installers for macOS, Windows and Linux
+
+`.github/workflows/release.yml` builds the app on each platform (macOS Apple Silicon + Intel, Windows, Linux).
+Run it from the Actions tab ("Build installers" -> Run workflow) to get the installers as downloadable artifacts,
+or push a tag (`git tag v0.1.0 && git push --tags`) to publish them as a draft GitHub Release.
+
+- Windows and Linux show a plain banner for notifications (clicking it does not open the PR yet).
+- The installers are not code-signed, so macOS (Gatekeeper) and Windows (SmartScreen) warn on first launch.
+- The access token is stored in the macOS Keychain, Windows Credential Manager, or the Linux Secret Service (needs a running keyring such as GNOME Keyring); `GITHUB_TOKEN` / `gh auth` also work.

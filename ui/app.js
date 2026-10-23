@@ -36,6 +36,7 @@ let S = { bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') 
 S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || []; } catch { return []; } })();
 
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+if (!/Mac/i.test(navigator.platform)) document.documentElement.classList.add('not-mac');
 function applyMode() {
   const d = document.documentElement, dark = isDark();
   d.setAttribute('data-color-mode', dark ? 'dark' : 'light'); d.setAttribute('data-light-theme', 'light'); d.setAttribute('data-dark-theme', 'dark'); d.setAttribute('data-t', dark ? 'dark' : 'light');
