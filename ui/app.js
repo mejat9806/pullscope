@@ -535,7 +535,21 @@ async function pollNotes() {
       remember(ref, p);
     } catch { /* offline or rate limited: try again next round */ }
   }
+  await pollBranches(refs, cur);
   polling = false; if (S.notes.length !== before && !document.activeElement?.closest?.('.tt')) render();
+}
+// New branches pushed to repos you follow (the ones behind your recent pull requests). The first look at a repo only records its branches.
+const branchSeen = load('branches', {});
+async function pollBranches(refs, cur) {
+  if (!S.hasToken) return;
+  const repos = [...new Set([...refs, cur].filter(Boolean).map((r) => r.replace(/#\d+$/, '')))].slice(0, 6);
+  for (const repo of repos) {
+    try {
+      const b = await tauri.invoke('list_branches', { repo }), names = b.branches || [];
+      if (branchSeen[repo]) names.filter((n) => !branchSeen[repo].includes(n) && n !== b.default).forEach((n) => noteAdd(`${repo}@${n}`, repo, `New branch pushed: ${n} — click to open a pull request`, ''));
+      branchSeen[repo] = names; localStorage.setItem('branches', JSON.stringify(branchSeen));
+    } catch { /* no access or offline */ }
+  }
 }
 function notePanel() {
   const rows = S.notes.map((n) => `<a class="note ${n.read ? '' : 'new'}" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>`).join('') || '<div class="note-empty">No notifications yet. New comments, commits and reviews on PRs you opened will show up here.</div>';
@@ -910,9 +924,9 @@ async function npCompare() {
   } catch (e) { if (S.np.key !== key) return; n.cmp = String(e).replace(/^Error: /, ''); }
   rerender();
 }
-function openNewPr() {
-  const cur = S.bundle?.pull.base.repo.full_name || S.repo || '';
-  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: '', branches: {}, cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
+function openNewPr(repo, head) {
+  const cur = (typeof repo === 'string' && repo) || S.bundle?.pull.base.repo.full_name || S.repo || '';
+  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
   delete S.draft.newpr; render();
   if (tauri && !S.repos) loadRepos().then(() => { if (!S.np.repo && S.repos?.[0]) S.np.repo = S.repos[0].full_name; npLoadBranches(S.np.repo); }); else npLoadBranches(cur);
 }
@@ -999,7 +1013,7 @@ function bind() {
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
   $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
-  $('#newprbtn')?.addEventListener('click', openNewPr);
+  $('#newprbtn')?.addEventListener('click', () => openNewPr());
   $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
   const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
   $('#nprepo')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); });
@@ -1118,6 +1132,7 @@ async function loadPrs() {
 const reload = () => S.view === 'repo' ? openRepo(S.repo, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
 
 async function openPr(input, { nav = false, keepTab = false, manual = false } = {}) {
+  { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
   S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = 'conversation'; S.sel = null;
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
   if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
