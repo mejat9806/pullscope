@@ -618,7 +618,7 @@ function showHelp() {
   if (document.querySelector('.palette')) return;
   const el = document.createElement('div'); el.className = 'dlg-bg palette';
   const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Turn Split view on / off', 's')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
   document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
   const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
@@ -628,6 +628,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
   else if (e.key === ']') kbStep(1, openThreads); else if (e.key === '[') kbStep(-1, openThreads);
   else if (e.key === '?') showHelp();
+  else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
+  else if (e.key === 'd' && S.bundle) { const b = document.querySelector(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`); if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
   else if (e.key === 'r') {
     const cur = kbCur(), host = (cur?.closest('.thread')?.querySelector('.reply .tt')) || document.querySelector('[data-draft="comment"]');
     if (!host) return; e.preventDefault(); host.scrollIntoView({ block: 'center', behavior: 'smooth' });
