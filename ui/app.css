@@ -720,3 +720,9 @@ table.diff.sbs tr.hunk td.num { width: 64px; }
 .off-ind.on { visibility: visible; animation: offpulse 2.4s ease-in-out infinite; }
 .off-ind[data-tip]:hover::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); right: 0; width: 230px; padding: 8px 10px; border-radius: 10px; background: var(--bgColor-default); color: var(--fgColor-default); border: .5px solid var(--borderColor-default); box-shadow: var(--shadow); font-size: 12px; line-height: 1.4; text-align: left; white-space: normal; z-index: 50; pointer-events: none; }
 @keyframes offpulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
+/* busy buttons: spinner + disabled */
+button.is-busy { position: relative; pointer-events: none; opacity: .75; }
+button.is-busy::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rspin .7s linear infinite; }
+.tb-btn.is-busy::before, .cm-btn.is-busy::before, .rerequest.is-busy::before { margin: 0; position: absolute; inset: 0; margin: auto; }
+.tb-btn.is-busy svg { opacity: 0; }

@@ -682,7 +682,15 @@ function confirmDlg(title, text, label, danger, fn) {
 }
 
 // Runs a write action. Returns the API response, or undefined after showing an error under `key`.
+// Any write action puts a spinner in the button that started it and disables it until the request settles.
+document.addEventListener('click', (e) => { S.lastBtn = e.target.closest?.('button') || null; }, true);
+const btnSel = (b) => { if (b.id) return '#' + b.id; const a = [...b.attributes].find((x) => x.name.startsWith('data-')); return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null; };
+const setBusy = (b, on) => { if (!b) return; b.classList.toggle('is-busy', on); b.disabled = on; b.setAttribute('aria-busy', on ? 'true' : 'false'); };
 async function act(action, args, key, inDialog = false) {
+  const btn = S.lastBtn && document.contains(S.lastBtn) ? S.lastBtn : null; S.busySel = btn ? btnSel(btn) : null; setBusy(btn, true);
+  try { return await act2(action, args, key, inDialog); } finally { S.busySel = null; setBusy(btn, false); }
+}
+async function act2(action, args, key, inDialog = false) {
   S.actErr = '';
   if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; if (inDialog) $('#reverr').innerHTML = `<div class="act-err">${S.actErr.m}</div>`; else render(); return undefined; }
   S.busy = key; if (!inDialog) render();
@@ -867,6 +875,7 @@ function render() {
   $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
+  if (S.busy && S.busySel) setBusy($(S.busySel), true);
   syncUnread();
   // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
   if (S.flashId && Date.now() < S.flashUntil) document.getElementById('c-' + S.flashId)?.classList.add('flash'); else S.flashId = '';
@@ -908,7 +917,7 @@ function bind() {
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); S.bell = !S.bell; if (!S.bell) { S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); } S.keepScroll = true; render(); S.keepScroll = false; });
-  $('#retry')?.addEventListener('click', () => { S.offline = navigator.onLine === false; reload(); });
+  $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
   $('#inboxbtn')?.addEventListener('click', openInbox);
   $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
