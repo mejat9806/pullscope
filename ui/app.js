@@ -118,6 +118,7 @@ function prSide() {
 function prList() {
   const head = `<div class="prl-head"><div><span class="repo-ic">${icon('repo', 16)}</span> <b>${esc(S.repo)}</b></div><div class="seg">${['open', 'closed', 'all'].map((s) => `<button data-ps="${s}" class="${S.prState === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div></div>`;
   let body;
+  const pb = pushBanners(S.repo);
   if (S.error) body = `<div class="err" style="padding:16px">${esc(S.error)}</div>`;
   else if (!S.prs) body = '<div class="spinner" style="margin:48px auto">Loading pull requests…</div>';
   else body = S.prs.map((p) => {
@@ -125,7 +126,7 @@ function prList() {
     const lbl = (p.labels || []).map((l) => `<span class="pill-label" style="background:#${esc(l.color)}33;color:#${esc(l.color)};border-color:#${esc(l.color)};margin:0 0 0 4px">${esc(l.name)}</span>`).join('');
     return `<a class="prl-row" data-open="${esc(S.repo)}#${p.number}"><span class="rc-i ${st[0]}">${icon(st[1])}</span><span class="prl-main"><b>${esc(p.title)}</b>${lbl}<i>#${p.number} ${p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : 'opened'} ${when(p.merged_at || p.closed_at || p.created_at).replace(/<\/?span[^>]*>/g, '')} by ${esc(p.user.login)}</i></span><img src="${esc(p.user.avatar_url)}&s=40" width="20" height="20" style="border-radius:50%"></a>`;
   }).join('') || '<div class="diff-empty">No pull requests.</div>';
-  return `<div class="pr-page"><div class="repoline" style="padding-bottom:16px"></div><div class="prl">${head}${body}</div></div>`;
+  return `<div class="pr-page"><div class="repoline" style="padding-bottom:16px"></div>${pb}<div class="prl">${head}${body}</div></div>`;
 }
 
 function repoHeader(p) {
@@ -538,6 +539,22 @@ async function pollNotes() {
   await pollBranches(refs, cur);
   polling = false; if (S.notes.length !== before && !document.activeElement?.closest?.('.tt')) render();
 }
+
+// "had recent pushes — Compare & pull request" prompts, like github.com shows for branches without a PR.
+S.pushes = {}; const pushDis = load('pushdismiss', {});
+const ago = (t) => { const m = Math.max(1, Math.round((Date.now() - new Date(t)) / 60000)); return m < 60 ? `${m} minute${m === 1 ? '' : 's'} ago` : `${Math.round(m / 60)} hour${m >= 90 ? 's' : ''} ago`; };
+const pushList = (repo) => Object.entries(S.pushes).filter(([r]) => !repo || r === repo).flatMap(([, l]) => l).filter((p) => !pushDis[`${p.repo}@${p.branch}@${p.at}`] && Date.now() - new Date(p.at) < 6 * 3600e3);
+function pushBanners(repo) {
+  return pushList(repo).slice(0, 3).map((p) => `<div class="push-banner">${icon('git-branch')}<span><b>${esc(p.branch)}</b> had recent pushes ${ago(p.at)}${repo ? '' : ` <i>· ${esc(p.repo)}</i>`}</span><span class="sp"></span><button class="btn small primary" data-compare="${esc(p.repo)}@${esc(p.branch)}">Compare &amp; pull request</button><button class="push-x" data-pdismiss="${esc(`${p.repo}@${p.branch}@${p.at}`)}" title="Dismiss">${icon('x')}</button></div>`).join('');
+}
+async function refreshPushes(repo) {
+  if (!tauri || !S.hasToken || !repo) return;
+  try {
+    const l = await tauri.invoke('recent_pushes', { repo }), was = JSON.stringify(S.pushes[repo] || []);
+    S.pushes[repo] = l; if (JSON.stringify(l) !== was && (S.view === 'repo' || (!S.bundle && S.view !== 'newpr' && S.view !== 'inbox' && S.view !== 'notes')) && !document.activeElement?.closest?.('.tt')) rerender();
+  } catch { /* no access */ }
+}
+
 // New branches pushed to repos you follow (the ones behind your recent pull requests). The first look at a repo only records its branches.
 const branchSeen = load('branches', {});
 async function pollBranches(refs, cur) {
@@ -547,6 +564,7 @@ async function pollBranches(refs, cur) {
     try {
       const b = await tauri.invoke('list_branches', { repo }), names = b.branches || [];
       if (branchSeen[repo]) names.filter((n) => !branchSeen[repo].includes(n) && n !== b.default).forEach((n) => noteAdd(`${repo}@${n}`, repo, `New branch pushed: ${n} — click to open a pull request`, ''));
+      refreshPushes(repo);
       branchSeen[repo] = names; localStorage.setItem('branches', JSON.stringify(branchSeen));
     } catch { /* no access or offline */ }
   }
@@ -852,7 +870,7 @@ function bindWrite() {
 }
 
 function landing() {
-  return `<div class="landing">${icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"')}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br>Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}</div>`;
+  return `<div class="landing">${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ''}${icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"')}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br>Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}</div>`;
 }
 
 const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
@@ -1013,6 +1031,8 @@ function bind() {
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
   $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
+  document.querySelectorAll('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare.split('@'); openNewPr(repo, br); }));
+  document.querySelectorAll('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
   $('#newprbtn')?.addEventListener('click', () => openNewPr());
   $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
   const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
@@ -1119,7 +1139,7 @@ async function loadRepos() {
 async function openRepo(name, { nav = false } = {}) {
   S.view = 'repo'; S.repo = name; S.prs = null; S.error = ''; S.bundle = nav && S.bundle ? S.bundle : S.bundle;
   if (!nav) { S.hist = S.hist.slice(0, S.hi + 1); S.hist.push('repo:' + name); S.hi = S.hist.length - 1; }
-  S.sideTab = 'prs'; render();
+  S.sideTab = 'prs'; render(); refreshPushes(name);
   try { S.prs = tauri ? await tauri.invoke('list_prs', { repo: name, state: S.prState }) : []; } catch (e) { S.error = String(e); S.prs = []; }
   render();
 }
@@ -1184,7 +1204,7 @@ render();
 if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
 else if (tauri) tauri.invoke('initial_arg').then((arg) => { const last = localStorage.getItem('last'); if (arg || last) openPr(arg || last); });
 
-setInterval(pollNotes, 60000);
+setInterval(pollNotes, 60000); setTimeout(pollNotes, 4000);
 // refetchOnWindowFocus: coming back to the app tops up a PR that has gone stale.
 addEventListener('focus', () => { const b = S.bundle; if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) return; const k = `${b.pull.base.repo.full_name}#${b.pull.number}`; if (!qc.fresh(k, 60000)) openPr(k, { nav: true, keepTab: true }); });
 setTimeout(pollNotes, 8000);

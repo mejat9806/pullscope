@@ -756,3 +756,9 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 .np-check { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; } .np-check span { color: var(--fgColor-muted); }
 .np-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 .np-btns .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* "had recent pushes" prompt */
+.push-wrap { width: min(760px, 100%); margin: 0 auto 24px; display: grid; gap: 8px; text-align: left; }
+.push-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 0 0 12px; border-radius: 12px; font-size: 14px; background: color-mix(in srgb, var(--fgColor-attention) 12%, var(--bgColor-default)); border: .5px solid color-mix(in srgb, var(--fgColor-attention) 45%, transparent); }
+.push-banner > svg { color: var(--fgColor-attention); flex: none; } .push-banner i { font-style: normal; color: var(--fgColor-muted); } .push-banner .sp { flex: 1; }
+.push-x { border: 0; background: transparent; color: var(--fgColor-muted); cursor: pointer; padding: 4px; border-radius: 6px; } .push-x:hover { background: var(--bgColor-neutral-muted); }

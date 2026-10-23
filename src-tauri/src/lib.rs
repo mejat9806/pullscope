@@ -126,6 +126,27 @@ async fn compare_branches(repo: String, base: String, head: String) -> Result<se
     Ok(serde_json::json!({ "ahead_by": v["ahead_by"], "behind_by": v["behind_by"], "files": v["files"].as_array().map(|a| a.len()).unwrap_or(0), "commits": commits }))
 }
 
+/// Branches that got pushes in the last few hours and have no open pull request yet (GitHub's "Compare & pull request" prompt).
+#[tauri::command]
+async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    let token = github::load_token().ok_or("no token")?;
+    let c = github::client();
+    let info = github::get(&c, &format!("https://api.github.com/repos/{repo}"), Some(&token)).await?;
+    let default = info["default_branch"].as_str().unwrap_or("").to_string();
+    let events = github::get(&c, &format!("https://api.github.com/repos/{repo}/events?per_page=40"), Some(&token)).await?;
+    let open = github::get_paged(&c, &format!("https://api.github.com/repos/{repo}/pulls?state=open&per_page=100"), Some(&token), 3).await.unwrap_or_default();
+    let open_heads: Vec<String> = open.iter().filter_map(|p| p["head"]["ref"].as_str().map(String::from)).collect();
+    let mut out: Vec<serde_json::Value> = Vec::new();
+    for e in events.as_array().cloned().unwrap_or_default() {
+        if e["type"] != "PushEvent" { continue; }
+        let Some(b) = e["payload"]["ref"].as_str().and_then(|s| s.strip_prefix("refs/heads/")) else { continue };
+        if b == default || open_heads.iter().any(|h| h == b) || out.iter().any(|o| o["branch"] == b) { continue; }
+        out.push(serde_json::json!({ "branch": b, "at": e["created_at"], "actor": e["actor"]["login"], "repo": repo }));
+    }
+    Ok(serde_json::Value::Array(out))
+}
+
 /// Open a new pull request; returns GitHub's response (number, html_url).
 #[tauri::command]
 async fn create_pr(repo: String, base: String, head: String, title: String, body: String, draft: bool) -> Result<serde_json::Value, String> {
@@ -408,7 +429,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
