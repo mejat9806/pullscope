@@ -35,7 +35,8 @@ async fn fetch_pr(url: String) -> Result<serde_json::Value, String> {
     let pr = github::parse_pr_ref(&url)?;
     let key = pr_key(&pr);
     let b = PR_CACHE.try_get_with(key.clone(), fetch_pr_uncached(url)).await.map_err(|e: Arc<String>| (*e).clone())?;
-    PR_MEM.insert(key, b.clone());
+    // An offline fallback must not be remembered as if it were fresh.
+    if b.get("_cached").is_some() { PR_CACHE.invalidate(&key).await; } else { PR_MEM.insert(key, b.clone()); }
     Ok(b)
 }
 
@@ -71,6 +72,33 @@ async fn fetch_pr_uncached(url: String) -> Result<serde_json::Value, String> {
             .map(|mut b| { b["_cached"] = true.into(); b })
             .ok_or(e),
     }
+}
+
+static INBOX: LazyLock<AsyncCache<String, Value>> = LazyLock::new(|| AsyncCache::builder().max_capacity(4).time_to_live(Duration::from_secs(45)).build());
+
+/// PRs that need you: review requested, your own open PRs, and your PRs that are approved (ready to merge).
+#[tauri::command]
+async fn inbox(force: Option<bool>) -> Result<serde_json::Value, String> {
+    if force == Some(true) { INBOX.invalidate_all(); }
+    INBOX.try_get_with("inbox".to_string(), async {
+        let token = github::load_token().ok_or("Add an access token (key button) to see your inbox.")?;
+        let c = github::client();
+        let run = |q: &str| {
+            let url = format!("https://api.github.com/search/issues?per_page=30&sort=updated&order=desc&q={}", q.replace(' ', "+").replace(':', "%3A").replace('@', "%40"));
+            let (c, t) = (c.clone(), token.clone());
+            async move {
+                let v = github::get(&c, &url, Some(&t)).await?;
+                let items: Vec<Value> = v["items"].as_array().cloned().unwrap_or_default().into_iter().map(|i| {
+                    let repo = i["repository_url"].as_str().unwrap_or("").rsplit("/repos/").next().unwrap_or("").to_string();
+                    serde_json::json!({ "repo": repo, "number": i["number"], "title": i["title"], "user": i["user"]["login"], "avatar": i["user"]["avatar_url"],
+                        "updated_at": i["updated_at"], "draft": i["draft"], "comments": i["comments"], "url": i["html_url"] })
+                }).collect();
+                Ok::<Vec<Value>, String>(items)
+            }
+        };
+        let (a, b, d) = tokio::join!(run("is:pr is:open archived:false review-requested:@me"), run("is:pr is:open archived:false author:@me"), run("is:pr is:open archived:false author:@me review:approved draft:false"));
+        Ok::<Value, String>(serde_json::json!({ "requested": a?, "mine": b?, "ready": d? }))
+    }).await.map_err(|e: Arc<String>| (*e).clone())
 }
 
 /// Every repository the token can see (owned, collaborator, organization), most recently pushed first.
@@ -125,7 +153,7 @@ async fn fetch_commit(repo: String, sha: String) -> Result<serde_json::Value, St
 /// `comment`: body. `reply`: id + body. `review`: event (APPROVE|REQUEST_CHANGES|COMMENT) + body.
 /// `merge`: method (merge|squash|rebase). `close` / `reopen`.
 #[tauri::command]
-async fn pr_action(repo: String, number: u64, action: String, body: Option<String>, id: Option<u64>, event: Option<String>, method: Option<String>, kind: Option<String>, content: Option<String>) -> Result<serde_json::Value, String> {
+async fn pr_action(repo: String, number: u64, action: String, body: Option<String>, id: Option<u64>, event: Option<String>, method: Option<String>, kind: Option<String>, content: Option<String>, extra: Option<serde_json::Value>) -> Result<serde_json::Value, String> {
     use reqwest::Method;
     if repo.matches('/').count() != 1 || repo.contains("..") || repo.contains(char::is_whitespace) {
         return Err("bad repository".into());
@@ -137,15 +165,57 @@ async fn pr_action(repo: String, number: u64, action: String, body: Option<Strin
         "comment" if !text.trim().is_empty() => (Method::POST, format!("{base}/issues/{number}/comments"), serde_json::json!({ "body": text })),
         "reply" if !text.trim().is_empty() && id.is_some() => (Method::POST, format!("{base}/pulls/{number}/comments/{}/replies", id.unwrap()), serde_json::json!({ "body": text })),
         "rerequest" if !text.trim().is_empty() && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '[' || c == ']') => (Method::POST, format!("{base}/pulls/{number}/requested_reviewers"), serde_json::json!({ "reviewers": [text] })),
+        "resolve" | "unresolve" if text.starts_with("PRRT_") && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') => {
+            let field = if action == "resolve" { "resolveReviewThread" } else { "unresolveReviewThread" };
+            let q = format!("mutation($id:ID!){{{field}(input:{{threadId:$id}}){{thread{{isResolved}}}}}}");
+            let r = github::send(&github::client(), Method::POST, "https://api.github.com/graphql", token.as_deref(), serde_json::json!({ "query": q, "variables": { "id": text } })).await?;
+            if let Some(e) = r["errors"].get(0) { return Err(e["message"].as_str().unwrap_or("GitHub refused the request").to_string()); }
+            PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+            return Ok(r);
+        }
+        "suggest" => {
+            use base64::Engine;
+            let x = extra.ok_or("missing suggestion")?;
+            let s = |k: &str| x[k].as_str().unwrap_or("").to_string();
+            let (head, branch, path, sugg) = (s("head_repo"), s("branch"), s("path"), s("text"));
+            let (end, start) = (x["line"].as_u64().ok_or("This comment is outdated, so its line is gone.")? as usize, x["start_line"].as_u64().map(|v| v as usize));
+            if head.matches('/').count() != 1 || head.contains("..") || path.contains("..") || path.is_empty() || branch.is_empty() {
+                return Err("bad suggestion target".into());
+            }
+            let start = start.unwrap_or(end);
+            if start == 0 || start > end { return Err("bad line range".into()); }
+            let c = github::client();
+            let u = format!("https://api.github.com/repos/{head}/contents/{path}");
+            let cur = github::get(&c, &format!("{u}?ref={branch}"), token.as_deref()).await?;
+            let sha = cur["sha"].as_str().ok_or("Could not read the file on the PR branch.")?.to_string();
+            let raw = base64::engine::general_purpose::STANDARD.decode(cur["content"].as_str().unwrap_or("").replace('\n', "")).map_err(|e| e.to_string())?;
+            let file = String::from_utf8(raw).map_err(|_| "File is not UTF-8 text.".to_string())?;
+            let crlf = file.contains("\r\n");
+            let mut lines: Vec<&str> = file.split('\n').collect();
+            if end > lines.len() { return Err("The file changed since this suggestion; the line no longer exists.".into()); }
+            let new_lines: Vec<&str> = if sugg.is_empty() { vec![] } else { sugg.split('\n').collect() };
+            lines.splice(start - 1..end, new_lines);
+            let mut out = lines.join("\n");
+            if crlf { out = out.replace("\r\n", "\n").replace('\n', "\r\n"); }
+            let msg = format!("Apply suggestion to {path}");
+            let payload = serde_json::json!({ "message": msg, "content": base64::engine::general_purpose::STANDARD.encode(out), "sha": sha, "branch": branch });
+            let r = github::send(&c, Method::PUT, &u, token.as_deref(), payload).await?;
+            PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+            return Ok(r);
+        }
         "review" => {
             let ev = event.unwrap_or_default();
             if !["APPROVE", "REQUEST_CHANGES", "COMMENT"].contains(&ev.as_str()) {
                 return Err("bad review type".into());
             }
-            if ev != "APPROVE" && text.trim().is_empty() {
+            let line_comments = extra.clone().filter(|v| v.is_array()).unwrap_or(serde_json::json!([]));
+            let has_lines = line_comments.as_array().map_or(false, |a| !a.is_empty());
+            if ev != "APPROVE" && text.trim().is_empty() && !has_lines {
                 return Err("A comment is required for this review type.".into());
             }
-            (Method::POST, format!("{base}/pulls/{number}/reviews"), serde_json::json!({ "event": ev, "body": text }))
+            let mut p = serde_json::json!({ "event": ev, "body": text });
+            if has_lines { p["comments"] = line_comments; }
+            (Method::POST, format!("{base}/pulls/{number}/reviews"), p)
         }
         "merge" => {
             let mm = method.unwrap_or_else(|| "merge".into());
@@ -209,6 +279,36 @@ async fn check_pr(repo: String, number: u64, since: Option<String>) -> Result<se
     }))
 }
 
+/// Menu-bar / system-tray icon: click to bring the window back, with the unread count shown beside it.
+fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
+    use tauri::{menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager};
+    let open = MenuItem::with_id(app, "open", "Open Reviewer", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&open, &quit])?;
+    let show = |app: &tauri::AppHandle| { if let Some(w) = app.get_webview_window("main") { let _ = w.show(); let _ = w.unminimize(); let _ = w.set_focus(); } };
+    TrayIconBuilder::with_id("main")
+        .icon(tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?)
+        .tooltip("Reviewer")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(move |app, ev| match ev.id().as_ref() { "open" => show(app), "quit" => app.exit(0), _ => {} })
+        .on_tray_icon_event(move |tray, ev| {
+            if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = ev { show(tray.app_handle()); }
+        })
+        .build(app)?;
+    Ok(())
+}
+
+/// Shows the unread notification count next to the tray icon (macOS title) and in its tooltip.
+#[tauri::command]
+fn set_unread(app: tauri::AppHandle, count: u32) {
+    use tauri::Manager;
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_title(if count > 0 { Some(count.to_string()) } else { None::<String> });
+        let _ = tray.set_tooltip(Some(if count > 0 { format!("Reviewer — {count} unread") } else { "Reviewer".to_string() }));
+    }
+}
+
 /// Desktop notification. macOS uses a native banner that opens `pr_ref` (and jumps to `target`) when clicked;
 /// Windows and Linux use the notification plugin (a plain banner, not clickable).
 #[tauri::command]
@@ -265,12 +365,13 @@ pub fn run() {
     #[cfg(not(target_os = "macos"))]
     let builder = builder.plugin(tauri_plugin_notification::init());
     builder
-        .setup(|_app| {
+        .setup(|app| {
             #[cfg(target_os = "macos")]
-            native_notify::setup(_app.handle().clone());
+            native_notify::setup(app.handle().clone());
+            build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, fetch_commit, pr_action, check_pr, notify, list_repos, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_prs, open_external, initial_arg, has_token, set_token])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

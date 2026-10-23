@@ -193,10 +193,12 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
         .collect();
     // Which review threads are resolved (only GraphQL knows). Best effort; needs a token.
     let mut resolved: Vec<Value> = vec![];
-    let q = "query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{isResolved comments(first:100){nodes{databaseId}}}}}}}";
+    let mut thread_ids = serde_json::Map::new();
+    let q = "query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){reviewThreads(first:100){nodes{id isResolved comments(first:100){nodes{databaseId}}}}}}}";
     let vars = json!({ "query": q, "variables": { "o": pr.owner, "n": pr.repo, "p": n } });
     if let Ok(v) = send(&c, reqwest::Method::POST, "https://api.github.com/graphql", token, vars).await {
         for t in v["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"].as_array().cloned().unwrap_or_default() {
+            for c in t["comments"]["nodes"].as_array().cloned().unwrap_or_default() { if let Some(id) = c["databaseId"].as_u64() { thread_ids.insert(id.to_string(), t["id"].clone()); } }
             if t["isResolved"].as_bool() == Some(true) {
                 resolved.extend(t["comments"]["nodes"].as_array().cloned().unwrap_or_default().into_iter().map(|c| c["databaseId"].clone()));
             }
@@ -204,6 +206,7 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
     }
     Ok(json!({
         "resolved_ids": resolved,
+        "thread_ids": thread_ids,
         "checks": checks,
         "commits": commits.unwrap_or_default(),
         "commit_info": commit_info,

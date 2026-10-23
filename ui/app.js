@@ -37,6 +37,17 @@ S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || [
 
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
 if (!/Mac/i.test(navigator.platform)) document.documentElement.classList.add('not-mac');
+// Mirror the unread count into the menu-bar icon.
+let lastUnread = -1;
+function syncUnread() {
+  const n = S.notes.filter((x) => !x.read).length;
+  if (tauri && n !== lastUnread) { lastUnread = n; tauri.invoke('set_unread', { count: n }).catch(() => {}); }
+}
+// Offline: GitHub unreachable (or the machine is offline). The last saved copy is shown with a clear banner and a retry.
+S.offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+const offlineBar = () => (S.offline || (S.bundle && S.bundle._cached) ? `<div class="offline-bar" role="status">${icon('alert')}<span><b>You're offline.</b> Showing the last saved copy of this pull request — new comments and actions need a connection.</span><button class="btn small" id="retry">Retry</button></div>` : '');
+addEventListener('offline', () => { S.offline = true; S.keepScroll = true; render(); S.keepScroll = false; });
+addEventListener('online', () => { S.offline = false; if (S.bundle && S.view === 'pr') openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true }); else render(); });
 function applyMode() {
   const d = document.documentElement, dark = isDark();
   d.setAttribute('data-color-mode', dark ? 'dark' : 'light'); d.setAttribute('data-light-theme', 'light'); d.setAttribute('data-dark-theme', 'dark'); d.setAttribute('data-t', dark ? 'dark' : 'light');
@@ -51,7 +62,7 @@ function toolbar() {
   return `<header class="toolbar" data-tauri-drag-region>
   <button class="tb-btn nav-btn" id="navbtn" title="Repositories">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
   <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>
-  <div class="tb-group"><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
+  <div class="tb-group"><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
 }
 function sideRecent() {
   const tabs = `<div class="sb-tabs"><button data-side="repos" class="${S.sideTab === 'repos' ? 'on' : ''}">Repos</button>${S.repo ? `<button data-side="prs" class="${S.sideTab === 'prs' ? 'on' : ''}">PRs</button>` : ''}<button data-side="recent" class="${S.sideTab === 'recent' ? 'on' : ''}">Recent</button></div>`;
@@ -175,6 +186,73 @@ function diffHunkTable(hunk) {
   return `<table class="diff"><colgroup><col style="width:50px"><col style="width:50px"><col></colgroup>${rows.join('')}</table>`;
 }
 
+
+// ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
+S.diffMode = localStorage.getItem('diffmode') || 'unified';
+S.pending = load('pending', {});
+const pendKey = () => (S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '');
+const pendList = () => S.pending[pendKey()] || [];
+const savePending = () => localStorage.setItem('pending', JSON.stringify(S.pending));
+function parsePatch(patch) {
+  const rows = []; let o = 0, n = 0;
+  for (const line of patch.split('\n')) {
+    if (line.startsWith('@@')) { const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/); if (m) { o = +m[1]; n = +m[2]; } rows.push({ t: 'hunk', text: line }); continue; }
+    const c = line[0], txt = line.slice(1);
+    if (c === '+') rows.push({ t: 'add', n: n++, text: txt });
+    else if (c === '-') rows.push({ t: 'del', o: o++, text: txt });
+    else if (c === '\\') rows.push({ t: 'note', text: line });
+    else rows.push({ t: 'ctx', o: o++, n: n++, text: txt });
+  }
+  return rows;
+}
+const codeHtml = (text, path) => (window.hlLine && window.hlLine(text, path)) ?? esc(text);
+// "+" button + inline editor + saved draft comments for one line
+const lineKey = (path, line, side) => `${path}\u001f${side}\u001f${line}`;
+function lineExtras(path, line, side, cols, canComment) {
+  const k = lineKey(path, line, side), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
+  const cards = mine.map((c) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${esc(c.body)}</div><button class="lc-x" data-lcdel="${c.id}" title="Delete draft comment">${icon('x')}</button></div>`).join('');
+  const open = canComment && S.lcOpen === k ? `<div class="lc-edit"><textarea id="lctext" placeholder="Leave a comment on this line" rows="3"></textarea><div class="lc-btns"><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
+  return cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '';
+}
+function diffTable(patch, path, canComment) {
+  const rows = parsePatch(patch), plus = (line, side) => canComment ? `<button class="lc-plus" data-lc="${esc(lineKey(path, line, side))}" title="Add a comment on this line">+</button>` : '';
+  const out = [];
+  if (S.diffMode === 'split') {
+    let i = 0;
+    while (i < rows.length) {
+      const r = rows[i];
+      if (r.t === 'hunk') { out.push(`<tr class="hunk"><td class="num"></td><td class="code" colspan="3">${esc(r.text)}</td></tr>`); i++; continue; }
+      if (r.t === 'note') { i++; continue; }
+      if (r.t === 'ctx') { out.push(`<tr><td class="num">${r.o}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 4, canComment)}`); i++; continue; }
+      const dels = [], adds = [];
+      while (rows[i] && rows[i].t === 'del') dels.push(rows[i++]);
+      while (rows[i] && rows[i].t === 'add') adds.push(rows[i++]);
+      for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
+        const d = dels[k], a = adds[k];
+        out.push(`<tr><td class="num${d ? ' del' : ' empty'}">${d ? d.o + plus(d.o, 'LEFT') : ''}</td><td class="code${d ? ' del' : ' empty'}" ${d ? 'data-marker="-"' : ''}>${d ? codeHtml(d.text, path) : ''}</td><td class="num${a ? ' add' : ' empty'}">${a ? a.n + plus(a.n, 'RIGHT') : ''}</td><td class="code${a ? ' add' : ' empty'}" ${a ? 'data-marker="+"' : ''}>${a ? codeHtml(a.text, path) : ''}</td></tr>${d ? lineExtras(path, d.o, 'LEFT', 4, canComment) : ''}${a ? lineExtras(path, a.n, 'RIGHT', 4, canComment) : ''}`);
+      }
+    }
+    return `<table class="diff split"><colgroup><col style="width:48px"><col><col style="width:48px"><col></colgroup>${out.join('')}</table>`;
+  }
+  for (const r of rows) {
+    if (r.t === 'hunk') out.push(`<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">${esc(r.text)}</td></tr>`);
+    else if (r.t === 'note') out.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(r.text)}</td></tr>`);
+    else if (r.t === 'add') out.push(`<tr class="add"><td class="num"></td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker="+">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment)}`);
+    else if (r.t === 'del') out.push(`<tr class="del"><td class="num">${r.o}${plus(r.o, 'LEFT')}</td><td class="num"></td><td class="code" data-marker="-">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.o, 'LEFT', 3, canComment)}`);
+    else out.push(`<tr><td class="num">${r.o}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment)}`);
+  }
+  return `<table class="diff"><colgroup><col style="width:50px"><col style="width:50px"><col></colgroup>${out.join('')}</table>`;
+}
+
+
+// ```suggestion blocks in a review comment can be applied as a commit on the PR branch
+const sugOf = (c) => { const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/); return m ? m[1] : null; };
+function suggestBtn(c, b, list) {
+  const t = sugOf(c); if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return '';
+  const p = b.pull, mine = p.head.repo && !p.head.repo.fork || (p.head.repo && p.head.repo.full_name === p.base.repo.full_name);
+  if (!c.line) return '<div class="sug-row"><span class="sug-note">Outdated suggestion — the lines have changed.</span></div>';
+  return `<div class="sug-row"><button class="btn small primary" data-sug="${c.id}" ${p.head.repo ? '' : 'disabled'}>Apply suggestion</button><span class="sug-note">Commits to <code>${esc(p.head.ref)}</code>${mine ? '' : ' (fork — needs push access)'}</span></div>`;
+}
 function reviewBlock(e, b) {
   const resolved = new Set(b.resolved_ids || []), isRes = (list) => list.some((c) => resolved.has(c.id));
   const stateMap = { approved: ['check', 'success', 'approved these changes'], changes_requested: ['file-diff', 'danger', 'requested changes'], commented: ['eye', '', 'reviewed'], dismissed: ['x', '', 'dismissed a review'] };
@@ -186,7 +264,7 @@ function reviewBlock(e, b) {
   const all = Object.values(byPath), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
   const lists = S.unres ? all.filter((l) => !isRes(l)) : all;
   if (S.unres && !lists.length) return '';
-  const threads = lists.map((list) => `<div class="thread${folded('t:' + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ''}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || '')}</div>${list.map((c) => `<div class="tc" id="c-${esc(c.id)}"><a href="${esc(c.user.html_url)}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user.login)}</span> <span>${when(c.created_at)}</span><button class="cm-btn" data-cm="${esc(c.id)}" data-root="${list[0].id}" title="Comment actions">⋯</button></div><div class="markdown-body" style="margin-top:8px">${c.body_html || ''}</div>${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`).join('')}<div class="reply">${draftBox('reply-' + list[0].id, 'Reply…', 2)}${errLine('reply-' + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join('');
+  const threads = lists.map((list) => `<div class="thread${folded('t:' + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ''}${(b.thread_ids || {})[list[0].id] ? `<button class="thread-act" data-thread="${esc(b.thread_ids[list[0].id])}" data-res="${isRes(list) ? 'unresolve' : 'resolve'}">${isRes(list) ? 'Unresolve' : 'Resolve conversation'}</button>` : ''}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || '')}</div>${list.map((c) => `<div class="tc" id="c-${esc(c.id)}"><a href="${esc(c.user.html_url)}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user.login)}</span> <span>${when(c.created_at)}</span><button class="cm-btn" data-cm="${esc(c.id)}" data-root="${list[0].id}" title="Comment actions">⋯</button></div><div class="markdown-body" style="margin-top:8px">${c.body_html || ''}</div>${suggestBtn(c, b, list)}${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`).join('')}<div class="reply">${draftBox('reply-' + list[0].id, 'Reply…', 2)}${errLine('reply-' + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join('');
   const sum = all.length ? `<span class="rev-sum${allRes ? ' ok' : ''}">${allRes ? icon('check') + ' All resolved' : `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}`}</span>` : '';
   return `<div class="TLI rev${folded(rk, allRes)}"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e.user, 20)}</div><div class="TLI-body"><div class="row">${foldBtn(rk, 'Collapse / expand this review', allRes)}${user(e.user)} <span>${verb}</span> <a class="time" href="${esc(e.html_url)}">${when(e.submitted_at).replace(/<\/?span[^>]*>/g, '')}</a>${sum}</div>
   ${hasBody ? `<div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">${e.body_html}</div></div></div>` : ''}${threads ? `<div>${threads}</div>` : ''}</div></div>`;
@@ -347,14 +425,15 @@ function sidebar(b) {
   <div class="sb-item${folded('sb:people')}"><div class="sb-head">${foldBtn('sb:people', 'Hide section')}<span>${people.size} participant${people.size === 1 ? '' : 's'}</span></div><div class="participants">${[...people.values()].slice(0, 30).map((u) => `<a href="${esc(u.html_url)}" title="${esc(u.login)}">${avatar(u, 32)}</a>`).join('')}</div></div></div>`;
 }
 
-function filesView(b) { return filesList(b.files); }
-function filesList(files) {
+function filesView(b) { return filesList(b.files, true); }
+const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
+function filesList(files, canComment = false) {
   if (!files.length) return '<div class="diff-empty">No files changed.</div>';
   const all = files.every((f) => S.fold['f:' + f.filename]);
-  return `<div class="files-bar"><button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f) => {
+  return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f) => {
     const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
     const sq = Array.from({ length: 5 }, (_, i) => `<i class="${i < a ? 'a' : i < a + d ? 'd' : ''}"></i>`).join('');
-    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${f.patch ? diffHunkTable(f.patch) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
+    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
   }).join('');
 }
 
@@ -375,7 +454,7 @@ function splitView(b) {
   const row = (c) => `<div class="cm ${sha === c.sha ? 'on' : ''}" data-sha="${esc(c.sha)}"><span class="cm-av">${c.author ? avatar(c.author, 24) : `<i>${esc((c.name || '?')[0])}</i>`}</span><span class="cm-t"><b>${esc(String(c.message).split('\n')[0])}</b><i>${esc(c.name || c.author?.login || '')} · ${when(c.date).replace(/<\/?span[^>]*>/g, '')}</i></span>${cnt(c.sha) ? `<span class="cm-n">${icon('comment')}${cnt(c.sha)}</span>` : ''}<code>${esc(c.sha.slice(0, 7))}</code></div>`;
   const all = `<div class="cm all ${sha ? '' : 'on'}" data-sha=""><span class="cm-av"><i>${icon('diff')}</i></span><span class="cm-t"><b>All changes</b><i>${b.pull.changed_files} files · +${b.pull.additions} −${b.pull.deletions}</i></span></div>`;
   let diff;
-  if (!sha) diff = filesList(b.files);
+  if (!sha) diff = filesList(b.files, true);
   else {
     const d = S.cdiff[sha];
     diff = d === undefined || d === 'loading' ? '<div class="diff-empty">Loading commit…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d);
@@ -492,6 +571,68 @@ function confetti() {
     if (t < 130) requestAnimationFrame(f); else c.remove();
   })();
 }
+
+// ---- Keyboard shortcuts: j/k comments, r reply, [ ] unresolved threads, cmd+K quick open, ? help ----
+const typing = (t) => t && (t.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t.isContentEditable);
+const kbItems = () => [...document.querySelectorAll('.main .tl-comment, .main .tc')].filter((e) => e.offsetParent);
+function kbGo(el) {
+  if (!el) return;
+  document.querySelectorAll('.kb').forEach((x) => x.classList.remove('kb'));
+  el.classList.add('kb'); S.kbId = el.id; el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+const kbCur = () => (S.kbId && document.getElementById(S.kbId)) || null;
+function kbStep(dir, pick = kbItems) {
+  const items = pick(), cur = kbCur(); if (!items.length) return;
+  let i = cur ? items.indexOf(cur) : -1;
+  if (i === -1 && cur) i = items.findIndex((e) => cur.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING) - (dir > 0 ? 1 : 0);
+  kbGo(items[Math.min(items.length - 1, Math.max(0, i + dir))]);
+}
+const openThreads = () => [...document.querySelectorAll('.main .thread')].filter((t) => !t.querySelector('.thread-head .res') && t.offsetParent).map((t) => t.querySelector('.tc')).filter(Boolean);
+function openPalette() {
+  if (document.querySelector('.palette')) return;
+  const el = document.createElement('div'); el.className = 'dlg-bg palette';
+  el.innerHTML = '<div class="dlg pal"><input class="pal-in" placeholder="Jump to a pull request — owner/repo#123, a URL, or search recent…" autofocus><div class="pal-list"></div></div>';
+  document.body.appendChild(el);
+  const inp = el.querySelector('input'), list = el.querySelector('.pal-list'); let sel = 0, rows = [];
+  const draw = () => {
+    const q = inp.value.trim().toLowerCase();
+    rows = S.recent.filter((r) => !q || `${r.ref} ${r.title}`.toLowerCase().includes(q)).slice(0, 8).map((r) => ({ ref: r.ref, label: r.title, sub: r.ref }));
+    if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q)) rows.unshift({ ref: inp.value.trim(), label: `Open ${inp.value.trim()}`, sub: 'Go to this pull request' });
+    sel = Math.min(sel, Math.max(0, rows.length - 1));
+    list.innerHTML = rows.map((r, i) => `<div class="pal-row${i === sel ? ' on' : ''}" data-i="${i}"><b>${esc(r.label)}</b><i>${esc(r.sub)}</i></div>`).join('') || '<div class="pal-none">No matches</div>';
+  };
+  const go = (r) => { el.remove(); if (r) { S.nav = false; S.focus = ''; openPr(r.ref); } };
+  inp.addEventListener('input', () => { sel = 0; draw(); });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') el.remove();
+    else if (e.key === 'ArrowDown') { sel = Math.min(rows.length - 1, sel + 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter') go(rows[sel]);
+  });
+  list.addEventListener('mousedown', (e) => { const r = e.target.closest('.pal-row'); if (r) go(rows[+r.dataset.i]); });
+  el.addEventListener('mousedown', (e) => { if (e.target === el) el.remove(); });
+  draw(); inp.focus();
+}
+function showHelp() {
+  if (document.querySelector('.palette')) return;
+  const el = document.createElement('div'); el.className = 'dlg-bg palette';
+  const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
+  const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
+}
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || document.querySelector('.palette, .dlg-bg')) return;
+  if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
+  else if (e.key === ']') kbStep(1, openThreads); else if (e.key === '[') kbStep(-1, openThreads);
+  else if (e.key === '?') showHelp();
+  else if (e.key === 'r') {
+    const cur = kbCur(), host = (cur?.closest('.thread')?.querySelector('.reply .tt')) || document.querySelector('[data-draft="comment"]');
+    if (!host) return; e.preventDefault(); host.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    let tries = 0; const t = setInterval(() => { const pm = host.querySelector('.ProseMirror'); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 20) clearInterval(t); }, 80);
+  }
+});
 // ---- Write actions (comment, reply, review, merge, close/reopen) ----
 const peopleList = () => { const b = S.bundle; if (!b) return []; const s = new Set(); [b.pull.user, ...b.timeline.map((e) => e.user || e.actor || e.author), ...b.review_comments.map((c) => c.user)].forEach((u) => u?.login && s.add(u.login)); return [...s]; };
 const drafts = load('drafts', {});
@@ -515,7 +656,7 @@ function mergeActions(b) {
 }
 
 function reviewDialog() {
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2>${draftBox('review', 'Leave a review comment (required unless approving)', 5)}
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2>${draftBox('review', pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)', 5)}
   <div class="radios"><label><input type="radio" name="rev" value="COMMENT" checked> <b>Comment</b> <span>Submit general feedback without explicit approval.</span></label>
   <label><input type="radio" name="rev" value="APPROVE"> <b>Approve</b> <span>Submit feedback and approve merging these changes.</span></label>
   <label><input type="radio" name="rev" value="REQUEST_CHANGES"> <b>Request changes</b> <span>Submit feedback that must be addressed before merging.</span></label></div>
@@ -524,9 +665,10 @@ function reviewDialog() {
   $('#revcancel').onclick = () => { S.dialog = ''; render(); };
   $('#revsubmit').onclick = async () => {
     const ev = document.querySelector('input[name=rev]:checked').value;
-    const r = await act('review', { body: S.draft.review || '', event: ev }, 'review', true);
+    const lines = pendList().map(({ path, line, side, body }) => ({ path, line, side, body }));
+    const r = await act('review', { body: S.draft.review || '', event: ev, extra: lines }, 'review', true);
     if (r === undefined) return;
-    delete S.draft.review; S.dialog = ''; await refreshPr(); 
+    delete S.draft.review; delete S.pending[pendKey()]; savePending(); S.dialog = ''; await refreshPr(); 
   };
 }
 
@@ -543,7 +685,7 @@ async function act(action, args, key, inDialog = false) {
   if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; if (inDialog) $('#reverr').innerHTML = `<div class="act-err">${S.actErr.m}</div>`; else render(); return undefined; }
   S.busy = key; if (!inDialog) render();
   try {
-    const r = await tauri.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, ...args });
+    const r = await tauri.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, extra: null, ...args });
     S.busy = ''; if (action === 'merge' || (action === 'review' && args.event === 'APPROVE')) confetti(); return r ?? {};
   } catch (e) {
     S.busy = ''; S.actErr = { k: key, m: String(e).replace(/^Error: /, '') };
@@ -601,6 +743,29 @@ function bindWrite() {
     const r = await act('rerequest', { body: b.dataset.rerequest }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
     await refreshPr();
   }));
+  document.querySelectorAll('[data-thread]').forEach((btn) => btn.addEventListener('click', async (e) => {
+    e.stopPropagation(); btn.disabled = true; btn.textContent = 'Working…';
+    const r = await act(btn.dataset.res, { body: btn.dataset.thread }, 'thread'); if (r === undefined) { btn.disabled = false; alert(S.actErr?.m || 'Could not update the thread.'); render(); return; }
+    await refreshPr();
+  }));
+  document.querySelectorAll('[data-sug]').forEach((btn) => btn.addEventListener('click', async (e) => {
+    e.stopPropagation(); const b = S.bundle, c = b.review_comments.find((x) => String(x.id) === btn.dataset.sug); if (!c) return;
+    confirmDlg('Apply suggestion?', `This commits the change to ${c.path} on ${b.pull.head.ref}.`, 'Commit suggestion', false, async () => {
+      const r = await act('suggest', { extra: { head_repo: b.pull.head.repo.full_name, branch: b.pull.head.ref, path: c.path, line: c.line, start_line: c.start_line || null, text: sugOf(c) } }, 'sug');
+      if (r === undefined) { alert(S.actErr?.m || 'Could not apply the suggestion.'); render(); return; }
+      await refreshPr();
+    });
+  }));
+  document.querySelectorAll('[data-dmode]').forEach((b) => b.addEventListener('click', () => { S.diffMode = b.dataset.dmode; localStorage.setItem('diffmode', S.diffMode); S.keepScroll = true; render(); S.keepScroll = false; }));
+  document.querySelectorAll('[data-lc]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.lcOpen = b.dataset.lc; S.keepScroll = true; render(); S.keepScroll = false; $('#lctext')?.focus(); }));
+  $('#lccancel')?.addEventListener('click', () => { S.lcOpen = ''; S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#lcadd')?.addEventListener('click', () => {
+    const body = $('#lctext').value.trim(); if (!body || !S.lcOpen) return;
+    const [path, side, line] = S.lcOpen.split('\u001f'); (S.pending[pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body }); savePending();
+    S.lcOpen = ''; S.keepScroll = true; render(); S.keepScroll = false;
+  });
+  document.querySelectorAll('[data-lcdel]').forEach((b) => b.addEventListener('click', () => { S.pending[pendKey()] = pendList().filter((c) => String(c.id) !== b.dataset.lcdel); savePending(); S.keepScroll = true; render(); S.keepScroll = false; }));
+  $('#finishrev')?.addEventListener('click', reviewDialog);
   $('#docomment')?.addEventListener('click', async () => {
     const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
     delete S.draft.comment; if (!addLocal('commented', r)) await refreshPr(r.id);
@@ -649,9 +814,29 @@ function notesPage() {
   <div class="np-list">${rows}</div></div>`;
 }
 
+// ---- Inbox: PRs that need you ----
+async function loadInbox(force = false) {
+  S.inbox = S.inbox || { data: null, err: '', loading: true };
+  S.inbox.loading = true; S.inbox.err = ''; render();
+  try { S.inbox.data = tauri ? await tauri.invoke('inbox', { force }) : { requested: [], mine: [], ready: [] }; }
+  catch (e) { S.inbox.err = String(e).replace(/^Error: /, ''); }
+  S.inbox.loading = false; S.keepScroll = true; render(); S.keepScroll = false;
+}
+function openInbox() { S.view = 'inbox'; S.nav = false; render(); if (!S.inbox?.data || !qc.fresh('inbox', 45000)) { qc.set('inbox', 1); loadInbox(); } }
+function inboxPage() {
+  const I = S.inbox || { loading: true }, d = I.data;
+  const row = (p) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at, fresh = was && p.updated_at > was;
+    return `<a class="ib-row" data-open="${esc(ref)}"><img src="${esc(p.avatar)}" alt=""><span class="ib-t"><b>${esc(p.title)}</b><i>${esc(ref)} · ${esc(p.user)} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}</i></span>${fresh ? '<span class="ib-new">New activity</span>' : ''}${p.comments ? `<span class="ib-c">${icon('comment')} ${p.comments}</span>` : ''}</a>`; };
+  const sec = (title, sub, list) => `<section class="ib-sec"><h2>${title}<span>${list.length}</span></h2><p>${sub}</p>${list.length ? list.map(row).join('') : '<div class="ib-none">Nothing here. Nice.</div>'}</section>`;
+  const body = I.err ? `<div class="diff-empty err">${esc(I.err)}</div>` : !d ? '<div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>'
+    : sec('Review requested', 'Waiting on you', d.requested) + sec('Ready to merge', 'Your approved pull requests', d.ready) + sec('Your pull requests', 'Open PRs you opened', d.mine);
+  return `<div class="notes-page"><div class="np-head"><h1>${icon('checklist')} Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" ${I.loading ? 'disabled' : ''}>${I.loading ? 'Loading…' : 'Refresh'}</button></div></div>${body}</div>`;
+}
+
 function page() {
   const b = S.bundle;
   if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i) => `<div class="sk-row" style="--i:${i}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join('')}</div>`;
+  if (S.view === 'inbox') return inboxPage();
   if (S.view === 'notes') return notesPage();
   if (S.view === 'repo') return prList();
   if (!b) return landing();
@@ -666,9 +851,10 @@ function render() {
   applyMode();
   const scroll = $('.main')?.scrollTop || 0;
   const inner = S.keepScroll ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
-  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
+  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
   if (S.keepScroll) { $('.main').scrollTop = scroll; document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
+  syncUnread();
   // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
   if (S.flashId && Date.now() < S.flashUntil) document.getElementById('c-' + S.flashId)?.classList.add('flash'); else S.flashId = '';
   document.title = S.bundle ? `${S.bundle.pull.title} · ${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : 'GitHub PR View';
@@ -709,6 +895,9 @@ function bind() {
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); S.bell = !S.bell; if (!S.bell) { S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); } S.keepScroll = true; render(); S.keepScroll = false; });
+  $('#retry')?.addEventListener('click', () => { S.offline = navigator.onLine === false; reload(); });
+  $('#inboxbtn')?.addEventListener('click', openInbox);
+  $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
   $('#npcheck')?.addEventListener('click', () => pollNotes());
   $('#npreadall')?.addEventListener('click', () => { S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
