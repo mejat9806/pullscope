@@ -714,3 +714,9 @@ table.diff.sbs td.code:last-child { border-right: 0; }
 table.diff.sbs tr.hunk td.num { width: 64px; }
 .lc { padding: 8px 12px 10px 24px; }
 .lc-plus { left: 3px; }
+
+/* offline indicator: lives in the toolbar, always reserves its space so nothing shifts */
+.off-ind { visibility: hidden; color: var(--fgColor-attention); position: relative; }
+.off-ind.on { visibility: visible; animation: offpulse 2.4s ease-in-out infinite; }
+.off-ind[data-tip]:hover::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); right: 0; width: 230px; padding: 8px 10px; border-radius: 10px; background: var(--bgColor-default); color: var(--fgColor-default); border: .5px solid var(--borderColor-default); box-shadow: var(--shadow); font-size: 12px; line-height: 1.4; text-align: left; white-space: normal; z-index: 50; pointer-events: none; }
+@keyframes offpulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
