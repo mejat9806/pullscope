@@ -450,6 +450,8 @@ function commitList(b) {
   return b.timeline.filter((e) => e.event === 'committed').map((e) => ({ sha: e.sha, message: e.message, author: e.author?.avatar_url ? e.author : null, name: e.author?.name, date: e.author?.date, url: e.html_url }));
 }
 
+S.flip = localStorage.getItem('flip') === '1';
+function flipSides() { S.flip = !S.flip; localStorage.setItem('flip', S.flip ? '1' : '0'); document.querySelector('.split')?.classList.toggle('flip', S.flip); }
 function splitView(b) {
   const cs = commitList(b), sha = S.sel;
   const cnt = (c) => b.review_comments.filter((r) => r.original_commit_id === c || r.commit_id === c).length;
@@ -463,9 +465,9 @@ function splitView(b) {
   }
   const hl = S.hide.l, hr = S.hide.r;
   const rail = (k, label, ic) => `<button class="pane-rail" data-show="${k}" title="Show ${label}">${icon(ic)}<span>${label}</span></button>`;
-  const left = hl ? rail('l', 'Commits', 'git-commit') : `<section class="pane pane-l"><div class="pane-h">${icon('git-commit')}<span>Commits</span><span class="counter">${cs.length}</span><span class="sp"></span>${foldBtn('cm-list', 'Collapse commit list')}<button class="fold-btn" data-hide="l" title="Hide this panel">${icon('x')}</button></div>${S.fold['cm-list'] ? '' : `<div class="cm-list">${all}${cs.map(row).join('')}</div>`}<div class="pane-h sub">${icon('file-diff')}<span>${sha ? 'Commit ' + esc(sha.slice(0, 7)) : 'All changes'}</span><span class="sp"></span>${foldBtn('cm-diff', 'Collapse changes')}</div>${S.fold['cm-diff'] ? '' : `<div class="pane-body">${diff}</div>`}</section>`;
-  const right = hr ? rail('r', 'Conversation', 'comment-discussion') : `<section class="pane pane-r"><div class="pane-h">${icon('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn" data-hide="r" title="Hide this panel">${icon('x')}</button></div><div class="pane-body">${attention(b)}${timeline(b)}</div></section>`;
-  return `<div class="split ${hl ? 'hl' : ''} ${hr ? 'hr' : ''}" style="--lw:${S.lw}%">${left}${hl || hr ? '' : '<div class="gutter" id="gutter" title="Drag to resize"></div>'}${right}</div>`;
+  const left = hl ? rail('l', 'Commits', 'git-commit') : `<section class="pane pane-l"><div class="fold-sec${folded('cm-list')}"><div class="pane-h">${icon('git-commit')}<span>Commits</span><span class="counter">${cs.length}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip title="Swap sides (F)">⇄</button>${foldBtn('cm-list', 'Collapse commit list')}<button class="fold-btn" data-hide="l" title="Hide this panel">${icon('x')}</button></div><div class="cm-list">${all}${cs.map(row).join('')}</div></div><div class="fold-sec${folded('cm-diff')}"><div class="pane-h sub">${icon('file-diff')}<span>${sha ? 'Commit ' + esc(sha.slice(0, 7)) : 'All changes'}</span><span class="sp"></span>${foldBtn('cm-diff', 'Collapse changes')}</div><div class="pane-body">${diff}</div></div></section>`;
+  const right = hr ? rail('r', 'Conversation', 'comment-discussion') : `<section class="pane pane-r"><div class="pane-h">${icon('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip title="Swap sides (F)">⇄</button><button class="fold-btn" data-hide="r" title="Hide this panel">${icon('x')}</button></div><div class="pane-body">${attention(b)}${timeline(b)}</div></section>`;
+  return `<div class="split ${hl ? 'hl' : ''} ${hr ? 'hr' : ''} ${S.flip ? 'flip' : ''}" style="--lw:${S.lw}%">${left}${hl || hr ? '' : '<div class="gutter" id="gutter" title="Drag to resize"></div>'}${right}</div>`;
 }
 
 async function selectCommit(sha) {
@@ -618,7 +620,7 @@ function showHelp() {
   if (document.querySelector('.palette')) return;
   const el = document.createElement('div'); el.className = 'dlg-bg palette';
   const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Turn Split view on / off', 's')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
   document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
   const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
@@ -628,6 +630,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
   else if (e.key === ']') kbStep(1, openThreads); else if (e.key === '[') kbStep(-1, openThreads);
   else if (e.key === '?') showHelp();
+  else if (e.key === 'f' && document.querySelector('.split')) flipSides();
   else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
   else if (e.key === 'd' && S.bundle) { const b = document.querySelector(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`); if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
   else if (e.key === 'r') {
@@ -952,12 +955,12 @@ function bind() {
     const k = el.dataset.fold, now = !isFolded(k, el.dataset.def === '1'); S.fold[k] = now; localStorage.setItem('fold', JSON.stringify(S.fold));
     document.querySelectorAll('[data-fold]').forEach((x) => {
       if (x.dataset.fold !== k) return;
-      const box = x.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
+      const box = x.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
       const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
     if (now) return;
     // Opened: make sure the block is on screen (only scroll when part of it is cut off).
-    const box = el.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
+    const box = el.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
     const r = box.getBoundingClientRect(), m = main.getBoundingClientRect();
     if (r.bottom > m.bottom - 8 || r.top < m.top) box.scrollIntoView({ block: r.height > m.height * 0.85 ? 'start' : 'center', behavior: 'smooth' });
   }));
@@ -974,6 +977,7 @@ function bind() {
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
+  document.querySelectorAll('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
   document.querySelectorAll('[data-sha]').forEach((el) => el.addEventListener('click', () => selectCommit(el.dataset.sha)));
   $('#sbgrip')?.addEventListener('mousedown', (e) => {
@@ -985,7 +989,7 @@ function bind() {
   $('#sbgrip')?.addEventListener('dblclick', () => { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; });
   $('#gutter')?.addEventListener('mousedown', (e) => {
     e.preventDefault(); const sp = $('.split'), r = sp.getBoundingClientRect();
-    const mv = (ev) => { S.lw = Math.max(25, Math.min(75, ((ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
+    const mv = (ev) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
     const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('lw', String(Math.round(S.lw))); };
     document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
   });

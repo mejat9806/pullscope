@@ -728,3 +728,9 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 .tb-btn.is-busy svg { opacity: 0; }
 
 .note-panel:not(.open) { display: none; }
+
+.fold-sec { display: contents; }
+.fold-sec.folded > :not(.pane-h) { display: none; }
+
+.split.flip { flex-direction: row-reverse; }
+.flip-btn { font-size: 14px; line-height: 1; width: auto; padding: 4px 6px; }
