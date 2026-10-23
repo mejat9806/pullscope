@@ -931,7 +931,17 @@ function bind() {
   $('#noteclear')?.addEventListener('click', () => { S.notes = []; localStorage.setItem('notes', '[]'); S.keepScroll = true; render(); S.keepScroll = false; });
   document.querySelectorAll('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
   const keep = (fn) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
-  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('a')) return; keep(() => { const k = el.dataset.fold; S.fold[k] = !isFolded(k, el.dataset.def === '1'); localStorage.setItem('fold', JSON.stringify(S.fold)); }); }));
+  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('a')) return; keep(() => { const k = el.dataset.fold; S.fold[k] = !isFolded(k, el.dataset.def === '1'); localStorage.setItem('fold', JSON.stringify(S.fold)); });
+    // After expanding, bring the opened block into the middle of the view (or its top if it is taller than the view).
+    const k = el.dataset.fold;
+    if (!isFolded(k, el.dataset.def === '1')) requestAnimationFrame(() => {
+      const nel = [...document.querySelectorAll('[data-fold]')].find((x) => x.dataset.fold === k); if (!nel) return;
+      const box = nel.closest('.thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane') || nel, main = $('.main');
+      if (!main || main.contains(box) === false) return;
+      const tall = box.getBoundingClientRect().height > main.clientHeight * 0.85;
+      box.scrollIntoView({ block: tall ? 'start' : 'center', behavior: 'smooth' });
+    });
+  }));
   document.querySelectorAll('[data-foldall]').forEach((el) => el.addEventListener('click', () => keep(() => { el.dataset.files.split('\n').forEach((n) => { S.fold['f:' + n] = el.dataset.foldall === 'close'; }); localStorage.setItem('fold', JSON.stringify(S.fold)); })));
   document.querySelectorAll('[data-hide]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.hide] = true; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
   document.querySelectorAll('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
