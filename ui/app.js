@@ -63,7 +63,7 @@ function toolbar() {
   return `<header class="toolbar" data-tauri-drag-region>
   <button class="tb-btn nav-btn" id="navbtn" title="Repositories">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
   <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>
-  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
+  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
 }
 function sideRecent() {
   const tabs = `<div class="sb-tabs"><button data-side="repos" class="${S.sideTab === 'repos' ? 'on' : ''}">Repos</button>${S.repo ? `<button data-side="prs" class="${S.sideTab === 'prs' ? 'on' : ''}">PRs</button>` : ''}<button data-side="recent" class="${S.sideTab === 'recent' ? 'on' : ''}">Recent</button></div>`;
@@ -622,7 +622,7 @@ function showHelp() {
   if (document.querySelector('.palette')) return;
   const el = document.createElement('div'); el.className = 'dlg-bg palette';
   const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('New pull request', 'n')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
   document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
   const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
@@ -632,6 +632,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
   else if (e.key === ']') kbStep(1, openThreads); else if (e.key === '[') kbStep(-1, openThreads);
   else if (e.key === '?') showHelp();
+  else if (e.key === 'n') { e.preventDefault(); openNewPr(); }
   else if (e.key === 'f' && document.querySelector('.split')) flipSides();
   else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
   else if (e.key === 'd' && S.bundle) { const b = document.querySelector(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`); if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
@@ -759,7 +760,7 @@ function bindWrite() {
   document.querySelectorAll('.tt[data-draft]').forEach((host) => {
     const key = host.dataset.draft;
     if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
-    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
+    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
     const mount = () => (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }));
     // Editors are heavy: build each one only when its box is near the viewport.
     const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
@@ -861,6 +862,61 @@ async function loadInbox(force = false) {
   catch (e) { S.inbox.err = String(e).replace(/^Error: /, ''); }
   S.inbox.loading = false; S.keepScroll = true; render(); S.keepScroll = false;
 }
+
+// ---- New pull request ----
+const npHuman = (s) => s.replace(/^[a-z]+\//i, '').replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+function newPrPage() {
+  const n = S.np, repos = (S.repos || []).filter((r) => !r.archived), br = n.branches[n.repo];
+  const opts = (list, cur) => list.map((x) => `<option value="${esc(x)}" ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('');
+  const repoSel = repos.length ? `<select class="sel" id="nprepo">${opts(repos.map((r) => r.full_name), n.repo)}${repos.some((r) => r.full_name === n.repo) ? '' : `<option selected>${esc(n.repo || 'Choose a repository')}</option>`}</select>` : `<input class="input" id="nprepoin" placeholder="owner/repo" value="${esc(n.repo)}">`;
+  const same = n.base && n.base === n.head;
+  const cmp = n.cmp === 'loading' ? '<span class="np-note">Comparing…</span>' : !n.cmp ? '' : typeof n.cmp === 'string' ? `<span class="np-note err">${esc(n.cmp)}</span>`
+    : n.cmp.ahead_by ? `<span class="np-note ok">${icon('git-commit')} ${n.cmp.ahead_by} commit${n.cmp.ahead_by === 1 ? '' : 's'} · ${n.cmp.files} file${n.cmp.files === 1 ? '' : 's'} changed${n.cmp.behind_by ? ` · ${n.cmp.behind_by} behind ${esc(n.base)}` : ''}</span>` : '<span class="np-note err">These branches are identical — there is nothing to compare.</span>';
+  const ready = n.title.trim() && n.repo && n.base && n.head && !same && n.cmp && typeof n.cmp === 'object' && n.cmp.ahead_by > 0;
+  return `<div class="notes-page np-new"><div class="np-head"><h1>${icon('git-pull-request')} New pull request</h1></div>
+  <div class="np-card">
+    <label class="np-l">Repository</label>${repoSel}
+    <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><select class="sel" id="npbase" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.base) : '<option>Loading…</option>'}</select></div>
+      <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>
+      <div><label class="np-l">Head <i>changes from</i></label><select class="sel" id="nphead" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.head) : '<option>Loading…</option>'}</select></div></div>
+    <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div>
+    <label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}">
+    <label class="np-l">Description</label>${draftBox('newpr', 'Describe your changes', 8)}
+    <label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
+    ${n.err ? `<div class="act-err">${esc(n.err)}</div>` : ''}
+    <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n.draft ? 'Create draft pull request' : 'Create pull request'}</button></div>
+  </div></div>`;
+}
+async function npLoadBranches(repo) {
+  const n = S.np; if (!repo || n.branches[repo]) return npPickDefaults();
+  if (!tauri) { n.err = 'Creating pull requests needs the desktop app.'; return render(); }
+  try { n.branches[repo] = await tauri.invoke('list_branches', { repo }); n.err = ''; } catch (e) { n.err = String(e).replace(/^Error: /, ''); n.branches[repo] = { default: '', branches: [] }; }
+  npPickDefaults();
+}
+function npPickDefaults() {
+  const n = S.np, b = n.branches[n.repo]; if (!b) return render();
+  if (!b.branches.includes(n.base)) n.base = b.default || b.branches[0] || '';
+  if (!b.branches.includes(n.head) || n.head === n.base) n.head = b.branches.find((x) => x !== n.base) || '';
+  npCompare();
+}
+async function npCompare() {
+  const n = S.np; n.cmp = null;
+  if (!n.repo || !n.base || !n.head || n.base === n.head) return rerender();
+  const key = `${n.repo}|${n.base}|${n.head}`; n.key = key; n.cmp = 'loading'; rerender();
+  try {
+    const r = await tauri.invoke('compare_branches', { repo: n.repo, base: n.base, head: n.head }); if (S.np.key !== key) return;
+    n.cmp = r;
+    if (!n.titleTouched) n.title = r.commits.length === 1 ? r.commits[0] : npHuman(n.head);
+  } catch (e) { if (S.np.key !== key) return; n.cmp = String(e).replace(/^Error: /, ''); }
+  rerender();
+}
+function openNewPr() {
+  const cur = S.bundle?.pull.base.repo.full_name || S.repo || '';
+  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: '', branches: {}, cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
+  delete S.draft.newpr; render();
+  if (tauri && !S.repos) loadRepos().then(() => { if (!S.np.repo && S.repos?.[0]) S.np.repo = S.repos[0].full_name; npLoadBranches(S.np.repo); }); else npLoadBranches(cur);
+}
+
 function openInbox() { S.view = 'inbox'; S.nav = false; render(); if (!S.inbox?.data || !qc.fresh('inbox', 45000)) { qc.set('inbox', 1); loadInbox(); } }
 function inboxPage() {
   const I = S.inbox || { loading: true }, d = I.data;
@@ -875,6 +931,7 @@ function inboxPage() {
 function page() {
   const b = S.bundle;
   if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i) => `<div class="sk-row" style="--i:${i}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join('')}</div>`;
+  if (S.view === 'newpr') return newPrPage();
   if (S.view === 'inbox') return inboxPage();
   if (S.view === 'notes') return notesPage();
   if (S.view === 'repo') return prList();
@@ -942,6 +999,23 @@ function bind() {
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
   $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
+  $('#newprbtn')?.addEventListener('click', openNewPr);
+  $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
+  const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
+  $('#nprepo')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); });
+  $('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value.trim(); S.np.base = ''; S.np.head = ''; }); npLoadBranches(S.np.repo); });
+  $('#npbase')?.addEventListener('change', (e) => { npSet(() => { S.np.base = e.target.value; }); npCompare(); });
+  $('#nphead')?.addEventListener('change', (e) => { npSet(() => { S.np.head = e.target.value; S.np.titleTouched = false; }); npCompare(); });
+  $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np.base, S.np.head] = [S.np.head, S.np.base]; }); npCompare(); });
+  $('#nptitle')?.addEventListener('input', (e) => { S.np.title = e.target.value; S.np.titleTouched = true; const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === 'object' && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head; const b = $('#npcreate'); if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
+  $('#npdraft')?.addEventListener('change', (e) => { S.np.draft = e.target.checked; const b = $('#npcreate'); if (b) b.textContent = S.np.draft ? 'Create draft pull request' : 'Create pull request'; });
+  $('#npcreate')?.addEventListener('click', async (e) => {
+    const n = S.np, btn = e.currentTarget; setBusy(btn, true); n.err = '';
+    try {
+      const r = await tauri.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body: S.draft.newpr || '', draft: n.draft });
+      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true });
+    } catch (err) { setBusy(btn, false); n.err = String(err).replace(/^Error: /, ''); rerender(); }
+  });
   $('#inboxbtn')?.addEventListener('click', openInbox);
   $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });

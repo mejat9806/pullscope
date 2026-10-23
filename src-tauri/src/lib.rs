@@ -101,6 +101,43 @@ async fn inbox(force: Option<bool>) -> Result<serde_json::Value, String> {
     }).await.map_err(|e: Arc<String>| (*e).clone())
 }
 
+fn valid_repo(repo: &str) -> bool { repo.matches('/').count() == 1 && !repo.contains("..") && repo.chars().all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c)) }
+fn valid_ref(r: &str) -> bool { !r.is_empty() && !r.contains("..") && r.chars().all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c)) }
+
+/// Branches of a repository plus its default branch, for the New pull request page.
+#[tauri::command]
+async fn list_branches(repo: String) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    let token = github::load_token().ok_or("Add an access token to create pull requests.")?;
+    let c = github::client();
+    let info = github::get(&c, &format!("https://api.github.com/repos/{repo}"), Some(&token)).await?;
+    let list = github::get_paged(&c, &format!("https://api.github.com/repos/{repo}/branches?per_page=100"), Some(&token), 5).await?;
+    let names: Vec<_> = list.iter().filter_map(|b| b["name"].as_str().map(|s| serde_json::Value::from(s))).collect();
+    Ok(serde_json::json!({ "default": info["default_branch"], "branches": names, "can_push": info["permissions"]["push"] }))
+}
+
+/// How far `head` is ahead of `base`: commit subjects and changed-file count (also used to prefill the title).
+#[tauri::command]
+async fn compare_branches(repo: String, base: String, head: String) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) || !valid_ref(&base) || !valid_ref(&head) { return Err("bad branch name".into()); }
+    let token = github::load_token();
+    let v = github::get(&github::client(), &format!("https://api.github.com/repos/{repo}/compare/{base}...{head}"), token.as_deref()).await?;
+    let commits: Vec<_> = v["commits"].as_array().map(|a| a.iter().map(|c| c["commit"]["message"].as_str().unwrap_or("").lines().next().unwrap_or("").to_string()).collect()).unwrap_or_default();
+    Ok(serde_json::json!({ "ahead_by": v["ahead_by"], "behind_by": v["behind_by"], "files": v["files"].as_array().map(|a| a.len()).unwrap_or(0), "commits": commits }))
+}
+
+/// Open a new pull request; returns GitHub's response (number, html_url).
+#[tauri::command]
+async fn create_pr(repo: String, base: String, head: String, title: String, body: String, draft: bool) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) || !valid_ref(&base) || !valid_ref(&head) { return Err("bad branch name".into()); }
+    if title.trim().is_empty() { return Err("A title is required.".into()); }
+    let token = github::load_token().ok_or("Add an access token to create pull requests.")?;
+    let r = github::send(&github::client(), reqwest::Method::POST, &format!("https://api.github.com/repos/{repo}/pulls"), Some(&token),
+        serde_json::json!({ "title": title.trim(), "head": head, "base": base, "body": body, "draft": draft })).await?;
+    PR_LIST_CACHE.invalidate_all();
+    Ok(serde_json::json!({ "number": r["number"], "html_url": r["html_url"] }))
+}
+
 /// Every repository the token can see (owned, collaborator, organization), most recently pushed first.
 #[tauri::command]
 async fn list_repos() -> Result<serde_json::Value, String> {
@@ -371,7 +408,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, list_prs, open_external, initial_arg, has_token, set_token])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

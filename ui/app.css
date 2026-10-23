@@ -745,3 +745,14 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 .lc-code { margin: 6px 0 0; padding: 8px 10px; border-radius: 8px; background: var(--bgColor-neutral-muted); font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
 .lc-code.sug { background: var(--d-add-line); border: 1px solid var(--d-add-num); }
 .lc-code b { display: block; font: 600 11px -apple-system, system-ui, sans-serif; color: var(--fgColor-success); margin-bottom: 2px; }
+
+/* New pull request */
+.np-new { max-width: 760px; }
+.np-card { display: grid; gap: 8px; padding: 18px; border-radius: 14px; background: var(--bgColor-default); box-shadow: var(--shadow); }
+.np-l { font-size: 12px; font-weight: 600; color: var(--fgColor-muted); margin-top: 6px; } .np-l i { font-weight: 400; font-style: normal; opacity: .8; margin-left: 4px; }
+.np-card .sel, .np-card .input { width: 100%; box-sizing: border-box; height: 34px; }
+.np-branches { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
+.np-cmp { min-height: 22px; font-size: 12px; } .np-note { display: inline-flex; align-items: center; gap: 6px; color: var(--fgColor-muted); } .np-note.ok { color: var(--fgColor-success); } .np-note.err { color: var(--fgColor-danger); }
+.np-check { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; } .np-check span { color: var(--fgColor-muted); }
+.np-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.np-btns .btn:disabled { opacity: .5; cursor: not-allowed; }
