@@ -61,7 +61,7 @@ const compact = (n) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Ma
 function toolbar() {
   const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
   return `<header class="toolbar" data-tauri-drag-region>
-  <button class="tb-btn nav-btn" id="navbtn" title="Repositories">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
+  <button class="tb-btn nav-btn" id="navbtn" title="Show or hide the sidebar">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
   <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>
   <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
 }
@@ -1068,7 +1068,7 @@ function render() {
   let anchor = null;
   { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
-  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
+  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
@@ -1186,7 +1186,11 @@ function bind() {
   document.querySelectorAll('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
   document.querySelectorAll('[data-who]').forEach((el) => el.addEventListener('click', () => keep(() => { const w = el.dataset.who; S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; })));
   document.querySelectorAll('[data-whoclear]').forEach((el) => el.addEventListener('click', () => keep(() => { S.who = []; })));
-  $('#navbtn')?.addEventListener('click', (e) => { e.stopPropagation(); keep(() => { S.nav = !S.nav; }); });
+  $('#navbtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (matchMedia('(min-width: 901px)').matches) { S.hide.nav = !S.hide.nav; try { localStorage.setItem('hide', JSON.stringify(S.hide)); } catch { /* storage full */ } $('.shell')?.classList.toggle('nav-hidden', S.hide.nav); return; }
+    keep(() => { S.nav = !S.nav; });
+  });
   $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
   $('#nextun')?.addEventListener('click', jumpUnresolved);
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
