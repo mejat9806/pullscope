@@ -10,10 +10,10 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 
 **Read a pull request**
 - Conversation, timeline, commits, checks and files tabs, with attention chips (unresolved threads, requested changes, failing checks) and a filter by author.
-- Syntax-highlighted diffs, unified or side by side, with collapsible files.
+- Syntax-highlighted diffs, unified or side by side, with collapsible files. Long diffs load progressively so big PRs stay fast.
 - **Split view**: commits and their diff beside the conversation, resizable, with a flip button and per-pane collapse.
 - Collapse or expand every conversation, review and thread in one click.
-- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs.
+- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them.
 
 ![Files changed](docs/screenshots/files-split.png)
 
@@ -30,7 +30,7 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 **Manage the pull request**
 - Create a PR: pick repo, base and head, title, rich description, draft option, reviewers, assignees, labels, milestone and linked issues (`Closes #N`).
 - Edit the title and description, mark ready for review or convert back to draft, close and reopen.
-- A GitHub-style merge box: review status, grouped checks, **Re-run failed** (GitHub Actions), **Update branch**, merge method, **auto-merge**.
+- A GitHub-style merge box: review status, grouped checks with **Required** badges, **Re-run failed** (GitHub Actions), **Update branch**, merge method, **auto-merge**.
 
 ![Merge box](docs/screenshots/merge-box.png)
 
@@ -54,7 +54,11 @@ The installers are not code-signed, so macOS (Gatekeeper) and Windows (SmartScre
 
 ## Sign in
 
-Open the key button (`⌘,`) and paste a **classic** personal access token with the `repo` scope (add `notifications` for the notifications poll). Without a token you can read public pull requests, limited to 60 API requests per hour.
+Pullscope requires a GitHub sign-in; without one it shows a sign-in screen instead of loading slowly at 60 requests an hour.
+
+![Sign in](docs/screenshots/sign-in.png)
+
+Choose **Sign in with GitHub** (device flow: enter the code shown on github.com), or **Use a token instead** and paste a **classic** personal access token with the `repo` scope (add `notifications` for the notifications poll).
 
 The token is stored in the macOS Keychain, Windows Credential Manager or the Linux Secret Service (a running keyring such as GNOME Keyring is needed). `GITHUB_TOKEN` and `gh auth login` also work.
 
@@ -90,6 +94,8 @@ Writing actions need the desktop app; in the browser preview they are disabled.
 
 ### Releases
 
+Installed builds check for updates on launch and offer a one-click update (signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret). Unit tests run in CI (`cargo test --lib`).
+
 Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers for macOS, Windows and Linux and attaches them to a **draft** GitHub Release. Publish the draft from the Releases page.
 
 ## Project layout
@@ -107,11 +113,10 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers
 ## Known limits
 
 - Re-running checks only works for GitHub Actions; checks from other services open on GitHub instead.
-- "Required" badges on checks are not shown (they need a branch-protection lookup).
 - Auto-merge only works if the repository has "Allow auto-merge" turned on.
 - Windows and Linux notifications are plain banners; clicking one does not open the PR yet.
 - GitHub has no push channel for third-party apps, so notifications are polled about once a minute while the app is open.
-- The pieces that talk to GitHub (resolve, apply suggestion, create PR, notifications, re-run) have been exercised by hand on a few repositories, not by an automated test suite.
+- The pieces that talk to GitHub (resolve, apply suggestion, create PR, notifications, re-run) have been exercised by hand on a few repositories; automated tests cover parsing and the HTTP layer only.
 
 ## Native Swift apps (Mac + iPhone/iPad)
 
