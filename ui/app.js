@@ -543,7 +543,16 @@ function sidebar(b) {
   <div class="sb-item${folded('sb:people')}"><div class="sb-head">${foldBtn('sb:people', 'Hide section')}<span>${people.size} participant${people.size === 1 ? '' : 's'}</span></div><div class="participants">${[...people.values()].slice(0, 30).map((u) => `<a href="${esc(u.html_url)}" title="${esc(u.login)}">${avatar(u, 32)}</a>`).join('')}</div></div></div>`;
 }
 
-function filesView(b) { return filesList(b.files, true); }
+function filesView(b) {
+  const cs = commitList(b), sha = S.sel, i = cs.findIndex((c) => c.sha === sha);
+  const opt = (v, t, on) => `<option value="${esc(v)}" ${on ? 'selected' : ''}>${esc(t)}</option>`;
+  const sel = `<select class="input" id="fcommit" title="Show the changes of one commit">${opt('', 'All changes', !sha)}${cs.map((c) => opt(c.sha, `${c.sha.slice(0, 7)} ${String(c.message).split('\n')[0].slice(0, 70)}`, c.sha === sha)).join('')}</select>`;
+  const nav = sha ? `<div class="seg-ctl"><button data-fstep="-1" ${i <= 0 ? 'disabled' : ''}>‹ Prev</button><button data-fstep="1" ${i < 0 || i >= cs.length - 1 ? 'disabled' : ''}>Next ›</button></div>` : '';
+  const bar = `<div class="fc-bar">${sel}${nav}${sha && i >= 0 ? `<span class="fc-t">${esc(String(cs[i].message).split('\n')[0])}</span>` : ''}</div>`;
+  if (!sha) return bar + filesList(b.files, true);
+  const d = S.cdiff[sha];
+  return bar + (d === undefined || d === 'loading' ? '<div class="diff-empty">Loading commit…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d));
+}
 const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
 function filesList(files, canComment = false) {
   if (!files.length) return '<div class="diff-empty">No files changed.</div>';
@@ -1317,6 +1326,8 @@ function bind() {
   document.querySelectorAll('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
   $('#hmsort')?.addEventListener('change', (e) => { S.hmSort = e.target.value; render(); });
   $('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = e.target.value; render(); });
+  $('#fcommit')?.addEventListener('change', (e) => selectCommit(e.target.value));
+  document.querySelectorAll('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle), i = cs.findIndex((c) => c.sha === S.sel) + Number(el.dataset.fstep); if (cs[i]) selectCommit(cs[i].sha); }));
   $('#fsort')?.addEventListener('change', (e) => { S.fileSort = e.target.value; rerender(); });
   $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
   document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));

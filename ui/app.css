@@ -924,3 +924,5 @@ table.diff { contain: layout paint; }
 .thread.inl { border: 1px solid var(--borderColor-default); border-radius: 6px; background: var(--bgColor-default); padding: 8px 12px; white-space: normal; }
 .thread.inl .tc { display: flex; gap: 8px; padding: 6px 0; } .thread.inl .tc + .tc { border-top: 1px solid var(--borderColor-muted); }
 .thread.inl.resolved { opacity: .7; } .thread.inl .thread-head { padding: 0 0 4px; border: 0; background: none; }
+.fc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; } .fc-bar select.input { width: auto; max-width: 420px; } .fc-t { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seg-ctl button:disabled { opacity: .4; cursor: default; }
