@@ -941,3 +941,4 @@ table.diff { contain: layout paint; }
 .thread.inl .tc { padding: 12px 14px; } .thread.inl .reply { padding: 8px 12px; border-top: 1px solid var(--borderColor-muted); } .thread.inl .reply .btn { margin-left: 0; }
 .thread.inl .th-foot { padding: 8px 12px; border-top: 1px solid var(--borderColor-muted); }
 .thread.inl.folded .reply, .thread.inl.folded .th-foot, .thread.inl.folded .tc { display: none; } .thread.inl.resolved { opacity: 1; }
+.reaction.rc-btn { cursor: pointer; } .reaction.rc-btn:hover { background: var(--bgColor-muted); }

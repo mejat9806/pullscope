@@ -229,7 +229,7 @@ const foldBtn = (k, title = 'Collapse / expand', def = false) => `<button class=
 
 function reactionsHtml(r, kind, id) {
   r = r || {};
-  const items = REACTS.filter(([k]) => r[k] > 0).map(([k, e]) => `<span class="reaction"><span class="e">${e}</span><span>${r[k]}</span></span>`);
+  const items = REACTS.filter(([k]) => r[k] > 0).map(([k, e]) => `<span class="reaction${kind && id ? ' rc-btn' : ''}" ${kind && id ? `data-rck="${kind}" data-rcid="${id}" data-rcc="${k}" title="Click to add or remove your reaction"` : ''}><span class="e">${e}</span><span>${r[k]}</span></span>`);
   const add = kind && id ? `<span class="react-wrap"><button class="react-add" data-rk="${kind}" data-rid="${id}" title="Add reaction">${icon('smiley')}</button></span>` : '';
   return items.length || add ? `<div class="reactions">${items.join('')}${add}</div>` : '';
 }
@@ -955,6 +955,18 @@ function confirmDlg(title, text, label, danger, fn) {
 document.addEventListener('click', (e) => { S.lastBtn = e.target.closest?.('button') || null; }, true);
 const btnSel = (b) => { if (b.id) return '#' + b.id; const a = [...b.attributes].find((x) => x.name.startsWith('data-')); return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null; };
 const setBusy = (b, on) => { if (!b) return; b.classList.toggle('is-busy', on); b.disabled = on; b.setAttribute('aria-busy', on ? 'true' : 'false'); };
+// Add a reaction, or remove it when you already left it (clicking the same emoji again), like github.com.
+S.mine = new Set();
+async function toggleReact(kind, rid, c) {
+  const b = S.bundle, tgt = kind === 'pr' ? b.pull : [...b.timeline, ...b.review_comments].find((x) => String(x.id) === String(rid));
+  const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null, key = `${kind}:${rid}:${c}`, base = prev ? prev[c] || 0 : 0;
+  const bump = (n) => { if (tgt) { tgt.reactions = { ...(tgt.reactions || {}), [c]: Math.max(0, base + n) }; } };
+  bump(S.mine.has(key) ? -1 : 1); S.refreshing = true; rerender();
+  const r = await act('react', { kind, id: +rid, content: c }, 'react');
+  if (r === undefined) { if (tgt && prev) tgt.reactions = prev; S.refreshing = false; rerender(); return; }
+  const added = r.added !== false; added ? S.mine.add(key) : S.mine.delete(key); bump(added ? 1 : -1);
+  await refreshPr(kind === 'pr' ? '' : rid);
+}
 async function act(action, args, key, inDialog = false) {
   const btn = S.lastBtn && document.contains(S.lastBtn) ? S.lastBtn : null; S.busySel = btn ? btnSel(btn) : null; setBusy(btn, true);
   try { return await act2(action, args, key, inDialog); } finally { S.busySel = null; setBusy(btn, false); }
@@ -964,7 +976,7 @@ async function act2(action, args, key, inDialog = false) {
   if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; if (inDialog) $('#reverr').innerHTML = `<div class="act-err">${S.actErr.m}</div>`; else render(); return undefined; }
   S.busy = key; if (!inDialog) render();
   try {
-    const r = await tauri.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, extra: null, ...args });
+    const r = action === 'react' ? await tauri.invoke('toggle_reaction', { ...prRef(), kind: args.kind, id: args.id, content: args.content }) : await tauri.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, extra: null, ...args });
     S.busy = ''; if (action === 'merge' || (action === 'review' && args.event === 'APPROVE')) confetti(); return r ?? {};
   } catch (e) {
     S.busy = ''; S.actErr = { k: key, m: String(e).replace(/^Error: /, '') };
@@ -1082,19 +1094,10 @@ function bindWrite() {
     pop.innerHTML = REACTS.map(([k, em]) => `<button data-c="${k}">${em}</button>`).join('');
     const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
     document.body.appendChild(pop);
-    pop.addEventListener('click', async (ev) => {
-      const c = ev.target.closest('[data-c]')?.dataset.c; if (!c) return; pop.remove();
-      // Show the reaction at once; GitHub confirms in the background and the count is put back if it fails.
-      const b = S.bundle, tgt = btn.dataset.rk === 'pr' ? b.pull : [...b.timeline, ...b.review_comments].find((x) => String(x.id) === btn.dataset.rid);
-      const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null;
-      if (tgt) { tgt.reactions = { ...(tgt.reactions || {}), [c]: ((tgt.reactions || {})[c] || 0) + 1 }; }
-      S.refreshing = true; rerender();
-      const r2 = await act('react', { kind: btn.dataset.rk, id: +btn.dataset.rid, content: c }, 'react');
-      if (r2 === undefined) { if (tgt && prev) { tgt.reactions = prev; } S.refreshing = false; rerender(); return; }
-      await refreshPr(btn.dataset.rk === 'pr' ? '' : btn.dataset.rid);
-    });
+    pop.addEventListener('click', (ev) => { const c = ev.target.closest('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk, btn.dataset.rid, c); });
     setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
   }));
+  document.querySelectorAll('.rc-btn').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); toggleReact(el.dataset.rck, el.dataset.rcid, el.dataset.rcc); }));
   $('#doclose')?.addEventListener('click', () => {
     const closed = S.bundle.pull.state === 'closed';
     confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });

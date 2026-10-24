@@ -287,6 +287,35 @@ async fn viewer_login() -> Result<String, String> {
     v["login"].as_str().map(String::from).ok_or_else(|| "no login".into())
 }
 
+/// Add a reaction, or take it away again when the signed-in user has already left it (like github.com).
+/// Returns { added: bool }.
+#[tauri::command]
+async fn toggle_reaction(repo: String, number: u64, kind: String, id: u64, content: String) -> Result<serde_json::Value, String> {
+    use reqwest::Method;
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    if !["+1", "-1", "laugh", "confused", "heart", "hooray", "rocket", "eyes"].contains(&content.as_str()) { return Err("bad reaction".into()); }
+    let base = format!("https://api.github.com/repos/{repo}");
+    let url = match kind.as_str() {
+        "issue_comment" => format!("{base}/issues/comments/{id}/reactions"),
+        "review_comment" => format!("{base}/pulls/comments/{id}/reactions"),
+        "pr" => format!("{base}/issues/{number}/reactions"),
+        _ => return Err("bad reaction target".into()),
+    };
+    let token = github::load_token();
+    let c = github::client();
+    let me = github::get(&c, "https://api.github.com/user", token.as_deref()).await?["login"].as_str().unwrap_or("").to_lowercase();
+    let list = github::get_paged(&c, &format!("{url}?content={}&per_page=100", content.replace('+', "%2B")), token.as_deref(), 3).await.unwrap_or_default();
+    let mine = list.iter().find(|r| r["content"].as_str() == Some(content.as_str()) && r["user"]["login"].as_str().map(|l| l.to_lowercase()) == Some(me.clone()));
+    if let Some(r) = mine {
+        let rid = r["id"].as_u64().ok_or("bad reaction id")?;
+        github::send(&c, Method::DELETE, &format!("{url}/{rid}"), token.as_deref(), serde_json::json!({})).await?;
+        Ok(serde_json::json!({ "added": false }))
+    } else {
+        github::send(&c, Method::POST, &url, token.as_deref(), serde_json::json!({ "content": content })).await?;
+        Ok(serde_json::json!({ "added": true }))
+    }
+}
+
 /// Write actions on a pull request. Only these whitelisted actions are accepted.
 /// `comment`: body. `reply`: id + body. `review`: event (APPROVE|REQUEST_CHANGES|COMMENT) + body.
 /// `merge`: method (merge|squash|rebase). `close` / `reopen`.
@@ -599,7 +628,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, toggle_reaction, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
