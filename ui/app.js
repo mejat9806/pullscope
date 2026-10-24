@@ -129,9 +129,20 @@ function prList() {
   return `<div class="pr-page"><div class="repoline" style="padding-bottom:16px"></div>${pb}<div class="prl">${head}${body}</div></div>`;
 }
 
+// Breadcrumbs for every page: Home › (owner / repo) › … ; the last item is the current page.
+function crumbs(repo, trail = [], extra = '') {
+  const sep = `<span class="crumb-sep">${icon('chevron-right', 12)}</span>`;
+  const parts = [`<a class="crumb" data-home="1" title="Home">${icon('home', 14)}<span>Home</span></a>`];
+  if (repo) {
+    const [owner, name] = repo.split('/');
+    parts.push(`<span class="crumb-grp"><a class="crumb" href="https://github.com/${esc(owner)}" data-ext title="Open ${esc(owner)} on GitHub">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(repo)}" title="All pull requests in ${esc(repo)}">${esc(name)}</a></span>`);
+  }
+  trail.forEach((t, i) => parts.push(i === trail.length - 1 ? `<span class="crumb cur">${esc(t.t)}</span>` : `<a class="crumb" ${t.repo ? `data-repo="${esc(t.repo)}"` : ''}>${esc(t.t)}</a>`));
+  return `<nav class="repoline crumbs" aria-label="Breadcrumb">${parts.join(sep)}${extra}</nav>`;
+}
 function repoHeader(p) {
-  const r = p.base.repo, [owner, name] = r.full_name.split('/'), sep = `<span class="crumb-sep">${icon('chevron-right', 12)}</span>`;
-  return `<nav class="repoline crumbs" aria-label="Breadcrumb"><a class="crumb" href="${esc(r.owner?.html_url || `https://github.com/${owner}`)}" data-ext title="Open ${esc(owner)} on GitHub">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(r.full_name)}" title="All pull requests in ${esc(r.full_name)}">${esc(name)}</a>${sep}<a class="crumb" data-repo="${esc(r.full_name)}">Pull requests</a>${sep}<span class="crumb cur">#${p.number}</span><a class="crumb gh" href="${esc(r.html_url)}" data-ext title="Open on GitHub">${icon('link-external', 12)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}</nav>`;
+  const r = p.base.repo;
+  return crumbs(r.full_name, [{ t: 'Pull requests', repo: r.full_name }, { t: `#${p.number}` }], `<a class="crumb gh" href="${esc(r.html_url)}" data-ext title="Open on GitHub">${icon('link-external', 12)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}`);
 }
 
 function stateOf(p) {
@@ -1047,11 +1058,11 @@ function inboxPage() {
 function page() {
   const b = S.bundle;
   if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i) => `<div class="sk-row" style="--i:${i}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join('')}</div>`;
-  if (S.view === 'newpr') return newPrPage();
-  if (S.view === 'inbox') return inboxPage();
-  if (S.view === 'notes') return notesPage();
-  if (S.view === 'repo') return prList();
-  if (!b) return landing();
+  if (S.view === 'newpr') return crumbs(S.np?.repo, [{ t: 'New pull request' }]) + newPrPage();
+  if (S.view === 'inbox') return crumbs('', [{ t: 'Inbox' }]) + inboxPage();
+  if (S.view === 'notes') return crumbs('', [{ t: 'Notifications' }]) + notesPage();
+  if (S.view === 'repo') return crumbs(S.repo, [{ t: 'Pull requests' }]) + prList();
+  if (S.view === 'home' || !b) return crumbs('', [{ t: 'Open a pull request' }]) + landing();
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return `<div class="pr-page is-split">${repoHeader(b.pull)}${prHeader(b)}${splitView(b)}</div>`;
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
   const side = S.tab !== 'conversation' ? '' : S.hide.side ? `<button class="pane-rail side-rail" data-show="side" title="Show details">${icon('columns')}<span>Details</span></button>` : `<aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">${icon('x')}</button></div>${sidebar(b)}</aside>`;
@@ -1092,6 +1103,7 @@ function bind() {
   document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
   $('#addtoken')?.addEventListener('click', tokenDialog);
   $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
+  document.querySelectorAll('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.nav = false; render(); }));
   document.querySelectorAll('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo)));
   document.querySelectorAll('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps; openRepo(S.repo, { nav: true }); }));
   $('#back')?.addEventListener('click', () => go(-1));

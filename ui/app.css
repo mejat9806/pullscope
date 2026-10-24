@@ -801,3 +801,6 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .crumbs a.crumb:hover { color: var(--fgColor-accent); background: var(--bgColor-neutral-muted); }
 .crumbs .crumb.strong { color: var(--fgColor-default); font-weight: 600; } .crumbs .crumb.cur { color: var(--fgColor-default); }
 .crumbs .crumb-slash, .crumbs .crumb-sep { color: var(--fgColor-muted); opacity: .6; display: inline-flex; }
+
+.crumbs .crumb[data-home] { display: inline-flex; align-items: center; gap: 5px; } .crumb-grp { display: inline-flex; align-items: center; gap: 4px; }
+.crumbs { margin-bottom: 8px; }
