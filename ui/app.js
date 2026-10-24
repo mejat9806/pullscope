@@ -538,17 +538,20 @@ function filesView(b) { return filesList(b.files, true); }
 const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
 function filesList(files, canComment = false) {
   if (!files.length) return '<div class="diff-empty">No files changed.</div>';
-  // Long PRs render progressively: the first files in full, the rest as headers until you scroll near them.
-  const LIM = S.fileLimit || 12, pid = S.bundle?.pull?.id;
-  if (S.fileLimitFor !== pid) { S.fileLimitFor = pid; S.fileLimit = 12; }
+    const pid = S.bundle?.pull?.id;
   const hasC = (f) => (S.bundle?.review_comments || []).some((c) => c.path === f.filename) || pendList().some((p) => p.path === f.filename);
-  const shown = () => true;
+  // Big PRs open with the heavy files collapsed (like GitHub); a folded file renders no rows at all until it is opened.
+  if (S.autoFoldFor !== pid) {
+    S.autoFoldFor = pid; let budget = 1200;
+    for (const f of files) { const n = f.additions + f.deletions, key = 'f:' + f.filename; if (key in S.fold || hasC(f)) continue; if (n > 400 || n > budget) S.fold[key] = true; else budget -= n; }
+  }
+  const shown = (f) => !S.fold['f:' + f.filename];
   const all = files.every((f) => S.fold['f:' + f.filename]);
   return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f, i) => {
     const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
     const sq = Array.from({ length: 5 }, (_, i) => `<i class="${i < a ? 'a' : i < a + d ? 'd' : ''}"></i>`).join('');
-    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${!shown(f, i) ? `<div class="diff-ph" style="height:${Math.min(900, 40 + (f.additions + f.deletions) * 20)}px"></div>` : f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
-  }).join('') + (files.some((f, i) => !shown(f, i)) ? `<div class="lazy-more" id="lazymore">Loading more files… <button class="btn small" id="lazybtn">Show next ${LIM}</button></div>` : '');
+    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${!shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
+  }).join('');
 }
 
 function commitsView(b) {
@@ -1235,9 +1238,6 @@ function bind() {
   $('#prsort')?.addEventListener('change', (e) => { S.psort = e.target.value; localStorage.setItem('psort', S.psort); render(); });
   $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = e.target.value; localStorage.setItem('pgroup', S.pgroup); render(); });
   document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
-  { const more = $('#lazymore'); if (more) { const next = () => { S.fileLimit = (S.fileLimit || 12) + 8; rerender(); };
-      $('#lazybtn').onclick = next;
-      if ('IntersectionObserver' in window) { const io = new IntersectionObserver((en) => { if (en[0].isIntersecting) { io.disconnect(); next(); } }, { root: $('.main'), rootMargin: '200px' }); setTimeout(() => more.isConnected && io.observe(more), 120); } } }
   $('#upd')?.addEventListener('click', async () => {
     const u = S.update; if (!u || u.busy) return; u.busy = true; render();
     try { await u.obj.downloadAndInstall(); await window.__TAURI__.process.relaunch(); }
@@ -1362,6 +1362,7 @@ function bind() {
       const box = x.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
       const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
+    if (!now && k.startsWith('f:')) { const fb = el.closest('.file'); if (fb && !fb.querySelector('table.diff, .diff-empty')) { rerender(); return; } }
     if (now) return;
     // Opened: make sure the block is on screen (only scroll when part of it is cut off).
     const box = el.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
