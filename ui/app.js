@@ -74,9 +74,9 @@ function tabPut(ref, p, opts = {}) {
   else S.tabs.splice(opts.at >= 0 ? opts.at + 1 : S.tabs.length, 0, item);
   S.tabs = S.tabs.slice(-15); saveTabs();
 }
-function openTab(ref, { newTab = false } = {}) { tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: S.tabs.find((t) => t.ref === ref)?.tab }); }
+function openTab(ref, { newTab = false } = {}) { if (!newTab && ref !== curRef() && fastTab(ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: S.tabs.find((t) => t.ref === ref)?.tab }); }
 function closeTab(i) {
-  const t = S.tabs[i]; if (!t) return;
+  const t = S.tabs[i]; if (!t) return; S.alive.delete(t.ref);
   const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
   S.tabs.splice(i, 1); saveTabs();
   if (!was) return render();
@@ -1200,7 +1200,7 @@ function render() {
     $('#gatetok')?.addEventListener('click', tokenDialog);
     bindTokenDialog(); return;
   }
-  const html = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
+  const html = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? '' : page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
   const scroll = $('.main')?.scrollTop || 0;
   const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('.main > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
@@ -1227,6 +1227,43 @@ const go = (n) => { const t = S.hi + n; if (t < 0 || t >= S.hist.length) return;
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
 const openExternal = (url) => (tauri ? tauri.invoke('open_external', { url }) : window.open(url, '_blank'));
 
+function bindSticky() {
+  const ta = $('.pr-title-area'), tb = $('.pr-tabs');
+  if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
+}
+
+// Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
+S.alive = new Map();
+const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sbw].join('|');
+function stashCurrent() {
+  const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main');
+  if (!ref || !m || !m.firstElementChild || !S.tabs.some((t) => t.ref === ref)) return;
+  S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
+  S.eds = [];
+  while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value);
+}
+function fastTab(ref) {
+  const a = S.alive.get(ref); if (!a) return false;
+  const mem = qc.peek(ref);
+  if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
+  tabSnap(); stashCurrent(); S.alive.delete(ref);
+  const p = a.bundle.pull;
+  S.view = 'pr'; S.bundle = a.bundle; S.tab = a.tab; S.sel = null; S.error = ''; S.loading = false; S.refreshing = false; S.tabPending = ''; S.tabMenu = false;
+  localStorage.setItem('last', ref);
+  const ti = S.tabs.find((t) => t.ref === ref); if (ti) { ti.dot = false; saveTabs(); }
+  if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
+  if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
+  S.mainStub = true; render(); S.mainStub = false;
+  $('.main').replaceWith(a.el);
+  a.el.scrollTop = a.scroll; S.eds = a.eds;
+  bindSticky();
+  // Quietly check for newer data; only redraw if something actually changed.
+  if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref)).then((d) => {
+    if (JSON.stringify(d) === JSON.stringify(a.bundle)) { qc.m.set(ref, { data: a.bundle, at: Date.now() }); return; }
+    if (curRef() === ref) openPr(ref, { keepTab: true, nav: true });
+  }).catch(() => {});
+  return true;
+}
 function bind() {
   bindWrite();
   document.querySelectorAll('[data-side]').forEach((el) => el.addEventListener('click', () => { S.sideTab = el.dataset.side; render(); }));
@@ -1269,7 +1306,7 @@ function bind() {
   $('#signin')?.addEventListener('click', tokenDialog);
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } else openPr(el.dataset.open); }));
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } }));
-  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
+  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
   // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
   document.querySelectorAll('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
     if (e.button !== 0 || e.target.closest('.pt-x')) return;
@@ -1298,7 +1335,7 @@ function bind() {
   $('[data-tabhome]')?.addEventListener('click', () => { S.tabMenu = false; S.view = 'home'; render(); });
   $('[data-tabreopen]')?.addEventListener('click', () => { S.tabMenu = false; reopenTab(); });
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
-  document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
+  document.querySelectorAll('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
   $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
   document.querySelectorAll('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare.split('@'); openNewPr(repo, br); }));
@@ -1382,10 +1419,9 @@ function bind() {
   $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
   $('#nextun')?.addEventListener('click', jumpUnresolved);
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
-  const ta = $('.pr-title-area'), tb = $('.pr-tabs');
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
   { const mn = $('.main'); if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
-  if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
+  bindSticky();
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
   document.querySelectorAll('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
