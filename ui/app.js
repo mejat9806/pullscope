@@ -523,7 +523,7 @@ function filesList(files, canComment = false) {
   const LIM = S.fileLimit || 12, pid = S.bundle?.pull?.id;
   if (S.fileLimitFor !== pid) { S.fileLimitFor = pid; S.fileLimit = 12; }
   const hasC = (f) => (S.bundle?.review_comments || []).some((c) => c.path === f.filename) || pendList().some((p) => p.path === f.filename);
-  const shown = (f, i) => i < (S.fileLimit || 12) || hasC(f);
+  const shown = () => true;
   const all = files.every((f) => S.fold['f:' + f.filename]);
   return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f, i) => {
     const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
