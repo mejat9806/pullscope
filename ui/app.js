@@ -130,7 +130,8 @@ function prList() {
 }
 
 function repoHeader(p) {
-  return `<div class="repoline"><a href="${esc(p.base.repo.html_url)}" data-ext>${esc(p.base.repo.full_name)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}</div>`;
+  const r = p.base.repo, [owner, name] = r.full_name.split('/'), sep = `<span class="crumb-sep">${icon('chevron-right', 12)}</span>`;
+  return `<nav class="repoline crumbs" aria-label="Breadcrumb"><a class="crumb" href="${esc(r.owner?.html_url || `https://github.com/${owner}`)}" data-ext title="Open ${esc(owner)} on GitHub">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(r.full_name)}" title="All pull requests in ${esc(r.full_name)}">${esc(name)}</a>${sep}<a class="crumb" data-repo="${esc(r.full_name)}">Pull requests</a>${sep}<span class="crumb cur">#${p.number}</span><a class="crumb gh" href="${esc(r.html_url)}" data-ext title="Open on GitHub">${icon('link-external', 12)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}</nav>`;
 }
 
 function stateOf(p) {

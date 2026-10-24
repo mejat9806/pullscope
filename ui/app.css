@@ -795,3 +795,9 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .pane-body .who-bar { top: -12px; margin: -12px -16px 0; padding: 20px 16px 12px; }
 
 @media (min-width: 901px) { .nav-btn { display: inline-flex; flex: none; } .shell.nav-hidden .sidebar, .shell.nav-hidden .sb-grip { display: none; } }
+
+.crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 14px; }
+.crumbs .crumb { color: var(--fgColor-muted); text-decoration: none; cursor: pointer; border-radius: 6px; padding: 1px 4px; }
+.crumbs a.crumb:hover { color: var(--fgColor-accent); background: var(--bgColor-neutral-muted); }
+.crumbs .crumb.strong { color: var(--fgColor-default); font-weight: 600; } .crumbs .crumb.cur { color: var(--fgColor-default); }
+.crumbs .crumb-slash, .crumbs .crumb-sep { color: var(--fgColor-muted); opacity: .6; display: inline-flex; }
