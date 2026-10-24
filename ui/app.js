@@ -1531,6 +1531,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
   else S.loading = true;
   const hot = fresh;
   S.keepScroll = keepTab; render(); S.keepScroll = false;
+  if (!keepTab && !restore && $('.main')) $('.main').scrollTop = 0; // a different PR never inherits the previous page's scroll
   // Jump to the comment from the copy already on screen; the refresh below only tops it up.
   const focusNow = () => {
     if (!S.bundle || !S.focus) return false;
