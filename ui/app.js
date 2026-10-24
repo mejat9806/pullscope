@@ -32,7 +32,7 @@ const ASSOC = { CONTRIBUTOR: 'Contributor', MEMBER: 'Member', OWNER: 'Owner', CO
 const REACTS = [['+1', '👍'], ['-1', '👎'], ['laugh', '😄'], ['hooray', '🎉'], ['confused', '😕'], ['heart', '❤️'], ['rocket', '🚀'], ['eyes', '👀']];
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-let S = { bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
+let S = { bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
 S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || []; } catch { return []; } })();
 
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
@@ -543,15 +543,53 @@ function sidebar(b) {
   <div class="sb-item${folded('sb:people')}"><div class="sb-head">${foldBtn('sb:people', 'Hide section')}<span>${people.size} participant${people.size === 1 ? '' : 's'}</span></div><div class="participants">${[...people.values()].slice(0, 30).map((u) => `<a href="${esc(u.html_url)}" title="${esc(u.login)}">${avatar(u, 32)}</a>`).join('')}</div></div></div>`;
 }
 
+// Files changed can show all commits, one commit, or a consecutive range (indices into commitList, oldest first).
+const frKey = (cs, r) => r.a === r.b ? cs[r.a].sha : `${cs[r.a].parent}..${cs[r.b].sha}`;
+function frDiff(b) {
+  const cs = commitList(b), r = S.fr; if (!r || !cs[r.a] || !cs[r.b]) return b.files;
+  return r.a === r.b ? S.cdiff[cs[r.a].sha] : S.rdiff[frKey(cs, r)];
+}
+async function loadFr() {
+  const b = S.bundle, r = S.fr; if (!b || !r) return;
+  const cs = commitList(b), single = r.a === r.b, k = frKey(cs, r), store = single ? S.cdiff : S.rdiff, repo = b.pull.base.repo.full_name;
+  if (store[k] !== undefined && store[k] !== 'loading') return;
+  store[k] = 'loading'; render();
+  try {
+    if (!tauri) throw new Error('Per-commit diffs are available in the desktop app.');
+    if (!single && !cs[r.a].parent) throw new Error('This range has no parent commit to compare against.');
+    store[k] = (single ? await tauri.invoke('fetch_commit', { repo, sha: k }) : await tauri.invoke('fetch_range', { repo, base: cs[r.a].parent, head: cs[r.b].sha })).files || [];
+  } catch (e) { store[k] = String(e).replace(/^Error: /, ''); }
+  render();
+}
+function setFr(r) { S.fr = r; S.dialog = ''; render(); loadFr(); }
+function sinceReview(b) {
+  const cs = commitList(b), mine = b.timeline.filter((e) => e.event === 'reviewed' && e.user?.login === S.me && e.commit_id);
+  if (!S.me || !mine.length) return null;
+  const at = cs.findIndex((c) => c.sha === mine[mine.length - 1].commit_id);
+  return at < 0 ? null : { at, n: cs.length - 1 - at };
+}
+function commitsDialog() {
+  const b = S.bundle, cs = commitList(b), pick = S.cpick || S.fr, sr = sinceReview(b);
+  const on = (i) => pick && i >= pick.a && i <= pick.b;
+  const rows = cs.map((c, i) => `<label class="cp-row${on(i) ? ' on' : ''}" data-cp="${i}"><input type="checkbox" ${on(i) ? 'checked' : ''} tabindex="-1"><span class="cp-t"><b>${esc(String(c.message).split('\n')[0])}</b><i>${esc(c.name || c.author?.login || '')} committed ${when(c.date).replace(/<\/?span[^>]*>/g, '')}</i></span><code>${esc(c.sha.slice(0, 7))}</code></label>`).reverse().join('');
+  const q = (S.cfilter || '').toLowerCase();
+  return `<div class="dlg-bg" id="dlgbg"><div class="dlg cp-dlg"><div class="cp-h"><h2>Select commits to view</h2><button class="icon-btn" id="cpx" title="Close">${icon('x')}</button></div>
+  <button class="cp-opt${S.fr ? '' : ' on'}" id="cpall"><b>All commits</b><i>${cs.length} commit${cs.length === 1 ? '' : 's'}</i></button>
+  ${sr ? `<button class="cp-opt${S.fr && S.fr.a === sr.at + 1 && S.fr.b === cs.length - 1 ? ' on' : ''}" id="cpsince" ${sr.n ? '' : 'disabled'}><b>Changes since your last review</b><i>${sr.n ? `${sr.n} commit${sr.n === 1 ? '' : 's'}` : 'No new commits'}</i></button>` : ''}
+  <div class="cp-sub">Select a commit, or click a second one to view the range between them</div>
+  <input class="input cp-q" id="cpq" placeholder="Filter commits…" value="${esc(S.cfilter || '')}">
+  <div class="cp-list" id="cplist" data-q="${esc(q)}">${rows}</div>
+  <div class="btns"><span class="cp-sel">${pick ? (pick.a === pick.b ? '1 commit selected' : `${pick.b - pick.a + 1} commits selected`) : 'Nothing selected'}</span><span class="sp"></span><button class="btn" id="cpcancel">Cancel</button><button class="btn primary" id="cpsave" ${pick ? '' : 'disabled'}>Save</button></div></div></div>`;
+}
+function openCommits() { S.cpick = S.fr ? { ...S.fr } : null; S.cfilter = ''; S.dialog = commitsDialog(); render(); }
 function filesView(b) {
-  const cs = commitList(b), sha = S.sel, i = cs.findIndex((c) => c.sha === sha);
-  const opt = (v, t, on) => `<option value="${esc(v)}" ${on ? 'selected' : ''}>${esc(t)}</option>`;
-  const sel = `<select class="input" id="fcommit" title="Show the changes of one commit">${opt('', 'All changes', !sha)}${cs.map((c) => opt(c.sha, `${c.sha.slice(0, 7)} ${String(c.message).split('\n')[0].slice(0, 70)}`, c.sha === sha)).join('')}</select>`;
-  const nav = sha ? `<div class="seg-ctl"><button data-fstep="-1" ${i <= 0 ? 'disabled' : ''}>‹ Prev</button><button data-fstep="1" ${i < 0 || i >= cs.length - 1 ? 'disabled' : ''}>Next ›</button></div>` : '';
-  const bar = `<div class="fc-bar">${sel}${nav}${sha && i >= 0 ? `<span class="fc-t">${esc(String(cs[i].message).split('\n')[0])}</span>` : ''}</div>`;
-  if (!sha) return bar + filesList(b.files, true);
-  const d = S.cdiff[sha];
-  return bar + (d === undefined || d === 'loading' ? '<div class="diff-empty">Loading commit…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d));
+  const cs = commitList(b), r = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = r && r.a === r.b;
+  const label = !r ? `All commits <span class="counter">${cs.length}</span>` : single ? `Commit <code>${esc(cs[r.a].sha.slice(0, 7))}</code>` : `${r.b - r.a + 1} commits <code>${esc(cs[r.a].sha.slice(0, 7))}…${esc(cs[r.b].sha.slice(0, 7))}</code>`;
+  const nav = single ? `<div class="seg-ctl"><button data-fstep="-1" ${r.a <= 0 ? 'disabled' : ''}>‹ Prev</button><button data-fstep="1" ${r.a >= cs.length - 1 ? 'disabled' : ''}>Next ›</button></div>` : '';
+  const bar = `<div class="fc-bar"><button class="btn small" id="fcbtn" title="Choose which commits to view">${icon('git-commit')} ${label} ▾</button>${nav}${r ? `<span class="fc-t">${single ? esc(String(cs[r.a].message).split('\n')[0]) : ''}</span><button class="link-btn" id="fcall">Show all commits</button>` : ''}</div>`;
+  if (!r) return bar + filesList(b.files, true);
+  const d = frDiff(b);
+  return bar + (d === undefined || d === 'loading' ? '<div class="diff-empty">Loading…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d));
 }
 const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
 function filesList(files, canComment = false) {
@@ -582,7 +620,7 @@ function commitsView(b) {
 }
 
 function commitList(b) {
-  if (b.commits && b.commits.length) return b.commits.map((c) => ({ sha: c.sha, message: c.commit.message, author: c.author, name: c.commit.author?.name, date: c.commit.author?.date, url: c.html_url }));
+  if (b.commits && b.commits.length) return b.commits.map((c) => ({ sha: c.sha, message: c.commit.message, author: c.author, name: c.commit.author?.name, date: c.commit.author?.date, url: c.html_url, parent: c.parents?.[0]?.sha }));
   return b.timeline.filter((e) => e.event === 'committed').map((e) => ({ sha: e.sha, message: e.message, author: e.author?.avatar_url ? e.author : null, name: e.author?.name, date: e.author?.date, url: e.html_url }));
 }
 
@@ -1290,7 +1328,7 @@ function fastTab(ref) { S.openSeq = (S.openSeq || 0) + 1;
   if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
   tabSnap(); stashCurrent(); S.alive.delete(ref);
   const p = a.bundle.pull;
-  S.view = 'pr'; S.bundle = a.bundle; S.tab = a.tab; S.sel = null; S.error = ''; S.loading = false; S.refreshing = false; S.tabPending = ''; S.tabMenu = false;
+  S.view = 'pr'; S.bundle = a.bundle; S.tab = a.tab; S.sel = null; S.fr = null; S.error = ''; S.loading = false; S.refreshing = false; S.tabPending = ''; S.tabMenu = false;
   localStorage.setItem('last', ref);
   const ti = S.tabs.find((t) => t.ref === ref); if (ti) { ti.dot = false; saveTabs(); }
   if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
@@ -1326,8 +1364,23 @@ function bind() {
   document.querySelectorAll('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
   $('#hmsort')?.addEventListener('change', (e) => { S.hmSort = e.target.value; render(); });
   $('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = e.target.value; render(); });
-  $('#fcommit')?.addEventListener('change', (e) => selectCommit(e.target.value));
-  document.querySelectorAll('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle), i = cs.findIndex((c) => c.sha === S.sel) + Number(el.dataset.fstep); if (cs[i]) selectCommit(cs[i].sha); }));
+  $('#fcbtn')?.addEventListener('click', openCommits);
+  $('#fcall')?.addEventListener('click', () => setFr(null));
+  document.querySelectorAll('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
+  if ($('.cp-dlg')) {
+    const close = () => { S.dialog = ''; S.cpick = null; render(); };
+    $('#cpx').onclick = close; $('#cpcancel').onclick = close; $('#cpall').onclick = () => setFr(null);
+    $('#dlgbg').addEventListener('mousedown', (e) => { if (e.target.id === 'dlgbg') close(); });
+    $('#cpsince') && ($('#cpsince').onclick = () => { const sr = sinceReview(S.bundle); if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle).length - 1 }); });
+    $('#cpsave').onclick = () => { if (S.cpick) setFr({ ...S.cpick }); };
+    const filt = () => { const q = ($('#cpq').value || '').toLowerCase(); S.cfilter = q; document.querySelectorAll('.cp-row').forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); };
+    $('#cpq').addEventListener('input', filt); filt();
+    document.querySelectorAll('.cp-row').forEach((row) => row.addEventListener('click', (e) => {
+      e.preventDefault(); const i = Number(row.dataset.cp), p = S.cpick;
+      S.cpick = !p || (p.a !== p.b) ? { a: i, b: i } : { a: Math.min(p.a, i), b: Math.max(p.b, i) };
+      const keep = $('#cplist').scrollTop; S.dialog = commitsDialog(); render(); const l = $('#cplist'); if (l) l.scrollTop = keep;
+    }));
+  }
   $('#fsort')?.addEventListener('change', (e) => { S.fileSort = e.target.value; rerender(); });
   $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
   document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
@@ -1577,7 +1630,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
   // Show the tab at once; the title and state fill in when the PR arrives.
   S.tabPending = '';
   if (!keepTab) { const m = String(input).match(/^([^#\s@\/]+\/[^#\s@]+)#(\d+)$/) || String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/); if (m) { const ref = `${m[1]}#${m[2]}`; S.tabPending = ref; if (!S.tabs.some((t) => t.ref === ref)) { const old = S.recent.find((r) => r.ref === ref), item = { ref, title: old?.title || 'Loading…', state: old?.state || 'open', icon: old?.icon || 'git-pull-request', tab: restore || 'conversation', dot: false }; if (fromTab >= 0 && !newTab) S.tabs[fromTab] = item; else S.tabs.splice(fromTab >= 0 ? fromTab + 1 : S.tabs.length, 0, item); S.tabs = S.tabs.slice(-15); } } }
-  S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = restore || 'conversation'; S.sel = null;
+  S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = restore || 'conversation'; S.sel = null; if (!keepTab) S.fr = null;
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
   if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
   const mem = qc.peek(input);
@@ -1628,7 +1681,7 @@ const q = new URLSearchParams(location.search);
 if (q.get('mode')) S.mode = q.get('mode');
 if (q.get('tab')) S.tab = q.get('tab');
 if (q.get('split')) S.split = q.get('split') === '1';
-if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) loadRepos(); }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
+if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); tauri.invoke('viewer_login').then((l) => { S.me = l; }).catch(() => {}); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 render();
 if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
 else if (tauri) tauri.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });

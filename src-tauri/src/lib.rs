@@ -256,6 +256,37 @@ async fn fetch_commit(repo: String, sha: String) -> Result<serde_json::Value, St
     Ok(c)
 }
 
+/// The diff of several consecutive commits: GitHub's compare between the first commit's parent and the last commit.
+#[tauri::command]
+async fn fetch_range(repo: String, base: String, head: String) -> Result<serde_json::Value, String> {
+    let hex = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_hexdigit());
+    if !valid_repo(&repo) || !hex(&base) || !hex(&head) { return Err("bad request".into()); }
+    let key = format!("{repo}@{base}..{head}").to_lowercase();
+    if let Some(c) = COMMITS.get(&key) { return Ok(c); }
+    let token = github::load_token();
+    let c = github::client();
+    let mut files: Vec<serde_json::Value> = Vec::new();
+    for page in 1..=3 {
+        let url = format!("https://api.github.com/repos/{repo}/compare/{base}...{head}?per_page=100&page={page}");
+        let v = github::get(&c, &url, token.as_deref()).await?;
+        let got = v["files"].as_array().cloned().unwrap_or_default();
+        let n = got.len();
+        files.extend(got);
+        if n < 100 { break; }
+    }
+    let out = serde_json::json!({ "files": files });
+    COMMITS.insert(key, out.clone());
+    Ok(out)
+}
+
+/// Login of the signed-in user (to find their last review on a pull request).
+#[tauri::command]
+async fn viewer_login() -> Result<String, String> {
+    let token = github::load_token().ok_or("no token")?;
+    let v = github::get(&github::client(), "https://api.github.com/user", Some(&token)).await?;
+    v["login"].as_str().map(String::from).ok_or_else(|| "no login".into())
+}
+
 /// Write actions on a pull request. Only these whitelisted actions are accepted.
 /// `comment`: body. `reply`: id + body. `review`: event (APPROVE|REQUEST_CHANGES|COMMENT) + body.
 /// `merge`: method (merge|squash|rebase). `close` / `reopen`.
@@ -568,7 +599,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
