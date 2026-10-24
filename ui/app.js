@@ -63,7 +63,7 @@ const compact = (n) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Ma
 const KEY_TABS = 'tabs';
 { const t = load(KEY_TABS, {}); S.tabs = Array.isArray(t.list) ? t.list : []; S.closed = []; S.tabMenu = false; }
 const curRef = () => (S.view === 'pr' && S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '');
-const saveTabs = () => { try { localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon, tab, dot }) => ({ ref, title, state, icon, tab, dot })) })); } catch {} };
+const saveTabs = () => { try { localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon, tab, dot, scroll }) => ({ ref, title, state, icon, tab, dot, scroll })) })); } catch {} };
 const tabIdx = () => S.tabs.findIndex((t) => t.ref === curRef());
 function tabSnap() { const t = S.tabs[tabIdx()]; if (t) { t.tab = S.tab; t.scroll = $('.main')?.scrollTop || 0; } }
 function tabPut(ref, p, opts = {}) {
@@ -74,7 +74,7 @@ function tabPut(ref, p, opts = {}) {
   else S.tabs.splice(opts.at >= 0 ? opts.at + 1 : S.tabs.length, 0, item);
   S.tabs = S.tabs.slice(-15); saveTabs();
 }
-function openTab(ref, { newTab = false } = {}) { tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab }); }
+function openTab(ref, { newTab = false } = {}) { tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: S.tabs.find((t) => t.ref === ref)?.tab }); }
 function closeTab(i) {
   const t = S.tabs[i]; if (!t) return;
   const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
@@ -1384,6 +1384,7 @@ function bind() {
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
   const ta = $('.pr-title-area'), tb = $('.pr-tabs');
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
+  { const mn = $('.main'); if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
   // Render diff blocks well before they scroll into view, so they never pop in; far-away ones stay skipped.
   { const chunks = document.querySelectorAll('.dchunk'); if (chunks.length && 'IntersectionObserver' in window) {
@@ -1520,7 +1521,8 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
-  S.tabPending = ''; S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
+  S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = tabSwitch ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
+  if (savedScroll) { const put = () => { const m = $('.main'); if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';
