@@ -204,10 +204,20 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
             }
         }
     }
+    // Which checks branch protection / rulesets require (GraphQL only). Best effort; needs a token.
+    let mut required: Vec<Value> = vec![];
+    let q = "query($o:String!,$n:String!,$p:Int!){repository(owner:$o,name:$n){pullRequest(number:$p){commits(last:1){nodes{commit{statusCheckRollup{contexts(first:100){nodes{__typename ... on CheckRun{name isRequired(pullRequestNumber:$p)} ... on StatusContext{context isRequired(pullRequestNumber:$p)}}}}}}}}}}";
+    let vars = json!({ "query": q, "variables": { "o": pr.owner, "n": pr.repo, "p": n } });
+    if let Ok(v) = send(&c, reqwest::Method::POST, "https://api.github.com/graphql", token, vars).await {
+        for x in v["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]["nodes"].as_array().cloned().unwrap_or_default() {
+            if x["isRequired"].as_bool() == Some(true) { required.push(if x["name"].is_string() { x["name"].clone() } else { x["context"].clone() }); }
+        }
+    }
     Ok(json!({
         "resolved_ids": resolved,
         "thread_ids": thread_ids,
         "checks": checks,
+        "required_checks": required,
         "commits": commits.unwrap_or_default(),
         "commit_info": commit_info,
         "pull": pull,

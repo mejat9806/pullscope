@@ -410,6 +410,7 @@ function timeline(b) {
 }
 const checkState = (c) => (c.status !== 'completed' ? 'pending' : c.conclusion === 'success' ? 'pass' : ['skipped', 'neutral'].includes(c.conclusion) ? 'skip' : 'fail');
 const CK = { pass: ['check-circle-fill', 'Passed'], fail: ['x-circle-fill', 'Failed'], pending: ['dot-fill', 'In progress'], skip: ['circle-slash', 'Skipped'] };
+const reqBadge = (c) => ((S.bundle?.required_checks || []).includes(c.name) ? '<span class="ck-req" title="Required by branch protection">Required</span>' : '');
 function checksView(b) {
   const list = (b.checks || []).map((c) => ({ ...c, st: checkState(c) }));
   if (!list.length) return '<div class="diff-empty">No checks reported for the latest commit.</div>';
@@ -418,7 +419,7 @@ function checksView(b) {
   list.sort((x, y) => rank[x.st] - rank[y.st] || String(x.name).localeCompare(String(y.name)));
   const head = n('fail') ? ['fail', `${n('fail')} failing`] : n('pending') ? ['pending', `${n('pending')} in progress`] : ['pass', 'All checks passed'];
   const dur = (c) => { const s = Date.parse(c.started_at), e = Date.parse(c.completed_at); if (!s || !e || e < s) return ''; const t = Math.round((e - s) / 1000); return t >= 60 ? `${Math.floor(t / 60)}m ${t % 60}s` : `${t}s`; };
-  return `<div class="checks"><div class="ck-head ${head[0]}">${icon(CK[head[0]][0], 20)}<div><b>${head[1]}</b><span>${[n('fail') && `${n('fail')} failing`, n('pending') && `${n('pending')} in progress`, n('pass') && `${n('pass')} passed`, n('skip') && `${n('skip')} skipped`].filter(Boolean).join(' · ')}</span></div></div>${list.map((c) => `<a class="ck-row ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}><span class="ck-i">${icon(CK[c.st][0])}</span><span class="ck-n"><b>${esc(c.name)}</b><i>${esc(c.description || (c.app ? c.app : ''))}</i></span><span class="ck-s">${c.st === 'fail' && c.conclusion && c.conclusion !== 'failure' ? esc(c.conclusion.replace(/_/g, ' ')) : CK[c.st][1]}</span><span class="ck-d">${dur(c)}</span></a>`).join('')}</div>`;
+  return `<div class="checks"><div class="ck-head ${head[0]}">${icon(CK[head[0]][0], 20)}<div><b>${head[1]}</b><span>${[n('fail') && `${n('fail')} failing`, n('pending') && `${n('pending')} in progress`, n('pass') && `${n('pass')} passed`, n('skip') && `${n('skip')} skipped`].filter(Boolean).join(' · ')}</span></div></div>${list.map((c) => `<a class="ck-row ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}><span class="ck-i">${icon(CK[c.st][0])}</span><span class="ck-n"><b>${esc(c.name)}</b>${reqBadge(c)}<i>${esc(c.description || (c.app ? c.app : ''))}</i></span><span class="ck-s">${c.st === 'fail' && c.conclusion && c.conclusion !== 'failure' ? esc(c.conclusion.replace(/_/g, ' ')) : CK[c.st][1]}</span><span class="ck-d">${dur(c)}</span></a>`).join('')}</div>`;
 }
 
 function unresolvedRoots(b) {
@@ -480,7 +481,7 @@ function mergeBox(b) {
   const ckHead = cnt('fail') ? ['bad', 'x-circle-fill', `${cnt('fail')} check${cnt('fail') === 1 ? '' : 's'} failing`] : cnt('pending') ? ['', 'dot-fill', `${cnt('pending')} check${cnt('pending') === 1 ? '' : 's'} in progress`] : ['ok', 'check-circle-fill', 'All checks have passed'];
   const ckSub = [cnt('skip') && `${cnt('skip')} neutral`, cnt('pass') && `${cnt('pass')} successful`, cnt('fail') && `${cnt('fail')} failing`, cnt('pending') && `${cnt('pending')} pending`].filter(Boolean).join(', ');
   const grp = (k, title) => { const g = list.filter((c) => c.st === k); if (!g.length) return ''; const open = S.mbOpen?.has('g' + k) ?? k !== 'pass';
-    return `<button class="mb-grp" data-mb="g${k}">${title} ${icon(open ? 'chevron-up' : 'chevron-down', 12)}</button>${open ? g.map((c) => `<a class="mb-ck ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}>${icon(CK[c.st][0], 14)}<b>${esc(c.name)}</b><i>${esc(c.description || c.app || '')}</i></a>`).join('') : ''}`; };
+    return `<button class="mb-grp" data-mb="g${k}">${title} ${icon(open ? 'chevron-up' : 'chevron-down', 12)}</button>${open ? g.map((c) => `<a class="mb-ck ${c.st}" ${c.url ? `href="${esc(c.url)}"` : ''}>${icon(CK[c.st][0], 14)}<b>${esc(c.name)}</b>${reqBadge(c)}<i>${esc(c.description || c.app || '')}</i></a>`).join('') : ''}`; };
   const rerunable = list.some((c) => c.st === 'fail' && /\/actions\/runs\//.test(c.url || ''));
   const sec = (k, h, body) => { const open = S.mbOpen?.has(k); return `<div class="mb-sec"><button class="mb-h ${h[0]}" data-mb="${k}"><span class="mb-ic">${icon(h[1], 22)}</span><span class="mb-t"><b>${h[2]}</b><i>${h[3] || ''}</i></span>${k === 'ck' && rerunable ? '<span class="btn small" id="rerunck" role="button">Re-run failed</span>' : ''}${icon(open ? 'chevron-up' : 'chevron-down', 16)}</button>${open && body ? `<div class="mb-body">${body}</div>` : ''}</div>`; };
   const rvBody = `<div class="mb-line">${icon('check', 14)} ${ap} approval${ap === 1 ? '' : 's'}</div>${cr ? `<div class="mb-line bad">${icon('x-circle-fill', 14)} ${cr} requested changes</div>` : ''}<div class="mb-line">${icon('person', 14)} ${pendRev} pending review${pendRev === 1 ? '' : 's'}${pendRev ? `: ${p.requested_reviewers.map((u) => esc(u.login)).join(', ')}` : ''}</div>`;
@@ -518,12 +519,17 @@ function filesView(b) { return filesList(b.files, true); }
 const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
 function filesList(files, canComment = false) {
   if (!files.length) return '<div class="diff-empty">No files changed.</div>';
+  // Long PRs render progressively: the first files in full, the rest as headers until you scroll near them.
+  const LIM = S.fileLimit || 12, pid = S.bundle?.pull?.id;
+  if (S.fileLimitFor !== pid) { S.fileLimitFor = pid; S.fileLimit = 12; }
+  const hasC = (f) => (S.bundle?.review_comments || []).some((c) => c.path === f.filename) || pendList().some((p) => p.path === f.filename);
+  const shown = (f, i) => i < (S.fileLimit || 12) || hasC(f);
   const all = files.every((f) => S.fold['f:' + f.filename]);
-  return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f) => {
+  return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f, i) => {
     const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
     const sq = Array.from({ length: 5 }, (_, i) => `<i class="${i < a ? 'a' : i < a + d ? 'd' : ''}"></i>`).join('');
-    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
-  }).join('');
+    return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${!shown(f, i) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
+  }).join('') + (files.some((f, i) => !shown(f, i)) ? `<div class="lazy-more" id="lazymore">Loading more files… <button class="btn small" id="lazybtn">Show next ${LIM}</button></div>` : '');
 }
 
 function commitsView(b) {
@@ -1164,14 +1170,15 @@ function gateHtml() {
   <small>Tip: running <code>gh auth login</code> in a terminal also works.</small></div></div>`;
 }
 function render() {
-  (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
   applyMode();
   if (needSignIn()) {
+    (S.eds || []).forEach((e) => e.destroy()); S.eds = []; S.lastHtml = '';
     $('#app').innerHTML = `${gateHtml()}${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}`;
     $('#gatego')?.addEventListener('click', () => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); });
     $('#gatetok')?.addEventListener('click', tokenDialog);
     bindTokenDialog(); return;
   }
+  const html = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
   const scroll = $('.main')?.scrollTop || 0;
   const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('.main > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
@@ -1180,7 +1187,9 @@ function render() {
   let anchor = null;
   { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
-  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
+  if (html === S.lastHtml && $('#app').firstElementChild && !S.fadeMain) return;
+  (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
+  $('#app').innerHTML = html; S.lastHtml = html;
   document.querySelectorAll('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; });
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list, .sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind(); bindTokenDialog();
@@ -1207,6 +1216,9 @@ function bind() {
   $('#prsort')?.addEventListener('change', (e) => { S.psort = e.target.value; localStorage.setItem('psort', S.psort); render(); });
   $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = e.target.value; localStorage.setItem('pgroup', S.pgroup); render(); });
   document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
+  { const more = $('#lazymore'); if (more) { const next = () => { S.fileLimit = (S.fileLimit || 12) + 12; rerender(); };
+      $('#lazybtn').onclick = next;
+      if ('IntersectionObserver' in window) { const io = new IntersectionObserver((en) => { if (en[0].isIntersecting) { io.disconnect(); next(); } }, { root: $('.main'), rootMargin: '600px' }); io.observe(more); } } }
   $('#addtoken')?.addEventListener('click', tokenDialog);
   $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
   $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
@@ -1234,6 +1246,27 @@ function bind() {
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } else openPr(el.dataset.open); }));
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } }));
   document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
+  // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
+  document.querySelectorAll('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || e.target.closest('.pt-x')) return;
+    const from = +el.dataset.tab, x0 = e.clientX; let moved = false, to = from;
+    const strip = el.parentElement, tabs = [...strip.querySelectorAll('.ptab')];
+    const mv = (ev) => {
+      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
+      if (!moved) { moved = true; el.classList.add('drag'); document.body.classList.add('dragging'); }
+      el.style.transform = `translateX(${ev.clientX - x0}px)`;
+      to = tabs.reduce((best, t, i) => { const r = t.getBoundingClientRect(); return ev.clientX > r.left + r.width / 2 ? i : best; }, 0);
+      tabs.forEach((t, i) => { if (t !== el) t.style.transform = from < to && i > from && i <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i < from && i >= to ? `translateX(${el.offsetWidth}px)` : ''; });
+    };
+    const up = () => {
+      removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging');
+      if (!moved) return;
+      el.addEventListener('click', (c) => c.stopImmediatePropagation(), { capture: true, once: true });
+      if (to !== from) { const [t] = S.tabs.splice(from, 1); S.tabs.splice(to, 0, t); saveTabs(); }
+      render();
+    };
+    addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  }));
   document.querySelectorAll('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx); }));
   { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
   $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });

@@ -48,7 +48,7 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 
 ## Install
 
-Download the installer for your platform from the [Releases page](https://github.com/mejat9806/reviewer/releases): `.dmg` (macOS, Apple silicon), `.exe` / `.msi` (Windows), `.deb` / `.rpm` / `.AppImage` (Linux).
+Download the installer for your platform from the [Releases page](https://github.com/mejat9806/pullscope/releases): `.dmg` (macOS, Apple silicon), `.exe` / `.msi` (Windows), `.deb` / `.rpm` / `.AppImage` (Linux).
 
 The installers are not code-signed, so macOS (Gatekeeper) and Windows (SmartScreen) warn on first launch. Right-click and choose Open on macOS, or "More info" then "Run anyway" on Windows.
 
