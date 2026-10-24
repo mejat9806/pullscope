@@ -47,12 +47,14 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         with:
           projectPath: src-tauri
           tauriScript: npx --yes @tauri-apps/cli@2
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           releaseName: Pullscope ${{ github.ref_name }}
           releaseDraft: true
+          uploadUpdaterJson: true
           args: ${{ matrix.args }}
 
       - name: Keep installers as workflow artifacts (manual runs)

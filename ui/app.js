@@ -97,7 +97,7 @@ function toolbar() {
   const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
   return `<header class="toolbar" data-tauri-drag-region>
   <button class="tb-btn nav-btn" id="navbtn" title="Show or hide the sidebar">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
-  <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>
+  <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>${S.update ? `<button class="upd" id="upd" title="Download and install the new version, then restart">${icon('sync')} ${S.update.busy ? 'Updating…' : 'Update to v' + esc(S.update.version)}</button>` : ''}
   <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
 }
 function sideRecent() {
@@ -1219,6 +1219,11 @@ function bind() {
   { const more = $('#lazymore'); if (more) { const next = () => { S.fileLimit = (S.fileLimit || 12) + 12; rerender(); };
       $('#lazybtn').onclick = next;
       if ('IntersectionObserver' in window) { const io = new IntersectionObserver((en) => { if (en[0].isIntersecting) { io.disconnect(); next(); } }, { root: $('.main'), rootMargin: '600px' }); io.observe(more); } } }
+  $('#upd')?.addEventListener('click', async () => {
+    const u = S.update; if (!u || u.busy) return; u.busy = true; render();
+    try { await u.obj.downloadAndInstall(); await window.__TAURI__.process.relaunch(); }
+    catch (e) { u.busy = false; S.actErr = 'Update failed: ' + String(e); render(); }
+  });
   $('#addtoken')?.addEventListener('click', tokenDialog);
   $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
   $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
@@ -1513,3 +1518,10 @@ setInterval(pollNotes, 60000); setTimeout(pollNotes, 4000);
 addEventListener('focus', () => { const b = S.bundle; if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) return; const k = `${b.pull.base.repo.full_name}#${b.pull.number}`; if (!qc.fresh(k, 60000)) openPr(k, { nav: true, keepTab: true }); });
 setTimeout(pollNotes, 8000);
 if (new URLSearchParams(location.search).get('demonote')) { S.notes = [{ id: 1, ref: 'octocat/Hello-World#6', title: 'New line at end of file.', text: '3 new commits, 2 new comments', at: new Date().toISOString(), read: false }, { id: 2, ref: 'octocat/Hello-World#6', title: 'New line at end of file.', text: 'now merged', at: new Date(Date.now() - 36e5).toISOString(), read: true }]; S.bell = true; render(); }
+
+// Check GitHub Releases for a newer signed build a few seconds after launch, then again every 6 hours.
+async function checkUpdate() {
+  const up = window.__TAURI__?.updater; if (!up || S.update?.busy) return;
+  try { const u = await up.check(); if (u) { S.update = { version: u.version, obj: u }; render(); } } catch {}
+}
+if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 1000); }
