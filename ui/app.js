@@ -132,10 +132,11 @@ function prList() {
 // Breadcrumbs for every page: Home › (owner / repo) › … ; the last item is the current page.
 function crumbs(repo, trail = [], extra = '') {
   const sep = `<span class="crumb-sep">${icon('chevron-right', 12)}</span>`;
-  const parts = [`<a class="crumb" data-home="1" title="Home">${icon('home', 14)}<span>Home</span></a>`];
+  const homeCur = !repo && !trail.length;
+  const parts = [homeCur ? `<span class="crumb cur home">${icon('home', 14)}<span>Home</span></span>` : `<a class="crumb" data-home="1" title="Home">${icon('home', 14)}<span>Home</span></a>`];
   if (repo) {
     const [owner, name] = repo.split('/');
-    parts.push(`<span class="crumb-grp"><a class="crumb" href="https://github.com/${esc(owner)}" data-ext title="Open ${esc(owner)} on GitHub">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(repo)}" title="All pull requests in ${esc(repo)}">${esc(name)}</a></span>`);
+    parts.push(`<span class="crumb-grp"><a class="crumb" data-owner="${esc(owner)}" title="Repositories of ${esc(owner)}">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(repo)}" title="All pull requests in ${esc(repo)}">${esc(name)}</a></span>`);
   }
   trail.forEach((t, i) => parts.push(i === trail.length - 1 ? `<span class="crumb cur">${esc(t.t)}</span>` : `<a class="crumb" ${t.repo ? `data-repo="${esc(t.repo)}"` : ''}>${esc(t.t)}</a>`));
   return `<nav class="repoline crumbs" aria-label="Breadcrumb">${parts.join(sep)}${extra}</nav>`;
@@ -947,6 +948,22 @@ function bindWrite() {
   $('#review')?.addEventListener('click', reviewDialog);
 }
 
+function homePage() {
+  const tab = S.homeTab || 'repos', owner = S.homeOwner || '';
+  const tabs = `<div class="np-tabs"><button class="${tab === 'repos' ? 'sel' : ''}" data-htab="repos">${icon('repo')} Repositories${S.repos ? `<span>${S.repos.filter((r) => !owner || r.full_name.startsWith(owner + '/')).length}</span>` : ''}</button><button class="${tab === 'recent' ? 'sel' : ''}" data-htab="recent">${icon('clock')} Recent<span>${S.recent.length}</span></button></div>`;
+  let body;
+  if (tab === 'recent') body = S.recent.length ? `<div class="hm-grid">${S.recent.map((r) => `<a class="hm-card" data-open="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="hm-t"><b>${esc(r.title)}</b><i>${esc(r.ref)}</i></span><button class="rc-x" data-rm="${esc(r.ref)}" title="Remove">${icon('x')}</button></a>`).join('')}</div>` : '<div class="diff-empty">Pull requests you open appear here.</div>';
+  else if (!S.hasToken) body = '<div class="diff-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="btn primary" id="addtoken">Add token</button></div>';
+  else if (S.reposErr) body = `<div class="diff-empty err">${esc(S.reposErr)}</div>`;
+  else if (!S.repos) body = '<div class="spinner" style="margin:48px auto">Loading repositories…</div>';
+  else {
+    const f = (S.repoFilter || '').toLowerCase();
+    const list = S.repos.filter((r) => (!owner || r.full_name.startsWith(owner + '/')) && r.full_name.toLowerCase().includes(f));
+    body = `<input class="input hm-filter" id="hmfilter" placeholder="Find a repository…" value="${esc(S.repoFilter || '')}">` + (list.length ? `<div class="hm-grid">${list.map((r) => `<a class="hm-card" data-repo="${esc(r.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="hm-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}${r.archived ? ' · archived' : ''}${r.open_issues_count ? ` · ${r.open_issues_count} open` : ''}</i>${r.description ? `<em>${esc(r.description)}</em>` : ''}</span></a>`).join('')}</div>` : '<div class="diff-empty">No matching repositories.</div>');
+  }
+  return `<div class="notes-page hm-page"><div class="np-head"><h1>${icon('home')} ${owner ? esc(owner) : 'Home'}</h1></div>
+  <p class="hm-hint">Open a pull request: type <code>owner/repo#123</code> or paste a URL in the bar above.</p>${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ''}${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}${tabs}${body}</div>`;
+}
 function landing() {
   return `<div class="landing">${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ''}${icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"')}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br>Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}</div>`;
 }
@@ -1062,7 +1079,7 @@ function page() {
   if (S.view === 'inbox') return crumbs('', [{ t: 'Inbox' }]) + inboxPage();
   if (S.view === 'notes') return crumbs('', [{ t: 'Notifications' }]) + notesPage();
   if (S.view === 'repo') return crumbs(S.repo, [{ t: 'Pull requests' }]) + prList();
-  if (S.view === 'home' || !b) return crumbs('', [{ t: 'Open a pull request' }]) + landing();
+  if (S.view === 'home' || !b) return crumbs('', S.homeOwner ? [{ t: S.homeOwner }] : []) + homePage();
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return `<div class="pr-page is-split">${repoHeader(b.pull)}${prHeader(b)}${splitView(b)}</div>`;
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
   const side = S.tab !== 'conversation' ? '' : S.hide.side ? `<button class="pane-rail side-rail" data-show="side" title="Show details">${icon('columns')}<span>Details</span></button>` : `<aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">${icon('x')}</button></div>${sidebar(b)}</aside>`;
@@ -1102,8 +1119,11 @@ function bind() {
   $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = e.target.value; localStorage.setItem('pgroup', S.pgroup); render(); });
   document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
   $('#addtoken')?.addEventListener('click', tokenDialog);
+  $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
   $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
-  document.querySelectorAll('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.nav = false; render(); }));
+  document.querySelectorAll('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
+  document.querySelectorAll('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
+  document.querySelectorAll('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
   document.querySelectorAll('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo)));
   document.querySelectorAll('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps; openRepo(S.repo, { nav: true }); }));
   $('#back')?.addEventListener('click', () => go(-1));
