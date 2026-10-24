@@ -891,3 +891,9 @@ body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .upd:hover { filter: brightness(1.1); }
 
 .diff-ph { background: repeating-linear-gradient(transparent 0 19px, var(--borderColor-muted, rgba(128,128,128,.12)) 19px 20px); opacity: .5; }
+
+/* Stuck PR tab bar: when the window is not wide, drop the title and counts so every tab stays whole */
+@media (max-width: 1300px) { .pr-tabs.stuck .mini { display: none; } .pr-tabs.stuck nav a .counter, .pr-tabs.stuck nav a svg { display: none; } }
+.pr-tabs.stuck nav { overflow: hidden; flex: 1 1 auto; min-width: 0; gap: 0; }
+.pr-tabs.stuck nav a { padding-left: 8px; padding-right: 8px; gap: 5px; white-space: nowrap; }
+.pr-tabs.stuck .tools { flex: 0 0 auto; }
