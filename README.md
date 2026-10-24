@@ -13,6 +13,7 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 - Syntax-highlighted diffs, unified or side by side, with collapsible files.
 - **Split view**: commits and their diff beside the conversation, resizable, with a flip button and per-pane collapse.
 - Collapse or expand every conversation, review and thread in one click.
+- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs.
 
 ![Files changed](docs/screenshots/files-split.png)
 
