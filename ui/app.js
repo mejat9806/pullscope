@@ -1256,14 +1256,14 @@ function bindSticky() {
 // Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
 S.alive = new Map();
 const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sbw].join('|');
-function stashCurrent() {
+function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
   const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main');
   if (!ref || !m || !m.firstElementChild || !S.tabs.some((t) => t.ref === ref)) return;
   S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
   S.eds = [];
   while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value);
 }
-function fastTab(ref) {
+function fastTab(ref) { S.openSeq = (S.openSeq || 0) + 1;
   const a = S.alive.get(ref); if (!a) return false;
   const mem = qc.peek(ref);
   if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
@@ -1548,6 +1548,7 @@ const reload = () => S.view === 'repo' ? openRepo(S.repo, { nav: true }) : S.bun
 async function openPr(input, { nav = false, keepTab = false, manual = false, newTab = false, restore = '' } = {}) {
   { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
   const fromTab = S.view === 'pr' ? tabIdx() : -1, tabSwitch = !!(restore || S.fadeMain);
+  const seq = S.openSeq = (S.openSeq || 0) + 1, stale_ = () => S.openSeq !== seq; // a newer open (tab switch) supersedes this one
   if (!keepTab && !restore) tabSnap();
   // Show the tab at once; the title and state fill in when the PR arrives.
   S.tabPending = '';
@@ -1576,7 +1577,9 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
   };
   const focused = focusNow();
   try {
-    S.bundle = hot ? mem.data : await qc.fetch(input, () => loadPr(input));
+    const got = hot ? mem.data : await qc.fetch(input, () => loadPr(input));
+    if (stale_()) return; // the user already moved on; the result stays in the cache for next time
+    S.bundle = got;
     const p = S.bundle.pull, ref = `${p.base.repo.full_name}#${p.number}`, [st, ic] = stateOf(p);
     if (!nav) { S.hist = S.hist.slice(0, S.hi + 1); S.hist.push(ref); S.hi = S.hist.length - 1; }
     S.recent = [{ ref, title: p.title, state: st, icon: ic }, ...S.recent.filter((r) => r.ref !== ref)].slice(0, 30);
@@ -1585,7 +1588,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
     if (!keepTab || tabIdx() >= 0) tabPut(ref, p, { at: fromTab, newTab }); const ti = S.tabs.find((t) => t.ref === ref); if (ti) { ti.dot = false; saveTabs(); }
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
-  } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
+  } catch (e) { if (stale_()) return; if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
   S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = restore ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
   if (savedScroll) { const put = () => { const m = $('.main'); if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
