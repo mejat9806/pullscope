@@ -287,8 +287,13 @@ function lineThreads(path, line, side, cols) {
   const all = threadsFor(path); if (!all.length) return '';
   const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return '';
   const res = new Set(S.bundle.resolved_ids || []);
-  const card = (c) => `<div class="tc"><a href="${esc(c.user?.html_url || '#')}">${avatar(c.user, 20)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user?.login || 'ghost')}</span> <span>${when(c.created_at)}</span></div><div class="markdown-body" style="margin-top:6px">${c.body_html || esc(c.body || '')}</div></div></div>`;
-  return roots.map((r) => `<tr class="lc-row th-row"><td colspan="${cols}"><div class="thread inl${res.has(r.id) ? ' resolved' : ''}">${res.has(r.id) ? '<div class="thread-head"><span class="res">Resolved</span></div>' : r.line == null ? '<div class="thread-head"><span class="res" style="background:var(--bgColor-attention-muted,#9a6700 22%)">Outdated</span></div>' : ''}${[r, ...all.filter((c) => c.in_reply_to_id === r.id)].map(card).join('')}</div></td></tr>`).join('');
+  const b = S.bundle, card = (c, rootId) => `<div class="tc"><a href="${esc(c.user?.html_url || '#')}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user?.login || 'ghost')}</span> <span>${when(c.created_at)}</span>${S.hasToken ? `<button class="cm-btn" data-cm="${esc(c.id)}" data-root="${rootId}" title="Comment actions">⋯</button>` : ''}</div><div class="markdown-body" style="margin-top:8px">${c.body_html || esc(c.body || '')}</div>${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`;
+  return roots.map((r) => {
+    const isRes = res.has(r.id), tid = (b.thread_ids || {})[r.id], list = [r, ...all.filter((c) => c.in_reply_to_id === r.id)];
+    const act = tid && S.hasToken ? `<button class="thread-act" data-thread="${esc(tid)}" data-res="${isRes ? 'unresolve' : 'resolve'}">${isRes ? 'Unresolve conversation' : 'Resolve conversation'}</button>` : '';
+    const reply = S.hasToken ? `<div class="reply">${draftBox('reply-' + r.id, 'Write a reply', 2)}${errLine('reply-' + r.id)}<button class="btn small" data-sendreply="${r.id}">Reply</button></div>` : '';
+    return `<tr class="lc-row th-row"><td colspan="${cols}"><div class="thread inl${folded('t:' + r.id, isRes)}"><div class="thread-head">${foldBtn('t:' + r.id, 'Hide this thread', isRes)}<span class="th-t">Comment on line <b>${side === 'LEFT' ? 'L' : 'R'}${line}</b></span>${r.line == null ? '<span class="res out">Outdated</span>' : ''}${isRes ? '<span class="res">Resolved</span>' : ''}</div>${list.map((c) => card(c, r.id)).join('')}${reply}${act ? `<div class="th-foot">${act}</div>` : ''}</div></td></tr>`;
+  }).join('');
 }
 function lineExtras(path, line, side, cols, canComment, text) {
   const k = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
@@ -301,7 +306,7 @@ const diffCache = new Map();
 function diffTable(patch, path, canComment) {
   const open = S.lcOpen && String(S.lcOpen).includes(path);
   if (open) return diffTableBuild(patch, path, canComment);
-  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + ((S.bundle.resolved_ids || []).includes(c.id) ? 'r' : '')).join(',')}`, hit = diffCache.get(key);
+  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + ((S.bundle.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
   if (hit && hit.patch === patch) return hit.html;
   const html = diffTableBuild(patch, path, canComment);
   diffCache.set(key, { patch, html });
