@@ -572,3 +572,32 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repo_names_are_validated_before_use_in_urls() {
+        assert!(valid_repo("octocat/Hello-World"));
+        assert!(valid_repo("a_b/c.d"));
+        for bad in ["", "octocat", "a/b/c", "a/../b", "a/b?x=1", "a b/c", "a/b#1"] {
+            assert!(!valid_repo(bad), "should reject {bad:?}");
+        }
+    }
+
+    #[test]
+    fn branch_names_are_validated() {
+        assert!(valid_ref("feature/login-2"));
+        for bad in ["", "a..b", "a b", "a;rm", "a?b"] {
+            assert!(!valid_ref(bad), "should reject {bad:?}");
+        }
+    }
+
+    #[test]
+    fn cache_keys_ignore_case() {
+        let a = github::PrRef { owner: "Octo".into(), repo: "Hello".into(), number: 6 };
+        let b = github::PrRef { owner: "octo".into(), repo: "hello".into(), number: 6 };
+        assert_eq!(pr_key(&a), pr_key(&b));
+    }
+}

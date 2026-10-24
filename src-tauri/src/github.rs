@@ -285,3 +285,66 @@ pub fn clear_token() -> Result<(), String> {
         Err(e) => Err(e.to_string()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    #[test]
+    fn parses_short_refs_and_urls() {
+        let p = parse_pr_ref("octocat/Hello-World#6").unwrap();
+        assert_eq!((p.owner.as_str(), p.repo.as_str(), p.number), ("octocat", "Hello-World", 6));
+        let u = parse_pr_ref("https://github.com/octocat/Hello-World/pull/6/files?diff=split#top").unwrap();
+        assert_eq!((u.owner.as_str(), u.repo.as_str(), u.number), ("octocat", "Hello-World", 6));
+        assert_eq!(parse_pr_ref("  github.com/a/b/pull/12 ").unwrap().number, 12);
+    }
+
+    #[test]
+    fn rejects_things_that_are_not_pull_requests() {
+        for bad in ["", "octocat", "octocat/Hello-World", "octocat/Hello-World#x", "https://github.com/a/b/issues/3", "https://github.com/a/b/pull/x"] {
+            assert!(parse_pr_ref(bad).is_err(), "should reject {bad:?}");
+        }
+    }
+
+    /// Serves one canned HTTP response on a local port, so `get` can be exercised without GitHub.
+    async fn serve_once(status: &str, body: &str, extra: &str) -> String {
+        let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = l.local_addr().unwrap();
+        let resp = format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n{extra}\r\n{body}", body.len());
+        tokio::spawn(async move {
+            let (mut s, _) = l.accept().await.unwrap();
+            let mut buf = [0u8; 2048];
+            let _ = s.read(&mut buf).await;
+            s.write_all(resp.as_bytes()).await.unwrap();
+        });
+        format!("http://{addr}/x")
+    }
+
+    #[tokio::test]
+    async fn get_returns_json_on_success() {
+        let url = serve_once("200 OK", r#"{"ok":true}"#, "").await;
+        assert_eq!(get(&client(), &url, None).await.unwrap()["ok"], true);
+    }
+
+    #[tokio::test]
+    async fn get_explains_missing_repos_to_anonymous_users() {
+        let url = serve_once("404 Not Found", r#"{"message":"Not Found"}"#, "").await;
+        let e = get(&client(), &url, None).await.unwrap_err();
+        assert!(e.contains("404") && e.contains("add an access token"), "{e}");
+    }
+
+    #[tokio::test]
+    async fn get_explains_token_cannot_see_repo() {
+        let url = serve_once("404 Not Found", r#"{"message":"Not Found"}"#, "").await;
+        let e = get(&client(), &url, Some("t")).await.unwrap_err();
+        assert!(e.contains("cannot see this repository"), "{e}");
+    }
+
+    #[tokio::test]
+    async fn get_reports_rate_limit_exhaustion() {
+        let url = serve_once("403 Forbidden", r#"{"message":"rate limit"}"#, "x-ratelimit-remaining: 0\r\n").await;
+        let e = get(&client(), &url, None).await.unwrap_err();
+        assert!(e.contains("rate limit exhausted"), "{e}");
+    }
+}
