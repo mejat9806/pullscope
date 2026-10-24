@@ -956,15 +956,17 @@ document.addEventListener('click', (e) => { S.lastBtn = e.target.closest?.('butt
 const btnSel = (b) => { if (b.id) return '#' + b.id; const a = [...b.attributes].find((x) => x.name.startsWith('data-')); return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null; };
 const setBusy = (b, on) => { if (!b) return; b.classList.toggle('is-busy', on); b.disabled = on; b.setAttribute('aria-busy', on ? 'true' : 'false'); };
 // Add a reaction, or remove it when you already left it (clicking the same emoji again), like github.com.
-S.mine = new Set();
+S.mine = {}; // `${kind}:${id}` -> Promise of the Set of reactions you have left there
+const getMine = (kind, rid) => (S.mine[`${kind}:${rid}`] ||= tauri ? tauri.invoke('my_reactions', { ...prRef(), kind, id: +rid }).then((l) => new Set(l)).catch(() => { delete S.mine[`${kind}:${rid}`]; return new Set(); }) : Promise.resolve(new Set()));
 async function toggleReact(kind, rid, c) {
+  const mine = (await getMine(kind, rid)).has(c);
   const b = S.bundle, tgt = kind === 'pr' ? b.pull : [...b.timeline, ...b.review_comments].find((x) => String(x.id) === String(rid));
-  const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null, key = `${kind}:${rid}:${c}`, base = prev ? prev[c] || 0 : 0;
-  const bump = (n) => { if (tgt) { tgt.reactions = { ...(tgt.reactions || {}), [c]: Math.max(0, base + n) }; } };
-  bump(S.mine.has(key) ? -1 : 1); S.refreshing = true; rerender();
+  const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null, base = prev ? prev[c] || 0 : 0;
+  const bump = (n) => { if (tgt) tgt.reactions = { ...(tgt.reactions || {}), [c]: Math.max(0, base + n) }; };
+  bump(mine ? -1 : 1); S.refreshing = true; rerender();
   const r = await act('react', { kind, id: +rid, content: c }, 'react');
   if (r === undefined) { if (tgt && prev) tgt.reactions = prev; S.refreshing = false; rerender(); return; }
-  const added = r.added !== false; added ? S.mine.add(key) : S.mine.delete(key); bump(added ? 1 : -1);
+  const set = await getMine(kind, rid); r.added === false ? set.delete(c) : set.add(c);
   await refreshPr(kind === 'pr' ? '' : rid);
 }
 async function act(action, args, key, inDialog = false) {
@@ -1097,6 +1099,8 @@ function bindWrite() {
     pop.addEventListener('click', (ev) => { const c = ev.target.closest('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk, btn.dataset.rid, c); });
     setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
   }));
+  document.querySelectorAll('.rc-btn').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rck, el.dataset.rcid)));
+  document.querySelectorAll('.react-add').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rk, el.dataset.rid)));
   document.querySelectorAll('.rc-btn').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); toggleReact(el.dataset.rck, el.dataset.rcid, el.dataset.rcc); }));
   $('#doclose')?.addEventListener('click', () => {
     const closed = S.bundle.pull.state === 'closed';
