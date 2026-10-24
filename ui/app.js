@@ -86,7 +86,7 @@ function closeTab(i) {
 function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); openPr(c.ref, { newTab: true, restore: c.tab }); } }
 function stepTab(d) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
 function tabStrip() {
-  const cur = curRef();
+  const cur = S.tabPending || curRef();
   const tabs = S.tabs.map((t, i) => `<div class="ptab ${t.ref === cur ? 'on' : ''}" data-tab="${i}" title="${esc(t.ref + ' · ' + t.title)}"><span class="rc-i ${t.state}">${icon(t.icon)}</span><span class="pt-t"><i>${esc(t.ref.split('/').pop())}</i> ${esc(t.title)}</span>${t.dot ? '<span class="pt-dot"></span>' : ''}<button class="pt-x" data-tabx="${i}" aria-label="Close tab">${icon('x')}</button></div>`).join('');
   const open = new Set(S.tabs.map((t) => t.ref));
   const recents = S.recent.filter((r) => !open.has(r.ref)).slice(0, 8);
@@ -1350,6 +1350,9 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
   { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
   const fromTab = S.view === 'pr' ? tabIdx() : -1;
   if (!keepTab && !restore) tabSnap();
+  // Show the tab at once; the title and state fill in when the PR arrives.
+  S.tabPending = '';
+  if (!keepTab) { const m = String(input).match(/^([^#\s@\/]+\/[^#\s@]+)#(\d+)$/) || String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/); if (m) { const ref = `${m[1]}#${m[2]}`; S.tabPending = ref; if (!S.tabs.some((t) => t.ref === ref)) { const old = S.recent.find((r) => r.ref === ref), item = { ref, title: old?.title || 'Loading…', state: old?.state || 'open', icon: old?.icon || 'git-pull-request', tab: restore || 'conversation', dot: false }; if (fromTab >= 0 && !newTab) S.tabs[fromTab] = item; else S.tabs.splice(fromTab >= 0 ? fromTab + 1 : S.tabs.length, 0, item); S.tabs = S.tabs.slice(-15); } } }
   S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = restore || 'conversation'; S.sel = null;
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
   if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
@@ -1383,7 +1386,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
-  S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId) enterAnim();
+  S.tabPending = ''; S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';
