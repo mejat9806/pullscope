@@ -915,3 +915,5 @@ table.diff { contain: layout paint; }
 
 /* Text menus must not use the emoji-picker hover zoom */
 .cm-pop button, .cm-pop button:hover { transform: none; transition: background .1s; }
+
+.hm-fbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; } .hm-fbar .hm-filter { flex: 1; margin: 0; }

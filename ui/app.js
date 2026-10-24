@@ -1047,7 +1047,12 @@ function homePage() {
   const tab = S.homeTab || 'repos', owner = S.homeOwner || '';
   const tabs = `<div class="np-tabs"><button class="${tab === 'repos' ? 'sel' : ''}" data-htab="repos">${icon('repo')} Repositories${S.repos ? `<span>${S.repos.filter((r) => !owner || r.full_name.startsWith(owner + '/')).length}</span>` : ''}</button><button class="${tab === 'recent' ? 'sel' : ''}" data-htab="recent">${icon('clock')} Recent<span>${S.recent.length}</span></button></div>`;
   let body;
-  if (tab === 'recent') body = S.recent.length ? `<div class="hm-grid">${S.recent.map((r) => `<a class="hm-card" data-open="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="hm-t"><b>${esc(r.title)}</b><i>${esc(r.ref)}</i></span><button class="rc-x" data-rm="${esc(r.ref)}" title="Remove">${icon('x')}</button></a>`).join('')}</div>` : '<div class="diff-empty">Pull requests you open appear here.</div>';
+  if (tab === 'recent') {
+    const q = (S.recentFilter || '').toLowerCase(), st = S.recentState || 'all';
+    const list = S.recent.filter((r) => (st === 'all' || r.state === st) && (!q || (r.title + ' ' + r.ref).toLowerCase().includes(q)));
+    const bar = S.recent.length ? `<div class="hm-fbar"><input class="input hm-filter" id="hmrfilter" placeholder="Filter by title or repo…" value="${esc(S.recentFilter || '')}"><div class="seg-ctl">${['all', 'open', 'merged', 'closed'].map((x) => `<button class="${st === x ? 'on' : ''}" data-rstate="${x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join('')}</div></div>` : '';
+    body = bar + (list.length ? `<div class="hm-grid">${list.map((r) => `<a class="hm-card" data-open="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="hm-t"><b>${esc(r.title)}</b><i>${esc(r.ref)}</i></span><button class="rc-x" data-rm="${esc(r.ref)}" title="Remove">${icon('x')}</button></a>`).join('')}</div>` : `<div class="diff-empty">${S.recent.length ? 'No matching pull requests.' : 'Pull requests you open appear here.'}</div>`);
+  }
   else if (!S.hasToken) body = '<div class="diff-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="btn primary" id="addtoken">Add token</button></div>';
   else if (S.reposErr) body = `<div class="diff-empty err">${esc(S.reposErr)}</div>`;
   else if (!S.repos) body = '<div class="spinner" style="margin:48px auto">Loading repositories…</div>';
@@ -1287,6 +1292,8 @@ function bind() {
     catch (e) { u.busy = false; S.actErr = 'Update failed: ' + String(e); render(); }
   });
   $('#addtoken')?.addEventListener('click', tokenDialog);
+  $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
+  document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
   $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
   $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
   document.querySelectorAll('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
