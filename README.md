@@ -1,4 +1,4 @@
-# Reviewer
+# Pullscope
 
 A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2 (a Rust backend and a plain HTML/CSS/JS frontend), runs on macOS, Windows and Linux, and talks straight to the GitHub API. There is no server in between: your token stays on your machine.
 

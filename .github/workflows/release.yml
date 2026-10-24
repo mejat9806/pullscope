@@ -51,7 +51,7 @@ jobs:
           projectPath: src-tauri
           tauriScript: npx --yes @tauri-apps/cli@2
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          releaseName: Reviewer ${{ github.ref_name }}
+          releaseName: Pullscope ${{ github.ref_name }}
           releaseDraft: true
           args: ${{ matrix.args }}
 

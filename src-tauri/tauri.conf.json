@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Reviewer",
+  "productName": "Pullscope",
   "version": "0.1.3",
   "identifier": "dev.local.github-pr-view",
   "build": {
@@ -9,7 +9,7 @@
   "app": {
     "windows": [
       {
-        "title": "Reviewer",
+        "title": "Pullscope",
         "width": 1280,
         "height": 1000,
         "titleBarStyle": "Overlay",

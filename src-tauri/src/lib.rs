@@ -440,13 +440,13 @@ async fn check_pr(repo: String, number: u64, since: Option<String>) -> Result<se
 /// Menu-bar / system-tray icon: click to bring the window back, with the unread count shown beside it.
 fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     use tauri::{menu::{Menu, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}, Manager};
-    let open = MenuItem::with_id(app, "open", "Open Reviewer", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open Pullscope", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&open, &quit])?;
     let show = |app: &tauri::AppHandle| { if let Some(w) = app.get_webview_window("main") { let _ = w.show(); let _ = w.unminimize(); let _ = w.set_focus(); } };
     TrayIconBuilder::with_id("main")
         .icon(tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))?)
-        .tooltip("Reviewer")
+        .tooltip("Pullscope")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, ev| match ev.id().as_ref() { "open" => show(app), "quit" => app.exit(0), _ => {} })
@@ -463,7 +463,7 @@ fn set_unread(app: tauri::AppHandle, count: u32) {
     use tauri::Manager;
     if let Some(tray) = app.tray_by_id("main") {
         let _ = tray.set_title(if count > 0 { Some(count.to_string()) } else { None::<String> });
-        let _ = tray.set_tooltip(Some(if count > 0 { format!("Reviewer — {count} unread") } else { "Reviewer".to_string() }));
+        let _ = tray.set_tooltip(Some(if count > 0 { format!("Pullscope — {count} unread") } else { "Pullscope".to_string() }));
     }
 }
 
