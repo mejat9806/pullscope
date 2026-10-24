@@ -287,7 +287,19 @@ function lineExtras(path, line, side, cols, canComment, text) {
   const open = canComment && S.lcOpen === k ? `<div class="lc-edit">${draftBox('lc', 'Leave a comment on this line', 3)}<div class="lc-btns">${side === 'RIGHT' && text !== undefined ? `<button class="btn small" id="lcsuggest" data-code="${esc(text)}" title="Insert a suggested change for this line">± Suggest change</button>` : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
   return cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '';
 }
+// Built diff HTML is cached per file, so redraws, tab switches and returning to a PR do not rebuild thousands of rows.
+const diffCache = new Map();
 function diffTable(patch, path, canComment) {
+  const open = S.lcOpen && String(S.lcOpen).includes(path);
+  if (open) return diffTableBuild(patch, path, canComment);
+  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}`, hit = diffCache.get(key);
+  if (hit && hit.patch === patch) return hit.html;
+  const html = diffTableBuild(patch, path, canComment);
+  diffCache.set(key, { patch, html });
+  if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
+  return html;
+}
+function diffTableBuild(patch, path, canComment) {
   const rows = parsePatch(patch), plus = (line, side) => canComment ? `<button class="lc-plus" data-lc="${esc(lineKey(path, line, side))}" title="Add a comment on this line">+</button>` : '';
   const out = [];
   if (S.diffMode === 'split') {
