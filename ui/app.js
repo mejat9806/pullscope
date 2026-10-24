@@ -328,9 +328,8 @@ function diffTableBuild(patch, path, canComment) {
   }
   return chunkTables(out, 'diff', '<colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>');
 }
-// Long diffs are cut into blocks that the browser skips laying out and painting while off screen (content-visibility),
-// so scrolling a huge PR stays smooth instead of repainting thousands of rows in tiles.
-function chunkTables(out, cls, cols, size = 80) {
+// Diffs render as one table per file (no lazy blocks: skipping off-screen rows made scrolling janky).
+function chunkTables(out, cls, cols, size = Infinity) {
   if (out.length <= size) return `<table class="${cls}">${cols}${out.join('')}</table>`;
   let h = '';
   for (let i = 0; i < out.length; i += size) { const n = Math.min(size, out.length - i); h += `<div class="dchunk" style="contain-intrinsic-size:auto ${n * 22}px"><table class="${cls}">${cols}${out.slice(i, i + size).join('')}</table></div>`; }
@@ -1386,12 +1385,6 @@ function bind() {
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
   { const mn = $('.main'); if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
-  // Render diff blocks well before they scroll into view, so they never pop in; far-away ones stay skipped.
-  { const chunks = document.querySelectorAll('.dchunk'); if (chunks.length && 'IntersectionObserver' in window) {
-      const byRoot = new Map();
-      chunks.forEach((c) => { const r = c.closest('.pane-body, .main'); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r).push(c); });
-      byRoot.forEach((list, root) => { const io = new IntersectionObserver((en) => en.forEach((x) => x.target.classList.toggle('cv-on', x.isIntersecting)), { root, rootMargin: '3500px 0px' }); list.forEach((c) => io.observe(c)); S.ios.push(io); });
-  } }
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
   document.querySelectorAll('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
