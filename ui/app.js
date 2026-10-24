@@ -74,13 +74,13 @@ function tabPut(ref, p, opts = {}) {
   else S.tabs.splice(opts.at >= 0 ? opts.at + 1 : S.tabs.length, 0, item);
   S.tabs = S.tabs.slice(-15); saveTabs();
 }
-function openTab(ref, { newTab = false } = {}) { tabSnap(); S.tabMenu = false; return openPr(ref, { newTab }); }
+function openTab(ref, { newTab = false } = {}) { tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab }); }
 function closeTab(i) {
   const t = S.tabs[i]; if (!t) return;
   const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
   S.tabs.splice(i, 1); saveTabs();
   if (!was) return render();
-  const n = S.tabs[Math.min(i, S.tabs.length - 1)];
+  const n = S.tabs[Math.min(i, S.tabs.length - 1)]; S.fadeMain = true;
   if (n) openPr(n.ref, { restore: n.tab, nav: true }); else { S.view = 'home'; S.bundle = null; render(); }
 }
 function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); openPr(c.ref, { newTab: true, restore: c.tab }); } }
@@ -1146,6 +1146,7 @@ function render() {
   $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
+  if (S.fadeMain) { S.fadeMain = false; $('.main')?.classList.add('tab-in'); }
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
   syncUnread();
   // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
@@ -1190,7 +1191,7 @@ function bind() {
   $('#signin')?.addEventListener('click', tokenDialog);
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } else openPr(el.dataset.open); }));
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } }));
-  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { tabSnap(); S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
+  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
   document.querySelectorAll('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx); }));
   { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
   $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });
