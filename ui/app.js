@@ -74,7 +74,7 @@ function tabPut(ref, p, opts = {}) {
   else S.tabs.splice(opts.at >= 0 ? opts.at + 1 : S.tabs.length, 0, item);
   S.tabs = S.tabs.slice(-15); saveTabs();
 }
-function openTab(ref, { newTab = false } = {}) { if (!newTab && ref !== curRef() && fastTab(ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: S.tabs.find((t) => t.ref === ref)?.tab }); }
+function openTab(ref, { newTab = false } = {}) { if (!newTab && ref !== curRef() && fastTab(ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: newTab ? '' : S.tabs.find((t) => t.ref === ref)?.tab }); }
 function closeTab(i) {
   const t = S.tabs[i]; if (!t) return; S.alive.delete(t.ref);
   const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
@@ -1551,7 +1551,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
-  S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = tabSwitch ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
+  S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = restore ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
   if (savedScroll) { const put = () => { const m = $('.main'); if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
   if (S.bundle && S.focus) {
