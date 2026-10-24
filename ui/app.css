@@ -819,3 +819,4 @@ nav.crumbs .crumb-sep { margin: 0 -2px; } nav.crumbs .crumb-slash { margin: 0 -4
 nav.crumbs .crumb.cur { font-weight: 600; background: var(--bgColor-neutral-muted); }
 nav.crumbs .stale { margin-left: 8px; }
 .pr-page > nav.crumbs, .pr-page > .repoline { margin-left: 0; }
+.crumbs .crumb.cur.home { display: inline-flex; align-items: center; gap: 5px; }
