@@ -1163,9 +1163,10 @@ function render() {
   // (heights above the viewport can change between renders, which made the view creep upward).
   let anchor = null;
   { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
-  const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
+  const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
   $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
-  if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
+  document.querySelectorAll('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; });
+  if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list, .sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind(); bindTokenDialog();
   if (S.fadeMain) { S.fadeMain = false; $('.main')?.classList.add('tab-in'); }
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
@@ -1389,15 +1390,19 @@ async function openRepo(name, { nav = false } = {}) {
 }
 // Loads the sidebar's PR list without leaving the pull request being read.
 async function loadPrs() {
-  const name = S.repo; S.prs = null; render();
-  try { const r = tauri ? await tauri.invoke('list_prs', { repo: name, state: S.prState }) : []; if (S.repo === name) S.prs = r; } catch (e) { if (S.repo === name) S.prs = []; }
-  if (S.repo === name) { S.keepScroll = true; render(); S.keepScroll = false; }
+  // Show the last list for this repo at once and refresh quietly, so switching tabs never blanks the sidebar.
+  const name = S.repo, ck = `${name}|${S.prState}`; S.prCache = S.prCache || {};
+  const hit = S.prCache[ck];
+  if (hit) { S.prs = hit.list; if (Date.now() - hit.at < 60000) { rerender(); return; } } else S.prs = null;
+  rerender();
+  try { const r = tauri ? await tauri.invoke('list_prs', { repo: name, state: S.prState }) : []; S.prCache[ck] = { list: r, at: Date.now() }; if (S.repo === name) S.prs = r; } catch (e) { if (S.repo === name && !hit) S.prs = []; }
+  if (S.repo === name) rerender();
 }
 const reload = () => S.view === 'repo' ? openRepo(S.repo, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
 
 async function openPr(input, { nav = false, keepTab = false, manual = false, newTab = false, restore = '' } = {}) {
   { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
-  const fromTab = S.view === 'pr' ? tabIdx() : -1;
+  const fromTab = S.view === 'pr' ? tabIdx() : -1, tabSwitch = !!(restore || S.fadeMain);
   if (!keepTab && !restore) tabSnap();
   // Show the tab at once; the title and state fill in when the PR arrives.
   S.tabPending = '';
@@ -1435,7 +1440,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
-  S.tabPending = ''; S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId) enterAnim();
+  S.tabPending = ''; S.loading = false; S.refreshing = false; S.keepScroll = focused || keepTab; render(); S.keepScroll = false; if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main').scrollTop = 0;
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';

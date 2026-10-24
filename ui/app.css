@@ -857,8 +857,8 @@ nav.crumbs .stale { margin-left: 8px; }
 .pt-menu, .pt-menu a { border-radius: 0; }
 
 /* smoother tab switching */
-.main.tab-in { animation: tabIn .22s ease-out; }
-@keyframes tabIn { from { opacity: .35; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.main.tab-in { animation: tabIn .12s ease-out; }
+@keyframes tabIn { from { opacity: .35; transform: translateY(2px); } to { opacity: 1; transform: none; } }
 .ptab, .pt-add, .pt-x { transition: background-color .18s ease, opacity .18s ease, box-shadow .18s ease; }
 .ptab.on { animation: tabOn .2s ease-out; }
 @keyframes tabOn { from { box-shadow: inset 0 0 0 var(--fgColor-accent); } }
