@@ -1153,9 +1153,25 @@ function page() {
   return `<div class="pr-page">${repoHeader(b.pull)}${prHeader(b)}<div class="pr-layout"><main class="pr-main">${body}</main>${side}</div></div>`;
 }
 
+// Signing in is required: anonymous GitHub access is capped at 60 requests an hour and is too slow to use.
+const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new URLSearchParams(location.search).get('gate') === '1';
+function gateHtml() {
+  return `<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width="72" height="72"><h1>Sign in to Pullscope</h1>
+  <p class="gate-err">${icon('alert')} No GitHub sign-in or token was found.</p>
+  <p>Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing.</p>
+  ${S.gateErr ? `<p class="gate-err">${esc(S.gateErr)}</p>` : ''}
+  <div class="btns" style="justify-content:center"><button class="btn primary" id="gatego">Sign in with GitHub</button><button class="btn" id="gatetok">Use a token instead</button></div>
+  <small>Tip: running <code>gh auth login</code> in a terminal also works.</small></div></div>`;
+}
 function render() {
   (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
   applyMode();
+  if (needSignIn()) {
+    $('#app').innerHTML = `${gateHtml()}${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}`;
+    $('#gatego')?.addEventListener('click', () => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); });
+    $('#gatetok')?.addEventListener('click', tokenDialog);
+    bindTokenDialog(); return;
+  }
   const scroll = $('.main')?.scrollTop || 0;
   const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('.main > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
@@ -1355,7 +1371,7 @@ const tokDlgHtml = () => `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Gi
 function bindTokenDialog() {
   if (!$('#tokeninput')) return;
   $('#tokcancel').onclick = () => { S.oauthLive = false; S.dialog = ''; render(); };
-  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); if (S.hasToken) loadRepos(); else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
+  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); S.authChecked = true; if (S.hasToken) { S.gateErr = ''; loadRepos(); } else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
   $('#oauthgo').onclick = async () => {
     const show = (h) => { S.oauthHtml = h; if (S.dialog) { render(); } };
     $('#oauthgo').disabled = true; S.oauthLive = true; const me = S.oauthRun = (S.oauthRun || 0) + 1;
@@ -1369,7 +1385,7 @@ function bindTokenDialog() {
         if (!S.oauthLive || S.oauthRun !== me) return;
         const st = await tauri.invoke('device_poll', { deviceCode: d.device_code });
         if (st === 'slow_down') wait += 5000;
-        if (st === 'ok') { S.oauthLive = false; S.hasToken = true; S.dialog = ''; loadRepos(); return; }
+        if (st === 'ok') { S.oauthLive = false; S.hasToken = true; S.gateErr = ''; S.dialog = ''; loadRepos(); return; }
       }
       throw 'The code expired. Start again.';
     } catch (e) { S.oauthLive = false; show(`<div class="err" style="margin:8px 0">${esc(String(e))}</div>`); }
@@ -1378,7 +1394,7 @@ function bindTokenDialog() {
 
 async function loadRepos() {
   S.reposErr = ''; S.repos = null;
-  try { S.repos = await tauri.invoke('list_repos'); } catch (e) { S.reposErr = String(e); }
+  try { S.repos = await tauri.invoke('list_repos'); } catch (e) { S.reposErr = String(e); if (/401|Bad credentials|requires authentication/i.test(S.reposErr)) { S.hasToken = false; S.gateErr = 'GitHub rejected the saved token (expired or revoked). Sign in again.'; } }
   render();
 }
 async function openRepo(name, { nav = false } = {}) {
@@ -1454,7 +1470,7 @@ const q = new URLSearchParams(location.search);
 if (q.get('mode')) S.mode = q.get('mode');
 if (q.get('tab')) S.tab = q.get('tab');
 if (q.get('split')) S.split = q.get('split') === '1';
-if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; render(); if (v) loadRepos(); });
+if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) loadRepos(); }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 render();
 if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
 else if (tauri) tauri.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });

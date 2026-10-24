@@ -876,3 +876,10 @@ nav.crumbs .stale { margin-left: 8px; }
 .oauth-code { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px; margin-bottom: 10px; border: .5px solid var(--borderColor-default); background: var(--bgColor-muted); }
 .oauth-code b { font: 600 28px ui-monospace, SFMono-Regular, monospace; letter-spacing: .12em; user-select: all; }
 .oauth-code small, .oauth-code span { color: var(--fgColor-muted); font-size: 12px; }
+
+/* sign-in gate */
+.gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--bgColor-default); }
+.gate-card { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.gate-card h1 { margin: 6px 0 0; font-size: 24px; } .gate-card p { margin: 0; color: var(--fgColor-muted); line-height: 1.5; }
+.gate-card .gate-err { display: flex; align-items: center; gap: 6px; color: var(--fgColor-danger); font-weight: 600; }
+.gate-card .btns { margin-top: 10px; } .gate-card small { color: var(--fgColor-muted); margin-top: 8px; }
