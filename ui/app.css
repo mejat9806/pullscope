@@ -942,3 +942,6 @@ table.diff { contain: layout paint; }
 .thread.inl .th-foot { padding: 8px 12px; border-top: 1px solid var(--borderColor-muted); }
 .thread.inl.folded .reply, .thread.inl.folded .th-foot, .thread.inl.folded .tc { display: none; } .thread.inl.resolved { opacity: 1; }
 .reaction.rc-btn { cursor: pointer; } .reaction.rc-btn:hover { background: var(--bgColor-muted); }
+.cp-h .icon-btn { width: 30px; height: 30px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: var(--fgColor-muted); cursor: pointer; }
+.cp-h .icon-btn:hover { background: var(--bgColor-muted); color: var(--fgColor-default); } .cp-h .icon-btn:focus { outline: none; } .cp-h .icon-btn:focus-visible { outline: 2px solid var(--accent-emphasis, #388bfd); }
+.cp-dlg > * { flex-shrink: 0; } .cp-dlg > .cp-list { flex: 1 1 auto; min-height: 0; } .cp-q { height: 34px; box-sizing: border-box; }
