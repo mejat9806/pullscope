@@ -305,7 +305,7 @@ function diffTable(patch, path, canComment) {
         out.push(`<tr><td class="num${d ? ' del' : ' empty'}">${d ? d.o + plus(d.o, 'LEFT') : ''}</td><td class="code${d ? ' del' : ' empty'}" ${d ? 'data-marker="-"' : ''}>${d ? codeHtml(d.text, path) : ''}</td><td class="num${a ? ' add' : ' empty'}">${a ? a.n + plus(a.n, 'RIGHT') : ''}</td><td class="code${a ? ' add' : ' empty'}" ${a ? 'data-marker="+"' : ''}>${a ? codeHtml(a.text, path) : ''}</td></tr>${d ? lineExtras(path, d.o, 'LEFT', 4, canComment) : ''}${a ? lineExtras(path, a.n, 'RIGHT', 4, canComment, a.text) : ''}`);
       }
     }
-    return `<table class="diff sbs"><colgroup><col style="width:64px"><col><col style="width:64px"><col></colgroup>${out.join('')}</table>`;
+    return chunkTables(out, 'diff sbs', '<colgroup><col style="width:64px"><col><col style="width:64px"><col></colgroup>');
   }
   for (const r of rows) {
     if (r.t === 'hunk') out.push(`<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">${esc(r.text)}</td></tr>`);
@@ -314,7 +314,15 @@ function diffTable(patch, path, canComment) {
     else if (r.t === 'del') out.push(`<tr class="del"><td class="num">${r.o}${plus(r.o, 'LEFT')}</td><td class="num"></td><td class="code" data-marker="-">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.o, 'LEFT', 3, canComment)}`);
     else out.push(`<tr><td class="num">${r.o}</td><td class="num">${r.n}${plus(r.n, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n, 'RIGHT', 3, canComment, r.text)}`);
   }
-  return `<table class="diff"><colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>${out.join('')}</table>`;
+  return chunkTables(out, 'diff', '<colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>');
+}
+// Long diffs are cut into blocks that the browser skips laying out and painting while off screen (content-visibility),
+// so scrolling a huge PR stays smooth instead of repainting thousands of rows in tiles.
+function chunkTables(out, cls, cols, size = 80) {
+  if (out.length <= size) return `<table class="${cls}">${cols}${out.join('')}</table>`;
+  let h = '';
+  for (let i = 0; i < out.length; i += size) { const n = Math.min(size, out.length - i); h += `<div class="dchunk" style="contain-intrinsic-size:auto ${n * 22}px"><table class="${cls}">${cols}${out.slice(i, i + size).join('')}</table></div>`; }
+  return h;
 }
 
 

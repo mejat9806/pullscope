@@ -897,3 +897,7 @@ body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .pr-tabs.stuck nav { overflow: hidden; flex: 1 1 auto; min-width: 0; gap: 0; }
 .pr-tabs.stuck nav a { padding-left: 8px; padding-right: 8px; gap: 5px; white-space: nowrap; }
 .pr-tabs.stuck .tools { flex: 0 0 auto; }
+
+.dchunk { content-visibility: auto; }
+.dchunk > table.diff, table.diff { width: 100%; table-layout: fixed; }
+table.diff:not(.sbs) td.code { overflow-wrap: anywhere; }
