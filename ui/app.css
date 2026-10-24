@@ -791,3 +791,5 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .tt-preview { padding: 14px 16px; min-height: calc(var(--rows, 4) * 22px); font-size: 14px; cursor: default; }
 .tt-preview .empty { color: var(--fgColor-muted); } .tt .pv-raw { white-space: pre-wrap; }
 .tt-body[hidden], .tt-bar[hidden], .tt-preview[hidden] { display: none !important; }
+/* The sticky "Show" bar must cover the pane's top padding, or comments scroll through the gap above it. */
+.pane-body .who-bar { top: -12px; margin: -12px -16px 0; padding: 20px 16px 12px; }
