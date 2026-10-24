@@ -1636,6 +1636,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false, new
   S.tabPending = '';
   if (!keepTab) { const m = String(input).match(/^([^#\s@\/]+\/[^#\s@]+)#(\d+)$/) || String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/); if (m) { const ref = `${m[1]}#${m[2]}`; S.tabPending = ref; if (!S.tabs.some((t) => t.ref === ref)) { const old = S.recent.find((r) => r.ref === ref), item = { ref, title: old?.title || 'Loading…', state: old?.state || 'open', icon: old?.icon || 'git-pull-request', tab: restore || 'conversation', dot: false }; if (fromTab >= 0 && !newTab) S.tabs[fromTab] = item; else S.tabs.splice(fromTab >= 0 ? fromTab + 1 : S.tabs.length, 0, item); S.tabs = S.tabs.slice(-15); } } }
   S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = restore || 'conversation'; S.sel = null; if (!keepTab) S.fr = null;
+  if (keepTab && S.focus && S.tab === 'files') S.focus = ''; // reacting or replying on the Files tab must not jump to the Conversation tab
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
   if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
   const mem = qc.peek(input);
