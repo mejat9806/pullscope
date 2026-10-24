@@ -86,13 +86,12 @@ function closeTab(i) {
 function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); openPr(c.ref, { newTab: true, restore: c.tab }); } }
 function stepTab(d) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
 function tabStrip() {
-  if (!S.tabs.length) return '';
   const cur = curRef();
   const tabs = S.tabs.map((t, i) => `<div class="ptab ${t.ref === cur ? 'on' : ''}" data-tab="${i}" title="${esc(t.ref + ' · ' + t.title)}"><span class="rc-i ${t.state}">${icon(t.icon)}</span><span class="pt-t"><i>${esc(t.ref.split('/').pop())}</i> ${esc(t.title)}</span>${t.dot ? '<span class="pt-dot"></span>' : ''}<button class="pt-x" data-tabx="${i}" aria-label="Close tab">${icon('x')}</button></div>`).join('');
   const open = new Set(S.tabs.map((t) => t.ref));
   const recents = S.recent.filter((r) => !open.has(r.ref)).slice(0, 8);
   const menu = S.tabMenu ? `<div class="pt-menu"><a data-tabhome>${icon('home')} Home</a>${recents.length ? '<h6>Recent</h6>' : ''}${recents.map((r) => `<a data-tabnew="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="pt-mt"><i>${esc(r.ref)}</i> ${esc(r.title)}</span></a>`).join('')}${S.closed.length ? `<h6>Closed</h6><a data-tabreopen>${icon('clock')} Reopen ${esc(S.closed[0].ref)} <kbd>⌘⇧T</kbd></a>` : ''}</div>` : '';
-  return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (⌘T)" aria-label="New tab">${icon('plus')}</button>${menu}</div>`;
+  return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (⌘T)" aria-label="New tab">${icon('plus')}${S.tabs.length < 2 ? '<span>New tab</span>' : ''}</button>${menu}</div>`;
 }
 function toolbar() {
   const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
