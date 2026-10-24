@@ -1,4 +1,4 @@
-// Rich comment editor (Tiptap/ProseMirror) with a "/" block menu and a selection bubble menu.
+// Rich comment editor (Tiptap/ProseMirror) with a toolbar, markdown shortcuts and a selection bubble menu.
 // Content round-trips as GitHub-flavoured Markdown. Exposed as window.createEditor.
 import { Editor, Extension, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
@@ -11,18 +11,6 @@ import Suggestion from '@tiptap/suggestion';
 import { Markdown } from 'tiptap-markdown';
 import { PluginKey } from '@tiptap/pm/state';
 
-const COMMANDS = [
-  ['Heading 1', 'h1', 'Big section heading', (c) => c.setNode('heading', { level: 1 })],
-  ['Heading 2', 'h2', 'Medium section heading', (c) => c.setNode('heading', { level: 2 })],
-  ['Heading 3', 'h3', 'Small section heading', (c) => c.setNode('heading', { level: 3 })],
-  ['Bulleted list', 'bullet', 'Simple bullet list', (c) => c.toggleBulletList()],
-  ['Numbered list', 'number', 'Ordered list', (c) => c.toggleOrderedList()],
-  ['Task list', 'task', 'Checklist with checkboxes', (c) => c.toggleTaskList()],
-  ['Quote', 'quote', 'Quote a passage', (c) => c.toggleBlockquote()],
-  ['Code block', 'code', 'Fenced code', (c) => c.toggleCodeBlock()],
-  ['Suggestion', 'suggest', 'Suggested change block', (c) => c.setCodeBlock({ language: 'suggestion' })],
-  ['Divider', 'divider', 'Horizontal rule', (c) => c.setHorizontalRule()],
-];
 
 // One popup menu per trigger character ("/", "@", ":"): shows items, handles arrows/enter/esc.
 const suggest = (name, char, getItems, rowHtml, apply, minQuery = 0) => Extension.create({
@@ -58,7 +46,6 @@ const suggest = (name, char, getItems, rowHtml, apply, minQuery = 0) => Extensio
 });
 
 const EMOJI = [['smile','😄'],['grin','😁'],['joy','😂'],['wink','😉'],['heart','❤️'],['thumbsup','👍'],['thumbsdown','👎'],['tada','🎉'],['rocket','🚀'],['eyes','👀'],['fire','🔥'],['100','💯'],['pray','🙏'],['clap','👏'],['thinking','🤔'],['sob','😭'],['sweat_smile','😅'],['white_check_mark','✅'],['x','❌'],['warning','⚠️'],['bug','🐛'],['sparkles','✨'],['zap','⚡'],['memo','📝'],['bulb','💡'],['muscle','💪'],['ok_hand','👌'],['raised_hands','🙌'],['star','⭐'],['party','🥳']];
-const Slash = suggest('slash', '/', (q) => COMMANDS.filter(([t, k]) => t.toLowerCase().includes(q) || k.startsWith(q)), ([t, , d]) => `<b>${t}</b><span>${d}</span>`, (c, it) => it[3](c));
 const Emoji = suggest('emoji', ':', (q) => EMOJI.filter(([n]) => n.startsWith(q)).slice(0, 8), ([n, g]) => `<b>${g} :${n}:</b>`, (c, it) => c.insertContent(it[1] + ' '), 2);
 // Typing a complete :shortcode: converts it straight to the emoji, no menu needed.
 const EmojiRule = Extension.create({
@@ -88,7 +75,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
       Link.configure({ openOnClick: false, autolink: true }),
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
-      Slash, Emoji, EmojiRule, mentionExt(people),
+      Emoji, EmojiRule, mentionExt(people),
       Markdown.configure({ html: false, tightLists: true, bulletListMarker: '-', linkify: true, breaks: true }),
     ],
     content: value,
@@ -107,8 +94,8 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   });
   const TB = [['bold', '<b>B</b>', 'Bold (⌘B)', (c) => c.toggleBold()], ['italic', '<i>I</i>', 'Italic (⌘I)', (c) => c.toggleItalic()], ['strike', '<s>S</s>', 'Strikethrough', (c) => c.toggleStrike()], ['code', '&lt;/&gt;', 'Inline code', (c) => c.toggleCode()],
     ['h2', 'H', 'Heading', (c) => c.toggleHeading({ level: 2 })], ['bulletList', '•', 'Bulleted list', (c) => c.toggleBulletList()], ['orderedList', '1.', 'Numbered list', (c) => c.toggleOrderedList()], ['taskList', '☑', 'Task list', (c) => c.toggleTaskList()],
-    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()]];
-  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<span class="tt-sp"></span><span class="tt-tip">/ blocks · @ mention · : emoji</span>';
+    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })]];
+  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<span class="tt-sp"></span><span class="tt-tip">@ mention · : emoji · markdown shortcuts</span>';
   bar.addEventListener('mousedown', (ev) => ev.preventDefault());
   bar.addEventListener('click', (ev) => { const k = ev.target.closest('[data-k]')?.dataset.k; const t = TB.find((x) => x[0] === k); if (t) t[3](editor.chain().focus()).run(); });
   const sync = () => bar.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', editor.isActive(b.dataset.k)));

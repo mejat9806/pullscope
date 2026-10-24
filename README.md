@@ -20,7 +20,7 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 ![Split view](docs/screenshots/split-view.png)
 
 **Review**
-- Line comments with a rich editor (`/` block menu, `@` mentions, `:` emoji), saved as a draft review and submitted together.
+- Line comments with a rich editor (toolbar, GitHub-style markdown shortcuts, `@` mentions, `:` emoji), saved as a draft review and submitted together.
 - Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
 - Resolve and unresolve threads, re-request a review, react to comments.
 - **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
