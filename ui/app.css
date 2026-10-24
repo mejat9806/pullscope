@@ -912,3 +912,6 @@ table.diff:not(.sbs) td.code { overflow-wrap: anywhere; }
 
 /* Measured in real WebKit: containing each diff table cut scroll frames from 26ms to 17ms with no drops. */
 table.diff { contain: layout paint; }
+
+/* Text menus must not use the emoji-picker hover zoom */
+.cm-pop button, .cm-pop button:hover { transform: none; transition: background .1s; }
