@@ -1403,7 +1403,7 @@ if (q.get('split')) S.split = q.get('split') === '1';
 if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; render(); if (v) loadRepos(); });
 render();
 if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
-else if (tauri) tauri.invoke('initial_arg').then((arg) => { const last = localStorage.getItem('last'); if (arg || last) openPr(arg || last); });
+else if (tauri) tauri.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });
 
 setInterval(pollNotes, 60000); setTimeout(pollNotes, 4000);
 // refetchOnWindowFocus: coming back to the app tops up a PR that has gone stale.
