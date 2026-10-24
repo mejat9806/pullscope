@@ -917,3 +917,5 @@ table.diff { contain: layout paint; }
 .cm-pop button, .cm-pop button:hover { transform: none; transition: background .1s; }
 
 .hm-fbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; } .hm-fbar .hm-filter { flex: 1; margin: 0; }
+.hm-grp { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 13px; color: var(--fgColor-muted); } .hm-grp span { font-weight: 400; opacity: .7; }
+.hm-fbar select.input { width: auto; flex: 0 0 auto; }

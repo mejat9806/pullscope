@@ -1058,8 +1058,16 @@ function homePage() {
   else if (!S.repos) body = '<div class="spinner" style="margin:48px auto">Loading repositories…</div>';
   else {
     const f = (S.repoFilter || '').toLowerCase();
-    const list = S.repos.filter((r) => (!owner || r.full_name.startsWith(owner + '/')) && r.full_name.toLowerCase().includes(f));
-    body = `<input class="input hm-filter" id="hmfilter" placeholder="Find a repository…" value="${esc(S.repoFilter || '')}">` + (list.length ? `<div class="hm-grid">${list.map((r) => `<a class="hm-card" data-repo="${esc(r.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="hm-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}${r.archived ? ' · archived' : ''}${r.open_issues_count ? ` · ${r.open_issues_count} open` : ''}</i>${r.description ? `<em>${esc(r.description)}</em>` : ''}</span></a>`).join('')}</div>` : '<div class="diff-empty">No matching repositories.</div>');
+    const vis = S.hmVis || 'all', srt = S.hmSort || 'pushed', grp = S.hmGroup || 'none';
+    let list = S.repos.filter((r) => (!owner || r.full_name.startsWith(owner + '/')) && r.full_name.toLowerCase().includes(f) && (vis === 'all' || (vis === 'private') === !!r.private));
+    if (srt === 'name') list = [...list].sort((a, b) => a.full_name.split('/')[1].localeCompare(b.full_name.split('/')[1]));
+    const card = (r) => `<a class="hm-card" data-repo="${esc(r.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="hm-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}${r.archived ? ' · archived' : ''}${r.open_issues_count ? ` · ${r.open_issues_count} open` : ''}</i>${r.description ? `<em>${esc(r.description)}</em>` : ''}</span></a>`;
+    let grid;
+    if (!list.length) grid = '<div class="diff-empty">No matching repositories.</div>';
+    else if (grp === 'owner') { const by = new Map(); list.forEach((r) => { const o = r.full_name.split('/')[0]; if (!by.has(o)) by.set(o, []); by.get(o).push(r); }); grid = [...by].map(([o, rs]) => `<h3 class="hm-grp">${esc(o)}<span>${rs.length}</span></h3><div class="hm-grid">${rs.map(card).join('')}</div>`).join(''); }
+    else grid = `<div class="hm-grid">${list.map(card).join('')}</div>`;
+    const opt = (v, cur, t) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`;
+    body = `<div class="hm-fbar"><input class="input hm-filter" id="hmfilter" placeholder="Find a repository…" value="${esc(S.repoFilter || '')}"><div class="seg-ctl">${['all', 'public', 'private'].map((x) => `<button class="${vis === x ? 'on' : ''}" data-hvis="${x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join('')}</div><select class="input" id="hmsort" title="Sort">${opt('pushed', srt, 'Recently pushed')}${opt('name', srt, 'Name')}</select><select class="input" id="hmgroup" title="Group">${opt('none', grp, 'No grouping')}${opt('owner', grp, 'Group by owner')}</select></div>` + grid;
   }
   return `<div class="notes-page hm-page"><div class="np-head"><h1>${icon('home')} ${owner ? esc(owner) : 'Home'}</h1></div>
   <p class="hm-hint">Open a pull request: type <code>owner/repo#123</code> or paste a URL in the bar above.</p>${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ''}${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}${tabs}${body}</div>`;
@@ -1292,6 +1300,9 @@ function bind() {
     catch (e) { u.busy = false; S.actErr = 'Update failed: ' + String(e); render(); }
   });
   $('#addtoken')?.addEventListener('click', tokenDialog);
+  document.querySelectorAll('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
+  $('#hmsort')?.addEventListener('change', (e) => { S.hmSort = e.target.value; render(); });
+  $('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = e.target.value; render(); });
   $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
   document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
   $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
