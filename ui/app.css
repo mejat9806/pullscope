@@ -902,3 +902,10 @@ body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .dchunk > table.diff, table.diff { width: 100%; table-layout: fixed; }
 table.diff:not(.sbs) td.code { overflow-wrap: anywhere; }
 .dchunk.cv-on { content-visibility: visible; }
+
+/* A tall rounded + shadowed + overflow:hidden box makes WebKit repaint a huge masked layer in tiles while scrolling
+   (the blocky look). Keep the corners on the header only and let the diff paint normally. */
+.file { border-radius: 0; box-shadow: none; overflow: visible; border: .5px solid var(--borderColor-default); border-radius: 14px 14px 0 0; }
+.file-head { border-radius: 14px 14px 0 0; }
+.file.folded { border-radius: 14px; }
+.file.folded .file-head { border-radius: 14px; }
