@@ -901,3 +901,4 @@ body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .dchunk { content-visibility: auto; }
 .dchunk > table.diff, table.diff { width: 100%; table-layout: fixed; }
 table.diff:not(.sbs) td.code { overflow-wrap: anywhere; }
+.dchunk.cv-on { content-visibility: visible; }

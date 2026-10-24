@@ -1385,6 +1385,12 @@ function bind() {
   const ta = $('.pr-title-area'), tb = $('.pr-tabs');
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
+  // Render diff blocks well before they scroll into view, so they never pop in; far-away ones stay skipped.
+  { const chunks = document.querySelectorAll('.dchunk'); if (chunks.length && 'IntersectionObserver' in window) {
+      const byRoot = new Map();
+      chunks.forEach((c) => { const r = c.closest('.pane-body, .main'); if (!byRoot.has(r)) byRoot.set(r, []); byRoot.get(r).push(c); });
+      byRoot.forEach((list, root) => { const io = new IntersectionObserver((en) => en.forEach((x) => x.target.classList.toggle('cv-on', x.isIntersecting)), { root, rootMargin: '3500px 0px' }); list.forEach((c) => io.observe(c)); S.ios.push(io); });
+  } }
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
   document.querySelectorAll('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
