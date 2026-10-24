@@ -58,6 +58,42 @@ const KEY_RECENT = 'recent';
 const compact = (n) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Math.floor(n / 1000) + 'k+' : (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k');
 
 // Native-app chrome: toolbar (history, address bar, actions) and a recent-PRs sidebar.
+
+// ---- Tabs: several PRs open at once. Each tab keeps only a small view state; the PR itself comes from the cache. ----
+const KEY_TABS = 'tabs';
+{ const t = load(KEY_TABS, {}); S.tabs = Array.isArray(t.list) ? t.list : []; S.closed = []; S.tabMenu = false; }
+const curRef = () => (S.view === 'pr' && S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '');
+const saveTabs = () => { try { localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon, tab, dot }) => ({ ref, title, state, icon, tab, dot })) })); } catch {} };
+const tabIdx = () => S.tabs.findIndex((t) => t.ref === curRef());
+function tabSnap() { const t = S.tabs[tabIdx()]; if (t) { t.tab = S.tab; t.scroll = $('.main')?.scrollTop || 0; } }
+function tabPut(ref, p, opts = {}) {
+  const [state, ic] = stateOf(p), item = { ref, title: p.title, state, icon: ic, tab: S.tab, dot: false };
+  const have = S.tabs.findIndex((t) => t.ref === ref);
+  if (have >= 0) Object.assign(S.tabs[have], item, { tab: S.tabs[have].tab });
+  else if (opts.at >= 0 && !opts.newTab) S.tabs[opts.at] = item;
+  else S.tabs.splice(opts.at >= 0 ? opts.at + 1 : S.tabs.length, 0, item);
+  S.tabs = S.tabs.slice(-15); saveTabs();
+}
+function openTab(ref, { newTab = false } = {}) { tabSnap(); S.tabMenu = false; return openPr(ref, { newTab }); }
+function closeTab(i) {
+  const t = S.tabs[i]; if (!t) return;
+  const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
+  S.tabs.splice(i, 1); saveTabs();
+  if (!was) return render();
+  const n = S.tabs[Math.min(i, S.tabs.length - 1)];
+  if (n) openPr(n.ref, { restore: n.tab, nav: true }); else { S.view = 'home'; S.bundle = null; render(); }
+}
+function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); openPr(c.ref, { newTab: true, restore: c.tab }); } }
+function stepTab(d) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
+function tabStrip() {
+  if (!S.tabs.length) return '';
+  const cur = curRef();
+  const tabs = S.tabs.map((t, i) => `<div class="ptab ${t.ref === cur ? 'on' : ''}" data-tab="${i}" title="${esc(t.ref + ' · ' + t.title)}"><span class="rc-i ${t.state}">${icon(t.icon)}</span><span class="pt-t"><i>${esc(t.ref.split('/').pop())}</i> ${esc(t.title)}</span>${t.dot ? '<span class="pt-dot"></span>' : ''}<button class="pt-x" data-tabx="${i}" aria-label="Close tab">${icon('x')}</button></div>`).join('');
+  const open = new Set(S.tabs.map((t) => t.ref));
+  const recents = S.recent.filter((r) => !open.has(r.ref)).slice(0, 8);
+  const menu = S.tabMenu ? `<div class="pt-menu"><a data-tabhome>${icon('home')} Home</a>${recents.length ? '<h6>Recent</h6>' : ''}${recents.map((r) => `<a data-tabnew="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="pt-mt"><i>${esc(r.ref)}</i> ${esc(r.title)}</span></a>`).join('')}${S.closed.length ? `<h6>Closed</h6><a data-tabreopen>${icon('clock')} Reopen ${esc(S.closed[0].ref)} <kbd>⌘⇧T</kbd></a>` : ''}</div>` : '';
+  return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (⌘T)" aria-label="New tab">${icon('plus')}</button>${menu}</div>`;
+}
 function toolbar() {
   const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
   return `<header class="toolbar" data-tauri-drag-region>
@@ -516,6 +552,7 @@ async function selectCommit(sha) {
 const snap = (p) => ({ commits: p.commits, comments: p.comments, rc: p.review_comments, state: p.merged ? 'merged' : p.state });
 const seen = load('seen', {});
 function noteAdd(ref, title, text, target = '') {
+  { const t = S.tabs.find((x) => x.ref === ref); if (t && ref !== curRef()) { t.dot = true; saveTabs(); } }
   S.notes = [{ id: Date.now() + Math.random(), ref, title, text, target, at: new Date().toISOString(), read: false }, ...S.notes].slice(0, 200);
   localStorage.setItem('notes', JSON.stringify(S.notes));
   if (tauri) tauri.invoke('notify', { title: `${ref} · ${title}`.slice(0, 80), body: text, prRef: ref, target }).catch(() => {});
@@ -682,11 +719,21 @@ function showHelp() {
   if (document.querySelector('.palette')) return;
   const el = document.createElement('div'); el.className = 'dlg-bg palette';
   const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('New pull request', 'n')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('New pull request', 'n')}${k('New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T')}${k('Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab')}${k('Open a PR in a new tab', '⌘-click')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
   document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
   const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
+document.addEventListener('mousedown', (e) => { if (S.tabMenu && !e.target.closest('.pt-menu, #tabadd')) { S.tabMenu = false; rerender(); } });
 document.addEventListener('keydown', (e) => {
+  if (S.tabMenu && e.key === 'Escape') { S.tabMenu = false; rerender(); return; }
+  if ((e.metaKey || e.ctrlKey) && !e.altKey) {
+    const k = e.key.toLowerCase();
+    if (k === 't' && !e.shiftKey) { e.preventDefault(); S.tabMenu = !S.tabMenu; if (!S.tabs.length) S.tabMenu = true; rerender(); return; }
+    if (k === 't' && e.shiftKey) { e.preventDefault(); reopenTab(); return; }
+    if (k === 'w' && S.tabs.length && tabIdx() >= 0) { e.preventDefault(); closeTab(tabIdx()); return; }
+    if (/^[1-9]$/.test(k) && S.tabs[+k - 1]) { e.preventDefault(); openTab(S.tabs[+k - 1].ref); return; }
+    if (e.key === 'Tab' && e.ctrlKey) { e.preventDefault(); stepTab(e.shiftKey ? -1 : 1); return; }
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || document.querySelector('.palette, .dlg-bg')) return;
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
@@ -1097,7 +1144,7 @@ function render() {
   let anchor = null;
   { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
-  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
+  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
   bind();
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
@@ -1142,7 +1189,15 @@ function bind() {
   });
   $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($('#addrinput').value); $('#addrinput').blur(); });
   $('#signin')?.addEventListener('click', tokenDialog);
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } openPr(el.dataset.open); }));
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } else openPr(el.dataset.open); }));
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } }));
+  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { tabSnap(); S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
+  document.querySelectorAll('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx); }));
+  { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
+  $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });
+  document.querySelectorAll('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openTab(el.dataset.tabnew, { newTab: true })));
+  $('[data-tabhome]')?.addEventListener('click', () => { S.tabMenu = false; S.view = 'home'; render(); });
+  $('[data-tabreopen]')?.addEventListener('click', () => { S.tabMenu = false; reopenTab(); });
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
   document.querySelectorAll('[data-tab]').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
@@ -1291,9 +1346,11 @@ async function loadPrs() {
 }
 const reload = () => S.view === 'repo' ? openRepo(S.repo, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
 
-async function openPr(input, { nav = false, keepTab = false, manual = false } = {}) {
+async function openPr(input, { nav = false, keepTab = false, manual = false, newTab = false, restore = '' } = {}) {
   { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
-  S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = 'conversation'; S.sel = null;
+  const fromTab = S.view === 'pr' ? tabIdx() : -1;
+  if (!keepTab && !restore) tabSnap();
+  S.error = ''; S.view = 'pr'; if (!keepTab) S.tab = restore || 'conversation'; S.sel = null;
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
   if (keepTab && tauri) await tauri.invoke('invalidate_pr', { url: input }).catch(() => {});
   const mem = qc.peek(input);
@@ -1322,6 +1379,7 @@ async function openPr(input, { nav = false, keepTab = false, manual = false } = 
     S.recent = [{ ref, title: p.title, state: st, icon: ic }, ...S.recent.filter((r) => r.ref !== ref)].slice(0, 30);
     localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent));
     localStorage.setItem('last', ref); remember(ref, p);
+    if (!keepTab || tabIdx() >= 0) tabPut(ref, p, { at: fromTab, newTab }); const ti = S.tabs.find((t) => t.ref === ref); if (ti) { ti.dot = false; saveTabs(); }
     if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
