@@ -1227,6 +1227,12 @@ const go = (n) => { const t = S.hi + n; if (t < 0 || t >= S.hist.length) return;
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
 const openExternal = (url) => (tauri ? tauri.invoke('open_external', { url }) : window.open(url, '_blank'));
 
+// Opening a PR that already has a tab goes to that tab instead of making another page.
+function openFromList(ref, newTab) {
+  const have = S.tabs.some((t) => t.ref === ref);
+  if (have && !S.focus) { if (ref === curRef()) { S.tabMenu = false; return; } return openTab(ref); }
+  return newTab ? openTab(ref, { newTab: true }) : openPr(ref);
+}
 function bindSticky() {
   const ta = $('.pr-title-area'), tb = $('.pr-tabs');
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios.push(io); }
@@ -1304,8 +1310,16 @@ function bind() {
   });
   $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($('#addrinput').value); $('#addrinput').blur(); });
   $('#signin')?.addEventListener('click', tokenDialog);
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } else openPr(el.dataset.open); }));
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openTab(el.dataset.open, { newTab: true }); } }));
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open, true); } else openFromList(el.dataset.open, false); }));
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open, true); } }));
+  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); e.stopPropagation(); document.querySelector('.react-pop')?.remove();
+    const ref = el.dataset.open, pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
+    pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
+    pop.style.left = Math.min(e.clientX, innerWidth - 180) + 'px'; pop.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
+    pop.onclick = (ev) => { const h = ev.target.dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref, true); else if (h === 'here') openFromList(ref, false); else { const m = ref.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m ? `https://github.com/${m[1]}/pull/${m[2]}` : ref).catch(() => {}); } };
+    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+  }));
   document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
   // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
   document.querySelectorAll('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
@@ -1331,7 +1345,7 @@ function bind() {
   document.querySelectorAll('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx); }));
   { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
   $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });
-  document.querySelectorAll('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openTab(el.dataset.tabnew, { newTab: true })));
+  document.querySelectorAll('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openFromList(el.dataset.tabnew, true)));
   $('[data-tabhome]')?.addEventListener('click', () => { S.tabMenu = false; S.view = 'home'; render(); });
   $('[data-tabreopen]')?.addEventListener('click', () => { S.tabMenu = false; reopenTab(); });
   document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
