@@ -1164,9 +1164,9 @@ function render() {
   let anchor = null;
   { const mn = $('.main'); if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...document.querySelectorAll('.pane-body, .cm-list')].map((e) => [e.parentElement.className + e.className, e.scrollTop]) : [];
-  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog || ''}${notePanel()}`;
+  $('#app').innerHTML = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ''}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
   if (S.keepScroll || same()) { $('.main').scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn.scrollTop += el.getBoundingClientRect().top - mn.getBoundingClientRect().top - anchor.off; } document.querySelectorAll('.pane-body, .cm-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement.className + e.className); if (m) e.scrollTop = m[1]; }); }
-  bind();
+  bind(); bindTokenDialog();
   if (S.fadeMain) { S.fadeMain = false; $('.main')?.classList.add('tab-in'); }
   if (S.busy && S.busySel) setBusy($(S.busySel), true);
   syncUnread();
@@ -1345,28 +1345,34 @@ document.addEventListener('keydown', (e) => {
 });
 
 function tokenDialog() {
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo">Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox"></div><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_…" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
+  S.oauthHtml = ''; S.oauthLive = false;
+  S.dialog = '__TOKDLG__';
   render();
-  let live = true;
-  $('#tokcancel').onclick = () => { live = false; S.dialog = ''; render(); };
+}
+// The dialog is rebuilt from state on every render, so the code box and handlers survive background redraws.
+const tokDlgHtml = () => `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo">Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">${S.oauthHtml || ''}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_…" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
+function bindTokenDialog() {
+  if (!$('#tokeninput')) return;
+  $('#tokcancel').onclick = () => { S.oauthLive = false; S.dialog = ''; render(); };
+  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); if (S.hasToken) loadRepos(); else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
   $('#oauthgo').onclick = async () => {
-    const box = $('#oauthbox'), btn = $('#oauthgo'); btn.disabled = true;
+    const show = (h) => { S.oauthHtml = h; if (S.dialog) { render(); } };
+    $('#oauthgo').disabled = true; S.oauthLive = true; const me = S.oauthRun = (S.oauthRun || 0) + 1;
     try {
       const d = await tauri.invoke('device_start');
-      box.innerHTML = `<div class="oauth-code"><span>Enter this code on GitHub</span><b>${esc(d.user_code)}</b><small>Waiting for approval…</small></div>`;
+      show(`<div class="oauth-code"><span>Enter this code on GitHub</span><b>${esc(d.user_code)}</b><small>Waiting for approval…</small></div>`);
       tauri.invoke('open_external', { url: d.verification_uri }).catch(() => {});
       let wait = (d.interval || 5) * 1000; const until = Date.now() + (d.expires_in || 900) * 1000;
-      while (live && Date.now() < until) {
+      while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
         await new Promise((r) => setTimeout(r, wait));
-        if (!live) return;
+        if (!S.oauthLive || S.oauthRun !== me) return;
         const st = await tauri.invoke('device_poll', { deviceCode: d.device_code });
         if (st === 'slow_down') wait += 5000;
-        if (st === 'ok') { S.hasToken = true; S.dialog = ''; loadRepos(); return; }
+        if (st === 'ok') { S.oauthLive = false; S.hasToken = true; S.dialog = ''; loadRepos(); return; }
       }
       throw 'The code expired. Start again.';
-    } catch (e) { if (live) { box.innerHTML = `<div class="err" style="margin:8px 0">${esc(String(e))}</div>`; btn.disabled = false; } }
+    } catch (e) { S.oauthLive = false; show(`<div class="err" style="margin:8px 0">${esc(String(e))}</div>`); }
   };
-  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); if (S.hasToken) loadRepos(); else { S.repos = null; } } catch (e) { alert(e); } S.dialog = ''; render(); };
 }
 
 async function loadRepos() {
