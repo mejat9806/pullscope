@@ -573,7 +573,7 @@ code, pre, .mono, .branch, .sha, .tt code, .tt pre { font-family: "SF Mono", ui-
 .pr-title { font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -.025em; }
 .pr-title .num { font-weight: 400; color: var(--fgColor-muted); animation: none !important; }
 .pr-tabs { border: 0; border-top: .5px solid var(--borderColor-muted); border-radius: 0 0 14px 14px; box-shadow: 0 0 0 .5px var(--borderColor-default); padding: 0 20px 14px; }
-.pr-tabs.stuck { background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); padding-bottom: 0; border-radius: 0 0 14px 14px; }
+.pr-tabs.stuck { background: var(--canvas); padding-bottom: 0; border-radius: 0 0 14px 14px; }
 .pr-tabs nav a { height: 44px; font-weight: 500; font-size: 14px; gap: 7px; } .pr-tabs nav a.sel { border-bottom-width: 2px; font-weight: 600; }
 .counter { background: rgba(120, 120, 128, .16); border-radius: 10px; font-weight: 500; }
 .state-pill { border-radius: 20px; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 13px; height: 28px; padding: 0 12px; animation: none !important; } .state-pill::after { display: none; }
