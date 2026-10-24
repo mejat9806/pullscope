@@ -871,3 +871,8 @@ nav.crumbs .stale { margin-left: 8px; }
 .prl-filters .pf-search input { width: 100%; padding-left: 30px; }
 .prl-filters select.input { max-width: 170px; }
 .prl-filters .pf-count { font-size: 12px; color: var(--fgColor-muted); margin-left: auto; }
+
+.oauth-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; } .oauth-row span { font-size: 12px; color: var(--fgColor-muted); }
+.oauth-code { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px; margin-bottom: 10px; border: .5px solid var(--borderColor-default); background: var(--bgColor-muted); }
+.oauth-code b { font: 600 28px ui-monospace, SFMono-Regular, monospace; letter-spacing: .12em; user-select: all; }
+.oauth-code small, .oauth-code span { color: var(--fgColor-muted); font-size: 12px; }

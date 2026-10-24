@@ -518,6 +518,43 @@ fn set_token(token: String) -> Result<(), String> {
     if token.trim().is_empty() { github::clear_token() } else { github::save_token(token.trim()) }
 }
 
+const OAUTH_CLIENT_ID: &str = "Ov23li7yXzzIt2yayyfC";
+
+/// Device flow step 1: ask GitHub for a code the user types at github.com/login/device.
+#[tauri::command]
+async fn device_start() -> Result<serde_json::Value, String> {
+    let r: serde_json::Value = reqwest::Client::new()
+        .post("https://github.com/login/device/code")
+        .header("Accept", "application/json")
+        .header("User-Agent", "pullscope")
+        .form(&[("client_id", OAUTH_CLIENT_ID), ("scope", "repo notifications")])
+        .send().await.map_err(|e| e.to_string())?
+        .json().await.map_err(|e| e.to_string())?;
+    if let Some(e) = r.get("error_description").or_else(|| r.get("error")).and_then(|v| v.as_str()) { return Err(e.into()); }
+    Ok(r)
+}
+
+/// Device flow step 2: returns "ok" once approved (token saved), "pending" or "slow_down" while waiting.
+#[tauri::command]
+async fn device_poll(device_code: String) -> Result<String, String> {
+    let r: serde_json::Value = reqwest::Client::new()
+        .post("https://github.com/login/oauth/access_token")
+        .header("Accept", "application/json")
+        .header("User-Agent", "pullscope")
+        .form(&[("client_id", OAUTH_CLIENT_ID), ("device_code", device_code.as_str()), ("grant_type", "urn:ietf:params:oauth:grant-type:device_code")])
+        .send().await.map_err(|e| e.to_string())?
+        .json().await.map_err(|e| e.to_string())?;
+    if let Some(t) = r.get("access_token").and_then(|v| v.as_str()) { github::save_token(t)?; return Ok("ok".into()); }
+    match r.get("error").and_then(|v| v.as_str()) {
+        Some("authorization_pending") => Ok("pending".into()),
+        Some("slow_down") => Ok("slow_down".into()),
+        Some("expired_token") => Err("The code expired. Start again.".into()),
+        Some("access_denied") => Err("Sign-in was cancelled on GitHub.".into()),
+        Some(e) => Err(r.get("error_description").and_then(|v| v.as_str()).unwrap_or(e).to_string()),
+        None => Err("Unexpected reply from GitHub".into()),
+    }
+}
+
 pub fn run() {
     let builder = tauri::Builder::default();
     #[cfg(not(target_os = "macos"))]
@@ -529,7 +566,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
