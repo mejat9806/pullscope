@@ -1084,7 +1084,14 @@ function bindWrite() {
     document.body.appendChild(pop);
     pop.addEventListener('click', async (ev) => {
       const c = ev.target.closest('[data-c]')?.dataset.c; if (!c) return; pop.remove();
-      const r2 = await act('react', { kind: btn.dataset.rk, id: +btn.dataset.rid, content: c }, 'react'); if (r2 !== undefined) await refreshPr(btn.dataset.rk === 'pr' ? '' : btn.dataset.rid);
+      // Show the reaction at once; GitHub confirms in the background and the count is put back if it fails.
+      const b = S.bundle, tgt = btn.dataset.rk === 'pr' ? b.pull : [...b.timeline, ...b.review_comments].find((x) => String(x.id) === btn.dataset.rid);
+      const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null;
+      if (tgt) { tgt.reactions = { ...(tgt.reactions || {}), [c]: ((tgt.reactions || {})[c] || 0) + 1 }; }
+      S.refreshing = true; rerender();
+      const r2 = await act('react', { kind: btn.dataset.rk, id: +btn.dataset.rid, content: c }, 'react');
+      if (r2 === undefined) { if (tgt && prev) { tgt.reactions = prev; } S.refreshing = false; rerender(); return; }
+      await refreshPr(btn.dataset.rk === 'pr' ? '' : btn.dataset.rid);
     });
     setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
   }));
