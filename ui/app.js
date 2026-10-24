@@ -746,6 +746,31 @@ function editPrDialog() {
   };
 }
 
+// Write / Preview tabs on a rich editor; the preview is rendered by GitHub so it matches what gets posted.
+function addPreview(host, key) {
+  const tabs = document.createElement('div'); tabs.className = 'tt-tabs';
+  tabs.innerHTML = '<button class="on" data-pv="write">Write</button><button data-pv="preview">Preview</button>';
+  const pv = document.createElement('div'); pv.className = 'tt-preview markdown-body'; pv.hidden = true;
+  host.prepend(tabs); host.append(pv);
+  const show = async (mode) => {
+    tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.pv === mode));
+    const prev = mode === 'preview';
+    host.querySelectorAll('.tt-bar, .tt-body').forEach((el) => { el.hidden = prev; });
+    pv.hidden = !prev; host.classList.toggle('previewing', prev);
+    if (!prev) { host.querySelector('.tt-content')?.focus(); return; }
+    const md = (S.draft[key] || '').trim();
+    if (!md) { pv.innerHTML = '<span class="empty">Nothing to preview</span>'; return; }
+    pv.innerHTML = '<span class="empty">Loading preview…</span>';
+    try {
+      if (!tauri) throw new Error('offline');
+      const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
+      const html = await tauri.invoke('render_markdown', { text: md, repo });
+      if (!pv.hidden) pv.innerHTML = html;
+    } catch (e) { if (!pv.hidden) pv.innerHTML = `<pre class="pv-raw"></pre><div class="act-err">Couldn't render the preview (${esc(String(e).replace(/^Error: /, ''))}). Showing the raw Markdown.</div>`, pv.querySelector('.pv-raw').textContent = md; }
+  };
+  tabs.addEventListener('click', (e) => { const m = e.target.closest('[data-pv]')?.dataset.pv; if (m) show(m); });
+}
+
 function confirmDlg(title, text, label, danger, fn) {
   S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="btns"><button class="btn" id="cfcancel">Cancel</button><button class="btn ${danger ? 'danger' : 'primary'}" id="cfok">${esc(label)}</button></div></div></div>`;
   render();
@@ -826,7 +851,7 @@ function bindWrite() {
     const key = host.dataset.draft;
     if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
     const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? document.querySelector(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
-    const mount = () => (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }));
+    const mount = () => { (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send })); addPreview(host, key); };
     // Editors are heavy: build each one only when its box is near the viewport.
     const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
     io.observe(host);

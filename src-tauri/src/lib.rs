@@ -148,6 +148,19 @@ async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Array(out))
 }
 
+/// Render Markdown the way GitHub does (for the Preview tab); `repo` lets #123 and @user links resolve.
+#[tauri::command]
+async fn render_markdown(text: String, repo: Option<String>) -> Result<String, String> {
+    if text.len() > 200_000 { return Err("Too long to preview.".into()); }
+    let mut body = serde_json::json!({ "text": text, "mode": "gfm" });
+    if let Some(r) = repo.filter(|r| valid_repo(r)) { body["context"] = serde_json::json!(r); }
+    let mut req = github::client().post("https://api.github.com/markdown").header("Accept", "text/html").header("X-GitHub-Api-Version", "2022-11-28").json(&body);
+    if let Some(t) = github::load_token().filter(|t| !t.is_empty()) { req = req.bearer_auth(t); }
+    let resp = req.send().await.map_err(|e| e.to_string())?;
+    if !resp.status().is_success() { return Err(format!("GitHub {}", resp.status())); }
+    resp.text().await.map_err(|e| e.to_string())
+}
+
 /// Assignable people, labels and open milestones of a repository, for the New pull request page.
 #[tauri::command]
 async fn repo_meta(repo: String) -> Result<serde_json::Value, String> {
@@ -516,7 +529,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

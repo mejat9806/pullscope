@@ -784,3 +784,10 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .mb-warn .mb-h { align-items: flex-start; }
 
 .fold-bar { display: flex; justify-content: flex-end; margin: 0 0 8px; }
+
+.tt-tabs { display: flex; gap: 2px; padding: 6px 8px 0; border-bottom: 1px solid var(--borderColor-default); }
+.tt-tabs button { border: 0; background: none; font: inherit; font-size: 13px; font-weight: 500; color: var(--fgColor-muted); padding: 6px 12px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tt-tabs button.on { color: var(--fgColor-default); font-weight: 600; border-bottom-color: var(--fgColor-accent); }
+.tt-preview { padding: 14px 16px; min-height: calc(var(--rows, 4) * 22px); font-size: 14px; cursor: default; }
+.tt-preview .empty { color: var(--fgColor-muted); } .tt .pv-raw { white-space: pre-wrap; }
+.tt-body[hidden], .tt-bar[hidden], .tt-preview[hidden] { display: none !important; }
