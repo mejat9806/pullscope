@@ -281,18 +281,27 @@ const codeHtml = (text, path) => (window.hlLine && window.hlLine(text, path)) ??
 const lineKey = (path, line, side) => `${path}\u001f${side}\u001f${line}`;
 // Pending comments are Markdown; show code fences (incl. suggestions) as blocks, everything else as plain text.
 const lcBody = (md) => String(md).split(/```/).map((p, i) => i % 2 ? (() => { const m = p.match(/^(\w*)\n?([\s\S]*)$/); return `<pre class="lc-code${m[1] === 'suggestion' ? ' sug' : ''}">${m[1] === 'suggestion' ? '<b>Suggested change</b>\n' : ''}${esc(m[2].replace(/\n$/, ''))}</pre>`; })() : esc(p).replace(/\n/g, '<br>')).join('');
+// Existing review threads for one line, shown read-only under it (reply / resolve live in the Conversation tab).
+function threadsFor(path) { return (S.bundle?.review_comments || []).filter((c) => c.path === path); }
+function lineThreads(path, line, side, cols) {
+  const all = threadsFor(path); if (!all.length) return '';
+  const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return '';
+  const res = new Set(S.bundle.resolved_ids || []);
+  const card = (c) => `<div class="tc"><a href="${esc(c.user?.html_url || '#')}">${avatar(c.user, 20)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user?.login || 'ghost')}</span> <span>${when(c.created_at)}</span></div><div class="markdown-body" style="margin-top:6px">${c.body_html || esc(c.body || '')}</div></div></div>`;
+  return roots.map((r) => `<tr class="lc-row th-row"><td colspan="${cols}"><div class="thread inl${res.has(r.id) ? ' resolved' : ''}">${res.has(r.id) ? '<div class="thread-head"><span class="res">Resolved</span></div>' : r.line == null ? '<div class="thread-head"><span class="res" style="background:var(--bgColor-attention-muted,#9a6700 22%)">Outdated</span></div>' : ''}${[r, ...all.filter((c) => c.in_reply_to_id === r.id)].map(card).join('')}</div></td></tr>`).join('');
+}
 function lineExtras(path, line, side, cols, canComment, text) {
-  const k = lineKey(path, line, side), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
+  const k = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
   const cards = mine.map((c) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${lcBody(c.body)}</div><button class="lc-x" data-lcdel="${c.id}" title="Delete draft comment">${icon('x')}</button></div>`).join('');
   const open = canComment && S.lcOpen === k ? `<div class="lc-edit">${draftBox('lc', 'Leave a comment on this line', 3)}<div class="lc-btns">${side === 'RIGHT' && text !== undefined ? `<button class="btn small" id="lcsuggest" data-code="${esc(text)}" title="Insert a suggested change for this line">± Suggest change</button>` : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
-  return cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '';
+  return th + (cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '');
 }
 // Built diff HTML is cached per file, so redraws, tab switches and returning to a PR do not rebuild thousands of rows.
 const diffCache = new Map();
 function diffTable(patch, path, canComment) {
   const open = S.lcOpen && String(S.lcOpen).includes(path);
   if (open) return diffTableBuild(patch, path, canComment);
-  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}`, hit = diffCache.get(key);
+  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + ((S.bundle.resolved_ids || []).includes(c.id) ? 'r' : '')).join(',')}`, hit = diffCache.get(key);
   if (hit && hit.patch === patch) return hit.html;
   const html = diffTableBuild(patch, path, canComment);
   diffCache.set(key, { patch, html });
@@ -546,8 +555,11 @@ function filesList(files, canComment = false) {
     for (const f of files) { const n = f.additions + f.deletions, key = 'f:' + f.filename; if (key in S.fold || hasC(f)) continue; if (n > 400 || n > budget) S.fold[key] = true; else budget -= n; }
   }
   const shown = (f) => !S.fold['f:' + f.filename];
+  const srt = S.fileSort || 'path', cnt = (f) => (S.bundle?.review_comments || []).filter((c) => c.path === f.filename && !c.in_reply_to_id).length;
+  const so = { path: null, pathz: (x, y) => y.filename.localeCompare(x.filename), most: (x, y) => (y.additions + y.deletions) - (x.additions + x.deletions), least: (x, y) => (x.additions + x.deletions) - (y.additions + y.deletions), comments: (x, y) => cnt(y) - cnt(x), status: (x, y) => String(x.status).localeCompare(String(y.status)) || x.filename.localeCompare(y.filename) };
+  if (so[srt]) files = [...files].sort(so[srt]);
   const all = files.every((f) => S.fold['f:' + f.filename]);
-  return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f, i) => {
+  return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === 'unified' ? 'on' : ''}" data-dmode="unified">Unified</button><button class="${S.diffMode === 'split' ? 'on' : ''}" data-dmode="split">Split</button></div><select class="input fsort" id="fsort" title="Sort files">${[['path', 'GitHub order'], ['pathz', 'Path Z–A'], ['most', 'Most changed'], ['least', 'Least changed'], ['comments', 'Most comments'], ['status', 'By status']].map(([v, t]) => `<option value="${v}" ${srt === v ? 'selected' : ''}>${t}</option>`).join('')}</select>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review · ${pendList().length} comment${pendList().length === 1 ? '' : 's'}</button>` : ''}<button class="link-btn" data-foldall="${all ? 'open' : 'close'}" data-files="${esc(files.map((f) => f.filename).join('\n'))}">${all ? 'Expand all files' : 'Collapse all files'}</button></div>` + files.map((f, i) => {
     const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
     const sq = Array.from({ length: 5 }, (_, i) => `<i class="${i < a ? 'a' : i < a + d ? 'd' : ''}"></i>`).join('');
     return `<div class="file${folded('f:' + f.filename)}"><div class="file-head" data-fold="f:${esc(f.filename)}"><span class="tgl">${icon(S.fold['f:' + f.filename] ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+${f.additions}</span> <span class="d">−${f.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f.filename)}</span></div>${!shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
@@ -1305,6 +1317,7 @@ function bind() {
   document.querySelectorAll('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
   $('#hmsort')?.addEventListener('change', (e) => { S.hmSort = e.target.value; render(); });
   $('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = e.target.value; render(); });
+  $('#fsort')?.addEventListener('change', (e) => { S.fileSort = e.target.value; rerender(); });
   $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
   document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
   $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });

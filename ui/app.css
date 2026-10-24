@@ -919,3 +919,8 @@ table.diff { contain: layout paint; }
 .hm-fbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; } .hm-fbar .hm-filter { flex: 1 1 180px; min-width: 0; margin: 0; }
 .hm-grp { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; font-size: 13px; color: var(--fgColor-muted); } .hm-grp span { font-weight: 400; opacity: .7; }
 .hm-fbar select.input { width: auto; flex: 0 0 auto; }
+.files-bar select.fsort { width: auto; flex: 0 0 auto; margin-left: 8px; }
+.th-row td { padding: 6px 12px 10px 76px; background: var(--bgColor-muted); }
+.thread.inl { border: 1px solid var(--borderColor-default); border-radius: 6px; background: var(--bgColor-default); padding: 8px 12px; white-space: normal; }
+.thread.inl .tc { display: flex; gap: 8px; padding: 6px 0; } .thread.inl .tc + .tc { border-top: 1px solid var(--borderColor-muted); }
+.thread.inl.resolved { opacity: .7; } .thread.inl .thread-head { padding: 0 0 4px; border: 0; background: none; }
