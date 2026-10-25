@@ -716,7 +716,7 @@ async function pollNotes() {
   if (!tauri || polling) return;
   polling = true; const before = S.notes.length;
   const cur = S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : null;
-  const refs = S.hasToken ? S.recent.slice(0, 8).map((r) => r.ref) : (cur ? [cur] : []);
+  const refs = S.hasToken ? [...new Set([...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref)])].slice(0, 20) : (cur ? [cur] : []); // open tabs first, then the most recent PRs
   for (const ref of refs) {
     const m = ref.match(/^(.+)#(\d+)$/); if (!m) continue;
     try {
