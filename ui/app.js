@@ -716,7 +716,12 @@ async function pollNotes() {
   if (!tauri || polling) return;
   polling = true; const before = S.notes.length;
   const cur = S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : null;
-  const refs = S.hasToken ? [...new Set([...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref)])].slice(0, 20) : (cur ? [cur] : []); // open tabs first, then the most recent PRs
+  // Watch what matters without having to open it: open tabs, recent PRs, and the PRs you wrote or were asked to review (refreshed every 4 minutes).
+  if (S.hasToken && Date.now() - (S.watchAt || 0) > 240000) {
+    S.watchAt = Date.now();
+    try { const d = await tauri.invoke('inbox', { force: false }); S.watch = [...(d.mine || []), ...(d.requested || [])].map((i) => `${i.repo}#${i.number}`); } catch { /* keep the previous list */ }
+  }
+  const refs = S.hasToken ? [...new Set([...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref), ...(S.watch || [])])].slice(0, 40) : (cur ? [cur] : []);
   for (const ref of refs) {
     const m = ref.match(/^(.+)#(\d+)$/); if (!m) continue;
     try {

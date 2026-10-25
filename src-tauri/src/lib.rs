@@ -503,7 +503,9 @@ async fn check_pr(repo: String, number: u64, since: Option<String>) -> Result<se
     let g = |k: &str| p.get(k).cloned().unwrap_or(serde_json::Value::Null);
     // Comments created since the last snapshot, so a notification can point at the newest one.
     let mut fresh: Vec<serde_json::Value> = Vec::new();
-    if let Some(s) = since.filter(|s| s.len() < 40 && s.chars().all(|c| c.is_ascii_digit() || "-:TZ.+".contains(c))) {
+    // Only ask for comments when GitHub says the PR changed since then: an idle PR costs one request per check.
+    let changed = |s: &str| p["updated_at"].as_str().map_or(true, |u| u > s);
+    if let Some(s) = since.filter(|s| s.len() < 40 && s.chars().all(|c| c.is_ascii_digit() || "-:TZ.+".contains(c)) && changed(s)) {
         for (kind, path) in [("issue", "issues"), ("review", "pulls")] {
             let u = format!("https://api.github.com/repos/{repo}/{path}/{number}/comments?since={s}&per_page=50");
             if let Ok(serde_json::Value::Array(list)) = github::get(&c, &u, token.as_deref()).await {
