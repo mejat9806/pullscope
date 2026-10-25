@@ -950,6 +950,3 @@ table.diff { contain: layout paint; }
 @media (max-width: 1100px) { .prof-btn span { display: none; } }
 .prof-pop { min-width: 230px; padding: 6px; } .prof-pop .pp-h { display: flex; gap: 10px; align-items: center; padding: 8px 10px 10px; border-bottom: 1px solid var(--borderColor-muted); margin-bottom: 4px; } .prof-pop .pp-h img { width: 36px; height: 36px; border-radius: 50%; } .prof-pop .pp-h b, .prof-pop .pp-h i { display: block; } .prof-pop .pp-h i { font-style: normal; font-size: 12px; color: var(--fgColor-muted); }
 .prof-pop button { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; } .prof-pop .danger { color: var(--fgColor-danger, #f85149); }
-.close-dlg { width: 440px; max-width: 94vw; } .close-dlg p { color: var(--fgColor-muted); line-height: 1.5; } .cd-chk { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; font-size: 13px; cursor: pointer; }
-.close-dlg .btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-.prof-pop button b { font-weight: 500; color: var(--fgColor-muted); margin-left: 2px; }
