@@ -32,7 +32,7 @@ const ASSOC = { CONTRIBUTOR: 'Contributor', MEMBER: 'Member', OWNER: 'Owner', CO
 const REACTS = [['+1', '👍'], ['-1', '👎'], ['laugh', '😄'], ['hooray', '🎉'], ['confused', '😕'], ['heart', '❤️'], ['rocket', '🚀'], ['eyes', '👀']];
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-let S = { bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
+let S = { profile: (() => { try { return JSON.parse(localStorage.getItem('profile') || 'null'); } catch { return null; } })(), bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
 S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || []; } catch { return []; } })();
 
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
@@ -98,7 +98,7 @@ function toolbar() {
   return `<header class="toolbar" data-tauri-drag-region>
   <button class="tb-btn nav-btn" id="navbtn" title="Show or hide the sidebar">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
   <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>${S.update ? `<button class="upd" id="upd" title="Download and install the new version, then restart">${icon('sync')} ${S.update.busy ? 'Updating…' : 'Update to v' + esc(S.update.version)}</button>` : ''}
-  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button><button class="tb-btn" id="signin" title="Access token">${icon('key')}</button></div></header>`;
+  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button>${S.hasToken && S.profile ? `<button class="prof-btn" id="profbtn" title="${esc(S.profile.name || S.profile.login)} — account menu"><img src="${esc(avUrl(S.profile.avatar_url, 56))}" alt=""><span>${esc(S.profile.name || S.profile.login)}</span>${icon('chevron-down', 12)}</button>` : `<button class="tb-btn" id="signin" title="Access token">${icon('key')}</button>`}</div></header>`;
 }
 function sideRecent() {
   const tabs = `<div class="sb-tabs"><button data-side="repos" class="${S.sideTab === 'repos' ? 'on' : ''}">Repos</button>${S.repo ? `<button data-side="prs" class="${S.sideTab === 'prs' ? 'on' : ''}">PRs</button>` : ''}<button data-side="recent" class="${S.sideTab === 'recent' ? 'on' : ''}">Recent</button></div>`;
@@ -1318,6 +1318,11 @@ function render() {
 
 const go = (n) => { const t = S.hi + n; if (t < 0 || t >= S.hist.length) return; S.hi = t; (S.hist[t].startsWith('repo:') ? openRepo(S.hist[t].slice(5), { nav: true }) : openPr(S.hist[t], { nav: true })); };
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
+const avUrl = (u, n) => `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
+function loadProfile() {
+  if (!tauri) return;
+  tauri.invoke('viewer_profile').then((p) => { S.me = p.login; S.profile = p; try { localStorage.setItem('profile', JSON.stringify(p)); } catch { /* storage full */ } render(); }).catch(() => {});
+}
 const openExternal = (url) => (tauri ? tauri.invoke('open_external', { url }) : window.open(url, '_blank'));
 
 // Opening a PR that already has a tab goes to that tab instead of making another page.
@@ -1426,6 +1431,18 @@ function bind() {
   });
   $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($('#addrinput').value); $('#addrinput').blur(); });
   $('#signin')?.addEventListener('click', tokenDialog);
+  $('#profbtn')?.addEventListener('click', (e) => {
+    e.stopPropagation(); const had = document.querySelector('.prof-pop'); document.querySelector('.react-pop')?.remove(); if (had) return;
+    const pr = S.profile, pop = document.createElement('div'); pop.className = 'react-pop cm-pop prof-pop';
+    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="out" class="danger">Sign out</button>`;
+    const r = e.currentTarget.getBoundingClientRect(); pop.style.right = Math.max(8, innerWidth - r.right) + 'px'; pop.style.top = r.bottom + 6 + 'px';
+    pop.onclick = async (ev) => {
+      const h = ev.target.closest('[data-h]')?.dataset.h; if (!h) return; pop.remove();
+      if (h === 'profile') openExternal(pr.html_url); else if (h === 'token') tokenDialog();
+      else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
+    };
+    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+  });
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open, true); } else openFromList(el.dataset.open, false); }));
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open, true); } }));
   document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
@@ -1701,7 +1718,7 @@ const q = new URLSearchParams(location.search);
 if (q.get('mode')) S.mode = q.get('mode');
 if (q.get('tab')) S.tab = q.get('tab');
 if (q.get('split')) S.split = q.get('split') === '1';
-if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); tauri.invoke('viewer_login').then((l) => { S.me = l; }).catch(() => {}); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
+if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 render();
 if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
 else if (tauri) tauri.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });

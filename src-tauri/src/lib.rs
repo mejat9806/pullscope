@@ -279,6 +279,14 @@ async fn fetch_range(repo: String, base: String, head: String) -> Result<serde_j
     Ok(out)
 }
 
+/// The signed-in user's GitHub profile (login, name, avatar) for the toolbar menu.
+#[tauri::command]
+async fn viewer_profile() -> Result<serde_json::Value, String> {
+    let token = github::load_token().ok_or("no token")?;
+    let v = github::get(&github::client(), "https://api.github.com/user", Some(&token)).await?;
+    Ok(serde_json::json!({ "login": v["login"], "name": v["name"], "avatar_url": v["avatar_url"], "html_url": v["html_url"] }))
+}
+
 /// Login of the signed-in user (to find their last review on a pull request).
 #[tauri::command]
 async fn viewer_login() -> Result<String, String> {
@@ -646,7 +654,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
