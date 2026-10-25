@@ -2,6 +2,21 @@
 // or from a recorded bundle (`?fixture=file.json`) when previewed in a plain browser.
 const tauri = window.__TAURI__ && window.__TAURI__.core;
 // Clicking a native notification: open that PR and jump to the comment.
+// Closing the window: minimize to the tray (keeps polling and notifying), quit, or ask — chosen once with "Don't ask again".
+const closePref = () => { try { return localStorage.getItem('closeAction') || 'ask'; } catch { return 'ask'; } };
+const setClosePref = (v) => { try { localStorage.setItem('closeAction', v); } catch { /* storage unavailable */ } };
+const CLOSE_LABEL = { ask: 'Ask each time', minimize: 'Keep running in background', quit: 'Quit completely' };
+function closeRequested() {
+  const t = window.__TAURI__?.core; const go = (v) => (v === 'quit' ? t.invoke('quit_app') : t.invoke('hide_window'));
+  const pref = closePref(); if (pref !== 'ask') return go(pref);
+  if (document.querySelector('.close-dlg')) return;
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg close-dlg"><h2>Close Pullscope?</h2><p>Keep it running in the background to keep getting notifications about your pull requests, or quit it completely.</p><label class="cd-chk"><input type="checkbox" id="cdremember"> Don't ask again</label><div class="btns"><button class="btn" id="cdcancel">Cancel</button><button class="btn" id="cdquit">Quit completely</button><button class="btn primary" id="cdmin">Keep in background</button></div></div></div>`;
+  render();
+  const done = (v) => { if (v && $('#cdremember')?.checked) setClosePref(v); S.dialog = ''; render(); if (v) go(v); };
+  $('#cdcancel').onclick = () => done(null); $('#cdquit').onclick = () => done('quit'); $('#cdmin').onclick = () => done('minimize');
+  $('#cdmin').focus();
+}
+if (window.__TAURI__ && window.__TAURI__.event) window.__TAURI__.event.listen('close-requested', closeRequested);
 if (window.__TAURI__ && window.__TAURI__.event) window.__TAURI__.event.listen('notif-click', (e) => { const { ref, target } = e.payload || {}; if (!ref) return; S.nav = false; S.bell = false; S.focus = target || ''; openPr(ref); });
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1434,10 +1449,12 @@ function bind() {
   $('#profbtn')?.addEventListener('click', (e) => {
     e.stopPropagation(); const had = document.querySelector('.prof-pop'); document.querySelector('.react-pop')?.remove(); if (had) return;
     const pr = S.profile, pop = document.createElement('div'); pop.className = 'react-pop cm-pop prof-pop';
-    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="out" class="danger">Sign out</button>`;
+    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="close">${icon('gear')} When closing: <b>${CLOSE_LABEL[closePref()]}</b></button><button data-h="out" class="danger">Sign out</button>`;
     const r = e.currentTarget.getBoundingClientRect(); pop.style.right = Math.max(8, innerWidth - r.right) + 'px'; pop.style.top = r.bottom + 6 + 'px';
     pop.onclick = async (ev) => {
-      const h = ev.target.closest('[data-h]')?.dataset.h; if (!h) return; pop.remove();
+      const h = ev.target.closest('[data-h]')?.dataset.h; if (!h) return;
+      if (h === 'close') { ev.stopPropagation(); const o = ['ask', 'minimize', 'quit']; setClosePref(o[(o.indexOf(closePref()) + 1) % 3]); ev.target.closest('button').querySelector('b').textContent = CLOSE_LABEL[closePref()]; return; }
+      pop.remove();
       if (h === 'profile') openExternal(pr.html_url); else if (h === 'token') tokenDialog();
       else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
     };

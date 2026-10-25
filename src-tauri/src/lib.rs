@@ -543,6 +543,16 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
     Ok(())
 }
 
+/// Closing the window can hide it instead, so the app keeps polling and notifying from the tray.
+#[tauri::command]
+fn hide_window(app: tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(w) = app.get_webview_window("main") { let _ = w.hide(); }
+}
+
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) { app.exit(0); }
+
 /// Shows the unread notification count next to the tray icon (macOS title) and in its tooltip.
 #[tauri::command]
 fn set_unread(app: tauri::AppHandle, count: u32) {
@@ -648,15 +658,42 @@ pub fn run() {
     #[cfg(not(target_os = "macos"))]
     let builder = builder.plugin(tauri_plugin_notification::init());
     builder
+        .on_window_event(|window, event| {
+            // The page decides what closing means (ask / minimize to the tray / quit), so hold the close and ask it.
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    use tauri::Emitter;
+                    let _ = window.emit("close-requested", ());
+                }
+            }
+        })
         .setup(|app| {
             #[cfg(target_os = "macos")]
             native_notify::setup(app.handle().clone());
+            #[cfg(target_os = "macos")]
+            {
+                // A hidden window would let macOS put the app to sleep (App Nap) and pause the notification poll.
+                use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
+                let activity = NSProcessInfo::processInfo().beginActivityWithOptions_reason(NSActivityOptions::UserInitiatedAllowingIdleSystemSleep, &NSString::from_str("Checking pull requests for notifications"));
+                std::mem::forget(activity);
+            }
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, hide_window, quit_app, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Clicking the Dock icon while the window is hidden brings it back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                use tauri::Manager;
+                if let Some(w) = app.get_webview_window("main") { let _ = w.show(); let _ = w.unminimize(); let _ = w.set_focus(); }
+            }
+            #[cfg(not(target_os = "macos"))]
+            let _ = (app, event);
+        });
 }
 
 #[cfg(test)]
