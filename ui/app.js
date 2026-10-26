@@ -1425,6 +1425,12 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Enter' && AC.sel >= 0) { e.preventDefault(); acPick(AC.rows[AC.sel]); }
   else if (e.key === 'Escape') { acClose(); }
 }, true);
+// Dragging the window: Tauri's drag attribute only works on the exact element it sits on, so treat every non-interactive spot of the toolbar as a handle.
+{
+  const win = () => window.__TAURI__?.window?.getCurrentWindow?.();
+  const free = (e) => e.button === 0 && e.target.closest('.toolbar') && !e.target.closest('button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop');
+  document.addEventListener('mousedown', (e) => { if (!free(e)) return; e.preventDefault(); if (e.detail === 2) win()?.toggleMaximize?.(); else win()?.startDragging?.(); });
+}
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
 const avUrl = (u, n) => `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
 function loadProfile() {
