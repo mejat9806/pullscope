@@ -706,7 +706,7 @@ async function pollNotes() {
     S.watchAt = Date.now();
     try { const d = await tauri.invoke('inbox', { force: false }); S.watch = [...(d.mine || []), ...(d.requested || [])].map((i) => `${i.repo}#${i.number}`); } catch { /* keep the previous list */ }
   }
-  const refs = S.hasToken ? [...new Set([...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref), ...(S.watch || [])])].slice(0, 40) : (cur ? [cur] : []);
+  const refs = S.hasToken ? [...new Set([...(cur ? [cur] : []), ...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref), ...(S.watch || [])])].slice(0, 40) : (cur ? [cur] : []);
   for (const ref of refs) {
     const m = ref.match(/^(.+)#(\d+)$/); if (!m) continue;
     try {
@@ -717,7 +717,7 @@ async function pollNotes() {
       if (S.notes.length !== n0) prefetch(ref); // warm it now so clicking the notification is instant
       remember(ref, p);
       // The PR on screen changed (reviewers, labels, new comments…): reload it quietly so the page and the Details panel stay current.
-      if (ref === cur && S.view === 'pr' && !S.loading && !S.refreshing && p.updated_at && p.updated_at > (S.bundle.pull.updated_at || '') && !document.activeElement?.closest?.('.tt')) openPr(ref, { nav: true, keepTab: true });
+      const bp = S.bundle?.pull; if (cur && ref.toLowerCase() === cur.toLowerCase() && S.view === 'pr' && bp && !S.loading && !S.refreshing && ((p.updated_at && p.updated_at > (bp.updated_at || '')) || (p.comments ?? bp.comments) !== bp.comments || (p.review_comments ?? bp.review_comments) !== bp.review_comments) && !document.activeElement?.closest?.('.tt')) { qc.invalidate(cur); await tauri.invoke('invalidate_pr', { url: cur }).catch(() => {}); openPr(cur, { nav: true, keepTab: true }); }
     } catch { /* offline or rate limited: try again next round */ }
   }
   await pollBranches(refs, cur);
