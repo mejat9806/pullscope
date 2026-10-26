@@ -995,10 +995,48 @@ async function act2(action, args, key, inDialog = false) {
 }
 const refreshPr = (focus = '') => { qc.invalidate(`${prRef().repo}#${prRef().number}`); saveDrafts(); S.focus = focus ? String(focus) : ''; return openPr(`${prRef().repo}#${prRef().number}`, { nav: true, keepTab: true }); };
 
+function editCommentDialog(c, kind) {
+  S.draft.editc = c.body || '';
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit comment</h2>${draftBox('editc', 'Edit your comment', 6)}<div id="reverr">${errLine('editc')}</div><div class="btns"><button class="btn" id="eccancel">Cancel</button><button class="btn primary" id="ecsave">Save</button></div></div></div>`;
+  render();
+  $('#eccancel').onclick = () => { delete S.draft.editc; S.dialog = ''; render(); };
+  $('#ecsave').onclick = async () => {
+    const r = await act('edit_comment', { id: c.id, kind, body: S.draft.editc ?? '' }, 'editc', true);
+    if (r === undefined) return;
+    delete S.draft.editc; S.dialog = ''; await refreshPr(c.id);
+  };
+}
+function deleteCommentDialog(c, kind) {
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Delete this comment?</h2><p style="color:var(--fgColor-muted)">This can't be undone.</p><div id="reverr">${errLine('delc')}</div><div class="btns"><button class="btn" id="dccancel">Cancel</button><button class="btn danger" id="dcdo">Delete</button></div></div></div>`;
+  render();
+  $('#dccancel').onclick = () => { S.dialog = ''; render(); };
+  $('#dcdo').onclick = async () => {
+    const r = await act('delete_comment', { id: c.id, kind }, 'delc', true);
+    if (r === undefined) return;
+    S.dialog = ''; await refreshPr();
+  };
+}
+function hideCommentDialog(c) {
+  const reasons = [['SPAM', 'Spam'], ['ABUSE', 'Abuse'], ['OFF_TOPIC', 'Off-topic'], ['OUTDATED', 'Outdated'], ['DUPLICATE', 'Duplicate'], ['RESOLVED', 'Resolved']];
+  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Hide this comment</h2><label class="np-l">Reason</label><select class="sel" id="hcreason" style="width:100%;height:34px">${reasons.map(([v, l]) => `<option value="${v}" ${v === 'OUTDATED' ? 'selected' : ''}>${l}</option>`).join('')}</select><div id="reverr">${errLine('hidec')}</div><div class="btns"><button class="btn" id="hccancel">Cancel</button><button class="btn primary" id="hcdo">Hide comment</button></div></div></div>`;
+  render();
+  $('#hccancel').onclick = () => { S.dialog = ''; render(); };
+  $('#hcdo').onclick = async () => {
+    const r = await act('minimize', { body: c.node_id || '', content: $('#hcreason').value }, 'hidec', true);
+    if (r === undefined) return;
+    S.fold['c:' + c.id] = true; localStorage.setItem('fold', JSON.stringify(S.fold));
+    S.dialog = ''; await refreshPr();
+  };
+}
 function cmAction(id, root, how) {
   const b = S.bundle, c = [...b.timeline, ...b.review_comments].find((x) => String(x.id) === String(id)) || (String(b.pull.id) === String(id) ? b.pull : null); if (!c) return;
   if (how === 'link') return navigator.clipboard?.writeText(c.html_url || '');
   if (how === 'md') return navigator.clipboard?.writeText(c.body || '');
+  const kind = c === b.pull ? 'pr' : b.review_comments.includes(c) ? 'review_comment' : 'issue_comment';
+  if (how === 'issue') { const r = prRef().repo; return openExternal(`https://github.com/${r}/issues/new?body=${encodeURIComponent(`Reference: ${c.html_url || ''}\n\n`)}`); }
+  if (how === 'edit') return kind === 'pr' ? editPrDialog() : editCommentDialog(c, kind);
+  if (how === 'hide') return hideCommentDialog(c);
+  if (how === 'del') return deleteCommentDialog(c, kind);
   const key = root ? 'reply-' + root : 'comment', q = (c.body || '').split('\n').map((l) => '> ' + l).join('\n');
   S.draft[key] = (S.draft[key] ? S.draft[key] + '\n\n' : '') + `@${(c.user || c.actor || {}).login || ''}\n\n${q}\n\n`;
   saveDrafts(); S.eds = []; S.keepScroll = true; render(); S.keepScroll = false;
@@ -1035,7 +1073,9 @@ function bindWrite() {
   document.querySelectorAll('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
     e.stopPropagation(); document.querySelector('.react-pop')?.remove();
     const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
-    pop.innerHTML = '<button data-h="link">Copy link</button><button data-h="md">Copy Markdown</button><button data-h="quote">Quote reply</button>';
+    const bb = S.bundle, cc = String(bb.pull.id) === String(btn.dataset.cm) ? bb.pull : [...bb.timeline, ...bb.review_comments].find((x) => String(x.id) === String(btn.dataset.cm));
+    const isPr = cc === bb.pull, own = !!S.me && (cc?.user || cc?.actor)?.login === S.me;
+    pop.innerHTML = `<button data-h="link">Copy link</button><button data-h="md">Copy Markdown</button><button data-h="quote">Quote reply</button><button data-h="issue">Reference in new issue</button>${own || (!isPr && S.hasToken) ? '<hr>' : ''}${own ? '<button data-h="edit">Edit</button>' : ''}${!isPr && S.hasToken ? '<button data-h="hide">Hide</button>' : ''}${own && !isPr ? '<button data-h="del" class="danger">Delete</button>' : ''}`;
     const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
     pop.onclick = (ev) => { const h = ev.target.dataset.h; if (h) { pop.remove(); cmAction(btn.dataset.cm, btn.dataset.root, h); } };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));

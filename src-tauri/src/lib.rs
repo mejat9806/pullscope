@@ -467,6 +467,29 @@ async fn pr_action(repo: String, number: u64, action: String, body: Option<Strin
             };
             (Method::POST, url, serde_json::json!({ "content": c }))
         }
+        "edit_comment" | "delete_comment" if id.is_some() => {
+            let i = id.unwrap();
+            let path = match kind.as_deref() {
+                Some("issue_comment") => format!("{base}/issues/comments/{i}"),
+                Some("review_comment") => format!("{base}/pulls/comments/{i}"),
+                _ => return Err("bad comment".into()),
+            };
+            if action == "edit_comment" {
+                if text.trim().is_empty() { return Err("A comment can't be empty.".into()); }
+                (Method::PATCH, path, serde_json::json!({ "body": text }))
+            } else {
+                (Method::DELETE, path, serde_json::json!({}))
+            }
+        }
+        "minimize" if text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') && !text.is_empty() => {
+            let reason = content.unwrap_or_default();
+            if !["SPAM", "ABUSE", "OFF_TOPIC", "OUTDATED", "DUPLICATE", "RESOLVED"].contains(&reason.as_str()) { return Err("bad reason".into()); }
+            let q = "mutation($id:ID!,$c:ReportedContentClassifiers!){minimizeComment(input:{subjectId:$id,classifier:$c}){minimizedComment{isMinimized}}}";
+            let r = github::send(&github::client(), Method::POST, "https://api.github.com/graphql", token.as_deref(), serde_json::json!({ "query": q, "variables": { "id": text, "c": reason } })).await?;
+            if let Some(e) = r["errors"].get(0) { return Err(e["message"].as_str().unwrap_or("GitHub refused the request").to_string()); }
+            PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+            return Ok(r);
+        }
         "update_branch" => (Method::PUT, format!("{base}/pulls/{number}/update-branch"), serde_json::json!({})),
         "edit" => {
             let mut p = serde_json::Map::new();
