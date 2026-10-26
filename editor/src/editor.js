@@ -4,6 +4,12 @@ import { Editor, Extension, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import Strike from '@tiptap/extension-strike';
+import Code from '@tiptap/extension-code';
+// Inline styles only when asked for (toolbar or ⌘B/⌘I): no auto-conversion of *, _, ~ or backticks, and typing after a code span or link leaves it.
+const plain = (M, extra = {}) => M.extend({ addInputRules() { return []; }, addPasteRules() { return []; }, ...extra });
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import BubbleMenu from '@tiptap/extension-bubble-menu';
@@ -70,9 +76,10 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   const editor = new Editor({
     element: body,
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, bold: false, italic: false, strike: false, code: false }),
+      plain(Bold), plain(Italic), plain(Strike), plain(Code, { inclusive: false }),
       Placeholder.configure({ placeholder }),
-      Link.configure({ openOnClick: false, autolink: true }),
+      Link.extend({ inclusive: false }).configure({ openOnClick: false, autolink: true }),
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
       Emoji, EmojiRule, mentionExt(people),
