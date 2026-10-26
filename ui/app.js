@@ -1201,7 +1201,7 @@ function newPrPage() {
       <div><label class="np-l">Head <i>changes from</i></label><select class="sel" id="nphead" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.head) : '<option>Loading…</option>'}</select></div></div>
     <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div>
     <label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}">
-    <label class="np-l">Description</label>${draftBox('newpr', 'Describe your changes', 8)}
+    <label class="np-l">Description</label>${(() => { const t = n.tpl[`${n.repo}|${n.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}
     ${npMeta(n)}
     <label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
     ${n.err ? `<div class="act-err">${esc(n.err)}</div>` : ''}
@@ -1236,8 +1236,21 @@ function npPickDefaults() {
   if (!b.branches.includes(n.head) || n.head === n.base) n.head = b.branches.find((x) => x !== n.base) || '';
   npCompare();
 }
+// Pull request templates from the repo: pre-fill an empty description (or one still showing the previous template).
+async function npLoadTemplates() {
+  const n = S.np; if (!n.repo || !n.base || !tauri) return;
+  const k = `${n.repo}|${n.base}`; if (n.tpl[k] !== undefined) return n.tpl[k] ? npApplyTemplate() : undefined;
+  n.tpl[k] = null;
+  try { n.tpl[k] = await tauri.invoke('pr_templates', { repo: n.repo, base: n.base }); } catch { n.tpl[k] = []; }
+  if (S.np === n && `${n.repo}|${n.base}` === k) npApplyTemplate();
+}
+function npApplyTemplate() {
+  const n = S.np, list = n.tpl[`${n.repo}|${n.base}`], cur = (S.draft.newpr || '').trim();
+  if (list?.length && (!cur || cur === n.tplText.trim())) { S.draft.newpr = n.tplText = list[0].body; saveDrafts(); }
+  rerender();
+}
 async function npCompare() {
-  const n = S.np; n.cmp = null;
+  const n = S.np; n.cmp = null; npLoadTemplates();
   if (!n.repo || !n.base || !n.head || n.base === n.head) return rerender();
   const key = `${n.repo}|${n.base}|${n.head}`; n.key = key; n.cmp = 'loading'; rerender();
   try {
@@ -1249,7 +1262,7 @@ async function npCompare() {
 }
 function openNewPr(repo, head) {
   const cur = (typeof repo === 'string' && repo) || S.bundle?.pull.base.repo.full_name || S.repo || '';
-  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: '', issues: '', cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '' };
+  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: '', issues: '', cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '', tpl: {}, tplText: '' };
   delete S.draft.newpr; render();
   if (tauri && !S.repos) loadRepos().then(() => { if (!S.np.repo && S.repos?.[0]) S.np.repo = S.repos[0].full_name; npLoadBranches(S.np.repo); }); else npLoadBranches(cur);
 }
@@ -1548,6 +1561,11 @@ function bind() {
   $('#npbase')?.addEventListener('change', (e) => { npSet(() => { S.np.base = e.target.value; }); npCompare(); });
   $('#nphead')?.addEventListener('change', (e) => { npSet(() => { S.np.head = e.target.value; S.np.titleTouched = false; }); npCompare(); });
   $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np.base, S.np.head] = [S.np.head, S.np.base]; }); npCompare(); });
+  $('#nptpl')?.addEventListener('change', (e) => {
+    const n = S.np, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = e.target.value === '' ? '' : t[+e.target.value].body;
+    if (cur && cur !== n.tplText.trim() && !confirm('Replace what you have written with this template?')) { e.target.value = String(t.findIndex((x) => x.body === n.tplText)); if (e.target.value === '-1') e.target.value = ''; return; }
+    S.draft.newpr = n.tplText = next; saveDrafts(); rerender();
+  });
   $('#nptitle')?.addEventListener('input', (e) => { S.np.title = e.target.value; S.np.titleTouched = true; const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === 'object' && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head; const b = $('#npcreate'); if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
   $('#npdraft')?.addEventListener('change', (e) => { S.np.draft = e.target.checked; const b = $('#npcreate'); if (b) b.textContent = S.np.draft ? 'Create draft pull request' : 'Create pull request'; });
   document.querySelectorAll('[data-npadd]').forEach((el) => el.addEventListener('change', (e) => { if (e.target.value) { S.np[el.dataset.npadd].push(e.target.value); rerender(); } }));

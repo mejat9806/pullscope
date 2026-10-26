@@ -178,6 +178,43 @@ async fn repo_meta(repo: String) -> Result<serde_json::Value, String> {
     }))
 }
 
+/// Which entries of a directory listing are pull request templates: a single file named
+/// pull_request_template(.md|.txt), or the files inside a PULL_REQUEST_TEMPLATE folder (returned as `dir` paths).
+fn template_entries(listing: &[serde_json::Value]) -> (Vec<(String, String)>, Vec<String>) {
+    let (mut files, mut dirs) = (vec![], vec![]);
+    for e in listing {
+        let (name, path, kind) = (e["name"].as_str().unwrap_or(""), e["path"].as_str().unwrap_or(""), e["type"].as_str().unwrap_or(""));
+        let l = name.to_lowercase();
+        if kind == "file" && matches!(l.as_str(), "pull_request_template" | "pull_request_template.md" | "pull_request_template.txt") { files.push((name.to_string(), path.to_string())); }
+        else if kind == "dir" && l == "pull_request_template" { dirs.push(path.to_string()); }
+    }
+    (files, dirs)
+}
+
+/// Pull request templates a repository defines (read from `base`), for pre-filling the New pull request description.
+#[tauri::command]
+async fn pr_templates(repo: String, base: String) -> Result<Vec<serde_json::Value>, String> {
+    use base64::Engine;
+    if !valid_repo(&repo) || !valid_ref(&base) { return Err("bad repository".into()); }
+    let token = github::load_token();
+    let t = token.as_deref();
+    let c = github::client();
+    let list = |dir: String| { let (c, url) = (c.clone(), format!("https://api.github.com/repos/{repo}/contents/{dir}?ref={base}")); async move { github::get(&c, &url, t).await.ok().and_then(|v| v.as_array().cloned()).unwrap_or_default() } };
+    let (a, b, d) = tokio::join!(list(String::new()), list(".github".into()), list("docs".into()));
+    let (mut files, mut dirs) = (vec![], vec![]);
+    for l in [&b, &a, &d] { let (f, dr) = template_entries(l); files.extend(f); dirs.extend(dr); }
+    for dir in dirs { for e in list(dir).await { if e["type"] == "file" { files.push((e["name"].as_str().unwrap_or("").to_string(), e["path"].as_str().unwrap_or("").to_string())); } } }
+    files.dedup_by(|x, y| x.1 == y.1);
+    let mut out = vec![];
+    for (name, path) in files.into_iter().take(10) {
+        let url = format!("https://api.github.com/repos/{repo}/contents/{path}?ref={base}");
+        let Ok(v) = github::get(&c, &url, t).await else { continue };
+        let raw = v["content"].as_str().unwrap_or("").replace('\n', "");
+        if let Ok(bytes) = base64::engine::general_purpose::STANDARD.decode(raw) { out.push(serde_json::json!({ "name": name, "path": path, "body": String::from_utf8_lossy(&bytes) })); }
+    }
+    Ok(out)
+}
+
 /// Open a new pull request; returns GitHub's response (number, html_url). `extra` may carry
 /// reviewers, assignees, labels and milestone, applied right after creation (failures come back as `warnings`).
 #[tauri::command]
@@ -656,13 +693,21 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn finds_pr_templates() {
+        let l: Vec<serde_json::Value> = serde_json::from_str(r#"[{"name":"PULL_REQUEST_TEMPLATE.md","path":".github/PULL_REQUEST_TEMPLATE.md","type":"file"},{"name":"README.md","path":"README.md","type":"file"},{"name":"PULL_REQUEST_TEMPLATE","path":".github/PULL_REQUEST_TEMPLATE","type":"dir"}]"#).unwrap();
+        let (f, d) = super::template_entries(&l);
+        assert_eq!(f.len(), 1);
+        assert_eq!(d, vec![".github/PULL_REQUEST_TEMPLATE".to_string()]);
+    }
+
     use super::*;
 
     #[test]
