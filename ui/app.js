@@ -716,6 +716,8 @@ async function pollNotes() {
       if (seen[ref]) noteDiff(ref, p.title, seen[ref], now, p.fresh);
       if (S.notes.length !== n0) prefetch(ref); // warm it now so clicking the notification is instant
       remember(ref, p);
+      // The PR on screen changed (reviewers, labels, new comments…): reload it quietly so the page and the Details panel stay current.
+      if (ref === cur && S.view === 'pr' && !S.loading && !S.refreshing && p.updated_at && p.updated_at > (S.bundle.pull.updated_at || '') && !document.activeElement?.closest?.('.tt')) openPr(ref, { nav: true, keepTab: true });
     } catch { /* offline or rate limited: try again next round */ }
   }
   await pollBranches(refs, cur);
