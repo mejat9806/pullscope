@@ -1322,6 +1322,54 @@ function render() {
 }
 
 const go = (n) => { const t = S.hi + n; if (t < 0 || t >= S.hist.length) return; S.hi = t; (S.hist[t].startsWith('repo:') ? openRepo(S.hist[t].slice(5), { nav: true }) : openPr(S.hist[t], { nav: true })); };
+// ---- Address bar autocomplete: open tabs and recent PRs, then repositories, then that repo's PR numbers ----
+const AC = { rows: [], sel: -1, nav: false, prs: {} };
+function acRows(q) {
+  const t = q.trim(), lq = t.toLowerCase(), rows = [], seen = new Set();
+  const add = (r) => { if (!seen.has(r.ref || r.fill)) { seen.add(r.ref || r.fill); rows.push(r); } };
+  if (/^https?:\/\//i.test(t)) return /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(t) ? [{ ref: t, label: 'Open ' + t.replace(/^https?:\/\/github\.com\//, ''), sub: 'Go to this pull request', ic: 'git-pull-request' }] : [];
+  const pr = lq.match(/^([^#\s]+\/[^#\s]+)#(\d*)$/);
+  const known = [...S.tabs.map((x) => ({ ref: x.ref, title: x.title, state: x.state, ic: x.icon })), ...S.recent.map((x) => ({ ref: x.ref, title: x.title, state: x.state, ic: x.icon }))];
+  if (pr) {
+    const repo = pr[1], num = pr[2];
+    if (num) add({ ref: `${t.split('#')[0]}#${num}`, label: `Open ${t.split('#')[0]}#${num}`, sub: 'Go to this pull request', ic: 'git-pull-request' });
+    const fromApi = (AC.prs[repo] || []).map((x) => ({ ref: `${x.base?.repo?.full_name || repo}#${x.number}`, title: x.title, state: x.merged_at ? 'merged' : x.state, ic: 'git-pull-request' }));
+    [...known.filter((x) => x.ref.toLowerCase().startsWith(repo + '#')), ...fromApi].filter((x) => x.ref.toLowerCase().split('#')[1].startsWith(num)).slice(0, 8).forEach((x) => add({ ref: x.ref, label: x.title || x.ref, sub: x.ref, ic: x.ic || 'git-pull-request', state: x.state }));
+    return rows.slice(0, 9);
+  }
+  known.filter((x) => !lq || `${x.ref} ${x.title}`.toLowerCase().includes(lq)).slice(0, lq ? 6 : 8).forEach((x) => add({ ref: x.ref, label: x.title || x.ref, sub: x.ref, ic: x.ic || 'git-pull-request', state: x.state }));
+  if (lq && S.repos) S.repos.filter((r) => r.full_name.toLowerCase().includes(lq)).sort((a, b) => (b.full_name.toLowerCase().startsWith(lq) ? 1 : 0) - (a.full_name.toLowerCase().startsWith(lq) ? 1 : 0)).slice(0, 6).forEach((r) => add({ fill: r.full_name + '#', label: r.full_name, sub: 'Repository: pick a pull request', ic: r.private ? 'lock' : 'repo' }));
+  return rows.slice(0, 12);
+}
+function acClose() { document.getElementById('acpop')?.remove(); AC.rows = []; AC.sel = -1; }
+function acDraw() {
+  const inp = $('#addrinput'); if (!inp || document.activeElement !== inp) return acClose();
+  const q = inp.value; AC.rows = acRows(q);
+  const m = q.trim().toLowerCase().match(/^([^#\s]+\/[^#\s]+)#\d*$/);
+  if (m && AC.prs[m[1]] === undefined && tauri) { AC.prs[m[1]] = null; tauri.invoke('list_prs', { repo: m[1], state: 'all' }).then((r) => { AC.prs[m[1]] = r; acDraw(); }).catch(() => { AC.prs[m[1]] = []; }); }
+  if (!AC.rows.length) return acClose();
+  AC.sel = Math.min(AC.sel, AC.rows.length - 1);
+  let pop = document.getElementById('acpop');
+  if (!pop) { pop = document.createElement('div'); pop.id = 'acpop'; pop.className = 'acpop'; document.body.appendChild(pop); pop.addEventListener('mousedown', (e) => { e.preventDefault(); const r = e.target.closest('.ac-row'); if (r) acPick(AC.rows[+r.dataset.i]); }); }
+  const b = inp.closest('.addr').getBoundingClientRect(); pop.style.left = b.left + 'px'; pop.style.top = b.bottom + 6 + 'px'; pop.style.width = b.width + 'px';
+  pop.innerHTML = AC.rows.map((r, i) => `<div class="ac-row${i === AC.sel ? ' on' : ''}" data-i="${i}"><span class="ac-i ${r.state || ''}">${icon(r.ic)}</span><span class="ac-t"><b>${esc(r.label)}</b><i>${esc(r.sub)}</i></span></div>`).join('');
+  pop.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
+}
+function acPick(r) {
+  const inp = $('#addrinput'); if (!r || !inp) return;
+  if (r.fill) { inp.value = r.fill; inp.focus(); AC.sel = -1; acDraw(); return; }
+  acClose(); inp.blur(); openPr(r.ref);
+}
+document.addEventListener('focusin', (e) => { if (e.target.id === 'addrinput') { AC.sel = -1; setTimeout(acDraw, 0); } });
+document.addEventListener('input', (e) => { if (e.target.id === 'addrinput') { AC.sel = -1; acDraw(); } });
+document.addEventListener('focusout', (e) => { if (e.target.id === 'addrinput') setTimeout(acClose, 120); });
+document.addEventListener('keydown', (e) => {
+  if (e.target.id !== 'addrinput' || !document.getElementById('acpop')) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = AC.rows.length; AC.sel = e.key === 'ArrowDown' ? (AC.sel + 1) % n : (AC.sel - 1 + n) % n; acDraw(); }
+  else if (e.key === 'Tab' && AC.rows.length) { e.preventDefault(); const r = AC.rows[Math.max(0, AC.sel)]; if (r.fill) acPick(r); else { e.target.value = r.ref; AC.sel = -1; acDraw(); } }
+  else if (e.key === 'Enter' && AC.sel >= 0) { e.preventDefault(); acPick(AC.rows[AC.sel]); }
+  else if (e.key === 'Escape') { acClose(); }
+}, true);
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
 const avUrl = (u, n) => `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
 function loadProfile() {
