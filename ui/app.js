@@ -1197,17 +1197,17 @@ function newPrPage() {
   const ready = n.title.trim() && n.repo && n.base && n.head && !same && n.cmp && typeof n.cmp === 'object' && n.cmp.ahead_by > 0;
   return `<div class="notes-page np-new"><div class="np-head"><h1>${icon('git-pull-request')} New pull request</h1></div>
   <div class="np-card">
-    <label class="np-l">Repository</label>${repoSel}
+    <div class="np-box"><label class="np-l">Repository</label>${repoSel}
     <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><select class="sel" id="npbase" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.base) : '<option>Loading…</option>'}</select></div>
       <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>
       <div><label class="np-l">Head <i>changes from</i></label><select class="sel" id="nphead" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.head) : '<option>Loading…</option>'}</select></div></div>
-    <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div>
-    <label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}">
-    <label class="np-l">Description</label>${(() => { const t = n.tpl[`${n.repo}|${n.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}
+    <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div></div>
+    <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}"></div>
+    <div class="np-box"><label class="np-l">Description</label>${(() => { const t = n.tpl[`${n.repo}|${n.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}</div>
     ${npMeta(n)}
-    <label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
+    <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
     ${n.err ? `<div class="act-err">${esc(n.err)}</div>` : ''}
-    <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n.draft ? 'Create draft pull request' : 'Create pull request'}</button></div>
+    <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n.draft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>
   </div></div>`;
 }
 // Reviewers / assignees / labels / milestone / linked issues pickers
@@ -1217,7 +1217,7 @@ function npMeta(n) {
   const chips = (k, label) => `<span class="np-chip" data-npdel="${k}" data-v="${esc(label)}" title="Remove">${esc(label)} ×</span>`;
   const add = (k, title, list) => { const free = list.filter((x) => !n[k].includes(x)); return free.length ? `<select class="sel np-add" data-npadd="${k}"><option value="">${title}</option>${free.map((x) => `<option>${esc(x)}</option>`).join('')}</select>` : ''; };
   const row = (k, name, list) => `<div class="np-meta"><label class="np-l">${name}</label><div class="np-chips">${n[k].map((x) => chips(k, x)).join('')}${add(k, `Add ${name.toLowerCase()}…`, list)}</div></div>`;
-  return `<div class="np-metas">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
+  return `<div class="np-box np-metas">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
     <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>${m.milestones.map((x) => `<option value="${x.number}" ${String(n.milestone) === String(x.number) ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>
     <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value="${esc(n.issues)}"></div></div>`;
 }

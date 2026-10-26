@@ -748,7 +748,9 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 
 /* New pull request */
 .np-new { max-width: 760px; }
-.np-card { display: grid; gap: 8px; padding: 18px; border-radius: 14px; background: var(--bgColor-default); box-shadow: var(--shadow); }
+.np-card { display: grid; gap: 14px; }
+.np-box { display: grid; gap: 8px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--borderColor-default, rgba(128,128,128,.25)); background: var(--bgColor-default); box-shadow: var(--shadow); }
+.np-box > .np-l:first-child { margin-top: 0; }
 .np-l { font-size: 12px; font-weight: 600; color: var(--fgColor-muted); margin-top: 6px; } .np-l i { font-weight: 400; font-style: normal; opacity: .8; margin-left: 4px; }
 .np-card .sel, .np-card .input { width: 100%; box-sizing: border-box; height: 34px; }
 .np-branches { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: end; }
@@ -763,7 +765,7 @@ button.is-busy::before { content: ""; display: inline-block; width: 12px; height
 .push-banner > svg { color: var(--fgColor-attention); flex: none; } .push-banner i { font-style: normal; color: var(--fgColor-muted); } .push-banner .sp { flex: 1; }
 .push-x { border: 0; background: transparent; color: var(--fgColor-muted); cursor: pointer; padding: 4px; border-radius: 6px; } .push-x:hover { background: var(--bgColor-neutral-muted); }
 
-.np-metas { display: grid; gap: 6px; padding-top: 4px; }
+.np-metas { gap: 6px; }
 .np-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .np-chip { padding: 2px 10px; border-radius: 12px; background: var(--bgColor-accent-muted); color: var(--fgColor-accent); font-size: 12px; font-weight: 600; cursor: pointer; }
 .np-chip:hover { background: var(--bgColor-neutral-muted); }
