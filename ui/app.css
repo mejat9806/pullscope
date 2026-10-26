@@ -961,3 +961,6 @@ table.diff { contain: layout paint; }
 .np-tpl { margin-bottom: 8px; }
 
 .cm-pop { width: 200px; } .cm-pop hr { border: 0; border-top: 1px solid var(--borderColor-default, rgba(128,128,128,.3)); margin: 4px 0; } .cm-pop .danger { color: var(--fgColor-danger, #f85149); }
+
+/* No floating formatting bar over selected text; the toolbar above the editor does the same job. */
+.tt-bubble { display: none !important; }
