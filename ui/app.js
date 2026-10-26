@@ -364,11 +364,12 @@ function reviewBlock(e, b) {
   const resolved = new Set(b.resolved_ids || []), isRes = (list) => list.some((c) => resolved.has(c.id));
   const stateMap = { approved: ['check', 'success', 'approved these changes'], changes_requested: ['file-diff', 'danger', 'requested changes'], commented: ['eye', '', 'reviewed'], dismissed: ['x', '', 'dismissed a review'] };
   const [ic, kind, verb] = stateMap[e.state.toLowerCase()] || ['eye', '', 'reviewed'];
-  const cs = b.review_comments.filter((c) => c.pull_request_review_id === e.id && (!S.who.length || S.who.includes(e.user?.login) || S.who.includes(c.user?.login)));
+  const mine = b.review_comments.filter((c) => c.pull_request_review_id === e.id), mineIds = new Set(mine.map((c) => c.id));
+  const cs = [...mine, ...b.review_comments.filter((c) => c.pull_request_review_id !== e.id && mineIds.has(c.in_reply_to_id))].filter((c) => !S.who.length || S.who.includes(e.user?.login) || S.who.includes(c.user?.login));
   const hasBody = e.body_html && e.body_html.trim();
   const byPath = {};
   cs.forEach((c) => (byPath[`${c.path}\u0000${c.original_position ?? c.position}`] ||= []).push(c));
-  const all = Object.values(byPath), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
+  const all = Object.values(byPath).map((l) => l.sort((x, y) => (x.in_reply_to_id ? 1 : 0) - (y.in_reply_to_id ? 1 : 0) || x.id - y.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
   const lists = S.unres ? all.filter((l) => !isRes(l)) : all;
   if (S.unres && !lists.length) return '';
   const threads = lists.map((list) => `<div class="thread${folded('t:' + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ''}${(b.thread_ids || {})[list[0].id] ? `<button class="thread-act" data-thread="${esc(b.thread_ids[list[0].id])}" data-res="${isRes(list) ? 'unresolve' : 'resolve'}">${isRes(list) ? 'Unresolve' : 'Resolve conversation'}</button>` : ''}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || '')}</div>${list.map((c) => `<div class="tc" id="c-${esc(c.id)}"><a href="${esc(c.user.html_url)}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user.login)}</span> <span>${when(c.created_at)}</span><button class="cm-btn" data-cm="${esc(c.id)}" data-root="${list[0].id}" title="Comment actions">⋯</button></div><div class="markdown-body" style="margin-top:8px">${c.body_html || ''}</div>${suggestBtn(c, b, list)}${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`).join('')}<div class="reply">${draftBox('reply-' + list[0].id, 'Reply…', 2)}${errLine('reply-' + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join('');
