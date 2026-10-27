@@ -25,12 +25,7 @@ export function BpPop(p: BpPopProps) {
   const [q, setQ] = useState(''), [act, setAct] = useState(0);
   const ref = useRef<HTMLDivElement>(null), inp = useRef<HTMLInputElement>(null);
   const groups = p.groupsFor(q.trim()), rows = groups.flatMap(([, l]) => l), a = Math.max(0, Math.min(act, rows.length - 1));
-  useEffect(() => {
-    inp.current?.focus();
-    const away = (e: Event) => { if (!ref.current?.contains(e.target as Node | null)) p.done(); };
-    document.addEventListener('mousedown', away, true);
-    return () => document.removeEventListener('mousedown', away, true);
-  }, []);
+  useEffect(() => { inp.current?.focus(); }, []);
   useEffect(() => { ref.current?.querySelector('.act')?.scrollIntoView({ block: 'nearest' }); });
   let i = 0;
   return <div id="bppop" class="bp-pop" ref={ref} style={p.style}>

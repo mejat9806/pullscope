@@ -1,9 +1,18 @@
 import { paintToTop } from './scrolling';
-import { loadProfile } from './addressbar';
+import { bpAway, loadProfile } from './addressbar';
 import { S, tauri } from './core';
 import { pollNotes, qc } from './data';
 import { loadRepos, openPr } from './nav';
 import { render } from './pages';
+import { setGlobals } from './frame';
+import { noteClick } from './actions';
+import { closePop } from './dialogs';
+import { ripple } from './fun';
+import { menuAway, shortcut } from './keyboard';
+import { goOffline, goOnline } from './listeners';
+import { notesAway, notesKey } from './notes';
+import { helpKey } from './palette';
+import { homeKey } from './scrolling';
 
 export const q = new URLSearchParams(location.search);
 
@@ -15,6 +24,11 @@ if (q.get('split')) S.split = q.get('split') === '1';
 
 if (tauri) tauri!.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 
+setGlobals({
+  pointerDown: (e) => ripple(e), clickCapture: (e) => noteClick(e), click: () => closePop(), mouseDown: (e) => { menuAway(e); notesAway(e); bpAway(e); },
+  key: (e) => { shortcut(e); notesKey(e); helpKey(e); homeKey(e); }, focus: () => refocus(), online: () => goOnline(), offline: () => goOffline(),
+});
+
 render();
 
 if (q.get('fixture')) openPr(q.get('fixture')!).then(() => { if (q.get('tab')) { S.tab = q.get('tab')!; render(); } });
@@ -25,7 +39,7 @@ setInterval(pollNotes, 60000);
  setTimeout(pollNotes, 4000);
 
 // refetchOnWindowFocus: coming back to the app tops up a PR that has gone stale.
-addEventListener('focus', () => { const b = S.bundle; if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) return; const k = `${b.pull.base.repo.full_name}#${b.pull.number}`; if (!qc.fresh(k, 60000)) openPr(k, { nav: true, keepTab: true }); });
+export const refocus = () => { const b = S.bundle; if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) return; const k = `${b.pull.base.repo.full_name}#${b.pull.number}`; if (!qc.fresh(k, 60000)) openPr(k, { nav: true, keepTab: true }); };
 
 setTimeout(pollNotes, 8000);
 

@@ -45,7 +45,7 @@ export function toggleTask(body: string, n: number) {
 const setTaskHtml = (html: string, n: number, on: boolean) => { let i = -1; return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => (++i === n ? (on ? (/\schecked/.test(m) ? m : m.replace(/<input/, '<input checked')) : m.replace(/\schecked(="[^"]*")?/, '')) : m)); };
 
 // Ticking a task: the checkbox is drawn from the comment's HTML, so the new state is written there at once (the browser's own toggle is cancelled) and put back if saving fails.
-document.addEventListener('click', async (e) => {
+async function taskClick(e: MouseEvent) {
   const cb = (e.target as HTMLElement).closest<HTMLInputElement>('input.task-list-item-checkbox'); if (!cb || cb.disabled || !S.bundle) return;
   const box = cb.closest<HTMLElement>('.tl-comment'), md = cb.closest<HTMLElement>('.markdown-body'); if (!box || !md) return;
   e.preventDefault();
@@ -60,7 +60,7 @@ document.addEventListener('click', async (e) => {
   c.body = body;
   const key = `${prRef().repo}#${prRef().number}`; qc.set(key, b); qc.m.get(key)!.at = Date.now() - 20000;
   tauri?.invoke('invalidate_pr', { url: key }).catch(() => {});
-});
+}
 
 // Whether a comment with this element id (`c-<id>`) is on the page.
 export function hasComment(elId: string) {
@@ -69,7 +69,7 @@ export function hasComment(elId: string) {
 }
 
 export function commentBoxProps(c: CommentLike, { isPr = false, flush = false } = {}): CommentBoxProps {
-  return { kb: S.kbId === 'c-' + c.id, flash: flashFor('c-' + c.id), c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
+  return { onTask: (e) => { taskClick(e); }, kb: S.kbId === 'c-' + c.id, flash: flashFor('c-' + c.id), c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
 }
 
 

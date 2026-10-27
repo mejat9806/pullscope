@@ -1,9 +1,10 @@
 import { options } from 'preact';
-import { editorMount, scrollDraft } from '../components/Actions';
+import { editorMount } from '../components/Actions';
+import { request } from '../components/req';
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { $, S, load, setFlash, tauri } from './core';
+import { S, load, setFlash, tauri } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { closePop, openPop } from './dialogs';
@@ -30,11 +31,12 @@ export function composerProps(b: Bundle): ComposerProps {
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
   return { open, draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '', err: errMsg('comment'), merged: !!p.merged, closed, busy };
 }
+const mergeMethod = () => { const am = S.bundle?.pull.auto_merge; return am ? (({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' } as Record<string, string>)[am.merge_method!] || 'merge') : 'merge'; };
+
 export function mergeActProps(b: Bundle): MergeActProps | null {
   const p = b.pull; if (p.merged || p.state === 'closed') return null;
   const busy = S.busy === 'merge', am = p.auto_merge, blocked = p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
-  const cur = am ? (({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' } as Record<string, string>)[am.merge_method!] || 'merge') : 'merge';
-  return { draft: !!p.draft, err: errMsg('merge'), method: cur, busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errMsg('automerge') };
+  return { draft: !!p.draft, err: errMsg('merge'), method: S.method || mergeMethod(), busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errMsg('automerge') };
 }
 
 
@@ -88,7 +90,7 @@ export function confirmDlg(title: string, text: string, label: string, danger: b
 
 // Runs a write action. Returns the API response, or undefined after showing an error under `key`.
 // Any write action puts a spinner in the button that started it and disables it until the request settles.
-document.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest?.('button'); S.lastSel = b ? btnSel(b) : null; }, true);
+export const noteClick = (e: MouseEvent) => { const b = (e.target as HTMLElement).closest?.('button'); S.lastSel = b ? btnSel(b) : null; };
 
 export const btnSel = (b: HTMLElement) => { if (b.id) return '#' + b.id; const a = [...b.attributes].find((x) => x.name.startsWith('data-')); return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null; };
 // The same selector, computed from a button's props, so the views can tell which button is busy while they render.
@@ -172,8 +174,8 @@ export function deleteCommentDialog(c: { id?: number }, kind: string) {
 
 export function hideCommentDialog(c: { node_id?: string; id?: number | string }) {
   const reasons = [['SPAM', 'Spam'], ['ABUSE', 'Abuse'], ['OFF_TOPIC', 'Off-topic'], ['OUTDATED', 'Outdated'], ['DUPLICATE', 'Duplicate'], ['RESOLVED', 'Resolved']];
-  S.dlg = { k: 'hidec', reasons: reasons as [string, string][], ok: async () => {
-    const r = await act('minimize', { body: c.node_id || '', content: $<HTMLSelectElement>('#hcreason')!.value }, 'hidec', true);
+  S.hideReason = 'OUTDATED'; S.dlg = { k: 'hidec', reasons: reasons as [string, string][], ok: async () => {
+    const r = await act('minimize', { body: c.node_id || '', content: S.hideReason || 'OUTDATED' }, 'hidec', true);
     if (r === undefined) return;
     S.fold['c:' + c.id] = true; localStorage.setItem('fold', JSON.stringify(S.fold));
     S.dlg = null; await refreshPr();
@@ -232,10 +234,10 @@ export async function rerunChecks(e: Event) { e.stopPropagation(); const urls = 
 export async function updateBranch() { const r = await act('update_branch', {}, 'update_branch'); if (r !== undefined) await refreshPr(); }
 export async function markReady() { const r = await act('ready', {}, 'ready'); if (r !== undefined) await refreshPr(); }
 export function toDraft() { confirmDlg('Convert to draft?', 'Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.', 'Convert to draft', false, async () => { const r = await act('draft', {}, 'merge'); if (r !== undefined) await refreshPr(); }); }
-export async function enableAuto() { const r = await act('automerge', { method: $<HTMLSelectElement>('#mmethod')!.value }, 'automerge'); if (r !== undefined) await refreshPr(); }
+export async function enableAuto() { const r = await act('automerge', { method: S.method || mergeMethod() }, 'automerge'); if (r !== undefined) await refreshPr(); }
 export async function disableAuto() { const r = await act('disable_automerge', {}, 'automerge'); if (r !== undefined) await refreshPr(); }
 export function doMerge() {
-  const m = $<HTMLSelectElement>('#mmethod')!.value, p = S.bundle!.pull, names: Record<string, string> = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
+  const m = S.method || mergeMethod(), p = S.bundle!.pull, names: Record<string, string> = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
   confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
 }
 
@@ -300,14 +302,17 @@ export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = fa
 const live = new Map<EditorHandle, string>();
 // Focus an editor by its draft key; when it has not been built yet (it mounts lazily) the request waits for it.
 const wantFocus = new Set<string>();
-export function focusDraft(key: string) { const ed = [...live].find(([, k]) => k === key)?.[0]; if (ed) ed.focus?.(); else wantFocus.add(key); }
+editorMount.focus = (key) => { const ed = [...live].find(([, k]) => k === key)?.[0]; if (ed) ed.focus?.(); else wantFocus.add(key); };
+export const focusDraft = (key: string) => request('draft:focus:' + key);
+export const scrollDraft = (key: string) => request('draft:scroll:' + key);
+export const blurDraft = (key: string) => request('draft:blur:' + key);
 export function syncDraft(key: string) { live.forEach((k, ed) => { if (k === key) ed.setMarkdown?.(S.draft[key] || ''); }); }
 
 // Called by every DraftBox when it mounts: builds the editor once its box is near the viewport; the returned function tears it down.
 editorMount.preview = previewDraft;
 editorMount.fn = (host, key, ph) => {
   if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return () => {}; }
-  const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? $(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
+  const send = () => request('draft:submit:' + key);
   let ed: EditorHandle | null = null, gone = false;
   const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); if (wantFocus.delete(key)) ed.focus?.(); };
   // Editors are heavy: build each one only when its box is near the viewport.

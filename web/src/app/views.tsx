@@ -3,7 +3,7 @@ import type { PrListHandlers } from '../components/PrList';
 import { InboxPage, NewPr, NotesPage } from '../components/Pages';
 import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/Pages';
 import { openAux, openClick, openCtx } from './bind';
-import { btnSel, rerender, saveDrafts, setBusy, syncDraft } from './actions';
+import { rerender, saveDrafts, setBusy, syncDraft } from './actions';
 import { bpOpen } from './addressbar';
 import { S, tauri } from './core';
 import { confetti } from './fun';
@@ -78,8 +78,8 @@ const newpr: NewPrHandlers = {
   del: (k: NpListKey, v) => { np()[k] = np()[k].filter((x: string) => x !== v); render(); },
   mile: (e) => { np().milestone = val(e); },
   issues: (e) => { np().issues = val(e); },
-  create: async (e) => {
-    const n = np(), sel = btnSel(e.currentTarget as HTMLElement); setBusy(sel, true); n.err = '';
+  create: async () => {
+    const n = np(), sel = '#npcreate'; setBusy(sel, true); n.err = '';
     try {
       const nums = [...new Set((n.issues.match(/\d+/g) || []))];
       const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();

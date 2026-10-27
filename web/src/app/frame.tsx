@@ -1,5 +1,5 @@
 import { render as paint } from 'preact';
-import { useLayoutEffect } from 'preact/hooks';
+import { useEffect, useLayoutEffect } from 'preact/hooks';
 import type { VNode } from 'preact';
 import { Shell } from '../components/Shell';
 import type { ShellProps } from '../components/Shell';
@@ -9,12 +9,36 @@ import { S, applyMode } from './core';
 // a layer repaints by setting its slot to a fresh vnode, the others keep their vnode and Preact skips them.
 type Slot = 'top' | 'side' | 'dlg' | 'notes' | 'pop' | 'pal' | 'ovl' | 'totop';
 const slots: Record<Slot, VNode | null> = { top: null, side: null, dlg: null, notes: null, pop: null, pal: null, ovl: null, totop: null };
-let gate: VNode | null = null, shell: ShellProps | null = null, held = 0, started = false;
+// Everything that used to be a document/window listener: element-level handlers on the frame root, window events for shortcuts and focus, and the pointer drags.
+export interface Globals {
+  pointerDown: (e: PointerEvent) => void; clickCapture: (e: MouseEvent) => void; click: (e: MouseEvent) => void; mouseDown: (e: MouseEvent) => void
+  key: (e: KeyboardEvent) => void; focus: () => void; online: () => void; offline: () => void
+}
+export interface DragFns { move: (e: MouseEvent) => void; end: () => void }
+let globals: Globals | null = null, drag: DragFns | null = null;
+export const setGlobals = (g: Globals) => { globals = g; };
+// A drag is state: Frame listens to the window's pointer moves for as long as one is active.
+export const beginDrag = (d: DragFns) => { drag = d; repaint(); };
+
+let gate: VNode | null = null, shell: ShellProps | null = null, held = 0;
 
 // The theme attributes on <html> follow S.mode on every paint; a layout effect keeps them in step with the DOM the view transition snapshots.
 const Frame = () => {
   useLayoutEffect(() => { applyMode(); });
-  return <div id="frame" class={S.dragging ? 'dragging' : ''} style="display:contents">
+  useEffect(() => {
+    const g = globals; if (!g) return;
+    addEventListener('keydown', g.key); addEventListener('focus', g.focus); addEventListener('online', g.online); addEventListener('offline', g.offline);
+    return () => { removeEventListener('keydown', g.key); removeEventListener('focus', g.focus); removeEventListener('online', g.online); removeEventListener('offline', g.offline); };
+  }, []);
+  const d = drag;
+  useLayoutEffect(() => {
+    if (!d) return;
+    const up = () => { removeEventListener('mousemove', d.move); removeEventListener('mouseup', up); drag = null; d.end(); };
+    addEventListener('mousemove', d.move); addEventListener('mouseup', up);
+    return () => { removeEventListener('mousemove', d.move); removeEventListener('mouseup', up); };
+  }, [d]);
+  const g = globals;
+  return <div id="frame" class={S.dragging ? 'dragging' : ''} style="display:contents" onPointerDown={g?.pointerDown} onClickCapture={g?.clickCapture} onClick={g?.click} onMouseDown={g?.mouseDown}>
     <div id="top" style="display:contents">{slots.top}</div>
     <div id="rest" style="display:contents">
       {gate ? <>{gate}<div id="dlg" style="display:contents">{slots.dlg}</div></> : shell ? <Shell {...shell} side={slots.side} dlg={slots.dlg} notes={slots.notes} /> : null}
@@ -29,7 +53,6 @@ const Frame = () => {
 export function repaint() {
   if (held) return;
   const app = document.getElementById('app')!;
-  if (!started) { app.innerHTML = ''; started = true; }
   paint(<Frame />, app);
 }
 export const setSlot = (name: Slot, v: VNode | null) => { slots[name] = v; repaint(); };

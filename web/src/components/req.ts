@@ -1,38 +1,47 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 
-// Elements that other code may need to scroll, focus or reveal register themselves here under a name; callers ask by name and never hold the element.
-const scrollers = new Map<string, (top: number, smooth: boolean) => void>();
-export function useScroller(id: string) {
+// Requests are state: one numbered entry per target name. Anything may set one with `request`; the component that owns the target reads it
+// (`useOnRequest`) and acts in an effect. Nobody holds an element and nobody calls into a component.
+export interface Req { n: number; a?: string; top?: number; smooth?: boolean }
+const reqs = new Map<string, Req>();
+const subs = new Map<string, Set<() => void>>();
+export function request(id: string, r: Omit<Req, 'n'> = {}) { reqs.set(id, { ...r, n: (reqs.get(id)?.n || 0) + 1 }); subs.get(id)?.forEach((f) => f()); }
+
+export function useOnRequest(id: string, apply: (r: Req) => void, layout = false) {
+  const [, tick] = useState(0), r = reqs.get(id), seen = useRef(r?.n), act = useRef(apply); act.current = apply;
+  useEffect(() => {
+    const f = () => tick((t) => t + 1);
+    let s = subs.get(id); if (!s) subs.set(id, s = new Set()); s.add(f);
+    if (reqs.get(id)?.n !== seen.current && reqs.get(id)?.n !== r?.n) f(); // asked between our render and this effect
+    return () => { s!.delete(f); };
+  }, [id]);
+  (layout ? useLayoutEffect : useEffect)(() => { if (r && r.n !== seen.current) { seen.current = r.n; act.current(r); } }, [r?.n]);
+}
+
+// The page and each split-view pane scroll when asked (`scroll:<id>`).
+export function useScroller(id: string, layout = false) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { scrollers.set(id, (top, smooth) => ref.current?.scrollTo({ top, behavior: smooth ? 'smooth' : 'auto' })); return () => { scrollers.delete(id); }; }, [id]);
+  useOnRequest('scroll:' + id, (r) => ref.current?.scrollTo({ top: r.top || 0, behavior: r.smooth ? 'smooth' : 'auto' }), layout);
   return ref;
 }
-export const scrollPane = (id: string, top: number, smooth: boolean) => scrollers.get(id)?.(top, smooth);
+export const scrollTarget = (id: string, top: number, smooth: boolean) => request('scroll:' + id, { top, smooth });
 
-const focusers = new Map<string, (a: 'focus' | 'select' | 'blur') => void>();
+// An input takes the caret, selects its text or lets go when asked (`focus:<id>`).
 export function useFocusTarget(id: string) {
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    focusers.set(id, (a) => { const el = ref.current; if (!el) return; if (a === 'blur') el.blur(); else { el.focus(); if (a === 'select') el.select(); } });
-    return () => { focusers.delete(id); };
-  }, [id]);
+  useOnRequest('focus:' + id, (r) => { const el = ref.current; if (!el) return; if (r.a === 'blur') el.blur(); else { el.focus(); if (r.a === 'select') el.select(); } });
   return ref;
 }
-export const focusTarget = (id: string, a: 'focus' | 'select' | 'blur') => focusers.get(id)?.(a);
+export const focusTarget = (id: string, a: 'focus' | 'select' | 'blur') => request('focus:' + id, { a });
 
-// A block that was just opened asks to be brought on screen when part of it is cut off (`reveal(key)`); the block listens by its fold key.
-const revealers = new Set<(key: string) => void>();
-export const reveal = (key: string) => revealers.forEach((f) => f(key));
-export function useReveal<T extends HTMLElement>(key: string | null | undefined) {
+// A block that was just opened is brought on screen when part of it is cut off (`reveal:<fold key>`).
+export const reveal = (key: string) => request('reveal:' + key);
+export function useReveal<T extends HTMLElement>(key: string) {
   const ref = useRef<T>(null);
-  useEffect(() => {
-    if (!key) return;
-    const f = (k: string) => {
-      const box = ref.current, main = box?.closest('.main'); if (k !== key || !box || !main) return;
-      const r = box.getBoundingClientRect(), m = main.getBoundingClientRect();
-      if (r.bottom > m.bottom - 8 || r.top < m.top) box.scrollIntoView({ block: r.height > m.height * 0.85 ? 'start' : 'center', behavior: 'smooth' });
-    };
-    revealers.add(f); return () => { revealers.delete(f); };
-  }, [key]);
+  useOnRequest('reveal:' + key, () => {
+    const box = ref.current, main = box?.closest('.main'); if (!box || !main) return;
+    const r = box.getBoundingClientRect(), m = main.getBoundingClientRect();
+    if (r.bottom > m.bottom - 8 || r.top < m.top) box.scrollIntoView({ block: r.height > m.height * 0.85 ? 'start' : 'center', behavior: 'smooth' });
+  });
   return ref;
 }

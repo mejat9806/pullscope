@@ -5,9 +5,10 @@ import { focusTarget } from '../components/req';
 import { OV, paintOv } from './overlay';
 import { render, repaintShell } from './pages';
 import { curRef, openTab } from './tabs';
+import { paintTop } from './top';
 
 // ---- Address bar autocomplete: open tabs and recent PRs, then repositories, then that repo's PR numbers ----
-export const AC: { rows: AcRow[]; sel: number; nav: boolean; prs: Record<string, PrListItem[] | null> } = { rows: [], sel: -1, nav: false, prs: {} };
+export const AC: { rows: AcRow[]; sel: number; nav: boolean; prs: Record<string, PrListItem[] | null>; rect: DOMRect | null } = { rows: [], sel: -1, nav: false, prs: {}, rect: null };
 
 export function acRows(q: string) {
   const t = q.trim(), lq = t.toLowerCase(), rows: AcRow[] = [], seen = new Set<string | undefined>();
@@ -29,45 +30,54 @@ export function acRows(q: string) {
 
 export function acClose() { AC.rows = []; AC.sel = -1; if (OV.ac) { OV.ac = null; paintOv(); } }
 
+// The input is controlled: S.addrText is what the user typed (null = show the open PR's ref) and S.addrFocus says whether suggestions may show.
 export function acDraw() {
-  const inp = $<HTMLInputElement>('#addrinput')!; if (!inp || document.activeElement !== inp) return acClose();
-  const q = inp.value; AC.rows = acRows(q);
+  if (!S.addrFocus || !AC.rect) return acClose();
+  const q = S.addrText ?? ''; AC.rows = acRows(q);
   const m = q.trim().toLowerCase().match(/^([^#\s]+\/[^#\s]+)#\d*$/);
   if (m && AC.prs[m[1]] === undefined && tauri) { AC.prs[m[1]] = null; tauri!.invoke('list_prs', { repo: m[1], state: 'all' }).then((r) => { AC.prs[m[1]] = r; acDraw(); }).catch(() => { AC.prs[m[1]] = []; }); }
   if (!AC.rows.length) return acClose();
   AC.sel = Math.min(AC.sel, AC.rows.length - 1);
-  const b = inp.closest<HTMLElement>('.addr')!.getBoundingClientRect();
+  const b = AC.rect;
   OV.ac = { rows: AC.rows, sel: AC.sel, left: b.left, top: b.bottom + 6, width: b.width, pick: acPick }; paintOv();
 }
 
+const setText = (t: string | null) => { S.addrText = t; paintTop(); };
+
 export function acPick(r: AcRow) {
-  const inp = $<HTMLInputElement>('#addrinput')!; if (!r || !inp) return;
-  if (r.fill) { inp.value = r.fill; focusTarget('addr', 'focus'); AC.sel = -1; acDraw(); return; }
-  acClose(); focusTarget('addr', 'blur'); openPr(r.ref!);
+  if (!r) return;
+  if (r.fill) { setText(r.fill); focusTarget('addr', 'focus'); AC.sel = -1; acDraw(); return; }
+  acClose(); S.addrText = null; paintTop(); focusTarget('addr', 'blur'); openPr(r.ref!);
 }
 
-document.addEventListener('focusin', (e) => { if ((e.target as HTMLElement).id === 'addrinput') { AC.sel = -1; setTimeout(acDraw, 0); } });
+export const addrSubmit = (e: Event) => { e.preventDefault(); const t = S.addrText ?? curText(); S.addrText = null; acClose(); focusTarget('addr', 'blur'); openPr(t); };
 
-document.addEventListener('input', (e) => { if ((e.target as HTMLElement).id === 'addrinput') { AC.sel = -1; acDraw(); } });
+const curText = () => (S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '');
 
-document.addEventListener('focusout', (e) => { if ((e.target as HTMLElement).id === 'addrinput') setTimeout(acClose, 120); });
+export const addrInput = (e: Event) => { const el = e.currentTarget as HTMLInputElement; AC.rect = el.closest('.addr')!.getBoundingClientRect(); AC.sel = -1; setText(el.value); acDraw(); };
 
-document.addEventListener('keydown', (e) => {
-  if ((e.target as HTMLElement).id !== 'addrinput' || !OV.ac) return;
+export const addrFocus = (e: Event) => { const el = e.currentTarget as HTMLInputElement; AC.rect = el.closest('.addr')!.getBoundingClientRect(); S.addrFocus = true; AC.sel = -1; setTimeout(acDraw, 0); };
+
+export const addrBlur = () => { S.addrFocus = false; setTimeout(() => { if (!S.addrFocus) { S.addrText = null; paintTop(); acClose(); } }, 120); };
+
+export function addrKey(e: KeyboardEvent) {
+  if (!OV.ac) return;
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = AC.rows.length; AC.sel = e.key === 'ArrowDown' ? (AC.sel + 1) % n : (AC.sel - 1 + n) % n; acDraw(); }
-  else if (e.key === 'Tab' && AC.rows.length) { e.preventDefault(); const r = AC.rows[Math.max(0, AC.sel)]; if (r.fill) acPick(r); else { (e.target as HTMLInputElement).value = r.ref!; AC.sel = -1; acDraw(); } }
+  else if (e.key === 'Tab' && AC.rows.length) { e.preventDefault(); const r = AC.rows[Math.max(0, AC.sel)]; if (r.fill) acPick(r); else { setText(r.ref!); AC.sel = -1; acDraw(); } }
   else if (e.key === 'Enter' && AC.sel >= 0) { e.preventDefault(); acPick(AC.rows[AC.sel]); }
   else if (e.key === 'Escape') { acClose(); }
-}, true);
+}
 
 // Dragging the window: Tauri's drag attribute only works on the exact element it sits on, so treat every non-interactive spot of the toolbar as a handle.
-{
-  const win = () => window.__TAURI__?.window?.getCurrentWindow?.();
-  const free = (e: MouseEvent) => e.button === 0 && (e.target as HTMLElement).closest<HTMLElement>('.toolbar') && !(e.target as HTMLElement).closest<HTMLElement>('button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop');
-  document.addEventListener('mousedown', (e) => { if (!free(e)) return; e.preventDefault(); if (e.detail === 2) win()?.toggleMaximize?.(); else win()?.startDragging?.(); });
+export function winDrag(e: MouseEvent) {
+  const t = e.target as HTMLElement, win = window.__TAURI__?.window?.getCurrentWindow?.();
+  if (e.button !== 0 || t.closest('button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop')) return;
+  e.preventDefault(); if (e.detail === 2) win?.toggleMaximize?.(); else win?.startDragging?.();
 }
 
 // Branch picker for the New PR page: search, your branches first, the rest grouped by prefix with last-commit age.
+export function bpAway(e: MouseEvent) { if (OV.bp && !(e.target as HTMLElement).closest('#bppop')) bpClose(); }
+
 export function bpClose() { if (OV.bp) { OV.bp = null; paintOv(); } }
 
 export function bpAge(t: string) { if (!t) return ''; const m = Math.max(1, Math.round((Date.now() - +new Date(t)) / 60000)); return m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : m < 43200 ? `${Math.round(m / 1440)}d` : `${Math.round(m / 43200)}mo`; }

@@ -4,13 +4,13 @@ import { render } from './pages';
 import { paintDlg } from './dialogs';
 
 export function tokenDialog() {
-  S.oauth = {}; S.oauthLive = false;
+  S.oauth = {}; S.oauthLive = false; S.tokenText = '';
   S.dlg = { k: 'token' };
   render();
 }
 
 export async function tokenSave() {
-  const v = (document.getElementById('tokeninput') as HTMLInputElement).value;
+  const v = S.tokenText || '';
   try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); S.authChecked = true; if (S.hasToken) { S.gateErr = ''; loadRepos(); } else { S.repos = null; } } catch (e) { alert(e); }
   S.oauthLive = false; S.dlg = null; render();
 }

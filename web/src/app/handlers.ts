@@ -52,6 +52,6 @@ export const tlOn: TlHandlers = {
   foldAll: foldAllConv,
   tab: openTab,
   merge: { toggle: (e, k) => toggleMb(e, k), rerun: (e) => { rerunChecks(e); }, update: () => { updateBranch(); }, ready: () => { markReady(); } },
-  act: { close: () => toggleClosed(), merge: () => doMerge(), noauto: () => { disableAuto(); }, auto: () => { enableAuto(); }, draft: () => toDraft() },
-  composer: { toggle: () => toggleComposer(), key: (e) => cbarKey(e), send: () => { sendComment(); }, close: () => toggleClosed() },
+  act: { close: () => toggleClosed(), merge: () => doMerge(), noauto: () => { disableAuto(); }, auto: () => { enableAuto(); }, draft: () => toDraft(), method: (e) => { S.method = (e.currentTarget as HTMLSelectElement).value; rerender(); } },
+  composer: { toggle: () => toggleComposer(), key: (e) => cbarKey(e), send: () => { sendComment(); }, close: () => toggleClosed(), measure: (m) => { S.composerBox = m; } },
 };

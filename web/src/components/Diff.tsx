@@ -27,12 +27,12 @@ export function ThreadRow(p: ThreadRowProps & { on?: ConvHandlers }) {
 
 export interface ReplyProps { rid: number | string; ph: string; err: string }
 export function ReplyBox({ rid, ph, err, on }: ReplyProps & { on?: ConvHandlers }) {
-  return <div class="reply"><DraftBox k={`reply-${rid}`} ph={ph} rows={2} /><ErrLine m={err} /><button class="btn small" data-sendreply={rid} onClick={on && (() => on.reply(String(rid)))}>Reply</button></div>;
+  return <div class="reply"><DraftBox k={`reply-${rid}`} ph={ph} rows={2} submit={on && (() => on.reply(String(rid)))} /><ErrLine m={err} /><button class="btn small" data-sendreply={rid} onClick={on && (() => on.reply(String(rid)))}>Reply</button></div>;
 }
 
 export interface LcHandlers { del: (id: string) => void; cancel: () => void; suggest: (e: Event) => void; add: () => void }
 export const LcCards = ({ cards, on }: { cards: { id: number | string; body: string }[]; on?: LcHandlers }) => <>{cards.map((c) => <div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body" dangerouslySetInnerHTML={{ __html: c.body }} /><button class="lc-x" data-lcdel={c.id} title="Delete draft comment" onClick={on && (() => on.del(String(c.id)))}>{I('x')}</button></div>)}</>;
-export const LcEdit = ({ code, on }: { code: string | null; on?: LcHandlers }) => <div class="lc-edit"><DraftBox k="lc" ph="Leave a comment on this line" rows={3} /><div class="lc-btns">{code !== null ? <button class="btn small" id="lcsuggest" data-code={code} title="Insert a suggested change for this line" onClick={on?.suggest}>± Suggest change</button> : ''}<span class="sp"></span><button class="btn small" id="lccancel" onClick={on?.cancel}>Cancel</button><button class="btn small primary" id="lcadd" onClick={on?.add}>Add to review</button></div></div>;
+export const LcEdit = ({ code, on }: { code: string | null; on?: LcHandlers }) => <div class="lc-edit"><DraftBox k="lc" ph="Leave a comment on this line" rows={3} submit={on?.add} /><div class="lc-btns">{code !== null ? <button class="btn small" id="lcsuggest" data-code={code} title="Insert a suggested change for this line" onClick={on?.suggest}>± Suggest change</button> : ''}<span class="sp"></span><button class="btn small" id="lccancel" onClick={on?.cancel}>Cancel</button><button class="btn small primary" id="lcadd" onClick={on?.add}>Add to review</button></div></div>;
 
 export interface RvThread { folded: boolean; k: string; def: boolean; path: string; resolved: boolean; tid: string | null; hunk: HunkRow[]; cards: TcProps[]; reply: ReplyProps }
 export interface ReviewBlockProps { folded: boolean; k: string; kind: string; ic: string; user: Person | null | undefined; verb: string; url: string; at: string; sum: { ok: boolean; text: string; allRes: boolean } | null; bodyHtml: string; threads: RvThread[]; allRes: boolean }

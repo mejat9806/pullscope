@@ -1,5 +1,6 @@
 import type { VNode } from 'preact';
 import type { Bundle, CommitRow, FileChange, FrRange, Reviewer, User } from '../types';
+import { beginDrag } from './frame';
 import { Attention, CommitRow as CommitRowView } from '../components/Timeline';
 import { CommitsList, FcBar, FileBox, FilesBar, SplitView } from '../components/Merge';
 import type { CkGroup, CommitsDialogProps, MergeBoxProps, PrSideProps, SplitHandlers } from '../components/Merge';
@@ -154,8 +155,8 @@ const hideSide = (k: string, v: boolean) => { S.hide[k] = v; localStorage.setIte
 function gutterDrag(e: MouseEvent) {
   e.preventDefault(); const r = $('.split')!.getBoundingClientRect();
   const mv = (ev: MouseEvent) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); repaintShell({ lw: S.lw }); };
-  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false); localStorage.setItem('lw', String(Math.round(S.lw))); };
-  setDragging(true); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  const up = () => { setDragging(false); localStorage.setItem('lw', String(Math.round(S.lw))); };
+  setDragging(true); beginDrag({ move: mv, end: up });
 }
 
 const splitOn: SplitHandlers = { hide: hideSide, flip: flipSides, pick: (sha) => { selectCommit(sha); }, gutter: gutterDrag, fold: (e, k, def) => convOn.fold(e, k, def), scroll: (id, e) => scrolled(id, e.currentTarget as HTMLElement) };

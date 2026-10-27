@@ -499,23 +499,75 @@
     return /* @__PURE__ */ u3("span", { title: w3.title, children: w3.text });
   };
 
+  // src/components/req.ts
+  var reqs = /* @__PURE__ */ new Map();
+  var subs = /* @__PURE__ */ new Map();
+  function request(id, r3 = {}) {
+    reqs.set(id, { ...r3, n: (reqs.get(id)?.n || 0) + 1 });
+    subs.get(id)?.forEach((f4) => f4());
+  }
+  function useOnRequest(id, apply, layout = false) {
+    const [, tick] = d2(0), r3 = reqs.get(id), seen2 = A2(r3?.n), act3 = A2(apply);
+    act3.current = apply;
+    h2(() => {
+      const f4 = () => tick((t3) => t3 + 1);
+      let s3 = subs.get(id);
+      if (!s3) subs.set(id, s3 = /* @__PURE__ */ new Set());
+      s3.add(f4);
+      if (reqs.get(id)?.n !== seen2.current && reqs.get(id)?.n !== r3?.n) f4();
+      return () => {
+        s3.delete(f4);
+      };
+    }, [id]);
+    (layout ? _2 : h2)(() => {
+      if (r3 && r3.n !== seen2.current) {
+        seen2.current = r3.n;
+        act3.current(r3);
+      }
+    }, [r3?.n]);
+  }
+  function useScroller(id, layout = false) {
+    const ref = A2(null);
+    useOnRequest("scroll:" + id, (r3) => ref.current?.scrollTo({ top: r3.top || 0, behavior: r3.smooth ? "smooth" : "auto" }), layout);
+    return ref;
+  }
+  var scrollTarget = (id, top, smooth) => request("scroll:" + id, { top, smooth });
+  function useFocusTarget(id) {
+    const ref = A2(null);
+    useOnRequest("focus:" + id, (r3) => {
+      const el = ref.current;
+      if (!el) return;
+      if (r3.a === "blur") el.blur();
+      else {
+        el.focus();
+        if (r3.a === "select") el.select();
+      }
+    });
+    return ref;
+  }
+  var focusTarget = (id, a3) => request("focus:" + id, { a: a3 });
+  var reveal = (key) => request("reveal:" + key);
+  function useReveal(key) {
+    const ref = A2(null);
+    useOnRequest("reveal:" + key, () => {
+      const box = ref.current, main = box?.closest(".main");
+      if (!box || !main) return;
+      const r3 = box.getBoundingClientRect(), m3 = main.getBoundingClientRect();
+      if (r3.bottom > m3.bottom - 8 || r3.top < m3.top) box.scrollIntoView({ block: r3.height > m3.height * 0.85 ? "start" : "center", behavior: "smooth" });
+    });
+    return ref;
+  }
+
   // src/components/Actions.tsx
   var ErrLine = ({ m: m3 }) => m3 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m3 }) : null;
-  var editorMount = { fn: null, preview: null };
-  var scrollers = /* @__PURE__ */ new Set();
-  var scrollDraft = (key) => scrollers.forEach((f4) => f4(key));
-  function DraftBox({ k: k3, ph, rows }) {
+  var editorMount = { fn: null, preview: null, focus: null };
+  function DraftBox({ k: k3, ph, rows, submit }) {
     const ref = A2(null);
     const [mode2, setMode] = d2("write"), [pv, setPv] = d2(null);
-    h2(() => {
-      const f4 = (key) => {
-        if (key === k3) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-      };
-      scrollers.add(f4);
-      return () => {
-        scrollers.delete(f4);
-      };
-    }, [k3]);
+    useOnRequest("draft:submit:" + k3, () => submit?.());
+    useOnRequest("draft:scroll:" + k3, () => ref.current?.scrollIntoView({ block: "center", behavior: "smooth" }));
+    useOnRequest("draft:focus:" + k3, () => editorMount.focus?.(k3));
+    useOnRequest("draft:blur:" + k3, () => ref.current?.querySelector(".tt-content")?.blur());
     const hint = `${ph} \u2014 type / for blocks`;
     h2(() => editorMount.fn ? editorMount.fn(ref.current, k3, hint) : void 0, []);
     const show = (m3) => {
@@ -550,8 +602,13 @@
     ] });
   }
   function Composer(p3) {
-    const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
+    const { on: on3 } = p3, box = A2(null);
+    _2(() => {
+      const el = box.current, pane = el.closest(".pane-body");
+      on3?.measure({ h: el.offsetHeight, in: pane ? pane.closest(".pane-l") ? "l" : "r" : "main" });
+      return () => on3?.measure(null);
+    });
+    return /* @__PURE__ */ u3("div", { ref: box, class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
       /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
         I2("comment"),
         /* @__PURE__ */ u3("b", { children: "Add a comment" }),
@@ -561,7 +618,7 @@
       ] }),
       "\n  ",
       /* @__PURE__ */ u3("div", { class: "composer-body", children: [
-        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
+        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4, submit: p3.busy ? void 0 : on3?.send }),
         /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
         "\n  ",
         /* @__PURE__ */ u3("div", { class: "composer-f", children: [
@@ -583,7 +640,7 @@
       /* @__PURE__ */ u3(ErrLine, { m: p3.err })
     ] });
     return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v3, t3]) => /* @__PURE__ */ u3("option", { value: v3, selected: p3.method === v3, children: t3 })) }),
+      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", onChange: on3?.method, children: METHODS.map(([v3, t3]) => /* @__PURE__ */ u3("option", { value: v3, selected: p3.method === v3, children: t3 })) }),
       /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
       "\n  ",
       p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
@@ -594,76 +651,17 @@
     ] });
   }
 
-  // src/components/req.ts
-  var scrollers2 = /* @__PURE__ */ new Map();
-  function useScroller(id) {
-    const ref = A2(null);
-    h2(() => {
-      scrollers2.set(id, (top, smooth) => ref.current?.scrollTo({ top, behavior: smooth ? "smooth" : "auto" }));
-      return () => {
-        scrollers2.delete(id);
-      };
-    }, [id]);
-    return ref;
-  }
-  var scrollPane = (id, top, smooth) => scrollers2.get(id)?.(top, smooth);
-  var focusers = /* @__PURE__ */ new Map();
-  function useFocusTarget(id) {
-    const ref = A2(null);
-    h2(() => {
-      focusers.set(id, (a3) => {
-        const el = ref.current;
-        if (!el) return;
-        if (a3 === "blur") el.blur();
-        else {
-          el.focus();
-          if (a3 === "select") el.select();
-        }
-      });
-      return () => {
-        focusers.delete(id);
-      };
-    }, [id]);
-    return ref;
-  }
-  var focusTarget = (id, a3) => focusers.get(id)?.(a3);
-  var revealers = /* @__PURE__ */ new Set();
-  var reveal = (key) => revealers.forEach((f4) => f4(key));
-  function useReveal(key) {
-    const ref = A2(null);
-    h2(() => {
-      if (!key) return;
-      const f4 = (k3) => {
-        const box = ref.current, main = box?.closest(".main");
-        if (k3 !== key || !box || !main) return;
-        const r3 = box.getBoundingClientRect(), m3 = main.getBoundingClientRect();
-        if (r3.bottom > m3.bottom - 8 || r3.top < m3.top) box.scrollIntoView({ block: r3.height > m3.height * 0.85 ? "start" : "center", behavior: "smooth" });
-      };
-      revealers.add(f4);
-      return () => {
-        revealers.delete(f4);
-      };
-    }, [key]);
-    return ref;
-  }
-
   // src/components/Shell.tsx
   var Main = (p3) => {
-    const ref = A2(null), seen2 = A2(p3.scroll?.n);
-    _2(() => {
-      if (p3.scroll && p3.scroll.n !== seen2.current) {
-        seen2.current = p3.scroll.n;
-        ref.current.scrollTo({ top: p3.scroll.top, behavior: p3.scroll.smooth ? "smooth" : "auto" });
-      }
-    });
+    const ref = useScroller("main", true);
     return /* @__PURE__ */ u3("div", { class: p3.cls, ref, onScroll: p3.onScroll, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: p3.children }) });
   };
   var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
     /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
       /* @__PURE__ */ u3("div", { id: "side", style: "display:contents", children: p3.side }),
-      /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
-      /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, scroll: p3.scroll, onScroll: p3.onScroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+      /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset", onMouseDown: p3.onGrip, onDblClick: p3.onGripReset }),
+      /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim", onClick: p3.onScrim }),
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, onScroll: p3.onScroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
     ] }),
     /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: p3.dlg }),
     /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents", children: p3.notes })
@@ -671,15 +669,54 @@
 
   // src/app/frame.tsx
   var slots = { top: null, side: null, dlg: null, notes: null, pop: null, pal: null, ovl: null, totop: null };
+  var globals = null;
+  var drag = null;
+  var setGlobals = (g2) => {
+    globals = g2;
+  };
+  var beginDrag = (d3) => {
+    drag = d3;
+    repaint();
+  };
   var gate = null;
   var shell = null;
   var held = 0;
-  var started = false;
   var Frame = () => {
     _2(() => {
       applyMode();
     });
-    return /* @__PURE__ */ u3("div", { id: "frame", class: S.dragging ? "dragging" : "", style: "display:contents", children: [
+    h2(() => {
+      const g3 = globals;
+      if (!g3) return;
+      addEventListener("keydown", g3.key);
+      addEventListener("focus", g3.focus);
+      addEventListener("online", g3.online);
+      addEventListener("offline", g3.offline);
+      return () => {
+        removeEventListener("keydown", g3.key);
+        removeEventListener("focus", g3.focus);
+        removeEventListener("online", g3.online);
+        removeEventListener("offline", g3.offline);
+      };
+    }, []);
+    const d3 = drag;
+    _2(() => {
+      if (!d3) return;
+      const up = () => {
+        removeEventListener("mousemove", d3.move);
+        removeEventListener("mouseup", up);
+        drag = null;
+        d3.end();
+      };
+      addEventListener("mousemove", d3.move);
+      addEventListener("mouseup", up);
+      return () => {
+        removeEventListener("mousemove", d3.move);
+        removeEventListener("mouseup", up);
+      };
+    }, [d3]);
+    const g2 = globals;
+    return /* @__PURE__ */ u3("div", { id: "frame", class: S.dragging ? "dragging" : "", style: "display:contents", onPointerDown: g2?.pointerDown, onClickCapture: g2?.clickCapture, onClick: g2?.click, onMouseDown: g2?.mouseDown, children: [
       /* @__PURE__ */ u3("div", { id: "top", style: "display:contents", children: slots.top }),
       /* @__PURE__ */ u3("div", { id: "rest", style: "display:contents", children: gate ? /* @__PURE__ */ u3(S2, { children: [
         gate,
@@ -694,10 +731,6 @@
   function repaint() {
     if (held) return;
     const app = document.getElementById("app");
-    if (!started) {
-      app.innerHTML = "";
-      started = true;
-    }
     R(/* @__PURE__ */ u3(Frame, {}), app);
   }
   var setSlot = (name, v3) => {
@@ -784,11 +817,6 @@
     const groups = p3.groupsFor(q3.trim()), rows = groups.flatMap(([, l3]) => l3), a3 = Math.max(0, Math.min(act3, rows.length - 1));
     h2(() => {
       inp.current?.focus();
-      const away = (e3) => {
-        if (!ref.current?.contains(e3.target)) p3.done();
-      };
-      document.addEventListener("mousedown", away, true);
-      return () => document.removeEventListener("mousedown", away, true);
     }, []);
     h2(() => {
       ref.current?.querySelector(".act")?.scrollIntoView({ block: "nearest" });
@@ -1042,7 +1070,7 @@
       add
     ] }) : null;
   }
-  function CommentBox({ kb, flash, c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
+  function CommentBox({ onTask, kb, flash, c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
     const u4 = c3.user || c3.actor, k3 = "c:" + c3.id;
     const ref = useFlash(flash, kb);
     return /* @__PURE__ */ u3("div", { ref, class: `tl-comment${folded2 ? " folded" : ""}${kb ? " kb" : ""}${flashClass(flash)}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
@@ -1065,7 +1093,7 @@
           ] })
         ] }),
         NL,
-        /* @__PURE__ */ u3("div", { class: "cbody", children: bodyHtml ? /* @__PURE__ */ u3("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: bodyHtml } }) : /* @__PURE__ */ u3("span", { class: "empty", children: "No description provided." }) }),
+        /* @__PURE__ */ u3("div", { class: "cbody", children: bodyHtml ? /* @__PURE__ */ u3("div", { class: "markdown-body", onClick: onTask, dangerouslySetInnerHTML: { __html: bodyHtml } }) : /* @__PURE__ */ u3("span", { class: "empty", children: "No description provided." }) }),
         /* @__PURE__ */ u3(ReactionsBar, { ...reactions, on: on3?.react })
       ] })
     ] });
@@ -1503,7 +1531,7 @@
   var REVS = [["COMMENT", "Comment", "Submit general feedback without explicit approval."], ["APPROVE", "Approve", "Submit feedback and approve merging these changes."], ["REQUEST_CHANGES", "Request changes", "Submit feedback that must be addressed before merging."]];
   var ReviewDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
     /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
-    /* @__PURE__ */ u3(DraftBox, { k: "review", ph: p3.ph, rows: 5 }),
+    /* @__PURE__ */ u3(DraftBox, { k: "review", ph: p3.ph, rows: 5, submit: p3.ok }),
     /* @__PURE__ */ u3("div", { class: "radios", children: REVS.map(([v3, t3, d3]) => /* @__PURE__ */ u3("label", { children: [
       /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: v3, checked: p3.ev === v3, onChange: () => p3.onEv(v3) }),
       " ",
@@ -1558,7 +1586,7 @@
   var HideCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
     /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
     /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
-    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: p3.reasons.map(([v3, l3]) => /* @__PURE__ */ u3("option", { value: v3, selected: v3 === "OUTDATED", children: l3 })) }),
+    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", onChange: p3.pick, children: p3.reasons.map(([v3, l3]) => /* @__PURE__ */ u3("option", { value: v3, selected: v3 === p3.reason, children: l3 })) }),
     /* @__PURE__ */ u3(Err, { m: p3.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
       /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", onClick: p3.close, children: "Cancel" }),
@@ -1586,7 +1614,7 @@
       /* @__PURE__ */ u3("small", { children: "Waiting for approval\u2026" })
     ] }) : p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "margin:8px 0", children: p3.err }) : "" }),
     /* @__PURE__ */ u3("p", { children: /* @__PURE__ */ u3("a", { href: "https://github.com/settings/tokens/new?scopes=repo&description=Pullscope", children: "Create a classic token (repo scope preselected) \u2197" }) }),
-    /* @__PURE__ */ u3("input", { class: "input", id: "tokeninput", type: "password", placeholder: "ghp_\u2026", style: "width:100%;box-sizing:border-box" }),
+    /* @__PURE__ */ u3("input", { class: "input", id: "tokeninput", type: "password", value: p3.text, onInput: p3.input, placeholder: "ghp_\u2026", style: "width:100%;box-sizing:border-box" }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
       /* @__PURE__ */ u3("button", { class: "btn", id: "tokcancel", onClick: p3.close, children: "Cancel" }),
       /* @__PURE__ */ u3("button", { class: "btn primary", id: "toksave", onClick: p3.save, children: "Save" })
@@ -1905,7 +1933,7 @@
     let i3 = -1;
     return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m3) => ++i3 === n2 ? on3 ? /\schecked/.test(m3) ? m3 : m3.replace(/<input/, "<input checked") : m3.replace(/\schecked(="[^"]*")?/, "") : m3);
   };
-  document.addEventListener("click", async (e3) => {
+  async function taskClick(e3) {
     const cb = e3.target.closest("input.task-list-item-checkbox");
     if (!cb || cb.disabled || !S.bundle) return;
     const box = cb.closest(".tl-comment"), md = cb.closest(".markdown-body");
@@ -1932,14 +1960,16 @@
     qc.m.get(key).at = Date.now() - 2e4;
     tauri?.invoke("invalidate_pr", { url: key }).catch(() => {
     });
-  });
+  }
   function hasComment(elId) {
     const b2 = S.bundle, id = elId.replace(/^c-/, "");
     if (!b2) return false;
     return String(b2.pull.id) === id || b2.timeline.some((x2) => String(x2.id) === id) || b2.review_comments.some((x2) => String(x2.id) === id);
   }
   function commentBoxProps(c3, { isPr = false, flush = false } = {}) {
-    return { kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id), c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
+    return { onTask: (e3) => {
+      taskClick(e3);
+    }, kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id), c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
   }
   function hunkRows(hunk) {
     const rows = [];
@@ -2013,7 +2043,7 @@
   }
   function ReplyBox({ rid, ph, err, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "reply", children: [
-      /* @__PURE__ */ u3(DraftBox, { k: `reply-${rid}`, ph, rows: 2 }),
+      /* @__PURE__ */ u3(DraftBox, { k: `reply-${rid}`, ph, rows: 2, submit: on3 && (() => on3.reply(String(rid))) }),
       /* @__PURE__ */ u3(ErrLine, { m: err }),
       /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, onClick: on3 && (() => on3.reply(String(rid))), children: "Reply" })
     ] });
@@ -2024,7 +2054,7 @@
     /* @__PURE__ */ u3("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", onClick: on3 && (() => on3.del(String(c3.id))), children: I2("x") })
   ] })) });
   var LcEdit = ({ code, on: on3 }) => /* @__PURE__ */ u3("div", { class: "lc-edit", children: [
-    /* @__PURE__ */ u3(DraftBox, { k: "lc", ph: "Leave a comment on this line", rows: 3 }),
+    /* @__PURE__ */ u3(DraftBox, { k: "lc", ph: "Leave a comment on this line", rows: 3, submit: on3?.add }),
     /* @__PURE__ */ u3("div", { class: "lc-btns", children: [
       code !== null ? /* @__PURE__ */ u3("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", onClick: on3?.suggest, children: "\xB1 Suggest change" }) : "",
       /* @__PURE__ */ u3("span", { class: "sp" }),
@@ -2643,14 +2673,732 @@
       disableAuto();
     }, auto: () => {
       enableAuto();
-    }, draft: () => toDraft() },
+    }, draft: () => toDraft(), method: (e3) => {
+      S.method = e3.currentTarget.value;
+      rerender();
+    } },
     composer: { toggle: () => toggleComposer(), key: (e3) => cbarKey(e3), send: () => {
       sendComment();
-    }, close: () => toggleClosed() }
+    }, close: () => toggleClosed(), measure: (m3) => {
+      S.composerBox = m3;
+    } }
   };
 
   // src/components/ToTop.tsx
   var ToTop = ({ hidden, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: "Back to top", "aria-label": "Back to top", hidden, onClick, children: I2("chevron-up") });
+
+  // src/components/Home.tsx
+  var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Banners({ items, on: on3 }) {
+    return /* @__PURE__ */ u3(S2, { children: items.map((p3) => /* @__PURE__ */ u3("div", { class: "push-banner", children: [
+      I2("git-branch"),
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("b", { children: p3.branch }),
+        " had recent pushes ",
+        p3.ago,
+        p3.showRepo ? /* @__PURE__ */ u3(S2, { children: [
+          " ",
+          /* @__PURE__ */ u3("i", { children: [
+            "\xB7 ",
+            p3.repo
+          ] })
+        ] }) : ""
+      ] }),
+      /* @__PURE__ */ u3("span", { class: "sp" }),
+      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
+      /* @__PURE__ */ u3("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
+    ] })) });
+  }
+  function Card({ r: r3, on: on3 }) {
+    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
+      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
+      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+        /* @__PURE__ */ u3("b", { children: r3.name }),
+        /* @__PURE__ */ u3("i", { children: [
+          r3.owner,
+          r3.archived ? " \xB7 archived" : "",
+          r3.issues ? ` \xB7 ${r3.issues} open` : ""
+        ] }),
+        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
+      ] })
+    ] });
+  }
+  function Opt({ v: v3, cur, t: t3 }) {
+    return /* @__PURE__ */ u3("option", { value: v3, selected: cur === v3, children: t3 });
+  }
+  function Body({ b: b2, on: on3 }) {
+    if (b2.kind === "addtoken") return /* @__PURE__ */ u3("div", { class: "diff-empty", children: [
+      "Add an access token to list all your repositories and their pull requests.",
+      /* @__PURE__ */ u3("br", {}),
+      /* @__PURE__ */ u3("br", {}),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
+    ] });
+    if (b2.kind === "error") return /* @__PURE__ */ u3("div", { class: "diff-empty err", children: b2.text });
+    if (b2.kind === "spinner") return /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
+    if (b2.kind === "recent") {
+      return /* @__PURE__ */ u3(S2, { children: [
+        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
+          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x2) => /* @__PURE__ */ u3("button", { class: b2.state === x2 ? "on" : "", "data-rstate": x2, onClick: () => on3.rstate(x2), children: cap(x2) })) })
+        ] }) : "",
+        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
+          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+            /* @__PURE__ */ u3("b", { children: r3.title }),
+            /* @__PURE__ */ u3("i", { children: r3.ref })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e3) => on3.rm(e3, r3.ref), title: "Remove", children: I2("x") })
+        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
+      ] });
+    }
+    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
+        g2.owner,
+        /* @__PURE__ */ u3("span", { children: g2.cards.length })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) })
+    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) });
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
+        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x2) => /* @__PURE__ */ u3("button", { class: b2.vis === x2 ? "on" : "", "data-hvis": x2, onClick: () => on3.vis(x2), children: cap(x2) })) }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
+          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
+        ] }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
+          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
+        ] })
+      ] }),
+      grid
+    ] });
+  }
+  function Home({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
+        I2("home"),
+        SP,
+        p3.owner || "Home"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
+        "Open a pull request: type ",
+        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
+        " or paste a URL in the bar above."
+      ] }),
+      p3.banners.length ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }) }) : "",
+      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
+        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
+          I2("repo"),
+          " Repositories",
+          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
+        ] }),
+        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
+          I2("clock"),
+          " Recent",
+          /* @__PURE__ */ u3("span", { children: p3.recentCount })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3(Body, { b: p3.body, on: on3 })
+    ] });
+  }
+
+  // src/components/PrList.tsx
+  var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Opts({ arr, v: v3, all }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("option", { value: "", children: all }),
+      arr.map((x2) => /* @__PURE__ */ u3("option", { value: x2, selected: x2 === v3, children: x2 }))
+    ] });
+  }
+  function FilterBar({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "prl-filters", children: [
+      /* @__PURE__ */ u3("span", { class: "pf-search", children: [
+        I2("search"),
+        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false, onInput: on3.filter })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", onChange: on3.author, children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", onChange: on3.label, children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", onChange: on3.status, children: [
+        /* @__PURE__ */ u3("option", { value: "", children: "Status: any" }),
+        p3.statuses.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.status, children: t3 }))
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", onChange: on3.sort, children: p3.sorts.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
+        "Sort: ",
+        t3
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u3("span", { class: "pf-count", children: [
+        p3.n,
+        " of ",
+        p3.total
+      ] }),
+      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
+    ] });
+  }
+  function PrListPage({ p: p3, on: on3 }) {
+    const body = p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
+      /* @__PURE__ */ u3("span", { class: "prl-main", children: [
+        /* @__PURE__ */ u3("b", { children: r3.title }),
+        r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
+        /* @__PURE__ */ u3("i", { children: r3.meta })
+      ] }),
+      /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
+    ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty });
+    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
+      /* @__PURE__ */ u3("div", { class: "repoline", style: "padding-bottom:16px" }),
+      /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }),
+      /* @__PURE__ */ u3("div", { class: "prl", children: [
+        /* @__PURE__ */ u3("div", { class: "prl-head", children: [
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("span", { class: "repo-ic", children: I2("repo", 16) }),
+            SP,
+            /* @__PURE__ */ u3("b", { children: p3.repo })
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.ps(s3), children: cap2(s3) })) })
+        ] }),
+        p3.filterBar ? /* @__PURE__ */ u3(FilterBar, { p: p3.filterBar, on: on3 }) : null,
+        body
+      ] })
+    ] });
+  }
+  function Crumbs({ repo, trail, extraNode, on: on3 }) {
+    const homeCur = !repo && !trail.length;
+    const parts = [homeCur ? /* @__PURE__ */ u3("span", { class: "crumb cur home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u3("span", { children: "Home" })
+    ] }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-home": "1", onClick: on3 && on3.home, title: "Home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u3("span", { children: "Home" })
+    ] })];
+    if (repo) {
+      const [owner, name] = repo.split("/");
+      parts.push(/* @__PURE__ */ u3("span", { class: "crumb-grp", children: [
+        /* @__PURE__ */ u3("a", { class: "crumb", "data-owner": owner, onClick: on3 && (() => on3.owner(owner)), title: `Repositories of ${owner}`, children: owner }),
+        /* @__PURE__ */ u3("span", { class: "crumb-slash", children: "/" }),
+        /* @__PURE__ */ u3("a", { class: "crumb strong", "data-repo": repo, onClick: on3 && (() => on3.repo(repo)), title: `All pull requests in ${repo}`, children: name })
+      ] }));
+    }
+    trail.forEach((t3, i3) => parts.push(i3 === trail.length - 1 ? /* @__PURE__ */ u3("span", { class: "crumb cur", children: t3.t }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-repo": t3.repo || void 0, onClick: on3 && t3.repo ? (() => on3.repo(t3.repo)) : void 0, children: t3.t })));
+    return /* @__PURE__ */ u3("nav", { class: "repoline crumbs", "aria-label": "Breadcrumb", children: [
+      parts.map((x2, i3) => /* @__PURE__ */ u3(S2, { children: [
+        i3 ? /* @__PURE__ */ u3("span", { class: "crumb-sep", children: I2("chevron-right", 12) }) : "",
+        x2
+      ] })),
+      extraNode
+    ] });
+  }
+
+  // src/components/Pages.tsx
+  function NotesPage({ f: f4, rows, unread, total, on: on3 }) {
+    const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
+    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: [
+        /* @__PURE__ */ u3("h1", { children: [
+          I2("bell"),
+          SP,
+          "Notifications"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: [
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", onClick: on3.readAll, disabled: !unread, children: "Mark all as read" }),
+          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", onClick: on3.clear, disabled: !total, children: "Clear all" })
+        ] })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, onClick: () => on3.filter(k3), children: [
+        l3,
+        /* @__PURE__ */ u3("span", { children: c3 })
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u3("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
+        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, onClick: (e3) => on3.read(e3, n2.id), title: n2.read ? "Mark as unread" : "Mark as read" }),
+        "\n    ",
+        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+          /* @__PURE__ */ u3("b", { children: n2.title }),
+          /* @__PURE__ */ u3("span", { children: n2.text }),
+          /* @__PURE__ */ u3("i", { children: [
+            n2.ref,
+            " \xB7 ",
+            n2.when
+          ] })
+        ] }),
+        "\n    ",
+        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, onClick: (e3) => on3.read(e3, n2.id), children: n2.read ? "Mark unread" : "Mark read" }),
+        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, onClick: (e3) => on3.del(e3, n2.id), title: "Delete", children: I2("x") })
+      ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
+    ] });
+  }
+  function NpMeta({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
+      p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: r3.name }),
+        /* @__PURE__ */ u3("div", { class: "np-chips", children: [
+          r3.chips.map((x2) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x2, onClick: () => on3.del(r3.k, x2), title: "Remove", children: [
+            x2,
+            " \xD7"
+          ] })),
+          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, value: "", onChange: (e3) => on3.add(r3.k, e3), children: [
+            /* @__PURE__ */ u3("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
+            r3.free.map((x2) => /* @__PURE__ */ u3("option", { children: x2 }))
+          ] }) : ""
+        ] })
+      ] })),
+      "\n    ",
+      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: "Milestone" }),
+        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", onChange: on3.mile, children: [
+          /* @__PURE__ */ u3("option", { value: "", children: "None" }),
+          p3.milestones.map((x2) => /* @__PURE__ */ u3("option", { value: x2.number, selected: x2.on, children: x2.title }))
+        ] })
+      ] }),
+      "\n    ",
+      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: [
+          "Linked issues ",
+          /* @__PURE__ */ u3("i", { children: "closed when this merges" })
+        ] }),
+        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues, onInput: on3.issues })
+      ] })
+    ] });
+  }
+  function NewPr({ p: p3, on: on3 }) {
+    const c3 = p3.cmp;
+    const cmp = c3.kind === "loading" ? /* @__PURE__ */ u3("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u3("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u3("span", { class: "np-note ok", children: [
+      I2("git-commit"),
+      SP,
+      c3.ahead,
+      " commit",
+      c3.ahead === 1 ? "" : "s",
+      " \xB7 ",
+      c3.files,
+      " file",
+      c3.files === 1 ? "" : "s",
+      " changed",
+      c3.behind ? ` \xB7 ${c3.behind} behind ${p3.base}` : ""
+    ] }) : /* @__PURE__ */ u3("span", { class: "np-note err", children: "These branches are identical \u2014 there is nothing to compare." });
+    const t3 = p3.tpls;
+    return /* @__PURE__ */ u3("div", { class: "notes-page np-new", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
+        I2("git-pull-request"),
+        SP,
+        "New pull request"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-card", children: [
+        /* @__PURE__ */ u3("div", { class: "np-main-col", children: [
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Repository" }),
+            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", onClick: on3.repo, children: [
+              /* @__PURE__ */ u3("span", { children: p3.repo || "Choose a repository" }),
+              I2("chevron-down", 14)
+            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo, onChange: on3.repoIn }),
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-branches", children: [
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("label", { class: "np-l", children: [
+                  "Base ",
+                  /* @__PURE__ */ u3("i", { children: "merge into" })
+                ] }),
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", onClick: on3.base, disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] }),
+              "\n      ",
+              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", onClick: on3.swap, title: "Swap base and head", children: "\u21C4" }),
+              "\n      ",
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("label", { class: "np-l", children: [
+                  "Head ",
+                  /* @__PURE__ */ u3("i", { children: "changes from" })
+                ] }),
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", onClick: on3.head, disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] })
+            ] }),
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-cmp", children: p3.same ? /* @__PURE__ */ u3("span", { class: "np-note err", children: "Base and head are the same branch." }) : cmp })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
+            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title, onInput: on3.title })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
+            t3 && t3.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", value: String(t3.findIndex((x2) => x2.body === p3.tplText)), onChange: on3.tpl, children: [
+              /* @__PURE__ */ u3("option", { value: "-1", children: "No template" }),
+              t3.map((x2, i3) => /* @__PURE__ */ u3("option", { value: i3, children: [
+                "Template: ",
+                x2.name
+              ] }))
+            ] }) : "",
+            /* @__PURE__ */ u3(DraftBox, { k: "newpr", ph: "Describe your changes", rows: 8, submit: p3.ready ? on3.create : void 0 })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-check", children: [
+              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft, onChange: on3.draft }),
+              " Create as draft ",
+              /* @__PURE__ */ u3("span", { children: "(not ready for review yet)" })
+            ] }),
+            "\n    ",
+            p3.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: p3.err }) : "",
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-btns", children: [
+              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
+              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", onClick: on3.create, disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
+            ] })
+          ] }),
+          "\n  "
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-side-col", children: p3.meta ? /* @__PURE__ */ u3(NpMeta, { p: p3.meta, on: on3 }) : "" })
+      ] })
+    ] }, p3.seq);
+  }
+  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
+    const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
+      /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
+      /* @__PURE__ */ u3("h2", { children: [
+        s3.title,
+        /* @__PURE__ */ u3("span", { children: s3.rows.length })
+      ] }),
+      /* @__PURE__ */ u3("p", { children: s3.sub }),
+      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+        /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
+        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.title }),
+          /* @__PURE__ */ u3("i", { children: r3.sub })
+        ] }),
+        r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
+        r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
+          I2("comment"),
+          SP,
+          r3.comments
+        ] }) : ""
+      ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: "Nothing here. Nice." })
+    ] }));
+    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: [
+        /* @__PURE__ */ u3("h1", { children: [
+          I2("checklist"),
+          SP,
+          "Inbox"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+      ] }),
+      body
+    ] });
+  }
+  var Skeleton = () => /* @__PURE__ */ u3("div", { class: "skel", "aria-busy": "true", children: [
+    /* @__PURE__ */ u3("div", { class: "sk sk-crumb" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-title" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-pill" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-line w60" }),
+    /* @__PURE__ */ u3("div", { class: "sk-tabs", children: [
+      /* @__PURE__ */ u3("i", { class: "sk" }),
+      /* @__PURE__ */ u3("i", { class: "sk" }),
+      /* @__PURE__ */ u3("i", { class: "sk" })
+    ] }),
+    [0, 1, 2].map((i3) => /* @__PURE__ */ u3("div", { class: "sk-row", style: `--i:${i3}`, children: [
+      /* @__PURE__ */ u3("div", { class: "sk sk-av" }),
+      /* @__PURE__ */ u3("div", { class: "sk-card", children: [
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w40" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+      ] })
+    ] }))
+  ] });
+  function PrLayout({ header, body, side, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
+      header,
+      /* @__PURE__ */ u3("div", { class: "pr-layout", children: [
+        /* @__PURE__ */ u3("main", { class: "pr-main", children: body }),
+        side.kind === "rail" ? /* @__PURE__ */ u3("button", { class: "pane-rail side-rail", "data-show": "side", onClick: on3.show, title: "Show details", children: [
+          I2("columns"),
+          /* @__PURE__ */ u3("span", { children: "Details" })
+        ] }) : side.kind === "aside" ? /* @__PURE__ */ u3("aside", { class: "pr-side", children: [
+          /* @__PURE__ */ u3("div", { class: "side-top", children: [
+            /* @__PURE__ */ u3("span", { children: "Details" }),
+            /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "side", onClick: side.on.hide, title: "Hide this panel", children: I2("x") })
+          ] }),
+          side.inner
+        ] }) : ""
+      ] })
+    ] });
+  }
+  var SplitLayout = ({ header, split }) => /* @__PURE__ */ u3("div", { class: "pr-page is-split", children: [
+    header,
+    split
+  ] });
+  var Gate = ({ err, go: go3, tok }) => /* @__PURE__ */ u3("div", { class: "gate", children: /* @__PURE__ */ u3("div", { class: "gate-card", children: [
+    /* @__PURE__ */ u3("img", { src: "logo.png", alt: "", width: 72, height: 72 }),
+    /* @__PURE__ */ u3("h1", { children: "Sign in to Pullscope" }),
+    "\n  ",
+    /* @__PURE__ */ u3("p", { class: "gate-err", children: [
+      I2("alert"),
+      SP,
+      "No GitHub sign-in or token was found."
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("p", { children: "Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing." }),
+    "\n  ",
+    err ? /* @__PURE__ */ u3("p", { class: "gate-err", children: err }) : "",
+    "\n  ",
+    /* @__PURE__ */ u3("div", { class: "btns", style: "justify-content:center", children: [
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "gatego", onClick: go3, children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u3("button", { class: "btn", id: "gatetok", onClick: tok, children: "Use a token instead" })
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("small", { children: [
+      "Tip: running ",
+      /* @__PURE__ */ u3("code", { children: "gh auth login" }),
+      " in a terminal also works."
+    ] })
+  ] }) });
+
+  // src/app/token.ts
+  function tokenDialog() {
+    S.oauth = {};
+    S.oauthLive = false;
+    S.tokenText = "";
+    S.dlg = { k: "token" };
+    render();
+  }
+  async function tokenSave() {
+    const v3 = S.tokenText || "";
+    try {
+      await tauri?.invoke("set_token", { token: v3 });
+      S.hasToken = !!v3.trim();
+      S.authChecked = true;
+      if (S.hasToken) {
+        S.gateErr = "";
+        loadRepos();
+      } else {
+        S.repos = null;
+      }
+    } catch (e3) {
+      alert(e3);
+    }
+    S.oauthLive = false;
+    S.dlg = null;
+    render();
+  }
+  async function oauthGo() {
+    const show = (o3) => {
+      S.oauth = o3;
+      if (S.dlg) paintDlg();
+    };
+    S.oauthLive = true;
+    const me = S.oauthRun = (S.oauthRun || 0) + 1;
+    try {
+      const d3 = await tauri.invoke("device_start");
+      show({ code: d3.user_code });
+      tauri.invoke("open_external", { url: d3.verification_uri }).catch(() => {
+      });
+      let wait = (d3.interval || 5) * 1e3;
+      const until = Date.now() + (d3.expires_in || 900) * 1e3;
+      while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
+        await new Promise((r3) => setTimeout(r3, wait));
+        if (!S.oauthLive || S.oauthRun !== me) return;
+        const st = await tauri.invoke("device_poll", { deviceCode: d3.device_code });
+        if (st === "slow_down") wait += 5e3;
+        if (st === "ok") {
+          S.oauthLive = false;
+          S.hasToken = true;
+          S.gateErr = "";
+          S.dlg = null;
+          loadRepos();
+          return;
+        }
+      }
+      throw "The code expired. Start again.";
+    } catch (e3) {
+      S.oauthLive = false;
+      show({ err: String(e3) });
+    }
+  }
+
+  // src/app/bindwrite.ts
+  function homeProps() {
+    const tab = S.homeTab || "repos", owner = S.homeOwner || "";
+    let body;
+    if (tab === "recent") {
+      const q3 = (S.recentFilter || "").toLowerCase(), st = S.recentState || "all";
+      const list = S.recent.filter((r3) => (st === "all" || r3.state === st) && (!q3 || (r3.title + " " + r3.ref).toLowerCase().includes(q3)));
+      body = { kind: "recent", filter: S.recentFilter || "", state: st, hasAny: S.recent.length > 0, cards: list.map((r3) => ({ ref: r3.ref, state: r3.state, icon: r3.icon, title: r3.title })), emptyText: S.recent.length ? "No matching pull requests." : "Pull requests you open appear here." };
+    } else if (!S.hasToken) body = { kind: "addtoken" };
+    else if (S.reposErr) body = { kind: "error", text: String(S.reposErr) };
+    else if (!S.repos) body = { kind: "spinner" };
+    else {
+      const f4 = (S.repoFilter || "").toLowerCase();
+      const vis = S.hmVis || "all", srt = S.hmSort || "pushed", grp = S.hmGroup || "none";
+      let list = S.repos.filter((r3) => (!owner || r3.full_name.startsWith(owner + "/")) && r3.full_name.toLowerCase().includes(f4) && (vis === "all" || vis === "private" === !!r3.private));
+      const nm = (r3) => r3.full_name.split("/")[1], pushed = (r3) => Date.parse(r3.pushed_at || "0") || 0;
+      const sorters = { name: (a3, b2) => nm(a3).localeCompare(nm(b2)), namez: (a3, b2) => nm(b2).localeCompare(nm(a3)), issues: (a3, b2) => (b2.open_issues_count || 0) - (a3.open_issues_count || 0) || nm(a3).localeCompare(nm(b2)), oldest: (a3, b2) => pushed(a3) - pushed(b2), owner: (a3, b2) => a3.full_name.localeCompare(b2.full_name), ownerz: (a3, b2) => b2.full_name.split("/")[0].localeCompare(a3.full_name.split("/")[0]) || nm(a3).localeCompare(nm(b2)) };
+      const sorter = sorters[srt];
+      if (sorter) list = [...list].sort(sorter);
+      const card = (r3) => ({ full: r3.full_name, name: r3.full_name.split("/")[1], owner: r3.full_name.split("/")[0], priv: !!r3.private, archived: !!r3.archived, issues: r3.open_issues_count || 0, desc: r3.description || "" });
+      let groups = null;
+      if (grp === "owner") {
+        const by = /* @__PURE__ */ new Map();
+        list.forEach((r3) => {
+          const o3 = r3.full_name.split("/")[0];
+          if (!by.has(o3)) by.set(o3, []);
+          by.get(o3).push(r3);
+        });
+        groups = [...by].map(([o3, rs]) => ({ owner: o3, cards: rs.map(card) }));
+      }
+      body = { kind: "repos", filter: S.repoFilter || "", vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
+    }
+    return { owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBannerItems(), err: S.error ? String(S.error) : "", body };
+  }
+
+  // src/app/home.tsx
+  var crumbs = {
+    home: () => {
+      S.view = "home";
+      S.homeOwner = "";
+      S.nav = false;
+      render();
+    },
+    owner: (o3) => {
+      S.view = "home";
+      S.homeOwner = o3;
+      S.homeTab = "repos";
+      S.nav = false;
+      render();
+      if (S.hasToken && !S.repos) loadRepos();
+    },
+    repo: (r3) => openRepo(r3)
+  };
+  var on = {
+    tab: (t3) => {
+      S.homeTab = t3;
+      render();
+    },
+    vis: (v3) => {
+      S.hmVis = v3;
+      render();
+    },
+    sort: (e3) => {
+      S.hmSort = e3.target.value;
+      render();
+    },
+    group: (e3) => {
+      S.hmGroup = e3.target.value;
+      render();
+    },
+    repoFilter: (e3) => {
+      S.repoFilter = e3.target.value;
+      render();
+    },
+    recentFilter: (e3) => {
+      S.recentFilter = e3.target.value;
+      render();
+    },
+    rstate: (s3) => {
+      S.recentState = s3;
+      render();
+    },
+    repo: (full) => openRepo(full),
+    open: openClick,
+    aux: openAux,
+    ctx: openCtx,
+    rm: rmRecent,
+    addToken: tokenDialog,
+    compare: (repo, br) => openNewPr(repo, br),
+    dismiss: (key) => {
+      pushDis[key] = 1;
+      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
+      rerender();
+    }
+  };
+  function HomeView() {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: S.homeOwner ? [{ t: S.homeOwner }] : [], on: crumbs }),
+      /* @__PURE__ */ u3(Home, { p: homeProps(), on })
+    ] });
+  }
+
+  // src/app/pr.tsx
+  var hide = (k3, v3) => keep(() => {
+    S.hide[k3] = v3;
+    localStorage.setItem("hide", JSON.stringify(S.hide));
+  });
+  var toggleSplit = () => {
+    if (S.view === "pr" && S.bundle && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") head.split();
+  };
+  var head = {
+    tab: openTab,
+    edit: editPrDialog,
+    copy: () => {
+      navigator.clipboard?.writeText(S.bundle.pull.head.ref);
+    },
+    review: reviewDialog,
+    side: () => keep(() => {
+      S.hide.side = !S.hide.side;
+      localStorage.setItem("hide", JSON.stringify(S.hide));
+    }),
+    split: () => keep(() => {
+      S.split = !S.split;
+      localStorage.setItem("split", S.split ? "1" : "0");
+    })
+  };
+  var sideOn = {
+    fold: (k3, def) => {
+      S.fold[k3] = !isFolded(k3, def);
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+      rerender();
+    },
+    rvtoggle: () => {
+      S.showAllReviewers = !S.showAllReviewers;
+      rerender();
+    },
+    rerequest: rerequestReview
+  };
+  function Header() {
+    const p3 = S.bundle.pull, r3 = p3.base.repo;
+    const extra = /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("a", { class: "crumb gh", href: r3.html_url, "data-ext": "", title: "Open on GitHub", children: I2("link-external", 12) }),
+      S.refreshing ? /* @__PURE__ */ u3("span", { class: "stale", children: "Refreshing\u2026" }) : ""
+    ] });
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: r3.full_name, trail: [{ t: "Pull requests", repo: r3.full_name }, { t: `#${p3.number}` }], extraNode: extra, on: crumbs }),
+      /* @__PURE__ */ u3(PrHeader, { ...prHeaderProps(S.bundle), on: head })
+    ] });
+  }
+  function PrView() {
+    const b2 = S.bundle;
+    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: splitView(b2) });
+    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : null;
+    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
+    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u3("div", { class: "rail", children: /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
+      /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
+    ] }) : body, side, on: { show: () => hide("side", false) } });
+  }
 
   // src/app/palette.tsx
   var rowsFor = (raw) => {
@@ -2710,9 +3458,9 @@
     S.pal = { k: "help" };
     paintPal();
   }
-  addEventListener("keydown", (e3) => {
+  var helpKey = (e3) => {
     if (e3.key === "Escape" && S.pal?.k === "help") closePal();
-  });
+  };
 
   // src/app/keyboard.ts
   var typing = (t3) => t3 && (t3.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t3.isContentEditable);
@@ -2732,20 +3480,19 @@
   }
   var openThreads = () => [...qa(".main .thread")].filter((t3) => !$(".thread-head .res", t3) && t3.offsetParent).map((t3) => $(".tc", t3)).filter(Boolean);
   function setComposer(open2, focus) {
-    const el = document.getElementById("composer");
-    if (!el) return false;
+    if (!S.composerBox) return false;
     S.cOpen = open2;
     rerender();
     if (open2 && focus) focusDraft("comment");
     return true;
   }
-  document.addEventListener("mousedown", (e3) => {
+  var menuAway = (e3) => {
     if (S.tabMenu && !e3.target.closest(".pt-menu, #tabadd")) {
       S.tabMenu = false;
       rerender();
     }
-  });
-  document.addEventListener("keydown", (e3) => {
+  };
+  function shortcut(e3) {
     if (S.tabMenu && e3.key === "Escape") {
       S.tabMenu = false;
       rerender();
@@ -2801,23 +3548,16 @@
     else if (e3.key === "n") {
       e3.preventDefault();
       openNewPr();
-    } else if (e3.key === "c" && S.view === "pr" && document.getElementById("composer")) {
+    } else if (e3.key === "c" && S.view === "pr" && S.composerBox) {
       e3.preventDefault();
       setComposer(true, true);
     } else if (e3.key === "f" && $(".split")) flipSides();
-    else if (e3.key === "s" && S.bundle) {
-      $("#split")?.click();
-    } else if (e3.key === "d" && S.bundle) {
-      const b2 = $(`[data-dmode="${S.diffMode === "split" ? "unified" : "split"}"]`);
-      if (b2) b2.click();
-      else {
-        S.diffMode = S.diffMode === "split" ? "unified" : "split";
-        localStorage.setItem("diffmode", S.diffMode);
-      }
-    } else if (e3.key === "r") {
+    else if (e3.key === "s" && S.bundle) toggleSplit();
+    else if (e3.key === "d" && S.bundle) setDiffMode(S.diffMode === "split" ? "unified" : "split");
+    else if (e3.key === "r") {
       const cur = kbCur(), host = cur?.closest(".thread")?.querySelector(".reply .tt");
       if (!host) {
-        if (document.getElementById("composer")) {
+        if (S.composerBox) {
           e3.preventDefault();
           setComposer(true, true);
         }
@@ -2828,14 +3568,14 @@
       scrollDraft(key);
       focusDraft(key);
     }
-  });
+  }
 
   // src/app/scrolling.tsx
   var scrollRaf = 0;
   var lastTop = 0;
   var atEnd = false;
   var toTop = (smooth = true) => {
-    if (S.scrollId && S.scrollId !== "main") scrollPane(S.scrollId, 0, smooth);
+    if (S.scrollId && S.scrollId !== "main") scrollTarget(S.scrollId, 0, smooth);
     else scrollMain(0, smooth);
   };
   var paintToTop = () => setSlot("totop", /* @__PURE__ */ u3(ToTop, { hidden: !S.toTop, onClick: () => toTop() }));
@@ -2856,28 +3596,28 @@
       S.toTop = !S.toTop;
       paintToTop();
     }
-    const c3 = document.getElementById("composer");
-    if (!c3 || !el.contains(c3)) return;
+    const c3 = S.composerBox;
+    if (!c3 || c3.in !== id) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop;
     lastTop = el.scrollTop;
     if (dist < 24 && !atEnd) {
       atEnd = true;
       if (!composerOpen()) setComposer(true, false);
     }
-    if (dist > c3.offsetHeight + 60) {
+    if (dist > c3.h + 60) {
       atEnd = false;
       if (up && composerOpen() && !(S.draft.comment || "").trim()) {
-        c3.contains(document.activeElement) && document.activeElement.blur();
+        blurDraft("comment");
         setComposer(false);
       }
     }
   }
-  document.addEventListener("keydown", (e3) => {
+  var homeKey = (e3) => {
     if (e3.key === "Home" && !e3.target.closest?.("input, textarea, select, [contenteditable]") && S.scrollId) {
       e3.preventDefault();
       toTop();
     }
-  });
+  };
 
   // src/app/mergebox.tsx
   function mergeModel(b2) {
@@ -3069,14 +3809,11 @@
       repaintShell({ lw: S.lw });
     };
     const up = () => {
-      removeEventListener("mousemove", mv);
-      removeEventListener("mouseup", up);
       setDragging(false);
       localStorage.setItem("lw", String(Math.round(S.lw)));
     };
     setDragging(true);
-    addEventListener("mousemove", mv);
-    addEventListener("mouseup", up);
+    beginDrag({ move: mv, end: up });
   }
   var splitOn = { hide: hideSide, flip: flipSides, pick: (sha) => {
     selectCommit(sha);
@@ -3127,67 +3864,6 @@
     if (S.sel === sha) render();
   }
 
-  // src/app/token.ts
-  function tokenDialog() {
-    S.oauth = {};
-    S.oauthLive = false;
-    S.dlg = { k: "token" };
-    render();
-  }
-  async function tokenSave() {
-    const v3 = document.getElementById("tokeninput").value;
-    try {
-      await tauri?.invoke("set_token", { token: v3 });
-      S.hasToken = !!v3.trim();
-      S.authChecked = true;
-      if (S.hasToken) {
-        S.gateErr = "";
-        loadRepos();
-      } else {
-        S.repos = null;
-      }
-    } catch (e3) {
-      alert(e3);
-    }
-    S.oauthLive = false;
-    S.dlg = null;
-    render();
-  }
-  async function oauthGo() {
-    const show = (o3) => {
-      S.oauth = o3;
-      if (S.dlg) paintDlg();
-    };
-    S.oauthLive = true;
-    const me = S.oauthRun = (S.oauthRun || 0) + 1;
-    try {
-      const d3 = await tauri.invoke("device_start");
-      show({ code: d3.user_code });
-      tauri.invoke("open_external", { url: d3.verification_uri }).catch(() => {
-      });
-      let wait = (d3.interval || 5) * 1e3;
-      const until = Date.now() + (d3.expires_in || 900) * 1e3;
-      while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
-        await new Promise((r3) => setTimeout(r3, wait));
-        if (!S.oauthLive || S.oauthRun !== me) return;
-        const st = await tauri.invoke("device_poll", { deviceCode: d3.device_code });
-        if (st === "slow_down") wait += 5e3;
-        if (st === "ok") {
-          S.oauthLive = false;
-          S.hasToken = true;
-          S.gateErr = "";
-          S.dlg = null;
-          loadRepos();
-          return;
-        }
-      }
-      throw "The code expired. Start again.";
-    } catch (e3) {
-      S.oauthLive = false;
-      show({ err: String(e3) });
-    }
-  }
-
   // src/app/dialogs.tsx
   var paintDlg = () => setSlot("dlg", /* @__PURE__ */ u3(Dialogs, {}));
   var cpOn = {
@@ -3221,7 +3897,9 @@
       case "commits":
         return /* @__PURE__ */ u3(CommitsDialog, { ...commitsDialogProps(), on: cpOn });
       case "token":
-        return /* @__PURE__ */ u3(TokenDialog, { code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
+        return /* @__PURE__ */ u3(TokenDialog, { text: S.tokenText || "", input: (e3) => {
+          S.tokenText = e3.currentTarget.value;
+        }, code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
       case "review": {
         const n2 = pendList().length;
         return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, onEv: (v3) => {
@@ -3240,7 +3918,10 @@
       case "delc":
         return /* @__PURE__ */ u3(DeleteCommentDialog, { err: errMsg("delc"), close, ok });
       case "hidec":
-        return /* @__PURE__ */ u3(HideCommentDialog, { reasons: d3.reasons, err: errMsg("hidec"), close, ok });
+        return /* @__PURE__ */ u3(HideCommentDialog, { reasons: d3.reasons, reason: S.hideReason || "OUTDATED", pick: (e3) => {
+          S.hideReason = e3.currentTarget.value;
+          paintDlg();
+        }, err: errMsg("hidec"), close, ok });
     }
   }
   function Pops() {
@@ -3261,7 +3942,6 @@
     S.pop = null;
     paintPop();
   }
-  document.addEventListener("click", closePop);
 
   // src/app/bind.ts
   S.alive = /* @__PURE__ */ new Map();
@@ -3383,41 +4063,6 @@
     }
     rerender();
   }
-  document.addEventListener("mousedown", (e3) => {
-    if (!e3.target.closest?.("#sbgrip")) return;
-    e3.preventDefault();
-    const x0 = e3.clientX, w0 = S.sbw;
-    const mv = (ev) => {
-      S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
-      repaintShell({ sbw: S.sbw });
-    };
-    const up = () => {
-      removeEventListener("mousemove", mv);
-      removeEventListener("mouseup", up);
-      setDragging(false);
-      localStorage.setItem("sbw", String(Math.round(S.sbw)));
-    };
-    setDragging(true);
-    addEventListener("mousemove", mv);
-    addEventListener("mouseup", up);
-  });
-  document.addEventListener("dblclick", (e3) => {
-    if (e3.target.closest?.("#sbgrip")) {
-      S.sbw = 260;
-      localStorage.setItem("sbw", "260");
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }
-  });
-  document.addEventListener("click", (e3) => {
-    if (e3.target.closest?.("#scrim")) {
-      S.nav = false;
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }
-  });
 
   // src/app/tabs.ts
   var KEY_TABS = "tabs";
@@ -3628,9 +4273,9 @@
 
   // src/components/TabStrip.tsx
   var tabShift = (d3, i3) => !d3 ? void 0 : i3 === d3.from ? `transform:translateX(${d3.dx}px)` : d3.from < d3.to && i3 > d3.from && i3 <= d3.to ? `transform:translateX(-${d3.w}px)` : d3.from > d3.to && i3 < d3.from && i3 >= d3.to ? `transform:translateX(${d3.w}px)` : void 0;
-  function TabStrip({ tabs, cur, recents, menu, menuAt, drag, closedFirst, on: on3 }) {
+  function TabStrip({ tabs, cur, recents, menu, menuAt, drag: drag2, closedFirst, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
-      tabs.map((t3, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t3.ref === cur ? "on" : ""}${drag && drag.from === i3 ? " drag" : ""}`, style: tabShift(drag, i3), "data-tab": i3, onClick: (e3) => {
+      tabs.map((t3, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t3.ref === cur ? "on" : ""}${drag2 && drag2.from === i3 ? " drag" : ""}`, style: tabShift(drag2, i3), "data-tab": i3, onClick: (e3) => {
         if (e3.target.closest(".pt-x")) return;
         on3.open(i3);
       }, onAuxClick: (e3) => on3.aux(e3, i3), onMouseDown: (e3) => on3.down(e3, i3), title: t3.ref + " \xB7 " + t3.title, children: [
@@ -3679,7 +4324,7 @@
   var NL2 = "\n  ";
   function Toolbar(p3) {
     const label = p3.profile ? p3.profile.name || p3.profile.login : "";
-    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
+    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", onMouseDown: p3.on.drag, children: [
       NL2,
       /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
       /* @__PURE__ */ u3("div", { class: "tb-group", children: [
@@ -3690,7 +4335,7 @@
       NL2,
       /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
         /* @__PURE__ */ u3(Icon, { n: "search" }),
-        /* @__PURE__ */ u3("input", { id: "addrinput", ref: useFocusTarget("addr"), value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+        /* @__PURE__ */ u3("input", { id: "addrinput", ref: useFocusTarget("addr"), value: p3.text, onInput: p3.on.input, onFocus: p3.on.focus, onBlur: p3.on.blur, onKeyDown: p3.on.key, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
       ] }),
       p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
         /* @__PURE__ */ u3(Icon, { n: "sync" }),
@@ -3809,11 +4454,12 @@
     reload,
     external: () => openExternal(S.bundle.pull.html_url),
     mode,
-    addr: (e3) => {
-      e3.preventDefault();
-      openPr($("#addrinput").value);
-      focusTarget("addr", "blur");
-    },
+    drag: (e3) => winDrag(e3),
+    addr: (e3) => addrSubmit(e3),
+    input: (e3) => addrInput(e3),
+    focus: (e3) => addrFocus(e3),
+    blur: () => addrBlur(),
+    key: (e3) => addrKey(e3),
     upd: async () => {
       const u4 = S.update;
       if (!u4 || u4.busy) return;
@@ -3843,6 +4489,7 @@
     signin: tokenDialog,
     prof
   };
+  var swallowClick = false;
   var tabDown = (e3, from) => {
     const el = e3.currentTarget;
     if (e3.button !== 0 || e3.target.closest(".pt-x")) return;
@@ -3863,11 +4510,12 @@
       paintTop();
     };
     const up = () => {
-      removeEventListener("mousemove", mv);
-      removeEventListener("mouseup", up);
       setDragging(false);
       if (!moved) return;
-      el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
+      swallowClick = true;
+      setTimeout(() => {
+        swallowClick = false;
+      }, 0);
       S.drag = null;
       if (to !== from) {
         const [t3] = S.tabs.splice(from, 1);
@@ -3876,11 +4524,11 @@
       }
       render();
     };
-    addEventListener("mousemove", mv);
-    addEventListener("mouseup", up);
+    beginDrag({ move: mv, end: up });
   };
   var ts = {
     open: (i3) => {
+      if (swallowClick) return;
       const t3 = S.tabs[i3];
       if (t3.ref !== curRef()) {
         if (fastTab(t3.ref)) return;
@@ -3927,7 +4575,7 @@
       /* @__PURE__ */ u3(
         Toolbar,
         {
-          prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
+          text: S.addrText ?? (b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : ""),
           hasBundle: !!b2,
           canBack: !(S.hist.length < 2 || S.hi < 1),
           canFwd: !(S.hi >= S.hist.length - 1),
@@ -3991,16 +4639,16 @@
   var noteOn = { all: noteAll, check: () => {
     pollNotes();
   }, clear: noteClear, open: noteOpen, aux: (e3) => openAux(row(e3), e3), ctx: (e3) => openCtx(row(e3), e3) };
-  document.addEventListener("mousedown", (e3) => {
+  function notesAway(e3) {
     if (!S.bell || e3.target.closest(".note-panel, #bell")) return;
     setBell(false);
-  });
-  document.addEventListener("keydown", (e3) => {
+  }
+  var notesKey = (e3) => {
     if (e3.key === "Escape" && S.bell) setBell(false);
-  });
+  };
 
   // src/components/Sidebar.tsx
-  var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
   function SideTabs({ active, hasRepo, on: on3 }) {
     const cls = (t3) => active === t3 ? "on" : "";
     return /* @__PURE__ */ u3("div", { class: "sb-tabs", children: [
@@ -4051,7 +4699,7 @@
         /* @__PURE__ */ u3("button", { class: "fold-btn", "data-side": "repos", title: "All repositories", onClick: () => on3.side("repos"), children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
         /* @__PURE__ */ u3("b", { title: p3.repo, children: p3.repo })
       ] }),
-      /* @__PURE__ */ u3("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-sps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.sps(s3), children: cap(s3) })) }),
+      /* @__PURE__ */ u3("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-sps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.sps(s3), children: cap3(s3) })) }),
       /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "prfilter", placeholder: "Filter by title, #, author, label\u2026", value: p3.filter, onInput: on3.pf }),
       /* @__PURE__ */ u3("div", { class: "sb-ctl", children: [
         /* @__PURE__ */ u3("label", { children: [
@@ -4126,7 +4774,7 @@
     S[key] = e3.target.value;
     render();
   };
-  var on = {
+  var on2 = {
     side: (tab) => {
       S.sideTab = tab;
       render();
@@ -4166,7 +4814,7 @@
     const cur = S.bundle && S.view === "pr" ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
     const f4 = S.pf.toLowerCase();
     const head2 = { repo: S.repo, state: S.prState, filter: S.pf, sort: S.psort, group: S.pgroup, sorts: Object.entries(PSORT), groups: Object.entries(PGROUP) };
-    const header = /* @__PURE__ */ u3(SideHead, { p: head2, on });
+    const header = /* @__PURE__ */ u3(SideHead, { p: head2, on: on2 });
     if (!S.prs) return /* @__PURE__ */ u3(S2, { children: [
       header,
       /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading pull requests\u2026" })
@@ -4189,7 +4837,7 @@
         " pull request",
         list.length === 1 ? "" : "s"
       ] }),
-      list.map((p3) => /* @__PURE__ */ u3(RcItem, { r: row2(p3), on }))
+      list.map((p3) => /* @__PURE__ */ u3(RcItem, { r: row2(p3), on: on2 }))
     ] });
     const groups = /* @__PURE__ */ new Map(), put = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
     list.forEach((p3) => {
@@ -4202,7 +4850,7 @@
     const order = S.pgroup === "status" ? ["Open", "Draft", "Merged", "Closed"] : [...groups.keys()].sort((a3, b2) => +(a3 === "No label") - +(b2 === "No label") || a3.localeCompare(b2));
     return /* @__PURE__ */ u3(S2, { children: [
       header,
-      /* @__PURE__ */ u3(PrGroups, { on, groups: order.filter((k3) => groups.has(k3)).map((k3) => {
+      /* @__PURE__ */ u3(PrGroups, { on: on2, groups: order.filter((k3) => groups.has(k3)).map((k3) => {
         const key = "pg:" + S.pgroup + ":" + k3;
         return { key, folded: folded(key), closed: isFolded(key), name: k3, rows: groups.get(k3).map(row2) };
       }) })
@@ -4210,615 +4858,22 @@
   }
   function List() {
     if (S.sideTab === "prs" && S.repo) return /* @__PURE__ */ u3(PrRows, {});
-    if (S.sideTab === "recent") return /* @__PURE__ */ u3(RecentList, { recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "", on });
+    if (S.sideTab === "recent") return /* @__PURE__ */ u3(RecentList, { recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "", on: on2 });
     if (!S.hasToken) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: [
       "Add an access token to list all your repositories and their pull requests.",
       /* @__PURE__ */ u3("br", {}),
       /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("button", { class: "sb-btn", id: "addtoken", onClick: on.addToken, children: "Add token" })
+      /* @__PURE__ */ u3("button", { class: "sb-btn", id: "addtoken", onClick: on2.addToken, children: "Add token" })
     ] });
     if (S.reposErr) return /* @__PURE__ */ u3("div", { class: "sb-empty err", children: S.reposErr });
     if (!S.repos) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading repositories\u2026" });
-    return /* @__PURE__ */ u3(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on });
+    return /* @__PURE__ */ u3(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on: on2 });
   }
   function Side() {
-    return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on, children: /* @__PURE__ */ u3(List, {}) });
+    return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on: on2, children: /* @__PURE__ */ u3(List, {}) });
   }
   var paintSide = () => setSlot("side", /* @__PURE__ */ u3(Side, {}));
   var repaintSide = paintSide;
-
-  // src/components/Home.tsx
-  var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Banners({ items, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: items.map((p3) => /* @__PURE__ */ u3("div", { class: "push-banner", children: [
-      I2("git-branch"),
-      /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("b", { children: p3.branch }),
-        " had recent pushes ",
-        p3.ago,
-        p3.showRepo ? /* @__PURE__ */ u3(S2, { children: [
-          " ",
-          /* @__PURE__ */ u3("i", { children: [
-            "\xB7 ",
-            p3.repo
-          ] })
-        ] }) : ""
-      ] }),
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
-      /* @__PURE__ */ u3("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
-    ] })) });
-  }
-  function Card({ r: r3, on: on3 }) {
-    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
-      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
-      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-        /* @__PURE__ */ u3("b", { children: r3.name }),
-        /* @__PURE__ */ u3("i", { children: [
-          r3.owner,
-          r3.archived ? " \xB7 archived" : "",
-          r3.issues ? ` \xB7 ${r3.issues} open` : ""
-        ] }),
-        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
-      ] })
-    ] });
-  }
-  function Opt({ v: v3, cur, t: t3 }) {
-    return /* @__PURE__ */ u3("option", { value: v3, selected: cur === v3, children: t3 });
-  }
-  function Body({ b: b2, on: on3 }) {
-    if (b2.kind === "addtoken") return /* @__PURE__ */ u3("div", { class: "diff-empty", children: [
-      "Add an access token to list all your repositories and their pull requests.",
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
-    ] });
-    if (b2.kind === "error") return /* @__PURE__ */ u3("div", { class: "diff-empty err", children: b2.text });
-    if (b2.kind === "spinner") return /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
-    if (b2.kind === "recent") {
-      return /* @__PURE__ */ u3(S2, { children: [
-        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
-          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x2) => /* @__PURE__ */ u3("button", { class: b2.state === x2 ? "on" : "", "data-rstate": x2, onClick: () => on3.rstate(x2), children: cap2(x2) })) })
-        ] }) : "",
-        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
-          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-            /* @__PURE__ */ u3("b", { children: r3.title }),
-            /* @__PURE__ */ u3("i", { children: r3.ref })
-          ] }),
-          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e3) => on3.rm(e3, r3.ref), title: "Remove", children: I2("x") })
-        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
-      ] });
-    }
-    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
-        g2.owner,
-        /* @__PURE__ */ u3("span", { children: g2.cards.length })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) })
-    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) });
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
-        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x2) => /* @__PURE__ */ u3("button", { class: b2.vis === x2 ? "on" : "", "data-hvis": x2, onClick: () => on3.vis(x2), children: cap2(x2) })) }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
-          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
-        ] }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
-          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
-        ] })
-      ] }),
-      grid
-    ] });
-  }
-  function Home({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
-        I2("home"),
-        SP,
-        p3.owner || "Home"
-      ] }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
-        "Open a pull request: type ",
-        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
-        " or paste a URL in the bar above."
-      ] }),
-      p3.banners.length ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }) }) : "",
-      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
-        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
-          I2("repo"),
-          " Repositories",
-          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
-        ] }),
-        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
-          I2("clock"),
-          " Recent",
-          /* @__PURE__ */ u3("span", { children: p3.recentCount })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3(Body, { b: p3.body, on: on3 })
-    ] });
-  }
-
-  // src/components/PrList.tsx
-  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Opts({ arr, v: v3, all }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("option", { value: "", children: all }),
-      arr.map((x2) => /* @__PURE__ */ u3("option", { value: x2, selected: x2 === v3, children: x2 }))
-    ] });
-  }
-  function FilterBar({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "prl-filters", children: [
-      /* @__PURE__ */ u3("span", { class: "pf-search", children: [
-        I2("search"),
-        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false, onInput: on3.filter })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", onChange: on3.author, children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", onChange: on3.label, children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", onChange: on3.status, children: [
-        /* @__PURE__ */ u3("option", { value: "", children: "Status: any" }),
-        p3.statuses.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.status, children: t3 }))
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", onChange: on3.sort, children: p3.sorts.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
-        "Sort: ",
-        t3
-      ] })) }),
-      "\n  ",
-      /* @__PURE__ */ u3("span", { class: "pf-count", children: [
-        p3.n,
-        " of ",
-        p3.total
-      ] }),
-      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
-    ] });
-  }
-  function PrListPage({ p: p3, on: on3 }) {
-    const body = p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
-      /* @__PURE__ */ u3("span", { class: "prl-main", children: [
-        /* @__PURE__ */ u3("b", { children: r3.title }),
-        r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
-        /* @__PURE__ */ u3("i", { children: r3.meta })
-      ] }),
-      /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
-    ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty });
-    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
-      /* @__PURE__ */ u3("div", { class: "repoline", style: "padding-bottom:16px" }),
-      /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }),
-      /* @__PURE__ */ u3("div", { class: "prl", children: [
-        /* @__PURE__ */ u3("div", { class: "prl-head", children: [
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("span", { class: "repo-ic", children: I2("repo", 16) }),
-            SP,
-            /* @__PURE__ */ u3("b", { children: p3.repo })
-          ] }),
-          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.ps(s3), children: cap3(s3) })) })
-        ] }),
-        p3.filterBar ? /* @__PURE__ */ u3(FilterBar, { p: p3.filterBar, on: on3 }) : null,
-        body
-      ] })
-    ] });
-  }
-  function Crumbs({ repo, trail, extraNode, on: on3 }) {
-    const homeCur = !repo && !trail.length;
-    const parts = [homeCur ? /* @__PURE__ */ u3("span", { class: "crumb cur home", children: [
-      I2("home", 14),
-      /* @__PURE__ */ u3("span", { children: "Home" })
-    ] }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-home": "1", onClick: on3 && on3.home, title: "Home", children: [
-      I2("home", 14),
-      /* @__PURE__ */ u3("span", { children: "Home" })
-    ] })];
-    if (repo) {
-      const [owner, name] = repo.split("/");
-      parts.push(/* @__PURE__ */ u3("span", { class: "crumb-grp", children: [
-        /* @__PURE__ */ u3("a", { class: "crumb", "data-owner": owner, onClick: on3 && (() => on3.owner(owner)), title: `Repositories of ${owner}`, children: owner }),
-        /* @__PURE__ */ u3("span", { class: "crumb-slash", children: "/" }),
-        /* @__PURE__ */ u3("a", { class: "crumb strong", "data-repo": repo, onClick: on3 && (() => on3.repo(repo)), title: `All pull requests in ${repo}`, children: name })
-      ] }));
-    }
-    trail.forEach((t3, i3) => parts.push(i3 === trail.length - 1 ? /* @__PURE__ */ u3("span", { class: "crumb cur", children: t3.t }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-repo": t3.repo || void 0, onClick: on3 && t3.repo ? (() => on3.repo(t3.repo)) : void 0, children: t3.t })));
-    return /* @__PURE__ */ u3("nav", { class: "repoline crumbs", "aria-label": "Breadcrumb", children: [
-      parts.map((x2, i3) => /* @__PURE__ */ u3(S2, { children: [
-        i3 ? /* @__PURE__ */ u3("span", { class: "crumb-sep", children: I2("chevron-right", 12) }) : "",
-        x2
-      ] })),
-      extraNode
-    ] });
-  }
-
-  // src/app/bindwrite.ts
-  function homeProps() {
-    const tab = S.homeTab || "repos", owner = S.homeOwner || "";
-    let body;
-    if (tab === "recent") {
-      const q3 = (S.recentFilter || "").toLowerCase(), st = S.recentState || "all";
-      const list = S.recent.filter((r3) => (st === "all" || r3.state === st) && (!q3 || (r3.title + " " + r3.ref).toLowerCase().includes(q3)));
-      body = { kind: "recent", filter: S.recentFilter || "", state: st, hasAny: S.recent.length > 0, cards: list.map((r3) => ({ ref: r3.ref, state: r3.state, icon: r3.icon, title: r3.title })), emptyText: S.recent.length ? "No matching pull requests." : "Pull requests you open appear here." };
-    } else if (!S.hasToken) body = { kind: "addtoken" };
-    else if (S.reposErr) body = { kind: "error", text: String(S.reposErr) };
-    else if (!S.repos) body = { kind: "spinner" };
-    else {
-      const f4 = (S.repoFilter || "").toLowerCase();
-      const vis = S.hmVis || "all", srt = S.hmSort || "pushed", grp = S.hmGroup || "none";
-      let list = S.repos.filter((r3) => (!owner || r3.full_name.startsWith(owner + "/")) && r3.full_name.toLowerCase().includes(f4) && (vis === "all" || vis === "private" === !!r3.private));
-      const nm = (r3) => r3.full_name.split("/")[1], pushed = (r3) => Date.parse(r3.pushed_at || "0") || 0;
-      const sorters = { name: (a3, b2) => nm(a3).localeCompare(nm(b2)), namez: (a3, b2) => nm(b2).localeCompare(nm(a3)), issues: (a3, b2) => (b2.open_issues_count || 0) - (a3.open_issues_count || 0) || nm(a3).localeCompare(nm(b2)), oldest: (a3, b2) => pushed(a3) - pushed(b2), owner: (a3, b2) => a3.full_name.localeCompare(b2.full_name), ownerz: (a3, b2) => b2.full_name.split("/")[0].localeCompare(a3.full_name.split("/")[0]) || nm(a3).localeCompare(nm(b2)) };
-      const sorter = sorters[srt];
-      if (sorter) list = [...list].sort(sorter);
-      const card = (r3) => ({ full: r3.full_name, name: r3.full_name.split("/")[1], owner: r3.full_name.split("/")[0], priv: !!r3.private, archived: !!r3.archived, issues: r3.open_issues_count || 0, desc: r3.description || "" });
-      let groups = null;
-      if (grp === "owner") {
-        const by = /* @__PURE__ */ new Map();
-        list.forEach((r3) => {
-          const o3 = r3.full_name.split("/")[0];
-          if (!by.has(o3)) by.set(o3, []);
-          by.get(o3).push(r3);
-        });
-        groups = [...by].map(([o3, rs]) => ({ owner: o3, cards: rs.map(card) }));
-      }
-      body = { kind: "repos", filter: S.repoFilter || "", vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
-    }
-    return { owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBannerItems(), err: S.error ? String(S.error) : "", body };
-  }
-
-  // src/app/home.tsx
-  var crumbs = {
-    home: () => {
-      S.view = "home";
-      S.homeOwner = "";
-      S.nav = false;
-      render();
-    },
-    owner: (o3) => {
-      S.view = "home";
-      S.homeOwner = o3;
-      S.homeTab = "repos";
-      S.nav = false;
-      render();
-      if (S.hasToken && !S.repos) loadRepos();
-    },
-    repo: (r3) => openRepo(r3)
-  };
-  var on2 = {
-    tab: (t3) => {
-      S.homeTab = t3;
-      render();
-    },
-    vis: (v3) => {
-      S.hmVis = v3;
-      render();
-    },
-    sort: (e3) => {
-      S.hmSort = e3.target.value;
-      render();
-    },
-    group: (e3) => {
-      S.hmGroup = e3.target.value;
-      render();
-    },
-    repoFilter: (e3) => {
-      S.repoFilter = e3.target.value;
-      render();
-    },
-    recentFilter: (e3) => {
-      S.recentFilter = e3.target.value;
-      render();
-    },
-    rstate: (s3) => {
-      S.recentState = s3;
-      render();
-    },
-    repo: (full) => openRepo(full),
-    open: openClick,
-    aux: openAux,
-    ctx: openCtx,
-    rm: rmRecent,
-    addToken: tokenDialog,
-    compare: (repo, br) => openNewPr(repo, br),
-    dismiss: (key) => {
-      pushDis[key] = 1;
-      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
-      rerender();
-    }
-  };
-  function HomeView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: S.homeOwner ? [{ t: S.homeOwner }] : [], on: crumbs }),
-      /* @__PURE__ */ u3(Home, { p: homeProps(), on: on2 })
-    ] });
-  }
-
-  // src/components/Pages.tsx
-  function NotesPage({ f: f4, rows, unread, total, on: on3 }) {
-    const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
-    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: [
-        /* @__PURE__ */ u3("h1", { children: [
-          I2("bell"),
-          SP,
-          "Notifications"
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-tools", children: [
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", onClick: on3.readAll, disabled: !unread, children: "Mark all as read" }),
-          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", onClick: on3.clear, disabled: !total, children: "Clear all" })
-        ] })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, onClick: () => on3.filter(k3), children: [
-        l3,
-        /* @__PURE__ */ u3("span", { children: c3 })
-      ] })) }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u3("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
-        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, onClick: (e3) => on3.read(e3, n2.id), title: n2.read ? "Mark as unread" : "Mark as read" }),
-        "\n    ",
-        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
-          /* @__PURE__ */ u3("b", { children: n2.title }),
-          /* @__PURE__ */ u3("span", { children: n2.text }),
-          /* @__PURE__ */ u3("i", { children: [
-            n2.ref,
-            " \xB7 ",
-            n2.when
-          ] })
-        ] }),
-        "\n    ",
-        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, onClick: (e3) => on3.read(e3, n2.id), children: n2.read ? "Mark unread" : "Mark read" }),
-        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, onClick: (e3) => on3.del(e3, n2.id), title: "Delete", children: I2("x") })
-      ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
-    ] });
-  }
-  function NpMeta({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
-      p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: r3.name }),
-        /* @__PURE__ */ u3("div", { class: "np-chips", children: [
-          r3.chips.map((x2) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x2, onClick: () => on3.del(r3.k, x2), title: "Remove", children: [
-            x2,
-            " \xD7"
-          ] })),
-          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, value: "", onChange: (e3) => on3.add(r3.k, e3), children: [
-            /* @__PURE__ */ u3("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
-            r3.free.map((x2) => /* @__PURE__ */ u3("option", { children: x2 }))
-          ] }) : ""
-        ] })
-      ] })),
-      "\n    ",
-      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: "Milestone" }),
-        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", onChange: on3.mile, children: [
-          /* @__PURE__ */ u3("option", { value: "", children: "None" }),
-          p3.milestones.map((x2) => /* @__PURE__ */ u3("option", { value: x2.number, selected: x2.on, children: x2.title }))
-        ] })
-      ] }),
-      "\n    ",
-      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: [
-          "Linked issues ",
-          /* @__PURE__ */ u3("i", { children: "closed when this merges" })
-        ] }),
-        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues, onInput: on3.issues })
-      ] })
-    ] });
-  }
-  function NewPr({ p: p3, on: on3 }) {
-    const c3 = p3.cmp;
-    const cmp = c3.kind === "loading" ? /* @__PURE__ */ u3("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u3("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u3("span", { class: "np-note ok", children: [
-      I2("git-commit"),
-      SP,
-      c3.ahead,
-      " commit",
-      c3.ahead === 1 ? "" : "s",
-      " \xB7 ",
-      c3.files,
-      " file",
-      c3.files === 1 ? "" : "s",
-      " changed",
-      c3.behind ? ` \xB7 ${c3.behind} behind ${p3.base}` : ""
-    ] }) : /* @__PURE__ */ u3("span", { class: "np-note err", children: "These branches are identical \u2014 there is nothing to compare." });
-    const t3 = p3.tpls;
-    return /* @__PURE__ */ u3("div", { class: "notes-page np-new", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
-        I2("git-pull-request"),
-        SP,
-        "New pull request"
-      ] }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-card", children: [
-        /* @__PURE__ */ u3("div", { class: "np-main-col", children: [
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Repository" }),
-            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", onClick: on3.repo, children: [
-              /* @__PURE__ */ u3("span", { children: p3.repo || "Choose a repository" }),
-              I2("chevron-down", 14)
-            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo, onChange: on3.repoIn }),
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-branches", children: [
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("label", { class: "np-l", children: [
-                  "Base ",
-                  /* @__PURE__ */ u3("i", { children: "merge into" })
-                ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", onClick: on3.base, disabled: !p3.hasBranches, children: [
-                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
-                  I2("chevron-down", 14)
-                ] })
-              ] }),
-              "\n      ",
-              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", onClick: on3.swap, title: "Swap base and head", children: "\u21C4" }),
-              "\n      ",
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("label", { class: "np-l", children: [
-                  "Head ",
-                  /* @__PURE__ */ u3("i", { children: "changes from" })
-                ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", onClick: on3.head, disabled: !p3.hasBranches, children: [
-                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
-                  I2("chevron-down", 14)
-                ] })
-              ] })
-            ] }),
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-cmp", children: p3.same ? /* @__PURE__ */ u3("span", { class: "np-note err", children: "Base and head are the same branch." }) : cmp })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title, onInput: on3.title })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-            t3 && t3.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", value: String(t3.findIndex((x2) => x2.body === p3.tplText)), onChange: on3.tpl, children: [
-              /* @__PURE__ */ u3("option", { value: "-1", children: "No template" }),
-              t3.map((x2, i3) => /* @__PURE__ */ u3("option", { value: i3, children: [
-                "Template: ",
-                x2.name
-              ] }))
-            ] }) : "",
-            /* @__PURE__ */ u3(DraftBox, { k: "newpr", ph: "Describe your changes", rows: 8 })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-check", children: [
-              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft, onChange: on3.draft }),
-              " Create as draft ",
-              /* @__PURE__ */ u3("span", { children: "(not ready for review yet)" })
-            ] }),
-            "\n    ",
-            p3.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: p3.err }) : "",
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-btns", children: [
-              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
-              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", onClick: on3.create, disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
-            ] })
-          ] }),
-          "\n  "
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-side-col", children: p3.meta ? /* @__PURE__ */ u3(NpMeta, { p: p3.meta, on: on3 }) : "" })
-      ] })
-    ] }, p3.seq);
-  }
-  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
-    const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
-      /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
-      /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
-      /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
-      /* @__PURE__ */ u3("h2", { children: [
-        s3.title,
-        /* @__PURE__ */ u3("span", { children: s3.rows.length })
-      ] }),
-      /* @__PURE__ */ u3("p", { children: s3.sub }),
-      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
-        /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
-        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.title }),
-          /* @__PURE__ */ u3("i", { children: r3.sub })
-        ] }),
-        r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
-        r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
-          I2("comment"),
-          SP,
-          r3.comments
-        ] }) : ""
-      ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: "Nothing here. Nice." })
-    ] }));
-    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: [
-        /* @__PURE__ */ u3("h1", { children: [
-          I2("checklist"),
-          SP,
-          "Inbox"
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
-      ] }),
-      body
-    ] });
-  }
-  var Skeleton = () => /* @__PURE__ */ u3("div", { class: "skel", "aria-busy": "true", children: [
-    /* @__PURE__ */ u3("div", { class: "sk sk-crumb" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-title" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-pill" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-line w60" }),
-    /* @__PURE__ */ u3("div", { class: "sk-tabs", children: [
-      /* @__PURE__ */ u3("i", { class: "sk" }),
-      /* @__PURE__ */ u3("i", { class: "sk" }),
-      /* @__PURE__ */ u3("i", { class: "sk" })
-    ] }),
-    [0, 1, 2].map((i3) => /* @__PURE__ */ u3("div", { class: "sk-row", style: `--i:${i3}`, children: [
-      /* @__PURE__ */ u3("div", { class: "sk sk-av" }),
-      /* @__PURE__ */ u3("div", { class: "sk-card", children: [
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w40" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-      ] })
-    ] }))
-  ] });
-  function PrLayout({ header, body, side, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
-      header,
-      /* @__PURE__ */ u3("div", { class: "pr-layout", children: [
-        /* @__PURE__ */ u3("main", { class: "pr-main", children: body }),
-        side.kind === "rail" ? /* @__PURE__ */ u3("button", { class: "pane-rail side-rail", "data-show": "side", onClick: on3.show, title: "Show details", children: [
-          I2("columns"),
-          /* @__PURE__ */ u3("span", { children: "Details" })
-        ] }) : side.kind === "aside" ? /* @__PURE__ */ u3("aside", { class: "pr-side", children: [
-          /* @__PURE__ */ u3("div", { class: "side-top", children: [
-            /* @__PURE__ */ u3("span", { children: "Details" }),
-            /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "side", onClick: side.on.hide, title: "Hide this panel", children: I2("x") })
-          ] }),
-          side.inner
-        ] }) : ""
-      ] })
-    ] });
-  }
-  var SplitLayout = ({ header, split }) => /* @__PURE__ */ u3("div", { class: "pr-page is-split", children: [
-    header,
-    split
-  ] });
-  var Gate = ({ err, go: go3, tok }) => /* @__PURE__ */ u3("div", { class: "gate", children: /* @__PURE__ */ u3("div", { class: "gate-card", children: [
-    /* @__PURE__ */ u3("img", { src: "logo.png", alt: "", width: 72, height: 72 }),
-    /* @__PURE__ */ u3("h1", { children: "Sign in to Pullscope" }),
-    "\n  ",
-    /* @__PURE__ */ u3("p", { class: "gate-err", children: [
-      I2("alert"),
-      SP,
-      "No GitHub sign-in or token was found."
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("p", { children: "Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing." }),
-    "\n  ",
-    err ? /* @__PURE__ */ u3("p", { class: "gate-err", children: err }) : "",
-    "\n  ",
-    /* @__PURE__ */ u3("div", { class: "btns", style: "justify-content:center", children: [
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "gatego", onClick: go3, children: "Sign in with GitHub" }),
-      /* @__PURE__ */ u3("button", { class: "btn", id: "gatetok", onClick: tok, children: "Use a token instead" })
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("small", { children: [
-      "Tip: running ",
-      /* @__PURE__ */ u3("code", { children: "gh auth login" }),
-      " in a terminal also works."
-    ] })
-  ] }) });
 
   // src/app/fun.ts
   var enterTimer;
@@ -4831,13 +4886,13 @@
       repaintShell({ enter: false });
     }, 1800);
   }
-  document.addEventListener("pointerdown", (e3) => {
+  function ripple(e3) {
     const b2 = e3.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
     if (!b2 || b2.disabled) return;
     const r3 = b2.getBoundingClientRect(), d3 = Math.max(r3.width, r3.height) * 2, cs = getComputedStyle(b2);
     fxAdd({ k: "rip", l: r3.left, t: r3.top, w: r3.width, h: r3.height, radius: cs.borderRadius, color: cs.color, x: e3.clientX - r3.left - d3 / 2, y: e3.clientY - r3.top - d3 / 2, d: d3 }, 650);
     if (b2.matches(".reaction, .react-add")) burst(e3.clientX, e3.clientY, b2.textContent.trim().slice(0, 2) || "\u2728", 6);
-  });
+  }
   function burst(x2, y3, ch, n2) {
     for (let i3 = 0; i3 < n2; i3++) {
       const a3 = Math.PI * 2 * i3 / n2 + Math.random() * 0.6, v3 = 40 + Math.random() * 50;
@@ -5030,8 +5085,8 @@
     issues: (e3) => {
       np().issues = val(e3);
     },
-    create: async (e3) => {
-      const n2 = np(), sel = btnSel(e3.currentTarget);
+    create: async () => {
+      const n2 = np(), sel = "#npcreate";
       setBusy(sel, true);
       n2.err = "";
       try {
@@ -5063,61 +5118,6 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       /* @__PURE__ */ u3(Crumbs, { repo: np().repo, trail: [{ t: "New pull request" }], on: crumbs }),
       /* @__PURE__ */ u3(NewPr, { p: newPrProps(), on: newpr })
     ] });
-  }
-
-  // src/app/pr.tsx
-  var hide = (k3, v3) => keep(() => {
-    S.hide[k3] = v3;
-    localStorage.setItem("hide", JSON.stringify(S.hide));
-  });
-  var head = {
-    tab: openTab,
-    edit: editPrDialog,
-    copy: () => {
-      navigator.clipboard?.writeText(S.bundle.pull.head.ref);
-    },
-    review: reviewDialog,
-    side: () => keep(() => {
-      S.hide.side = !S.hide.side;
-      localStorage.setItem("hide", JSON.stringify(S.hide));
-    }),
-    split: () => keep(() => {
-      S.split = !S.split;
-      localStorage.setItem("split", S.split ? "1" : "0");
-    })
-  };
-  var sideOn = {
-    fold: (k3, def) => {
-      S.fold[k3] = !isFolded(k3, def);
-      localStorage.setItem("fold", JSON.stringify(S.fold));
-      rerender();
-    },
-    rvtoggle: () => {
-      S.showAllReviewers = !S.showAllReviewers;
-      rerender();
-    },
-    rerequest: rerequestReview
-  };
-  function Header() {
-    const p3 = S.bundle.pull, r3 = p3.base.repo;
-    const extra = /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("a", { class: "crumb gh", href: r3.html_url, "data-ext": "", title: "Open on GitHub", children: I2("link-external", 12) }),
-      S.refreshing ? /* @__PURE__ */ u3("span", { class: "stale", children: "Refreshing\u2026" }) : ""
-    ] });
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: r3.full_name, trail: [{ t: "Pull requests", repo: r3.full_name }, { t: `#${p3.number}` }], extraNode: extra, on: crumbs }),
-      /* @__PURE__ */ u3(PrHeader, { ...prHeaderProps(S.bundle), on: head })
-    ] });
-  }
-  function PrView() {
-    const b2 = S.bundle;
-    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: splitView(b2) });
-    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : null;
-    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
-    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u3("div", { class: "rail", children: /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
-      /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
-    ] }) : body, side, on: { show: () => hide("side", false) } });
   }
 
   // src/app/pages.tsx
@@ -5272,9 +5272,33 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {
     S.mainTop = top;
-    S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top, smooth };
-    repaintShell({ scroll: S.scrollReq });
+    request("scroll:main", { top, smooth });
   }
+  var gripDown = (e3) => {
+    e3.preventDefault();
+    const x0 = e3.clientX, w0 = S.sbw;
+    setDragging(true);
+    beginDrag({ move: (ev) => {
+      S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
+      repaintShell({ sbw: S.sbw });
+    }, end: () => {
+      setDragging(false);
+      localStorage.setItem("sbw", String(Math.round(S.sbw)));
+    } });
+  };
+  var gripReset = () => {
+    S.sbw = 260;
+    localStorage.setItem("sbw", "260");
+    S.keepScroll = true;
+    render();
+    S.keepScroll = false;
+  };
+  var scrimTap = () => {
+    S.nav = false;
+    S.keepScroll = true;
+    render();
+    S.keepScroll = false;
+  };
   var repaintShell = (patch) => {
     const cur = shellProps();
     if (cur) setShell({ ...cur, ...patch });
@@ -5318,7 +5342,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
     batch(() => {
       paintTop();
-      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live2 }, onPage: followLink, onScroll: (e3) => scrolled("main", e3.currentTarget), kept });
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, onGrip: (e3) => gripDown(e3), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e3) => scrolled("main", e3.currentTarget), kept });
       paintSide();
       paintDlg();
       paintNotes();
@@ -5333,7 +5357,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   }
 
   // src/app/addressbar.ts
-  var AC = { rows: [], sel: -1, nav: false, prs: {} };
+  var AC = { rows: [], sel: -1, nav: false, prs: {}, rect: null };
   function acRows(q3) {
     const t3 = q3.trim(), lq = t3.toLowerCase(), rows = [], seen2 = /* @__PURE__ */ new Set();
     const add = (r3) => {
@@ -5365,9 +5389,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     }
   }
   function acDraw() {
-    const inp = $("#addrinput");
-    if (!inp || document.activeElement !== inp) return acClose();
-    const q3 = inp.value;
+    if (!S.addrFocus || !AC.rect) return acClose();
+    const q3 = S.addrText ?? "";
     AC.rows = acRows(q3);
     const m3 = q3.trim().toLowerCase().match(/^([^#\s]+\/[^#\s]+)#\d*$/);
     if (m3 && AC.prs[m3[1]] === void 0 && tauri) {
@@ -5381,41 +5404,64 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     }
     if (!AC.rows.length) return acClose();
     AC.sel = Math.min(AC.sel, AC.rows.length - 1);
-    const b2 = inp.closest(".addr").getBoundingClientRect();
+    const b2 = AC.rect;
     OV.ac = { rows: AC.rows, sel: AC.sel, left: b2.left, top: b2.bottom + 6, width: b2.width, pick: acPick };
     paintOv();
   }
+  var setText = (t3) => {
+    S.addrText = t3;
+    paintTop();
+  };
   function acPick(r3) {
-    const inp = $("#addrinput");
-    if (!r3 || !inp) return;
+    if (!r3) return;
     if (r3.fill) {
-      inp.value = r3.fill;
+      setText(r3.fill);
       focusTarget("addr", "focus");
       AC.sel = -1;
       acDraw();
       return;
     }
     acClose();
+    S.addrText = null;
+    paintTop();
     focusTarget("addr", "blur");
     openPr(r3.ref);
   }
-  document.addEventListener("focusin", (e3) => {
-    if (e3.target.id === "addrinput") {
-      AC.sel = -1;
-      setTimeout(acDraw, 0);
-    }
-  });
-  document.addEventListener("input", (e3) => {
-    if (e3.target.id === "addrinput") {
-      AC.sel = -1;
-      acDraw();
-    }
-  });
-  document.addEventListener("focusout", (e3) => {
-    if (e3.target.id === "addrinput") setTimeout(acClose, 120);
-  });
-  document.addEventListener("keydown", (e3) => {
-    if (e3.target.id !== "addrinput" || !OV.ac) return;
+  var addrSubmit = (e3) => {
+    e3.preventDefault();
+    const t3 = S.addrText ?? curText();
+    S.addrText = null;
+    acClose();
+    focusTarget("addr", "blur");
+    openPr(t3);
+  };
+  var curText = () => S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
+  var addrInput = (e3) => {
+    const el = e3.currentTarget;
+    AC.rect = el.closest(".addr").getBoundingClientRect();
+    AC.sel = -1;
+    setText(el.value);
+    acDraw();
+  };
+  var addrFocus = (e3) => {
+    const el = e3.currentTarget;
+    AC.rect = el.closest(".addr").getBoundingClientRect();
+    S.addrFocus = true;
+    AC.sel = -1;
+    setTimeout(acDraw, 0);
+  };
+  var addrBlur = () => {
+    S.addrFocus = false;
+    setTimeout(() => {
+      if (!S.addrFocus) {
+        S.addrText = null;
+        paintTop();
+        acClose();
+      }
+    }, 120);
+  };
+  function addrKey(e3) {
+    if (!OV.ac) return;
     if (e3.key === "ArrowDown" || e3.key === "ArrowUp") {
       e3.preventDefault();
       const n2 = AC.rows.length;
@@ -5426,7 +5472,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       const r3 = AC.rows[Math.max(0, AC.sel)];
       if (r3.fill) acPick(r3);
       else {
-        e3.target.value = r3.ref;
+        setText(r3.ref);
         AC.sel = -1;
         acDraw();
       }
@@ -5436,16 +5482,16 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     } else if (e3.key === "Escape") {
       acClose();
     }
-  }, true);
-  {
-    const win = () => window.__TAURI__?.window?.getCurrentWindow?.();
-    const free = (e3) => e3.button === 0 && e3.target.closest(".toolbar") && !e3.target.closest("button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop");
-    document.addEventListener("mousedown", (e3) => {
-      if (!free(e3)) return;
-      e3.preventDefault();
-      if (e3.detail === 2) win()?.toggleMaximize?.();
-      else win()?.startDragging?.();
-    });
+  }
+  function winDrag(e3) {
+    const t3 = e3.target, win = window.__TAURI__?.window?.getCurrentWindow?.();
+    if (e3.button !== 0 || t3.closest("button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop")) return;
+    e3.preventDefault();
+    if (e3.detail === 2) win?.toggleMaximize?.();
+    else win?.startDragging?.();
+  }
+  function bpAway(e3) {
+    if (OV.bp && !e3.target.closest("#bppop")) bpClose();
   }
   function bpClose() {
     if (OV.bp) {
@@ -5583,12 +5629,15 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const open2 = busy || S.cOpen === true, dr = (S.draft.comment || "").trim();
     return { open: open2, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", err: errMsg("comment"), merged: !!p3.merged, closed, busy };
   }
+  var mergeMethod = () => {
+    const am = S.bundle?.pull.auto_merge;
+    return am ? { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" }[am.merge_method] || "merge" : "merge";
+  };
   function mergeActProps(b2) {
     const p3 = b2.pull;
     if (p3.merged || p3.state === "closed") return null;
     const busy = S.busy === "merge", am = p3.auto_merge, blocked = p3.mergeable_state !== "clean" && p3.mergeable_state !== "unstable";
-    const cur = am ? { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" }[am.merge_method] || "merge" : "merge";
-    return { draft: !!p3.draft, err: errMsg("merge"), method: cur, busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errMsg("automerge") };
+    return { draft: !!p3.draft, err: errMsg("merge"), method: S.method || mergeMethod(), busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errMsg("automerge") };
   }
   function closeDlg() {
     const d3 = S.dlg;
@@ -5646,10 +5695,10 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     } };
     render();
   }
-  document.addEventListener("click", (e3) => {
+  var noteClick = (e3) => {
     const b2 = e3.target.closest?.("button");
     S.lastSel = b2 ? btnSel(b2) : null;
-  }, true);
+  };
   var btnSel = (b2) => {
     if (b2.id) return "#" + b2.id;
     const a3 = [...b2.attributes].find((x2) => x2.name.startsWith("data-"));
@@ -5765,8 +5814,9 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   }
   function hideCommentDialog(c3) {
     const reasons = [["SPAM", "Spam"], ["ABUSE", "Abuse"], ["OFF_TOPIC", "Off-topic"], ["OUTDATED", "Outdated"], ["DUPLICATE", "Duplicate"], ["RESOLVED", "Resolved"]];
+    S.hideReason = "OUTDATED";
     S.dlg = { k: "hidec", reasons, ok: async () => {
-      const r3 = await act("minimize", { body: c3.node_id || "", content: $("#hcreason").value }, "hidec", true);
+      const r3 = await act("minimize", { body: c3.node_id || "", content: S.hideReason || "OUTDATED" }, "hidec", true);
       if (r3 === void 0) return;
       S.fold["c:" + c3.id] = true;
       localStorage.setItem("fold", JSON.stringify(S.fold));
@@ -5903,7 +5953,7 @@ ${q3}
     });
   }
   async function enableAuto() {
-    const r3 = await act("automerge", { method: $("#mmethod").value }, "automerge");
+    const r3 = await act("automerge", { method: S.method || mergeMethod() }, "automerge");
     if (r3 !== void 0) await refreshPr();
   }
   async function disableAuto() {
@@ -5911,7 +5961,7 @@ ${q3}
     if (r3 !== void 0) await refreshPr();
   }
   function doMerge() {
-    const m3 = $("#mmethod").value, p3 = S.bundle.pull, names = { merge: "merge commit", squash: "squash and merge", rebase: "rebase and merge" };
+    const m3 = S.method || mergeMethod(), p3 = S.bundle.pull, names = { merge: "merge commit", squash: "squash and merge", rebase: "rebase and merge" };
     confirmDlg("Merge this pull request?", `${p3.head.label} will be merged into ${p3.base.label} using ${names[m3]}. This changes the repository and cannot be undone from here.`, "Merge", false, async () => {
       const r3 = await act("merge", { method: m3 }, "merge");
       if (r3 !== void 0) await refreshPr();
@@ -6030,11 +6080,14 @@ ${ev.currentTarget.dataset.code}
   };
   var live = /* @__PURE__ */ new Map();
   var wantFocus = /* @__PURE__ */ new Set();
-  function focusDraft(key) {
+  editorMount.focus = (key) => {
     const ed = [...live].find(([, k3]) => k3 === key)?.[0];
     if (ed) ed.focus?.();
     else wantFocus.add(key);
-  }
+  };
+  var focusDraft = (key) => request("draft:focus:" + key);
+  var scrollDraft = (key) => request("draft:scroll:" + key);
+  var blurDraft = (key) => request("draft:blur:" + key);
   function syncDraft(key) {
     live.forEach((k3, ed) => {
       if (k3 === key) ed.setMarkdown?.(S.draft[key] || "");
@@ -6047,7 +6100,7 @@ ${ev.currentTarget.dataset.code}
       return () => {
       };
     }
-    const send = () => (key === "comment" ? $("#docomment") : key === "lc" ? $("#lcadd") : key === "newpr" ? $("#npcreate") : key.startsWith("reply-") ? $(`[data-sendreply="${key.slice(6)}"]`) : $("#revsubmit"))?.click();
+    const send = () => request("draft:submit:" + key);
     let ed = null, gone = false;
     const mount = () => {
       if (gone) return;
@@ -6279,17 +6332,17 @@ ${ev.currentTarget.dataset.code}
     S.focus = target || "";
     openPr(ref);
   });
-  addEventListener("offline", () => {
+  var goOffline = () => {
     S.offline = true;
     S.keepScroll = true;
     render();
     S.keepScroll = false;
-  });
-  addEventListener("online", () => {
+  };
+  var goOnline = () => {
     S.offline = false;
     if (S.bundle && S.view === "pr") openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true });
     else render();
-  });
+  };
 
   // src/app/boot.tsx
   var q2 = new URLSearchParams(location.search);
@@ -6309,6 +6362,25 @@ ${ev.currentTarget.dataset.code}
     S.hasToken = false;
     render();
   });
+  setGlobals({
+    pointerDown: (e3) => ripple(e3),
+    clickCapture: (e3) => noteClick(e3),
+    click: () => closePop(),
+    mouseDown: (e3) => {
+      menuAway(e3);
+      notesAway(e3);
+      bpAway(e3);
+    },
+    key: (e3) => {
+      shortcut(e3);
+      notesKey(e3);
+      helpKey(e3);
+      homeKey(e3);
+    },
+    focus: () => refocus(),
+    online: () => goOnline(),
+    offline: () => goOffline()
+  });
   render();
   if (q2.get("fixture")) openPr(q2.get("fixture")).then(() => {
     if (q2.get("tab")) {
@@ -6325,12 +6397,12 @@ ${ev.currentTarget.dataset.code}
   });
   setInterval(pollNotes, 6e4);
   setTimeout(pollNotes, 4e3);
-  addEventListener("focus", () => {
+  var refocus = () => {
     const b2 = S.bundle;
     if (!tauri || !b2 || S.view !== "pr" || S.loading || S.refreshing) return;
     const k3 = `${b2.pull.base.repo.full_name}#${b2.pull.number}`;
     if (!qc.fresh(k3, 6e4)) openPr(k3, { nav: true, keepTab: true });
-  });
+  };
   setTimeout(pollNotes, 8e3);
   if (new URLSearchParams(location.search).get("demonote")) {
     S.notes = [{ id: 1, ref: "octocat/Hello-World#6", title: "New line at end of file.", text: "3 new commits, 2 new comments", at: (/* @__PURE__ */ new Date()).toISOString(), read: false }, { id: 2, ref: "octocat/Hello-World#6", title: "New line at end of file.", text: "now merged", at: new Date(Date.now() - 36e5).toISOString(), read: true }];

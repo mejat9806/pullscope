@@ -1,4 +1,4 @@
-import { setSlot } from './frame';
+import { beginDrag, setSlot } from './frame';
 import { TabStrip } from '../components/TabStrip';
 import type { TabHandlers } from '../components/TabStrip';
 import { Toolbar } from '../components/Toolbar';
@@ -6,9 +6,8 @@ import type { ToolbarHandlers } from '../components/Toolbar';
 import { btnSel, rerender, setBusy } from './actions';
 import { setBell } from './notes';
 import { closePop, openPop } from './dialogs';
-import { avUrl, openExternal, openFromList } from './addressbar';
-import { focusTarget } from '../components/req';
-import { $, S, isDark, isOff, tauri } from './core';
+import { winDrag, addrBlur, addrFocus, addrInput, addrKey, addrSubmit, avUrl, openExternal, openFromList } from './addressbar';
+import { S, isDark, isOff, tauri } from './core';
 import { openPr, reload } from './nav';
 import { fastTab, stashCurrent } from './bind';
 import { tokenDialog } from './token';
@@ -45,7 +44,7 @@ const tb: ToolbarHandlers = {
     keep(() => { S.nav = !S.nav; });
   },
   back: () => go(-1), fwd: () => go(1), reload, external: () => openExternal(S.bundle!.pull.html_url), mode,
-  addr: (e) => { e.preventDefault(); openPr($<HTMLInputElement>('#addrinput')!.value); focusTarget('addr', 'blur'); },
+  drag: (e) => winDrag(e), addr: (e) => addrSubmit(e), input: (e) => addrInput(e), focus: (e) => addrFocus(e), blur: () => addrBlur(), key: (e) => addrKey(e),
   upd: async () => {
     const u = S.update; if (!u || u.busy) return; u.busy = true; render();
     try { await u.obj.downloadAndInstall(); await window.__TAURI__!.process.relaunch(); }
@@ -54,6 +53,9 @@ const tb: ToolbarHandlers = {
   retry: (ev) => { const sel = btnSel(ev.currentTarget as HTMLElement); setBusy(sel, true); S.offline = navigator.onLine === false; Promise.resolve(reload()).finally(() => setBusy(sel, false)); },
   newPr: () => openNewPr(), inbox: openInbox, bell: (e) => { e.stopPropagation(); setBell(!S.bell); }, signin: tokenDialog, prof,
 };
+
+// The click that ends a tab drag must not also open the tab.
+let swallowClick = false;
 
 // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop). The drag is state (S.drag) that the tab strip draws.
 const tabDown = (e: MouseEvent, from: number) => {
@@ -68,18 +70,18 @@ const tabDown = (e: MouseEvent, from: number) => {
     S.drag = { from, to, dx: ev.clientX - x0, w }; paintTop();
   };
   const up = () => {
-    removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false);
+    setDragging(false);
     if (!moved) return;
-    el.addEventListener('click', (c) => c.stopImmediatePropagation(), { capture: true, once: true });
+    swallowClick = true; setTimeout(() => { swallowClick = false; }, 0);
     S.drag = null;
     if (to !== from) { const [t] = S.tabs.splice(from, 1); S.tabs.splice(to, 0, t); saveTabs(); }
     render();
   };
-  addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  beginDrag({ move: mv, end: up });
 };
 
 const ts: TabHandlers = {
-  open: (i) => { const t = S.tabs[i]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } },
+  open: (i) => { if (swallowClick) return; const t = S.tabs[i]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } },
   aux: (e, i) => { if (e.button === 1) { e.preventDefault(); closeTab(i); } },
   down: tabDown,
   close: (e, i) => { e.stopPropagation(); closeTab(i); },
@@ -95,7 +97,7 @@ export function Top() {
     <>
       {S.refreshing && <div class="refreshing-bar"></div>}
       <Toolbar
-        prRef={b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : ''} hasBundle={!!b} canBack={!(S.hist.length < 2 || S.hi < 1)} canFwd={!(S.hi >= S.hist.length - 1)}
+        text={S.addrText ?? (b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '')} hasBundle={!!b} canBack={!(S.hist.length < 2 || S.hi < 1)} canFwd={!(S.hi >= S.hist.length - 1)}
         update={S.update ? { busy: S.update.busy, version: S.update.version } : null} offline={isOff()} unread={S.notes.filter((n) => !n.read).length}
         dark={isDark()} pop={S.themePop || 0} profile={pr} hasToken={S.hasToken} avatar={S.hasToken && pr ? avUrl(pr.avatar_url!, 56) : ''} on={tb} />
       <TabStrip tabs={S.tabs} cur={S.tabPending || curRef()} recents={S.recent.filter((r) => !open.has(r.ref)).slice(0, 8)} menu={S.tabMenu} menuAt={S.tabMenuAt || null} drag={S.drag || null} closedFirst={S.closed.length ? S.closed[0].ref : null} on={ts} />

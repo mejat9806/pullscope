@@ -17,6 +17,8 @@ import { Timeline, attentionProps, checksView, timelineModel } from './timeline'
 
 const hide = (k: string, v: boolean) => keep(() => { S.hide[k] = v; localStorage.setItem('hide', JSON.stringify(S.hide)); });
 
+export const toggleSplit = () => { if (S.view === 'pr' && S.bundle && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') head.split(); };
+
 const head: PrHeaderHandlers = {
   tab: openTab,
   edit: editPrDialog,

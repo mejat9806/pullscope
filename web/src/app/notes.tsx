@@ -28,8 +28,8 @@ function noteOpen(e: MouseEvent) { openClick(row(e), e); S.bell = false; S.notes
 const noteOn: NoteHandlers = { all: noteAll, check: () => { pollNotes(); }, clear: noteClear, open: noteOpen, aux: (e) => openAux(row(e), e), ctx: (e) => openCtx(row(e), e) };
 
 // Click outside (or Esc) closes the drawer; closing marks everything read.
-document.addEventListener('mousedown', (e) => {
+export function notesAway(e: MouseEvent) {
   if (!S.bell || (e.target as HTMLElement).closest<HTMLElement>('.note-panel, #bell')) return;
   setBell(false);
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) setBell(false); });
+}
+export const notesKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && S.bell) setBell(false); };

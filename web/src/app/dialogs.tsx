@@ -25,13 +25,13 @@ export function Dialogs() {
   const close = () => closeDlg(), ok = () => { d.k !== 'commits' && d.k !== 'token' && d.ok(); };
   switch (d.k) {
     case 'commits': return <CommitsDialog {...commitsDialogProps()} on={cpOn} />;
-    case 'token': return <TokenDialog code={S.oauth?.code || ''} err={S.oauth?.err || ''} go={oauthGo} close={close} save={tokenSave} />;
+    case 'token': return <TokenDialog text={S.tokenText || ''} input={(e) => { S.tokenText = (e.currentTarget as HTMLInputElement).value; }} code={S.oauth?.code || ''} err={S.oauth?.err || ''} go={oauthGo} close={close} save={tokenSave} />;
     case 'review': { const n = pendList().length; return <ReviewDialog ph={n ? `Leave a review comment (${n} line comment${n === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)'} ev={d.ev} onEv={(v) => { d.ev = v; paintDlg(); }} err={errMsg('review')} close={close} ok={ok} />; }
     case 'editpr': return <EditPrDialog title={d.title} onTitle={(v) => { d.title = v; }} err={errMsg('editpr')} close={close} ok={ok} />;
     case 'confirm': return <ConfirmDialog title={d.title} text={d.text} label={d.label} danger={d.danger} close={close} ok={ok} />;
     case 'editc': return <EditCommentDialog err={errMsg('editc')} close={close} ok={ok} />;
     case 'delc': return <DeleteCommentDialog err={errMsg('delc')} close={close} ok={ok} />;
-    case 'hidec': return <HideCommentDialog reasons={d.reasons} err={errMsg('hidec')} close={close} ok={ok} />;
+    case 'hidec': return <HideCommentDialog reasons={d.reasons} reason={S.hideReason || 'OUTDATED'} pick={(e) => { S.hideReason = (e.currentTarget as HTMLSelectElement).value; paintDlg(); }} err={errMsg('hidec')} close={close} ok={ok} />;
   }
 }
 
@@ -47,4 +47,3 @@ const paintPop = () => setSlot('pop', <Pops />);
 export function openPop(p: NonNullable<typeof S.pop>) { S.pop = p; paintPop(); }
 export function closePop() { if (!S.pop) return; S.pop = null; paintPop(); }
 // Whatever opens a popup stops its own click, so any later click (inside or outside) dismisses it.
-document.addEventListener('click', closePop);

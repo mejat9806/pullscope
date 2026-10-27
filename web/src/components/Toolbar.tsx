@@ -4,12 +4,12 @@ import { useFocusTarget } from './req';
 
 export interface ToolbarHandlers {
   nav: (e: MouseEvent) => void; back: () => void; fwd: () => void; reload: () => void; external: () => void
-  mode: (e: MouseEvent) => void; addr: (e: Event) => void; upd: () => void; retry: (e: MouseEvent) => void
+  mode: (e: MouseEvent) => void; addr: (e: Event) => void; drag: (e: MouseEvent) => void; input: (e: Event) => void; focus: (e: Event) => void; blur: () => void; key: (e: KeyboardEvent) => void; upd: () => void; retry: (e: MouseEvent) => void
   newPr: () => void; inbox: () => void; bell: (e: MouseEvent) => void; signin: () => void; prof: (e: MouseEvent) => void
 }
 
 export interface ToolbarProps {
-  prRef: string; hasBundle: boolean; canBack: boolean; canFwd: boolean; update: { busy?: boolean; version: string } | null
+  text: string; hasBundle: boolean; canBack: boolean; canFwd: boolean; update: { busy?: boolean; version: string } | null
   offline: boolean; unread: number; dark: boolean; pop: number; profile: Profile | null; hasToken: boolean; avatar: string
   on: ToolbarHandlers
 }
@@ -19,14 +19,14 @@ const NL = '\n  ';
 export function Toolbar(p: ToolbarProps) {
   const label = p.profile ? p.profile.name || p.profile.login : '';
   return (
-    <header class="toolbar" data-tauri-drag-region="">
+    <header class="toolbar" data-tauri-drag-region="" onMouseDown={p.on.drag}>
       {NL}<button class="tb-btn nav-btn" id="navbtn" onClick={p.on.nav} title="Show or hide the sidebar"><Icon n={'three-bars'} /></button>
       <div class="tb-group">
         <button class="tb-btn" id="back" onClick={p.on.back} disabled={!p.canBack} title="Back (⌘[)"><Icon n={'chevron-left'} /></button>
         <button class="tb-btn" id="fwd" onClick={p.on.fwd} disabled={!p.canFwd} title="Forward (⌘])"><Icon n={'chevron-right'} /></button>
         <button class="tb-btn" id="reload" onClick={p.on.reload} disabled={!p.hasBundle} title="Reload (⌘R)"><Icon n={'sync'} /></button>
       </div>
-      {NL}<form id="addr" class="addr" onSubmit={p.on.addr}><Icon n={'search'} /><input id="addrinput" ref={useFocusTarget('addr')} value={p.prRef} placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck={false} autocomplete="off" /></form>{p.update && <button class="upd" id="upd" onClick={p.on.upd} title="Download and install the new version, then restart"><Icon n={'sync'} /> {p.update.busy ? 'Updating…' : 'Update to v' + p.update.version}</button>}
+      {NL}<form id="addr" class="addr" onSubmit={p.on.addr}><Icon n={'search'} /><input id="addrinput" ref={useFocusTarget('addr')} value={p.text} onInput={p.on.input} onFocus={p.on.focus} onBlur={p.on.blur} onKeyDown={p.on.key} placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck={false} autocomplete="off" /></form>{p.update && <button class="upd" id="upd" onClick={p.on.upd} title="Download and install the new version, then restart"><Icon n={'sync'} /> {p.update.busy ? 'Updating…' : 'Update to v' + p.update.version}</button>}
       {NL}<div class="tb-group">
         <button class={`tb-btn off-ind ${p.offline ? 'on' : ''}`} id="retry" onClick={p.on.retry} data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex={p.offline ? 0 : -1}><Icon n={'alert'} /></button>
         <button class="tb-btn" id="external" onClick={p.on.external} disabled={!p.hasBundle} title="Open on github.com"><Icon n={'link-external'} /></button>

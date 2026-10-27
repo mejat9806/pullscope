@@ -48,14 +48,14 @@ export function ReactionsBar({ r, kind, id, defs, on }: ReactionsProps & { on?: 
 }
 
 export interface ConvHandlers { fold: FoldFn; menu: (e: Event, btn: HTMLElement) => void; react: ReactHandlers; thread: (e: Event, node: string, how: string) => void; sug: (e: Event, id: string) => void; reply: (id: string) => void }
-export interface CommentBoxProps { kb?: boolean; flash?: FlashProps; c: CommentLike; assoc: string | undefined; bodyHtml: string; folded: boolean; reactions: ReactionsProps; flush?: boolean }
-export function CommentBox({ kb, flash, c, assoc, bodyHtml, folded, reactions, flush, on }: CommentBoxProps & { on?: ConvHandlers }) {
+export interface CommentBoxProps { onTask?: (e: MouseEvent) => void; kb?: boolean; flash?: FlashProps; c: CommentLike; assoc: string | undefined; bodyHtml: string; folded: boolean; reactions: ReactionsProps; flush?: boolean }
+export function CommentBox({ onTask, kb, flash, c, assoc, bodyHtml, folded, reactions, flush, on }: CommentBoxProps & { on?: ConvHandlers }) {
   const u = c.user || c.actor, k = 'c:' + c.id;
   const ref = useFlash(flash, kb);
   return <div ref={ref} class={`tl-comment${folded ? ' folded' : ''}${kb ? ' kb' : ''}${flashClass(flash)}`} id={`c-${c.id ?? ''}`} style={flush ? 'margin-bottom:0' : undefined}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
     <div class="cbox"><div class="chead"><div><FoldBtn k={k} title="Hide this comment" def={false} folded={folded} onFold={on?.fold} />{SP}<a class="author u" href={u?.html_url}><span class="author" style="font-weight:600;color:var(--fgColor-default)">{u?.login || 'ghost'}</span></a> commented{SP}<a class="ts" href={c.html_url || '#'}>{When((c.created_at || c.submitted_at)!)}</a></div>{NL}
       <div class="rt">{assoc ? <span class="assoc">{assoc}</span> : ''}<button class="cm-btn" data-cm={c.id} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button></div></div>{NL}
-      <div class="cbody">{bodyHtml ? <div class="markdown-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : <span class="empty">No description provided.</span>}</div><ReactionsBar {...reactions} on={on?.react} /></div></div>;
+      <div class="cbody">{bodyHtml ? <div class="markdown-body" onClick={onTask} dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : <span class="empty">No description provided.</span>}</div><ReactionsBar {...reactions} on={on?.react} /></div></div>;
 }
 
 export interface HunkRow { kind: 'hunk' | 'add' | 'del' | 'ctx' | 'meta'; o?: number; n?: number; text: string }

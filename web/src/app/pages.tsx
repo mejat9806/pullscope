@@ -19,7 +19,8 @@ import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
 import type { ShellProps } from '../components/Shell';
 import { scrolled } from './scrolling';
-import { batch, setGate, setShell, shellProps } from './frame';
+import { request } from '../components/req';
+import { batch, beginDrag, setDragging, setGate, setShell, shellProps } from './frame';
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
 
@@ -138,7 +139,16 @@ export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new U
 // #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
 export { setDragging } from './frame';
 // The page scrolls where the state says: every move is a numbered request that the shown page applies.
-export function scrollMain(top: number, smooth = false) { S.mainTop = top; S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top, smooth }; repaintShell({ scroll: S.scrollReq }); }
+export function scrollMain(top: number, smooth = false) { S.mainTop = top; request('scroll:main', { top, smooth }); }
+// The sidebar grip: drag to resize, double-click to reset; the scrim closes the mobile drawer.
+const gripDown = (e: MouseEvent) => {
+  e.preventDefault(); const x0 = e.clientX, w0 = S.sbw;
+  setDragging(true);
+  beginDrag({ move: (ev) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); repaintShell({ sbw: S.sbw }); }, end: () => { setDragging(false); localStorage.setItem('sbw', String(Math.round(S.sbw))); } });
+};
+const gripReset = () => { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; };
+const scrimTap = () => { S.nav = false; S.keepScroll = true; render(); S.keepScroll = false; };
+
 export const repaintShell = (patch: Partial<ShellProps>) => { const cur = shellProps(); if (cur) setShell({ ...cur, ...patch }); };
 
 const liveView = (): VNode | null => {
@@ -175,7 +185,7 @@ export function render() {
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
   batch(() => {
     paintTop();
-    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live }, onPage: followLink, onScroll: (e) => scrolled('main', e.currentTarget as HTMLElement), kept });
+    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, onGrip: (e) => gripDown(e), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e) => scrolled('main', e.currentTarget as HTMLElement), kept });
     paintSide(); paintDlg(); paintNotes();
   });
   S.stash = null;

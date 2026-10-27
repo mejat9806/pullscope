@@ -1,6 +1,6 @@
-import { focusDraft, rerender } from './actions';
+import { focusDraft, rerender, scrollDraft, setDiffMode } from './actions';
+import { toggleSplit } from './pr';
 import { $, S, qa } from './core';
-import { scrollDraft } from '../components/Actions';
 import { flipSides } from './mergebox';
 import { openNewPr } from './pages';
 import { openPalette, showHelp } from './palette';
@@ -29,15 +29,15 @@ export function kbStep(dir: number, pick = kbItems) {
 export const openThreads = () => [...qa<HTMLElement>('.main .thread')].filter((t) => !$('.thread-head .res', t) && t.offsetParent).map((t) => $<HTMLElement>('.tc', t)!).filter(Boolean);
 
 export function setComposer(open: boolean, focus?: boolean) {
-  const el = document.getElementById('composer'); if (!el) return false;
+  if (!S.composerBox) return false;
   S.cOpen = open; rerender();
   if (open && focus) focusDraft('comment');
   return true;
 }
 
-document.addEventListener('mousedown', (e) => { if (S.tabMenu && !(e.target as HTMLElement).closest<HTMLElement>('.pt-menu, #tabadd')) { S.tabMenu = false; rerender(); } });
+export const menuAway = (e: MouseEvent) => { if (S.tabMenu && !(e.target as HTMLElement).closest<HTMLElement>('.pt-menu, #tabadd')) { S.tabMenu = false; rerender(); } };
 
-document.addEventListener('keydown', (e) => {
+export function shortcut(e: KeyboardEvent) {
   if (S.tabMenu && e.key === 'Escape') { S.tabMenu = false; rerender(); return; }
   if ((e.metaKey || e.ctrlKey) && !e.altKey) {
     const k = e.key.toLowerCase();
@@ -54,12 +54,12 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === ']') kbStep(1, openThreads!); else if (e.key === '[') kbStep(-1, openThreads!);
   else if (e.key === '?') showHelp();
   else if (e.key === 'n') { e.preventDefault(); openNewPr(); }
-  else if (e.key === 'c' && S.view === 'pr' && document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); }
+  else if (e.key === 'c' && S.view === 'pr' && S.composerBox) { e.preventDefault(); setComposer(true, true); }
   else if (e.key === 'f' && $('.split')) flipSides();
-  else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
-  else if (e.key === 'd' && S.bundle) { const b = $(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`)!; if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
+  else if (e.key === 's' && S.bundle) toggleSplit();
+  else if (e.key === 'd' && S.bundle) setDiffMode(S.diffMode === 'split' ? 'unified' : 'split');
   else if (e.key === 'r') {
     const cur = kbCur(), host = cur?.closest<HTMLElement>('.thread')?.querySelector<HTMLElement>('.reply .tt');
-    if (!host) { if (document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); } return; } e.preventDefault(); const key = host.dataset.draft!; scrollDraft(key); focusDraft(key);
+    if (!host) { if (S.composerBox) { e.preventDefault(); setComposer(true, true); } return; } e.preventDefault(); const key = host.dataset.draft!; scrollDraft(key); focusDraft(key);
   }
-});
+}

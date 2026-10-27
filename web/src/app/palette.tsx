@@ -33,4 +33,4 @@ function paintPal() {
 export function openPalette() { if (S.pal) return; S.pal = { k: 'pal', q: '', sel: 0 }; paintPal(); }
 export function showHelp() { if (S.pal) return; S.pal = { k: 'help' }; paintPal(); }
 
-addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.pal?.k === 'help') closePal(); });
+export const helpKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && S.pal?.k === 'help') closePal(); };
