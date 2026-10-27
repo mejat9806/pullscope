@@ -1259,7 +1259,7 @@ function newPrPage() {
     : n.cmp.ahead_by ? `<span class="np-note ok">${icon('git-commit')} ${n.cmp.ahead_by} commit${n.cmp.ahead_by === 1 ? '' : 's'} · ${n.cmp.files} file${n.cmp.files === 1 ? '' : 's'} changed${n.cmp.behind_by ? ` · ${n.cmp.behind_by} behind ${esc(n.base)}` : ''}</span>` : '<span class="np-note err">These branches are identical — there is nothing to compare.</span>';
   const ready = n.title.trim() && n.repo && n.base && n.head && !same && n.cmp && typeof n.cmp === 'object' && n.cmp.ahead_by > 0;
   return `<div class="notes-page np-new"><div class="np-head"><h1>${icon('git-pull-request')} New pull request</h1></div>
-  <div class="np-card">
+  <div class="np-card"><div class="np-main-col">
     <div class="np-box"><label class="np-l">Repository</label>${repoSel}
     <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" ${br ? '' : 'disabled'}><span>${br ? esc(n.base || 'Choose a branch') : 'Loading…'}</span>${icon('chevron-down', 14)}</button></div>
       <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>
@@ -1267,20 +1267,27 @@ function newPrPage() {
     <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div></div>
     <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}"></div>
     <div class="np-box"><label class="np-l">Description</label>${(() => { const t = n.tpl[`${n.repo}|${n.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}</div>
-    ${npMeta(n)}
     <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" ${n.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
     ${n.err ? `<div class="act-err">${esc(n.err)}</div>` : ''}
     <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n.draft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>
-  </div></div>`;
+  </div><div class="np-side-col">${npMeta(n)}</div></div></div>`;
 }
 // Reviewers / assignees / labels / milestone / linked issues pickers
+// Reviewers, assignees and labels redraw only their own box, so the page (and the description editor) stay where they are.
+function npMetaRefresh() { const el = $('#npmeta'); if (!el) return rerender(); el.outerHTML = npMeta(S.np); bindNpMeta(); }
+function bindNpMeta() {
+  document.querySelectorAll('#npmeta [data-npadd]').forEach((el) => el.addEventListener('change', (e) => { if (e.target.value) { S.np[el.dataset.npadd].push(e.target.value); npMetaRefresh(); } }));
+  document.querySelectorAll('#npmeta [data-npdel]').forEach((el) => el.addEventListener('click', () => { const k = el.dataset.npdel; S.np[k] = S.np[k].filter((x) => x !== el.dataset.v); npMetaRefresh(); }));
+  $('#npmile')?.addEventListener('change', (e) => { S.np.milestone = e.target.value; });
+  $('#npissues')?.addEventListener('input', (e) => { S.np.issues = e.target.value; });
+}
 function npMeta(n) {
   const m = n.meta?.[n.repo]; if (!m) return '';
   const ppl = m.people.map((x) => x.login), me = S.me || '';
   const chips = (k, label) => `<span class="np-chip" data-npdel="${k}" data-v="${esc(label)}" title="Remove">${esc(label)} ×</span>`;
   const add = (k, title, list) => { const free = list.filter((x) => !n[k].includes(x)); return free.length ? `<select class="sel np-add" data-npadd="${k}"><option value="">${title}</option>${free.map((x) => `<option>${esc(x)}</option>`).join('')}</select>` : ''; };
   const row = (k, name, list) => `<div class="np-meta"><label class="np-l">${name}</label><div class="np-chips">${n[k].map((x) => chips(k, x)).join('')}${add(k, `Add ${name.toLowerCase()}…`, list)}</div></div>`;
-  return `<div class="np-box np-metas">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
+  return `<div class="np-box np-metas" id="npmeta">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
     <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>${m.milestones.map((x) => `<option value="${x.number}" ${String(n.milestone) === String(x.number) ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>
     <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value="${esc(n.issues)}"></div></div>`;
 }
@@ -1696,10 +1703,7 @@ function bind() {
   });
   $('#nptitle')?.addEventListener('input', (e) => { S.np.title = e.target.value; S.np.titleTouched = true; const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === 'object' && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head; const b = $('#npcreate'); if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
   $('#npdraft')?.addEventListener('change', (e) => { S.np.draft = e.target.checked; const b = $('#npcreate'); if (b) b.textContent = S.np.draft ? 'Create draft pull request' : 'Create pull request'; });
-  document.querySelectorAll('[data-npadd]').forEach((el) => el.addEventListener('change', (e) => { if (e.target.value) { S.np[el.dataset.npadd].push(e.target.value); rerender(); } }));
-  document.querySelectorAll('[data-npdel]').forEach((el) => el.addEventListener('click', () => { const k = el.dataset.npdel; S.np[k] = S.np[k].filter((x) => x !== el.dataset.v); rerender(); }));
-  $('#npmile')?.addEventListener('change', (e) => { S.np.milestone = e.target.value; });
-  $('#npissues')?.addEventListener('input', (e) => { S.np.issues = e.target.value; });
+  bindNpMeta();
   $('#npcreate')?.addEventListener('click', async (e) => {
     const n = S.np, btn = e.currentTarget; setBusy(btn, true); n.err = '';
     try {

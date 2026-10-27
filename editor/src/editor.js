@@ -8,7 +8,7 @@ import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
 import Strike from '@tiptap/extension-strike';
 import Code from '@tiptap/extension-code';
-// Inline styles only when asked for (toolbar or ⌘B/⌘I): no auto-conversion of *, _, ~ or backticks, and typing after a code span or link leaves it.
+// Inline styles only when asked for (toolbar, ⌘B/⌘I, or `backticks` for code): no auto-conversion of *, _ or ~, and typing after a code span or link leaves it.
 const plain = (M, extra = {}) => M.extend({ addInputRules() { return []; }, addPasteRules() { return []; }, ...extra });
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
@@ -77,7 +77,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
     element: body,
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3] }, bold: false, italic: false, strike: false, code: false }),
-      plain(Bold), plain(Italic), plain(Strike), plain(Code, { inclusive: false }),
+      plain(Bold), plain(Italic), plain(Strike), Code.extend({ inclusive: false }),
       Placeholder.configure({ placeholder }),
       Link.extend({ inclusive: false }).configure({ openOnClick: false, autolink: true }),
       TaskList, TaskItem.configure({ nested: true }),
