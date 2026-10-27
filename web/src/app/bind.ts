@@ -19,7 +19,7 @@ export const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sb
 
 export function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
   const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main');
-  if (!ref || !m || !m.firstElementChild || !S.tabs.some((t) => t.ref === ref)) return;
+  if (!ref || !m || !m.querySelector('#page > *') || !S.tabs.some((t) => t.ref === ref)) return;
   S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
   S.eds = [];
   while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value!);
@@ -65,17 +65,13 @@ export function rmRecent(e: MouseEvent, ref: string) { e.stopPropagation(); S.re
 
 export function bind() {
   // The sidebar is its own Preact tree with its own handlers; keep the imperative wiring out of it.
-  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter((e) => !e.closest('#side'));
+  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter((e) => !e.closest('#side, [data-live]'));
   const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
   bindWrite();
   $<HTMLInputElement>('#mainfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#mainfilter')!; n.focus(); n.setSelectionRange(p, p); });
   ([['#pfauthor', 'pAuthor'], ['#pflabel', 'pLabel'], ['#pfstatus', 'pStatus']] as const).forEach(([id, k]) => $(id)?.addEventListener('change', (e) => { S[k] = (e.target as HTMLInputElement).value; render(); }));
   $<HTMLSelectElement>('#pfsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
   $('#pfclear')?.addEventListener('click', () => { S.pf = S.pAuthor = S.pLabel = S.pStatus = ''; render(); });
-  $('#addtoken')?.addEventListener('click', tokenDialog);
-  qa('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
-  $<HTMLSelectElement>('#hmsort')?.addEventListener('change', (e) => { S.hmSort = (e.target as HTMLInputElement).value; render(); });
-  $<HTMLSelectElement>('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = (e.target as HTMLInputElement).value; render(); });
   $('#fcbtn')?.addEventListener('click', openCommits);
   $('#fcall')?.addEventListener('click', () => setFr(null));
   qa('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle!), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
@@ -94,13 +90,9 @@ export function bind() {
     }));
   }
   $<HTMLSelectElement>('#fsort')?.addEventListener('change', (e) => { S.fileSort = (e.target as HTMLInputElement).value; rerender(); });
-  $<HTMLInputElement>('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmrfilter')!; n.focus(); n.setSelectionRange(p, p); });
-  qa('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
-  $<HTMLInputElement>('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmfilter')!; n.focus(); n.setSelectionRange(p, p); });
   qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
   qa('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
-  qa('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
   qa('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps!; openRepo(S.repo!, { nav: true }); }));
   qa('[data-open]').forEach((el) => { el.addEventListener('click', (e) => openClick(el, e)); el.addEventListener('auxclick', (e) => openAux(el, e)); el.addEventListener('contextmenu', (e) => openCtx(el, e)); });
   qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => rmRecent(e, el.dataset.rm!)));

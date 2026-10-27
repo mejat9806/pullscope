@@ -1,3 +1,4 @@
+import type { PushBanner } from '../components/Home';
 import type { Bundle, Check, FreshItem, Snap, SnapSource } from '../types';
 import { rerender } from './actions';
 import { S, esc, flags, icon, load, tauri, when } from './core';
@@ -84,6 +85,10 @@ S.pushes = {};
 export const ago = (t: string) => { const m = Math.max(1, Math.round((Date.now() - +new Date(t)) / 60000)); return m < 60 ? `${m} minute${m === 1 ? '' : 's'} ago` : `${Math.round(m / 60)} hour${m >= 90 ? 's' : ''} ago`; };
 
 export const pushList = (repo: string) => Object.entries(S.pushes).filter(([r]) => !repo || r === repo).flatMap(([, l]) => l).filter((p) => !pushDis[`${p.repo}@${p.branch}@${p.at}`] && Date.now() - +new Date(p.at) < 6 * 3600e3);
+
+export function pushBannerItems(repo?: string): PushBanner[] {
+  return pushList(repo!).slice(0, 3).map((p) => ({ repo: p.repo, branch: p.branch, ago: ago(p.at), key: `${p.repo}@${p.branch}@${p.at}`, showRepo: !repo }));
+}
 
 export function pushBanners(repo?: string) {
   return pushList(repo!).slice(0, 3).map((p) => `<div class="push-banner">${icon('git-branch')}<span><b>${esc(p.branch)}</b> had recent pushes ${ago(p.at)}${repo ? '' : ` <i>· ${esc(p.repo)}</i>`}</span><span class="sp"></span><button class="btn small primary" data-compare="${esc(p.repo)}@${esc(p.branch)}">Compare &amp; pull request</button><button class="push-x" data-pdismiss="${esc(`${p.repo}@${p.branch}@${p.at}`)}" title="Dismiss">${icon('x')}</button></div>`).join('');

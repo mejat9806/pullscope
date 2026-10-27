@@ -1,7 +1,6 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
 import { draftBox, rerender, saveDrafts, setBusy } from './actions';
 import { bind, bindTokenDialog, tokDlgHtml, tokenDialog } from './bind';
-import { homePage } from './bindwrite';
 import { prHeader } from './comments';
 import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
@@ -9,6 +8,9 @@ import { commitsView, filesView, sidebar, splitView } from './mergebox';
 import { loadRepos } from './nav';
 import { crumbs, prList, repoHeader } from './prlist';
 import { paintSide } from './side';
+import { HomeView } from './home';
+import { render as paint } from 'preact';
+import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
 import { attention, checksView, timeline } from './timeline';
 import { gateHtmlStr, inboxPageHtml, landingHtml, newPrHtml, notesPageHtml, npMetaHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
@@ -140,7 +142,7 @@ export function page() {
   if (S.view === 'inbox') return crumbs('', [{ t: 'Inbox' }]) + inboxPage();
   if (S.view === 'notes') return crumbs('', [{ t: 'Notifications' }]) + notesPage();
   if (S.view === 'repo') return crumbs(S.repo!, [{ t: 'Pull requests' }]) + prList();
-  if (S.view === 'home' || !b) return crumbs('', S.homeOwner ? [{ t: S.homeOwner }] : []) + homePage();
+  if (S.view === 'home' || !b) return '';
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return splitPageHtml(repoHeader(b.pull) + prHeader(b), splitView(b));
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
   const side = S.tab !== 'conversation' ? { kind: 'none' as const } : S.hide.side ? { kind: 'rail' as const, ic: icon('columns') } : { kind: 'aside' as const, x: icon('x'), inner: sidebar(b) };
@@ -160,6 +162,11 @@ function hosts() {
   return { top: $('#top')!, rest: $('#rest')! };
 }
 
+// Views that are already live Preact trees; every other view is still markup painted into #page.
+const liveView = (): VNode | null => (!S.loading && !S.mainStub && S.view !== 'newpr' && S.view !== 'inbox' && S.view !== 'notes' && S.view !== 'repo' && (S.view === 'home' || !S.bundle) ? <HomeView /> : null);
+
+function paintPage(host: HTMLElement, live: VNode) { host.setAttribute('data-live', ''); paint(live, host); }
+
 export function render() {
   applyMode();
   const { top, rest } = hosts();
@@ -171,19 +178,20 @@ export function render() {
     bindTokenDialog(); return;
   }
   paintTop(top);
-  const side = $('#side');
-  const html = `<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? '' : page()}</div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
+  const side = $('#side'), live = liveView();
+  const html = `<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? '' : page()}</div></div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
   const scroll = $('.main')?.scrollTop || 0;
-  const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('.main > *')?.className ?? ''}`, before = viewKey();
+  const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('#page > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
   // Anchor on the first element with an id that is on screen, so a redraw keeps *it* where it was
   // (heights above the viewport can change between renders, which made the view creep upward).
   let anchor = null;
   { const mn = $('.main')!; if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...qa('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement!.className + e.className, e.scrollTop]) : [];
-  if (html === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); return; }
+  const key = html + (live ? '\0live' : '');
+  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); return; }
   (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
-  rest.innerHTML = html; S.lastHtml = html; paintSide($('#side')!);
+  rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live);
   qa('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; });
   if (S.keepScroll || same()) { $('.main')!.scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn!.scrollTop += el.getBoundingClientRect().top - mn!.getBoundingClientRect().top - anchor.off; } qa('.pane-body, .cm-list, .sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; }); }
   bind(); bindTokenDialog();

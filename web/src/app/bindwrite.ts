@@ -1,10 +1,9 @@
 import type { RepoSummary } from '../types';
 import { S } from './core';
-import { addTokenHtml, diffEmptyHtml, homeHtml, spinnerHtml } from '../components/Home';
 import type { HomeProps } from '../components/Home';
-import { pushBanners } from './data';
+import { pushBannerItems } from './data';
 
-export function homePage() {
+export function homeProps(): HomeProps {
   const tab = S.homeTab || 'repos', owner = S.homeOwner || '';
   let body: HomeProps['body'];
   if (tab === 'recent') {
@@ -12,9 +11,9 @@ export function homePage() {
     const list = S.recent.filter((r) => (st === 'all' || r.state === st) && (!q || (r.title + ' ' + r.ref).toLowerCase().includes(q)));
     body = { kind: 'recent', filter: S.recentFilter || '', state: st, hasAny: S.recent.length > 0, cards: list.map((r) => ({ ref: r.ref, state: r.state, icon: r.icon, title: r.title })), emptyText: S.recent.length ? 'No matching pull requests.' : 'Pull requests you open appear here.' };
   }
-  else if (!S.hasToken) body = { kind: 'html', html: addTokenHtml() };
-  else if (S.reposErr) body = { kind: 'html', html: diffEmptyHtml(S.reposErr, ' err') };
-  else if (!S.repos) body = { kind: 'html', html: spinnerHtml() };
+  else if (!S.hasToken) body = { kind: 'addtoken' };
+  else if (S.reposErr) body = { kind: 'error', text: String(S.reposErr) };
+  else if (!S.repos) body = { kind: 'spinner' };
   else {
     const f = (S.repoFilter || '').toLowerCase();
     const vis = S.hmVis || 'all', srt = S.hmSort || 'pushed', grp = S.hmGroup || 'none';
@@ -27,5 +26,5 @@ export function homePage() {
     if (grp === 'owner') { const by = new Map<string, RepoSummary[]>(); list.forEach((r) => { const o = r.full_name.split('/')[0]; if (!by.has(o)) by.set(o, []); by.get(o)!.push(r); }); groups = [...by].map(([o, rs]) => ({ owner: o, cards: rs.map(card) })); }
     body = { kind: 'repos', filter: S.repoFilter || '', vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
   }
-  return homeHtml({ owner, tab, repoCount: S.repos ? S.repos.filter((r) => !owner || r.full_name.startsWith(owner + '/')).length : null, recentCount: S.recent.length, banners: pushBanners(), err: S.error ? String(S.error) : '', body });
+  return { owner, tab, repoCount: S.repos ? S.repos.filter((r) => !owner || r.full_name.startsWith(owner + '/')).length : null, recentCount: S.recent.length, banners: pushBannerItems(), err: S.error ? String(S.error) : '', body };
 }

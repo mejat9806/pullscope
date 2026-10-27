@@ -31,15 +31,16 @@ export const prListPageHtml = (p: Omit<PrListProps, 'body'> & { rows: PrlRow[] |
   : p.rows && p.rows.length ? <>{p.rows.map((r) => <a class="prl-row" data-open={r.ref}><span class={`rc-i ${r.st}`}>{I(r.icon)}</span><span class="prl-main"><b>{r.title}</b>{r.labels.map((l) => <span class="pill-label" style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color};margin:0 0 0 4px`}>{l.name}</span>)}<i>{r.meta}</i></span><img src={`${r.avatar}&s=40`} width={20} height={20} style="border-radius:50%" /></a>)}</>
   : <div class="diff-empty">{p.empty}</div>} />);
 
-export interface CrumbProps { repo: string; trail: { t: string; repo?: string }[]; extra: string }
-export function Crumbs({ repo, trail, extra }: CrumbProps) {
+export interface CrumbHandlers { home: () => void; owner: (o: string) => void; repo: (r: string) => void }
+export interface CrumbProps { repo: string; trail: { t: string; repo?: string }[]; extra: string; on?: CrumbHandlers }
+export function Crumbs({ repo, trail, extra, on }: CrumbProps) {
   const homeCur = !repo && !trail.length;
-  const parts: ComponentChildren[] = [homeCur ? <span class="crumb cur home">{I('home', 14)}<span>Home</span></span> : <a class="crumb" data-home="1" title="Home">{I('home', 14)}<span>Home</span></a>];
+  const parts: ComponentChildren[] = [homeCur ? <span class="crumb cur home">{I('home', 14)}<span>Home</span></span> : <a class="crumb" data-home="1" onClick={on && on.home} title="Home">{I('home', 14)}<span>Home</span></a>];
   if (repo) {
     const [owner, name] = repo.split('/');
-    parts.push(<span class="crumb-grp"><a class="crumb" data-owner={owner} title={`Repositories of ${owner}`}>{owner}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo={repo} title={`All pull requests in ${repo}`}>{name}</a></span>);
+    parts.push(<span class="crumb-grp"><a class="crumb" data-owner={owner} onClick={on && (() => on.owner(owner))} title={`Repositories of ${owner}`}>{owner}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo={repo} onClick={on && (() => on.repo(repo))} title={`All pull requests in ${repo}`}>{name}</a></span>);
   }
-  trail.forEach((t, i) => parts.push(i === trail.length - 1 ? <span class="crumb cur">{t.t}</span> : <a class="crumb" data-repo={t.repo || undefined}>{t.t}</a>));
-  return <nav class="repoline crumbs" aria-label="Breadcrumb">{parts.map((x, i) => <>{i ? <span class="crumb-sep">{I('chevron-right', 12)}</span> : ''}{x}</>)}{Raw(extra)}</nav>;
+  trail.forEach((t, i) => parts.push(i === trail.length - 1 ? <span class="crumb cur">{t.t}</span> : <a class="crumb" data-repo={t.repo || undefined} onClick={on && t.repo ? (() => on.repo(t.repo!)) : undefined}>{t.t}</a>));
+  return <nav class="repoline crumbs" aria-label="Breadcrumb">{parts.map((x, i) => <>{i ? <span class="crumb-sep">{I('chevron-right', 12)}</span> : ''}{x}</>)}{extra ? Raw(extra) : null}</nav>;
 }
 export const crumbsHtml = (p: CrumbProps) => html(<Crumbs {...p} />);
