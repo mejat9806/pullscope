@@ -6117,7 +6117,7 @@ ${ev.currentTarget.dataset.code}
         mount();
       }
     }, { rootMargin: "300px" });
-    io.observe(host);
+    io.observe(host.parentElement || host);
     return () => {
       gone = true;
       io.disconnect();

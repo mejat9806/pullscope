@@ -16,7 +16,7 @@ export function DraftBox({ k, ph, rows, submit }: { k: string; ph: string; rows:
   useOnRequest('draft:focus:' + k, () => editorMount.focus?.(k));
   useOnRequest('draft:blur:' + k, () => ref.current?.querySelector<HTMLElement>('.tt-content')?.blur());
   const hint = `${ph} — type / for blocks`;
-  useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined, []);
+  useEffect(() => (editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined), []);
   const show = (m: 'write' | 'preview') => {
     setMode(m);
     if (m === 'write') return;

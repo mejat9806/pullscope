@@ -317,7 +317,7 @@ editorMount.fn = (host, key, ph) => {
   const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); if (wantFocus.delete(key)) ed.focus?.(); };
   // Editors are heavy: build each one only when its box is near the viewport.
   const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); mount(); } }, { rootMargin: '300px' });
-  io.observe(host);
+  io.observe(host.parentElement || host);
   return () => { gone = true; io.disconnect(); if (ed) { live.delete(ed); ed.destroy(); } };
 };
 
