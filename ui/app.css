@@ -987,3 +987,8 @@ table.diff { contain: layout paint; }
 .bp-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bp-by, .bp-t { color: var(--fgColor-muted); font-size: 11px; flex: none; }
 .bp-empty { padding: 14px; text-align: center; color: var(--fgColor-muted); font-size: 13px; }
+.date-bar { display: flex; align-items: center; gap: 8px; padding: 0 0 10px; flex-wrap: wrap; }
+.date-bar .sel, .date-bar .input { height: 28px; width: auto; min-width: 0; font-size: 12px; padding: 0 8px; }
+.date-bar .sp { flex: 1; }
+#totop { position: fixed; right: 22px; bottom: 22px; z-index: 50; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--borderColor-default); background: var(--bgColor-default); color: var(--fgColor-default); box-shadow: 0 6px 18px rgba(0,0,0,.35); cursor: pointer; display: grid; place-items: center; transition: transform .2s cubic-bezier(.3,1.6,.5,1), background .2s; }
+#totop:hover { transform: translateY(-2px); background: var(--bgColor-neutral-muted); } #totop[hidden] { display: none; }

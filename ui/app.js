@@ -32,7 +32,7 @@ const ASSOC = { CONTRIBUTOR: 'Contributor', MEMBER: 'Member', OWNER: 'Owner', CO
 const REACTS = [['+1', '👍'], ['-1', '👎'], ['laugh', '😄'], ['hooray', '🎉'], ['confused', '😕'], ['heart', '❤️'], ['rocket', '🚀'], ['eyes', '👀']];
 
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-let S = { profile: (() => { try { return JSON.parse(localStorage.getItem('profile') || 'null'); } catch { return null; } })(), bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, unIdx: 0, nav: false, busy: '', actErr: '' };
+let S = { profile: (() => { try { return JSON.parse(localStorage.getItem('profile') || 'null'); } catch { return null; } })(), bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load('notes', []), bell: false, fold: load('fold', {}), hide: load('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, range: 'all', rFrom: '', rTo: '', sort: localStorage.getItem('csort') === 'desc' ? 'desc' : 'asc', unIdx: 0, nav: false, busy: '', actErr: '' };
 S.recent = (() => { try { return JSON.parse(localStorage.getItem('recent')) || []; } catch { return []; } })();
 
 const isDark = () => S.mode === 'dark' || (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
@@ -408,6 +408,12 @@ function commitRow(msg, sha, author, url, verification, trailing = '') {
   return `<div class="commit-row">${author ? `<span class="TLI-avatar" style="margin-right:8px">${avatar(author, 20)}</span>` : ''}<span class="msg" style="flex:0 1 auto"><a href="${esc(url || '#')}">${esc(first)}</a></span>${trailing}<span class="cm-ic">${icon('comment')}</span><span style="flex:1"></span>${verification ? `<span class="label-pill ${unv ? 'warn' : 'ok'}">${unv ? 'Unverified' : 'Verified'}</span>` : ''}<a class="sha" href="${esc(url || '#')}">${esc(String(sha).slice(0, 7))}</a></div>`;
 }
 
+function rangeBounds() {
+  const H = 3600e3, now = Date.now(), r = S.range;
+  if (r === '1h') return [now - H, Infinity]; if (r === '24h') return [now - 24 * H, Infinity]; if (r === '7d') return [now - 7 * 24 * H, Infinity]; if (r === '30d') return [now - 30 * 24 * H, Infinity];
+  if (r === 'custom') { const lo = S.rFrom ? new Date(S.rFrom + 'T00:00:00').getTime() : -Infinity, hi = S.rTo ? new Date(S.rTo + 'T23:59:59.999').getTime() : Infinity; return [lo, hi]; }
+  return [-Infinity, Infinity];
+}
 function timeline(b) {
   const p = b.pull, out = [];
   const evUser = (e) => { const u = e.user || e.actor || e.author; return u?.login || u?.name || ''; };
@@ -416,8 +422,15 @@ function timeline(b) {
   S.who = S.who.filter((w) => people.has(w));
   const who = S.who, on = who.length > 0;
   const byUser = on ? b.timeline.filter((e) => who.includes(evUser(e)) || (e.event === 'reviewed' && b.review_comments.some((c) => c.pull_request_review_id === e.id && who.includes(c.user?.login)))) : b.timeline;
-  const keep = S.unres ? byUser.filter((e) => e.event === 'reviewed') : byUser;
+  const byKind = S.unres ? byUser.filter((e) => e.event === 'reviewed') : byUser;
+  // Date filter: an event counts when its own time is in range; a review also counts when any of its comments or replies is.
+  const evTime = (e) => e.created_at || e.submitted_at || e.committer?.date || e.author?.date || '';
+  const [rLo, rHi] = rangeBounds(), rangeOn = S.range !== 'all';
+  const inRange = (t) => { const x = t ? Date.parse(t) : NaN; return isNaN(x) || (x >= rLo && x <= rHi); };
+  const keep = !rangeOn ? byKind : byKind.filter((e) => inRange(evTime(e)) || (e.event === 'reviewed' && b.review_comments.some((c) => c.pull_request_review_id === e.id && inRange(c.created_at)) ) || (e.event === 'reviewed' && b.review_comments.some((c) => inRange(c.created_at) && b.review_comments.some((r) => r.id === c.in_reply_to_id && r.pull_request_review_id === e.id))));
+  const rangeBar = `<div class="date-bar"><span class="who-l">${icon('clock')}When</span><select class="sel" id="crange" title="Only show activity from this period">${[['all', 'Any time'], ['1h', 'Last hour'], ['24h', 'Last 24 hours'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['custom', 'Custom range…']].map(([v, l]) => `<option value="${v}" ${S.range === v ? 'selected' : ''}>${l}</option>`).join('')}</select>${S.range === 'custom' ? `<input type="date" class="input" id="cfrom" value="${esc(S.rFrom)}" title="From"><span class="who-l">to</span><input type="date" class="input" id="cto" value="${esc(S.rTo)}" title="To">` : ''}<span class="sp"></span><button class="who-chip" id="csort" title="Flip the order of the timeline">${icon(S.sort === 'desc' ? 'chevron-down' : 'chevron-up')}<span>${S.sort === 'desc' ? 'Newest first' : 'Oldest first'}</span></button></div>`;
   const bar = people.size > 1 ? `<div class="who-bar"><span class="who-l">${icon('person')}Show</span><button class="who-chip ${on ? '' : 'on'}" data-whoclear="1">Everyone</button>${[...people.values()].sort((x, y) => y.n - x.n).map(({ u, n }) => `<button class="who-chip ${who.includes(u.login) ? 'on' : ''}" data-who="${esc(u.login)}" title="${n} comment${n === 1 ? '' : 's'}">${avatar(u, 18)}<span>${esc(u.login)}</span><i>${n}</i></button>`).join('')}</div>` : '';
+  const bars = bar + rangeBar;
   if (!S.unres && (!on || who.includes(p.user.login))) out.push(commentBox({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
   // Long runs of commits collapse into one row (the Commits tab lists them), so comments stay reachable.
   const evs = [];
@@ -425,6 +438,7 @@ function timeline(b) {
     let j = i; while (j < keep.length && keep[j].event === 'committed') j++;
     if (j - i >= 6) { evs.push({ event: 'commit-run', n: j - i, first: keep[i], last: keep[j - 1] }); i = j; } else { evs.push(keep[i]); i++; }
   }
+  if (S.sort === 'desc') evs.reverse();
   const info = b.commit_info || {};
   let merged = false;
   for (const e of evs) {
@@ -464,7 +478,7 @@ function timeline(b) {
     }
   }
   const foldAll = `<div class="fold-bar"><button class="btn small" id="foldallconv" title="Collapse or expand every comment, review and thread">${icon('chevron-down')} <span>Collapse all conversations</span></button></div>`;
-  return `${bar}${foldAll}<div class="TL">${out.join('')}${on && out.length === 0 ? '<div class="diff-empty">Nothing from the selected accounts.</div>' : ''}</div>${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}`;
+  return `${bars}${foldAll}<div class="TL">${out.join('')}${!evs.length && (on || rangeOn) ? `<div class="diff-empty">${rangeOn ? 'No activity in this period.' : 'Nothing from the selected accounts.'}</div>` : ''}</div>${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}`;
 }
 const checkState = (c) => (c.status !== 'completed' ? 'pending' : c.conclusion === 'success' ? 'pass' : ['skipped', 'neutral'].includes(c.conclusion) ? 'skip' : 'fail');
 const CK = { pass: ['check-circle-fill', 'Passed'], fail: ['x-circle-fill', 'Failed'], pending: ['dot-fill', 'In progress'], skip: ['circle-slash', 'Skipped'] };
@@ -1770,6 +1784,10 @@ function bind() {
   });
   $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
   $('#nextun')?.addEventListener('click', jumpUnresolved);
+  $('#crange')?.addEventListener('change', (e) => keep(() => { S.range = e.target.value; if (S.range === 'custom' && !S.rFrom && !S.rTo) { const d = (t) => new Date(t - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); S.rTo = d(Date.now()); S.rFrom = d(Date.now() - 7 * 864e5); } }));
+  $('#cfrom')?.addEventListener('change', (e) => keep(() => { S.rFrom = e.target.value; }));
+  $('#cto')?.addEventListener('change', (e) => keep(() => { S.rTo = e.target.value; }));
+  $('#csort')?.addEventListener('click', () => keep(() => { S.sort = S.sort === 'desc' ? 'asc' : 'desc'; localStorage.setItem('csort', S.sort); }));
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
   { const mn = $('.main'); if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
@@ -1940,3 +1958,14 @@ async function checkUpdate() {
   try { const u = await up.check(); if (u) { S.update = { version: u.version, obj: u }; render(); } } catch {}
 }
 if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 1000); }
+
+// Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
+(() => {
+  let target = null, btn = null;
+  const ensure = () => { if (btn) return btn; btn = document.createElement('button'); btn.id = 'totop'; btn.title = 'Back to top'; btn.setAttribute('aria-label', 'Back to top'); btn.innerHTML = icon('chevron-up'); btn.hidden = true; btn.onclick = () => { (target && document.contains(target) ? target : document.querySelector('.main'))?.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(btn); return btn; };
+  document.addEventListener('scroll', (e) => {
+    const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;
+    target = el; ensure().hidden = el.scrollTop < 600;
+  }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !e.target.closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
+})();
