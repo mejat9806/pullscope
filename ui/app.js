@@ -204,13 +204,13 @@
     };
   }
   function q(n2, u4, t2, i3, r3, o3, e2, f4, c3, a3) {
-    var s3, h3, p3, v2, y2, d3, _3, k3, x3, M, I2, P3, A3, H2, T3, j3, F = u4.type;
+    var s3, h3, p3, v2, y2, d3, _3, k3, x3, M, I3, P3, A3, H2, T3, j3, F = u4.type;
     if (void 0 !== u4.constructor) return null;
     128 & t2.__u && (c3 = !!(32 & t2.__u), o3 = [f4 = u4.__e = t2.__e]), (s3 = l.__b) && s3(u4);
     n: if ("function" == typeof F) {
       h3 = e2.length;
       try {
-        if (x3 = u4.props, M = F.prototype && F.prototype.render, I2 = (s3 = F.contextType) && i3[s3.__c], P3 = s3 ? I2 ? I2.props.value : s3.__ : i3, t2.__c ? k3 = (p3 = u4.__c = t2.__c).__ = p3.__E : (M ? u4.__c = p3 = new F(x3, P3) : (u4.__c = p3 = new C(x3, P3), p3.constructor = F, p3.render = Q), I2 && I2.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v2 = p3.__d = true, p3.__h = [], p3._sb = []), M && null == p3.__s && (p3.__s = p3.state), M && null != F.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F.getDerivedStateFromProps(x3, p3.__s))), y2 = p3.props, d3 = p3.state, p3.__v = u4, v2) M && null == F.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
+        if (x3 = u4.props, M = F.prototype && F.prototype.render, I3 = (s3 = F.contextType) && i3[s3.__c], P3 = s3 ? I3 ? I3.props.value : s3.__ : i3, t2.__c ? k3 = (p3 = u4.__c = t2.__c).__ = p3.__E : (M ? u4.__c = p3 = new F(x3, P3) : (u4.__c = p3 = new C(x3, P3), p3.constructor = F, p3.render = Q), I3 && I3.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v2 = p3.__d = true, p3.__h = [], p3._sb = []), M && null == p3.__s && (p3.__s = p3.state), M && null != F.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F.getDerivedStateFromProps(x3, p3.__s))), y2 = p3.props, d3 = p3.state, p3.__v = u4, v2) M && null == F.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
         else {
           if (M && null == F.getDerivedStateFromProps && x3 !== y2 && null != p3.componentWillReceiveProps && p3.componentWillReceiveProps(x3, P3), u4.__v == t2.__v || !p3.__e && null != p3.shouldComponentUpdate && false === p3.shouldComponentUpdate(x3, p3.__s, P3)) {
             u4.__v != t2.__v && (p3.props = x3, p3.state = p3.__s, p3.__d = false), u4.__e = t2.__e, u4.__k = t2.__k, u4.__k.some(function(n3) {
@@ -433,8 +433,8 @@
         $3 = M.children;
       } else {
         if (null != (W = F.contextType)) {
-          var I2 = s3[W.__c];
-          H2 = I2 ? I2.props.value : W.__;
+          var I3 = s3[W.__c];
+          H2 = I3 ? I3.props.value : W.__;
         }
         var O2 = F.prototype && "function" == typeof F.prototype.render;
         if (O2) $3 = P2(t2, H2), z2 = t2.__c;
@@ -564,6 +564,12 @@
     return out;
   };
 
+  // src/components/ui.tsx
+  var I2 = (name, size, cls) => Raw(icon(name, size, cls));
+  var Av = (u4, s3 = 40) => Raw(avatar(u4, s3));
+  var When = (t2) => Raw(when(t2));
+  var SP = " ";
+
   // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
   var f3 = 0;
   function u3(e2, t2, n2, o3, i3, u4) {
@@ -574,6 +580,189 @@
     if ("function" == typeof e2 && (a3 = e2.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
     return l.vnode && l.vnode(l3), l3;
   }
+
+  // src/components/Comments.tsx
+  var NL = "\n  ";
+  function Who({ p: p3, st }) {
+    const plural = p3.commits === 1 ? "" : "s";
+    return st === "merged" ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("a", { class: "author", style: "text-decoration:underline;text-underline-offset:2px", href: p3.merged_by.html_url, children: p3.merged_by.login }),
+      " merged ",
+      p3.commits,
+      " commit",
+      plural,
+      " into"
+    ] }) : /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("a", { class: "author", href: p3.user.html_url, children: p3.user.login }),
+      " wants to merge ",
+      p3.commits,
+      " commit",
+      plural,
+      " into"
+    ] });
+  }
+  function PrHeader({ b: b2, st, ic, label, tab, split, hideSide, splitOk, commentsTotal, sq }) {
+    const p3 = b2.pull, n2 = p3.number;
+    const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
+    const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "pr-title-area", children: [
+        /* @__PURE__ */ u3("h1", { class: "pr-title", children: [
+          /* @__PURE__ */ u3("span", { children: p3.title }),
+          /* @__PURE__ */ u3("span", { class: "num", children: [
+            "#",
+            n2
+          ] }),
+          p3.state === "open" && !p3.merged ? /* @__PURE__ */ u3("button", { class: "copy-btn", id: "editpr", title: "Edit title and description", children: I2("pencil") }) : ""
+        ] }),
+        NL,
+        /* @__PURE__ */ u3("div", { class: "pr-meta", children: [
+          /* @__PURE__ */ u3("span", { class: `state-pill state-${st}`, children: [
+            I2(ic),
+            SP,
+            label
+          ] }),
+          /* @__PURE__ */ u3("span", { children: /* @__PURE__ */ u3(Who, { p: p3, st }) }),
+          SP,
+          /* @__PURE__ */ u3("span", { class: "branch", title: `${p3.base.repo.full_name}:${p3.base.ref}`, children: p3.base.label }),
+          SP,
+          /* @__PURE__ */ u3("span", { children: "from" }),
+          SP,
+          /* @__PURE__ */ u3("span", { class: "branch", children: p3.head.label }),
+          /* @__PURE__ */ u3("button", { class: "copy-btn", id: "copybranch", "aria-label": "Copy head branch name to clipboard", children: I2("copy") }),
+          /* @__PURE__ */ u3("span", { children: When(at) })
+        ] })
+      ] }),
+      NL,
+      /* @__PURE__ */ u3("div", { class: "pr-tabs", children: [
+        /* @__PURE__ */ u3("span", { class: "mini", title: p3.title, children: [
+          /* @__PURE__ */ u3("b", { children: [
+            "#",
+            n2
+          ] }),
+          SP,
+          p3.title
+        ] }),
+        /* @__PURE__ */ u3("nav", { children: tabs.map(([k3, i3, t2, c3]) => /* @__PURE__ */ u3("a", { "data-tab": k3, class: tab === k3 ? "sel" : "", children: [
+          I2(i3),
+          t2,
+          /* @__PURE__ */ u3("span", { class: "counter", children: c3 })
+        ] })) }),
+        NL,
+        /* @__PURE__ */ u3("div", { class: "tools", children: [
+          /* @__PURE__ */ u3("button", { class: "split-btn", id: "review", title: "Submit a review", children: [
+            I2("eye"),
+            /* @__PURE__ */ u3("span", { children: "Review" })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: `split-btn ${hideSide || split ? "" : "on"}`, id: "sidetoggle", title: "Show or hide the details panel", disabled: tab !== "conversation" || split, style: tab !== "conversation" ? "visibility:hidden" : "", children: [
+            I2("sidebar-expand"),
+            /* @__PURE__ */ u3("span", { children: "Details" })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: `split-btn ${splitOk && split ? "on" : ""}`, id: "split", title: splitOk ? "Split view: commits beside conversation" : "Split view is available on the Conversation and Commits tabs", disabled: !splitOk, children: [
+            I2("columns"),
+            /* @__PURE__ */ u3("span", { children: "Split view" })
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "diffstat", children: [
+            /* @__PURE__ */ u3("span", { class: "add", children: [
+              "+",
+              p3.additions
+            ] }),
+            /* @__PURE__ */ u3("span", { class: "del", children: [
+              "-",
+              p3.deletions
+            ] }),
+            /* @__PURE__ */ u3("span", { class: "sq", children: sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+  var prHeaderHtml = (p3) => html(/* @__PURE__ */ u3(PrHeader, { ...p3 }));
+  function FoldBtn({ k: k3, title, def, folded: folded2 }) {
+    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, children: I2(folded2 ? "chevron-right" : "chevron-down") });
+  }
+  var foldBtnHtml = (p3) => html(/* @__PURE__ */ u3(FoldBtn, { ...p3 }));
+  function ReactionsBar({ r: r3, kind, id, defs }) {
+    const live = !!(kind && id);
+    const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u3("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", children: [
+      /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
+      /* @__PURE__ */ u3("span", { children: r3?.[k3] })
+    ] }) : /* @__PURE__ */ u3("span", { class: "reaction", children: [
+      /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
+      /* @__PURE__ */ u3("span", { children: r3?.[k3] })
+    ] }));
+    const add = live ? /* @__PURE__ */ u3("span", { class: "react-wrap", children: /* @__PURE__ */ u3("button", { class: "react-add", "data-rk": kind, "data-rid": id, title: "Add reaction", children: I2("smiley") }) }) : null;
+    return items.length || add ? /* @__PURE__ */ u3("div", { class: "reactions", children: [
+      items,
+      add
+    ] }) : null;
+  }
+  var reactionsBarHtml = (p3) => html(/* @__PURE__ */ u3(ReactionsBar, { ...p3 }));
+  function CommentBox({ c: c3, assoc, body, folded: folded2, foldHtml, reactions }) {
+    const u4 = c3.user || c3.actor;
+    return /* @__PURE__ */ u3("div", { class: `tl-comment${folded2}`, id: `c-${c3.id ?? ""}`, children: [
+      /* @__PURE__ */ u3("div", { class: "avatar-col", children: /* @__PURE__ */ u3("a", { href: u4?.html_url, children: Av(u4, 40) }) }),
+      NL,
+      /* @__PURE__ */ u3("div", { class: "cbox", children: [
+        /* @__PURE__ */ u3("div", { class: "chead", children: [
+          /* @__PURE__ */ u3("div", { children: [
+            Raw(foldHtml),
+            SP,
+            /* @__PURE__ */ u3("a", { class: "author u", href: u4?.html_url, children: /* @__PURE__ */ u3("span", { class: "author", style: "font-weight:600;color:var(--fgColor-default)", children: u4?.login || "ghost" }) }),
+            " commented",
+            SP,
+            /* @__PURE__ */ u3("a", { class: "ts", href: c3.html_url || "#", children: When(c3.created_at || c3.submitted_at) })
+          ] }),
+          NL,
+          /* @__PURE__ */ u3("div", { class: "rt", children: [
+            assoc ? /* @__PURE__ */ u3("span", { class: "assoc", children: assoc }) : "",
+            /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": c3.id, title: "Comment actions", children: "\u22EF" })
+          ] })
+        ] }),
+        NL,
+        /* @__PURE__ */ u3("div", { class: "cbody", children: Raw(body) }),
+        Raw(reactions)
+      ] })
+    ] });
+  }
+  var commentBoxHtml = (p3) => html(/* @__PURE__ */ u3(CommentBox, { ...p3 }));
+  function DiffHunkTable({ rows }) {
+    return /* @__PURE__ */ u3("table", { class: "diff", children: [
+      /* @__PURE__ */ u3("colgroup", { children: [
+        /* @__PURE__ */ u3("col", { style: "width:50px" }),
+        /* @__PURE__ */ u3("col", { style: "width:50px" }),
+        /* @__PURE__ */ u3("col", {})
+      ] }),
+      rows.map((r3) => {
+        if (r3.kind === "hunk") return /* @__PURE__ */ u3("tr", { class: "hunk", children: [
+          /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
+          /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
+          /* @__PURE__ */ u3("td", { class: "code", children: r3.text })
+        ] });
+        if (r3.kind === "add") return /* @__PURE__ */ u3("tr", { class: "add", children: [
+          /* @__PURE__ */ u3("td", { class: "num" }),
+          /* @__PURE__ */ u3("td", { class: "num", children: r3.n }),
+          /* @__PURE__ */ u3("td", { class: "code", "data-marker": "+", children: r3.text })
+        ] });
+        if (r3.kind === "del") return /* @__PURE__ */ u3("tr", { class: "del", children: [
+          /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
+          /* @__PURE__ */ u3("td", { class: "num" }),
+          /* @__PURE__ */ u3("td", { class: "code", "data-marker": "-", children: r3.text })
+        ] });
+        if (r3.kind === "meta") return /* @__PURE__ */ u3("tr", { children: [
+          /* @__PURE__ */ u3("td", { class: "num" }),
+          /* @__PURE__ */ u3("td", { class: "num" }),
+          /* @__PURE__ */ u3("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
+        ] });
+        return /* @__PURE__ */ u3("tr", { children: [
+          /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
+          /* @__PURE__ */ u3("td", { class: "num", children: r3.n }),
+          /* @__PURE__ */ u3("td", { class: "code", "data-marker": " ", children: r3.text })
+        ] });
+      })
+    ] });
+  }
+  var diffHunkTableHtml = (rows) => html(/* @__PURE__ */ u3(DiffHunkTable, { rows }));
 
   // src/components/SideTabs.tsx
   var tabClass = (on) => on ? "on" : "";
@@ -586,23 +775,23 @@
   }
 
   // src/components/Sidebar.tsx
-  function RecentList({ recent, curRef: curRef2, icon: icon2 }) {
+  function RecentList({ recent, curRef: curRef2, icon: icon3 }) {
     if (!recent.length) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Pull requests you open appear here." });
     return /* @__PURE__ */ u3(S2, { children: recent.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${r3.ref === curRef2 ? "on" : ""}`, "data-open": r3.ref, children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon2(r3.icon)) }),
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon3(r3.icon)) }),
       /* @__PURE__ */ u3("span", { class: "rc-t", children: [
         /* @__PURE__ */ u3("b", { children: r3.title }),
         /* @__PURE__ */ u3("i", { children: r3.ref })
       ] }),
-      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: Raw(icon2("x")) })
+      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: Raw(icon3("x")) })
     ] })) });
   }
-  function RepoList({ repos, repo, filter, icon: icon2 }) {
+  function RepoList({ repos, repo, filter, icon: icon3 }) {
     const f4 = filter.toLowerCase(), shown = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter }),
       shown.length ? shown.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: Raw(icon2(r3.private ? "lock" : "repo")) }),
+        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: Raw(icon3(r3.private ? "lock" : "repo")) }),
         /* @__PURE__ */ u3("span", { class: "rc-t", children: [
           /* @__PURE__ */ u3("b", { children: r3.full_name.split("/")[1] }),
           /* @__PURE__ */ u3("i", { children: r3.full_name.split("/")[0] })
@@ -622,30 +811,30 @@
   var sidebarHtml = (p3) => html(/* @__PURE__ */ u3(Sidebar, { ...p3 }));
 
   // src/components/TabStrip.tsx
-  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon2 }) {
+  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon3 }) {
     return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
       tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, title: t2.ref + " \xB7 " + t2.title, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon2(t2.icon)) }),
+        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon3(t2.icon)) }),
         /* @__PURE__ */ u3("span", { class: "pt-t", children: [
           /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
           " ",
           t2.title
         ] }),
         t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon2("x")) })
+        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon3("x")) })
       ] })),
       /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", title: "New tab (\u2318T)", "aria-label": "New tab", children: [
-        Raw(icon2("plus")),
+        Raw(icon3("plus")),
         tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
       ] }),
       menu && /* @__PURE__ */ u3("div", { class: "pt-menu", children: [
         /* @__PURE__ */ u3("a", { "data-tabhome": "", children: [
-          Raw(icon2("home")),
+          Raw(icon3("home")),
           " Home"
         ] }),
         recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
         recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon2(r3.icon)) }),
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon3(r3.icon)) }),
           /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
             /* @__PURE__ */ u3("i", { children: r3.ref }),
             " ",
@@ -655,7 +844,7 @@
         closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
           /* @__PURE__ */ u3("h6", { children: "Closed" }),
           /* @__PURE__ */ u3("a", { "data-tabreopen": "", children: [
-            Raw(icon2("clock")),
+            Raw(icon3("clock")),
             " Reopen ",
             closedFirst,
             " ",
@@ -668,35 +857,35 @@
   var tabStripHtml = (p3) => html(/* @__PURE__ */ u3(TabStrip, { ...p3 }));
 
   // src/components/Toolbar.tsx
-  var NL = "\n  ";
+  var NL2 = "\n  ";
   function Toolbar(p3) {
-    const { icon: icon2 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    const { icon: icon3 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
     return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
-      NL,
-      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon2("three-bars")) }),
+      NL2,
+      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon3("three-bars")) }),
       /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon2("chevron-left")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon2("chevron-right")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon2("sync")) })
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon3("chevron-left")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon3("chevron-right")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon3("sync")) })
       ] }),
-      NL,
+      NL2,
       /* @__PURE__ */ u3("form", { id: "addr", class: "addr", children: [
-        Raw(icon2("search")),
+        Raw(icon3("search")),
         /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
       ] }),
       p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", title: "Download and install the new version, then restart", children: [
-        Raw(icon2("sync")),
+        Raw(icon3("sync")),
         " ",
         p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
       ] }),
-      NL,
+      NL2,
       /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon2("alert")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon2("link-external")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon2("plus")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon2("checklist")) }),
+        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon3("alert")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon3("link-external")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon3("plus")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon3("checklist")) }),
         /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", title: "Notifications", children: [
-          Raw(icon2("bell")),
+          Raw(icon3("bell")),
           p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
         ] }),
         /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
@@ -714,8 +903,8 @@
         p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", title: `${label} \u2014 account menu`, children: [
           /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
           /* @__PURE__ */ u3("span", { children: label }),
-          Raw(icon2("chevron-down", 12))
-        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon2("key")) })
+          Raw(icon3("chevron-down", 12))
+        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon3("key")) })
       ] })
     ] });
   }
@@ -819,7 +1008,7 @@
   var curRef = () => S.view === "pr" && S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
   var saveTabs = () => {
     try {
-      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon2, tab, dot, scroll }) => ({ ref, title, state, icon: icon2, tab, dot, scroll })) }));
+      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon3, tab, dot, scroll }) => ({ ref, title, state, icon: icon3, tab, dot, scroll })) }));
     } catch {
     }
   };
@@ -1065,7 +1254,7 @@
     return ["open", "git-pull-request", "Open"];
   }
   function prHeader(b2) {
-    const p3 = b2.pull, [st, ic, label] = stateOf(p3), n2 = p3.number;
+    const p3 = b2.pull, [st, ic, label] = stateOf(p3);
     const commentsTotal = p3.comments + p3.review_comments + b2.timeline.filter((e2) => e2.event === "reviewed").length;
     const sq = (() => {
       const t2 = p3.additions + p3.deletions || 1;
@@ -1074,25 +1263,16 @@
       const d3 = small ? p3.deletions : 5 - a3;
       const arr = [];
       for (let i3 = 0; i3 < 5; i3++) arr.push(i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
-      return arr.map((c3) => `<i class="${c3}"></i>`).join("");
+      return arr;
     })();
-    const who = st === "merged" ? `<a class="author" style="text-decoration:underline;text-underline-offset:2px" href="${esc(p3.merged_by.html_url)}">${esc(p3.merged_by.login)}</a> merged ${p3.commits} commit${p3.commits === 1 ? "" : "s"} into` : `<a class="author" href="${esc(p3.user.html_url)}">${esc(p3.user.login)}</a> wants to merge ${p3.commits} commit${p3.commits === 1 ? "" : "s"} into`;
-    const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
     const splitOk = S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline";
-    const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
-    return `<div class="pr-title-area"><h1 class="pr-title"><span>${esc(p3.title)}</span><span class="num">#${n2}</span>${p3.state === "open" && !p3.merged ? `<button class="copy-btn" id="editpr" title="Edit title and description">${icon("pencil")}</button>` : ""}</h1>
-  <div class="pr-meta"><span class="state-pill state-${st}">${icon(ic)} ${label}</span><span>${who}</span> <span class="branch" title="${esc(p3.base.repo.full_name)}:${esc(p3.base.ref)}">${esc(p3.base.label)}</span> <span>from</span> <span class="branch">${esc(p3.head.label)}</span><button class="copy-btn" id="copybranch" aria-label="Copy head branch name to clipboard">${icon("copy")}</button><span>${when(at)}</span></div></div>
-  <div class="pr-tabs"><span class="mini" title="${esc(p3.title)}"><b>#${n2}</b> ${esc(p3.title)}</span><nav>${tabs.map(([k3, i3, t2, c3]) => `<a data-tab="${k3}" class="${S.tab === k3 || k3 === "commits" && false ? "sel" : ""}">${icon(i3)}${t2}<span class="counter">${c3}</span></a>`).join("")}</nav>
-  <div class="tools"><button class="split-btn" id="review" title="Submit a review">${icon("eye")}<span>Review</span></button><button class="split-btn ${S.hide.side || S.split ? "" : "on"}" id="sidetoggle" title="Show or hide the details panel" ${S.tab !== "conversation" || S.split ? "disabled" : ""} style="${S.tab !== "conversation" ? "visibility:hidden" : ""}">${icon("sidebar-expand")}<span>Details</span></button><button class="split-btn ${splitOk && S.split ? "on" : ""}" id="split" title="${splitOk ? "Split view: commits beside conversation" : "Split view is available on the Conversation and Commits tabs"}" ${splitOk ? "" : "disabled"}>${icon("columns")}<span>Split view</span></button><div class="diffstat"><span class="add">+${p3.additions}</span><span class="del">-${p3.deletions}</span><span class="sq">${sq}</span></div></div></div>`;
+    return prHeaderHtml({ b: b2, st, ic, label, tab: S.tab, split: S.split, hideSide: !!S.hide.side, splitOk, commentsTotal, sq });
   }
   var isFolded = (k3, def = false) => k3 in S.fold ? S.fold[k3] : def;
   var folded = (k3, def = false) => isFolded(k3, def) ? " folded" : "";
-  var foldBtn = (k3, title = "Collapse / expand", def = false) => `<button class="fold-btn" data-fold="${esc(k3)}" data-def="${def ? 1 : 0}" title="${title}">${icon(isFolded(k3, def) ? "chevron-right" : "chevron-down")}</button>`;
+  var foldBtn = (k3, title = "Collapse / expand", def = false) => foldBtnHtml({ k: k3, title, def, folded: isFolded(k3, def) });
   function reactionsHtml(r3, kind, id) {
-    r3 = r3 || {};
-    const items = REACTS.filter(([k3]) => (r3?.[k3] ?? 0) > 0).map(([k3, e2]) => `<span class="reaction${kind && id ? " rc-btn" : ""}" ${kind && id ? `data-rck="${kind}" data-rcid="${id}" data-rcc="${k3}" title="Click to add or remove your reaction"` : ""}><span class="e">${e2}</span><span>${r3?.[k3]}</span></span>`);
-    const add = kind && id ? `<span class="react-wrap"><button class="react-add" data-rk="${kind}" data-rid="${id}" title="Add reaction">${icon("smiley")}</button></span>` : "";
-    return items.length || add ? `<div class="reactions">${items.join("")}${add}</div>` : "";
+    return reactionsBarHtml({ r: r3 || {}, kind, id, defs: REACTS.map(([k3, e2]) => ({ k: k3, e: e2 })) });
   }
   var liveTasks = (h3) => S.hasToken ? h3.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m2) => m2.replace(/\sdisabled(="[^"]*")?/g, "")) : h3;
   function toggleTask(body, n2) {
@@ -1136,13 +1316,8 @@
     });
   });
   function commentBox(c3, { isPr = false } = {}) {
-    const u4 = c3.user || c3.actor;
-    const assoc = ASSOC[c3.author_association ?? ""];
     const body = c3.body_html && c3.body_html.trim() ? `<div class="markdown-body">${liveTasks(c3.body_html)}</div>` : '<span class="empty">No description provided.</span>';
-    return `<div class="tl-comment${folded("c:" + c3.id)}" id="c-${esc(c3.id ?? "")}"><div class="avatar-col"><a href="${esc(u4?.html_url)}">${avatar(u4, 40)}</a></div>
-  <div class="cbox"><div class="chead"><div>${foldBtn("c:" + c3.id, "Hide this comment")} <a class="author u" href="${esc(u4?.html_url)}"><span class="author" style="font-weight:600;color:var(--fgColor-default)">${esc(u4?.login || "ghost")}</span></a> ${isPr ? "commented" : "commented"} <a class="ts" href="${esc(c3.html_url || "#")}">${when(c3.created_at || c3.submitted_at)}</a></div>
-  <div class="rt">${assoc ? `<span class="assoc">${assoc}</span>` : ""}<button class="cm-btn" data-cm="${esc(c3.id)}" title="Comment actions">\u22EF</button></div></div>
-  <div class="cbody">${body}</div>${reactionsHtml(c3.reactions, isPr ? "pr" : "issue_comment", c3.id)}</div></div>`;
+    return commentBoxHtml({ c: c3, isPr, assoc: ASSOC[c3.author_association ?? ""], body, folded: folded("c:" + c3.id), foldHtml: foldBtn("c:" + c3.id, "Hide this comment"), reactions: reactionsHtml(c3.reactions, isPr ? "pr" : "issue_comment", c3.id) });
   }
   function diffHunkTable(hunk) {
     const rows = [];
@@ -1154,16 +1329,16 @@
           o3 = +m2[1];
           n2 = +m2[2];
         }
-        rows.push(`<tr class="hunk"><td class="num">\u2026</td><td class="num">\u2026</td><td class="code">${esc(line)}</td></tr>`);
+        rows.push({ kind: "hunk", text: line });
         continue;
       }
       const t2 = line[0], txt = line.slice(1);
-      if (t2 === "+") rows.push(`<tr class="add"><td class="num"></td><td class="num">${n2++}</td><td class="code" data-marker="+">${esc(txt)}</td></tr>`);
-      else if (t2 === "-") rows.push(`<tr class="del"><td class="num">${o3++}</td><td class="num"></td><td class="code" data-marker="-">${esc(txt)}</td></tr>`);
-      else if (t2 === "\\") rows.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(line)}</td></tr>`);
-      else rows.push(`<tr><td class="num">${o3++}</td><td class="num">${n2++}</td><td class="code" data-marker=" ">${esc(txt)}</td></tr>`);
+      if (t2 === "+") rows.push({ kind: "add", n: n2++, text: txt });
+      else if (t2 === "-") rows.push({ kind: "del", o: o3++, text: txt });
+      else if (t2 === "\\") rows.push({ kind: "meta", text: line });
+      else rows.push({ kind: "ctx", o: o3++, n: n2++, text: txt });
     }
-    return `<table class="diff"><colgroup><col style="width:50px"><col style="width:50px"><col></colgroup>${rows.join("")}</table>`;
+    return diffHunkTableHtml(rows);
   }
 
   // src/app/fun.ts
@@ -1376,11 +1551,252 @@
   ${hasBody ? `<div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">${e2.body_html}</div></div></div>` : ""}${threads ? `<div>${threads}</div>` : ""}</div></div>`;
   }
 
+  // src/components/Timeline.tsx
+  function CommitRow({ first, sha, author, url, verification, trailing }) {
+    const unv = verification && !verification.verified;
+    return /* @__PURE__ */ u3("div", { class: "commit-row", children: [
+      author ? /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
+      /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: url || "#", children: first }) }),
+      Raw(trailing),
+      /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
+      /* @__PURE__ */ u3("span", { style: "flex:1" }),
+      verification ? /* @__PURE__ */ u3("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
+      /* @__PURE__ */ u3("a", { class: "sha", href: url || "#", children: String(sha).slice(0, 7) })
+    ] });
+  }
+  var commitRowHtml = (p3) => html(/* @__PURE__ */ u3(CommitRow, { ...p3 }));
+  function RangeBar({ range, from, to, desc }) {
+    const opts = [["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]];
+    return /* @__PURE__ */ u3("div", { class: "date-bar", children: [
+      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+        I2("clock"),
+        "When"
+      ] }),
+      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
+      range === "custom" ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From" }),
+        /* @__PURE__ */ u3("span", { class: "who-l", children: "to" }),
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To" })
+      ] }) : "",
+      /* @__PURE__ */ u3("span", { class: "sp" }),
+      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", children: [
+        I2(desc ? "chevron-down" : "chevron-up"),
+        /* @__PURE__ */ u3("span", { children: desc ? "Newest first" : "Oldest first" })
+      ] })
+    ] });
+  }
+  function WhoBar({ everyone, people }) {
+    return /* @__PURE__ */ u3("div", { class: "who-bar", children: [
+      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+        I2("person"),
+        "Show"
+      ] }),
+      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "" : "on"}`, "data-whoclear": "1", children: "Everyone" }),
+      people.map(({ u: u4, n: n2, on }) => /* @__PURE__ */ u3("button", { class: `who-chip ${on ? "on" : ""}`, "data-who": u4.login, title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
+        Av(u4, 18),
+        /* @__PURE__ */ u3("span", { children: u4.login }),
+        /* @__PURE__ */ u3("i", { children: n2 })
+      ] }))
+    ] });
+  }
+  var barsHtml = (who, range) => html(/* @__PURE__ */ u3(S2, { children: [
+    who && /* @__PURE__ */ u3(WhoBar, { ...who }),
+    /* @__PURE__ */ u3(RangeBar, { ...range })
+  ] }));
+  function FoldBar() {
+    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", children: [
+      I2("chevron-down"),
+      SP,
+      /* @__PURE__ */ u3("span", { children: "Collapse all conversations" })
+    ] }) });
+  }
+  function TlWrap({ bars, rows, empty, tail }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      Raw(bars),
+      /* @__PURE__ */ u3(FoldBar, {}),
+      /* @__PURE__ */ u3("div", { class: "TL", children: [
+        Raw(rows),
+        empty ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: empty }) : ""
+      ] }),
+      Raw(tail)
+    ] });
+  }
+  var tlWrapHtml = (p3) => html(/* @__PURE__ */ u3(TlWrap, { ...p3 }));
+  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: Raw(when(at).replace(/<\/?span[^>]*>/g, "")) });
+  var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
+  function CommitRun({ n: n2, first, last }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", children: [
+        /* @__PURE__ */ u3("b", { children: [
+          n2,
+          " commits"
+        ] }),
+        SP,
+        /* @__PURE__ */ u3("span", { class: "mono", children: [
+          first,
+          " \u2026 ",
+          last
+        ] }),
+        " \xB7 view in Commits"
+      ] }) }) })
+    ] });
+  }
+  var commitRunHtml = (p3) => html(/* @__PURE__ */ u3(CommitRun, { ...p3 }));
+  function Committed({ row }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: Raw(row) })
+    ] });
+  }
+  var committedHtml = (row) => html(/* @__PURE__ */ u3(Committed, { row }));
+  function Referenced({ actor: a3, at, commit: ci, linked }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body stack", children: [
+        /* @__PURE__ */ u3("div", { class: "row", style: "min-height:32px", children: [
+          actor(a3),
+          SP,
+          /* @__PURE__ */ u3("span", { children: "added a commit that referenced this pull request" }),
+          SP,
+          /* @__PURE__ */ u3(Time, { at })
+        ] }),
+        ci ? /* @__PURE__ */ u3("div", { class: "line2", children: /* @__PURE__ */ u3("div", { class: "commit-row", children: [
+          /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
+          /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: ci.html_url, children: Raw(linked) }) }),
+          /* @__PURE__ */ u3("span", { class: "mono", style: "background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px", children: "\u2026" }),
+          /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
+          /* @__PURE__ */ u3("span", { style: "flex:1" }),
+          /* @__PURE__ */ u3("a", { class: "sha", href: ci.html_url, children: ci.sha.slice(0, 7) })
+        ] }) }) : ""
+      ] })
+    ] });
+  }
+  var referencedHtml = (p3) => html(/* @__PURE__ */ u3(Referenced, { ...p3 }));
+  function MergedRow({ actor: a3, commit, base, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI mergedrow", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge done", children: I2("git-merge") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: [
+          "merged commit ",
+          /* @__PURE__ */ u3("b", { class: "mono", style: "color:var(--fgColor-default);font-size:12px", children: commit }),
+          " into ",
+          /* @__PURE__ */ u3("span", { class: "branch", children: base })
+        ] }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] }) })
+    ] });
+  }
+  var mergedRowHtml = (p3) => html(/* @__PURE__ */ u3(MergedRow, { ...p3 }));
+  function CrossRef(p3) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+        /* @__PURE__ */ u3("div", { class: "row", children: [
+          actor(p3.actor),
+          SP,
+          /* @__PURE__ */ u3("span", { children: [
+            "mentioned this ",
+            p3.isPr ? "pull request" : "issue"
+          ] }),
+          SP,
+          /* @__PURE__ */ u3(Time, { at: p3.at })
+        ] }),
+        "\n        ",
+        /* @__PURE__ */ u3("div", { class: "ref-card", children: [
+          /* @__PURE__ */ u3("span", { style: `color:var(--fgColor-${p3.open ? "success" : "done"});margin-top:2px`, children: I2(p3.icon) }),
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("a", { class: "t", href: p3.url, style: "color:var(--fgColor-default)", children: p3.title }),
+            /* @__PURE__ */ u3("span", { class: "r", children: [
+              p3.repo,
+              "#",
+              p3.number
+            ] })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+  var crossRefHtml = (p3) => html(/* @__PURE__ */ u3(CrossRef, { ...p3 }));
+  function LabelRow({ actor: a3, verb, color, name, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: verb }),
+        SP,
+        /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${color};color:#fff;margin:0`, children: name }),
+        SP,
+        /* @__PURE__ */ u3("span", { children: "label" }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] })
+    ] });
+  }
+  var labelRowHtml = (p3) => html(/* @__PURE__ */ u3(LabelRow, { ...p3 }));
+  function Simple({ actor: a3, ic, text, kind, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: Raw(text) }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] }) })
+    ] });
+  }
+  var simpleHtml = (p3) => html(/* @__PURE__ */ u3(Simple, { ...p3 }));
+  function Checks({ head, summary, headIcon, rows }) {
+    return /* @__PURE__ */ u3("div", { class: "checks", children: [
+      /* @__PURE__ */ u3("div", { class: `ck-head ${head[0]}`, children: [
+        I2(headIcon, 20),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("b", { children: head[1] }),
+          /* @__PURE__ */ u3("span", { children: summary })
+        ] })
+      ] }),
+      rows.map((c3) => /* @__PURE__ */ u3("a", { class: `ck-row ${c3.st}`, href: c3.url ? c3.url : void 0, children: [
+        /* @__PURE__ */ u3("span", { class: "ck-i", children: I2(c3.icon) }),
+        /* @__PURE__ */ u3("span", { class: "ck-n", children: [
+          /* @__PURE__ */ u3("b", { children: c3.name }),
+          c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
+          /* @__PURE__ */ u3("i", { children: c3.desc })
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "ck-s", children: c3.status }),
+        /* @__PURE__ */ u3("span", { class: "ck-d", children: c3.dur })
+      ] }))
+    ] });
+  }
+  var checksHtml = (p3) => html(/* @__PURE__ */ u3(Checks, { ...p3 }));
+  function Attention({ items, unres, showUnres }) {
+    return /* @__PURE__ */ u3("div", { class: "attn", children: [
+      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, children: [
+        I2(it.ic),
+        /* @__PURE__ */ u3("span", { children: it.text })
+      ] })),
+      showUnres ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", children: [
+          I2("comment"),
+          "Unresolved only"
+        ] })
+      ] }) : ""
+    ] });
+  }
+  var attentionHtml = (p3) => html(/* @__PURE__ */ u3(Attention, { ...p3 }));
+
   // src/app/timeline.ts
   function commitRow(msg, sha, author, url, verification, trailing = "") {
     const first = String(msg || "").split("\n")[0];
-    const unv = verification && !verification.verified;
-    return `<div class="commit-row">${author ? `<span class="TLI-avatar" style="margin-right:8px">${avatar(author, 20)}</span>` : ""}<span class="msg" style="flex:0 1 auto"><a href="${esc(url || "#")}">${esc(first)}</a></span>${trailing}<span class="cm-ic">${icon("comment")}</span><span style="flex:1"></span>${verification ? `<span class="label-pill ${unv ? "warn" : "ok"}">${unv ? "Unverified" : "Verified"}</span>` : ""}<a class="sha" href="${esc(url || "#")}">${esc(String(sha).slice(0, 7))}</a></div>`;
+    return commitRowHtml({ first, sha, author, url, verification, trailing });
   }
   function rangeBounds() {
     const H2 = 36e5, now = Date.now(), r3 = S.range;
@@ -1422,9 +1838,7 @@
       return isNaN(x3) || x3 >= rLo && x3 <= rHi;
     };
     const keep = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
-    const rangeBar = `<div class="date-bar"><span class="who-l">${icon("clock")}When</span><select class="sel" id="crange" title="Only show activity from this period">${[["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]].map(([v2, l3]) => `<option value="${v2}" ${S.range === v2 ? "selected" : ""}>${l3}</option>`).join("")}</select>${S.range === "custom" ? `<input type="date" class="input" id="cfrom" value="${esc(S.rFrom)}" title="From"><span class="who-l">to</span><input type="date" class="input" id="cto" value="${esc(S.rTo)}" title="To">` : ""}<span class="sp"></span><button class="who-chip" id="csort" title="Flip the order of the timeline">${icon(S.sort === "desc" ? "chevron-down" : "chevron-up")}<span>${S.sort === "desc" ? "Newest first" : "Oldest first"}</span></button></div>`;
-    const bar = people.size > 1 ? `<div class="who-bar"><span class="who-l">${icon("person")}Show</span><button class="who-chip ${on ? "" : "on"}" data-whoclear="1">Everyone</button>${[...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => `<button class="who-chip ${who.includes(u4.login) ? "on" : ""}" data-who="${esc(u4.login)}" title="${n2} comment${n2 === 1 ? "" : "s"}">${avatar(u4, 18)}<span>${esc(u4.login)}</span><i>${n2}</i></button>`).join("")}</div>` : "";
-    const bars = bar + rangeBar;
+    const bars = barsHtml(people.size > 1 ? { everyone: !on, people: [...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => ({ u: u4, n: n2, on: who.includes(u4.login) })) } : null, { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === "desc" });
     if (!S.unres && (!on || who.includes(p3.user.login))) out.push(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
     const evs = [];
     for (let i3 = 0; i3 < keep.length; ) {
@@ -1447,24 +1861,24 @@
           out.push(commentBox(e2));
           break;
         case "commit-run":
-          out.push(`<div class="TLI"><div class="TLI-badge">${icon("git-commit")}</div><div class="TLI-body"><div class="row"><a data-tab="commits" class="run"><b>${e2.n} commits</b> <span class="mono">${esc(e2.first.sha.slice(0, 7))} \u2026 ${esc(e2.last.sha.slice(0, 7))}</span> \xB7 view in Commits</a></div></div></div>`);
+          out.push(commitRunHtml({ n: e2.n, first: e2.first.sha.slice(0, 7), last: e2.last.sha.slice(0, 7) }));
           break;
         case "reviewed":
           out.push(reviewBlock(e2, b2));
           break;
         case "committed":
-          out.push(`<div class="TLI"><div class="TLI-badge">${icon("git-commit")}</div><div class="TLI-body">${commitRow(e2.message, e2.sha, info[e2.sha]?.author || (e2.author?.avatar_url ? e2.author : null), e2.html_url, e2.verification)}</div></div>`);
+          out.push(committedHtml(commitRow(e2.message, e2.sha, info[e2.sha]?.author || (e2.author?.avatar_url ? e2.author : null), e2.html_url, e2.verification)));
           break;
         case "referenced": {
           const ci = info[e2.commit_id];
           const ml = ci ? ci.message.split("\n")[0] : "";
           const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
-          out.push(`<div class="TLI"><div class="TLI-badge">${icon("cross-reference")}</div><div class="TLI-body stack"><div class="row" style="min-height:32px">${user(e2.actor)} <span>added a commit that referenced this pull request</span> <a class="time">${when(e2.created_at).replace(/<\/?span[^>]*>/g, "")}</a></div>${ci ? `<div class="line2"><div class="commit-row"><span class="TLI-avatar" style="margin:0 8px 0 0">${avatar(ci.author || e2.actor, 20)}</span><span class="msg" style="flex:0 1 auto"><a href="${esc(ci.html_url)}">${linked}</a></span><span class="mono" style="background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px">\u2026</span><span class="cm-ic">${icon("comment")}</span><span style="flex:1"></span><a class="sha" href="${esc(ci.html_url)}">${esc(ci.sha.slice(0, 7))}</a></div></div>` : ""}</div></div>`);
+          out.push(referencedHtml({ actor: e2.actor, at: e2.created_at, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
           break;
         }
         case "merged":
           merged = true;
-          out.push(`<div class="TLI mergedrow"><div class="TLI-badge done">${icon("git-merge")}</div><div class="TLI-avatar">${avatar(e2.actor, 20)}</div><div class="TLI-body"><div class="row">${user(e2.actor)} <span>merged commit <b class="mono" style="color:var(--fgColor-default);font-size:12px">${esc((e2.commit_id || "").slice(0, 7))}</b> into <span class="branch">${esc(p3.base.label)}</span></span> <a class="time">${when(e2.created_at).replace(/<\/?span[^>]*>/g, "")}</a></div></div></div>`);
+          out.push(mergedRowHtml({ actor: e2.actor, commit: (e2.commit_id || "").slice(0, 7), base: p3.base.label ?? "", at: e2.created_at }));
           out.push('<div class="TLI-break"></div>');
           break;
         case "closed":
@@ -1477,13 +1891,12 @@
           const i3 = e2.source?.issue;
           if (!i3) break;
           const isPr = !!i3.pull_request;
-          out.push(`<div class="TLI"><div class="TLI-badge">${icon("cross-reference")}</div><div class="TLI-body"><div class="row">${user(e2.actor)} <span>mentioned this ${isPr ? "pull request" : "issue"}</span> <a class="time">${when(e2.created_at).replace(/<\/?span[^>]*>/g, "")}</a></div>
-        <div class="ref-card"><span style="color:var(--fgColor-${i3.state === "open" ? "success" : "done"});margin-top:2px">${icon(isPr ? i3.state === "open" ? "git-pull-request" : "git-merge" : "issue-opened")}</span><div><a class="t" href="${esc(i3.html_url)}" style="color:var(--fgColor-default)">${esc(i3.title.split("\n")[0].slice(0, 120))}</a><span class="r">${esc(i3.repository?.full_name || "")}#${i3.number}</span></div></div></div></div>`);
+          out.push(crossRefHtml({ actor: e2.actor, at: e2.created_at, isPr, open: i3.state === "open", icon: isPr ? i3.state === "open" ? "git-pull-request" : "git-merge" : "issue-opened", url: i3.html_url, title: i3.title.split("\n")[0].slice(0, 120), repo: i3.repository?.full_name || "", number: i3.number }));
           break;
         }
         case "labeled":
         case "unlabeled":
-          out.push(`<div class="TLI condensed"><div class="TLI-badge">${icon("tag")}</div><div class="TLI-avatar">${avatar(e2.actor, 20)}</div><div class="TLI-body">${user(e2.actor)} <span>${e2.event === "labeled" ? "added" : "removed"}</span> <span class="pill-label" style="background:#${esc(e2.label?.color)};color:#fff;margin:0">${esc(e2.label?.name)}</span> <span>label</span> <a class="time">${when(e2.created_at).replace(/<\/?span[^>]*>/g, "")}</a></div></div>`);
+          out.push(labelRowHtml({ actor: e2.actor, verb: e2.event === "labeled" ? "added" : "removed", color: e2.label?.color ?? "", name: e2.label?.name ?? "", at: e2.created_at }));
           break;
         case "assigned":
         case "unassigned":
@@ -1517,8 +1930,7 @@
           break;
       }
     }
-    const foldAll = `<div class="fold-bar"><button class="btn small" id="foldallconv" title="Collapse or expand every comment, review and thread">${icon("chevron-down")} <span>Collapse all conversations</span></button></div>`;
-    return `${bars}${foldAll}<div class="TL">${out.join("")}${!evs.length && (on || rangeOn) ? `<div class="diff-empty">${rangeOn ? "No activity in this period." : "Nothing from the selected accounts."}</div>` : ""}</div>${on ? "" : mergeBox(b2)}${mergeActions(b2)}${composer(b2)}`;
+    return tlWrapHtml({ bars, rows: out.join(""), empty: !evs.length && (on || rangeOn) ? rangeOn ? "No activity in this period." : "Nothing from the selected accounts." : "", tail: `${on ? "" : mergeBox(b2)}${mergeActions(b2)}${composer(b2)}` });
   }
   var checkState = (c3) => c3.status !== "completed" ? "pending" : c3.conclusion === "success" ? "pass" : ["skipped", "neutral"].includes(c3.conclusion) ? "skip" : "fail";
   var CK = { pass: ["check-circle-fill", "Passed"], fail: ["x-circle-fill", "Failed"], pending: ["dot-fill", "In progress"], skip: ["circle-slash", "Skipped"] };
@@ -1536,7 +1948,8 @@
       const t2 = Math.round((e2 - s3) / 1e3);
       return t2 >= 60 ? `${Math.floor(t2 / 60)}m ${t2 % 60}s` : `${t2}s`;
     };
-    return `<div class="checks"><div class="ck-head ${head[0]}">${icon(CK[head[0]][0], 20)}<div><b>${head[1]}</b><span>${[n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 ")}</span></div></div>${list.map((c3) => `<a class="ck-row ${c3.st}" ${c3.url ? `href="${esc(c3.url)}"` : ""}><span class="ck-i">${icon(CK[c3.st][0])}</span><span class="ck-n"><b>${esc(c3.name)}</b>${reqBadge(c3)}<i>${esc(c3.description || (c3.app ? c3.app : ""))}</i></span><span class="ck-s">${c3.st === "fail" && c3.conclusion && c3.conclusion !== "failure" ? esc(c3.conclusion.replace(/_/g, " ")) : CK[c3.st][1]}</span><span class="ck-d">${dur(c3)}</span></a>`).join("")}</div>`;
+    const rows = list.map((c3) => ({ name: c3.name, st: c3.st, url: c3.url, desc: c3.description || (c3.app ? c3.app : ""), req: (S.bundle?.required_checks || []).includes(c3.name), status: c3.st === "fail" && c3.conclusion && c3.conclusion !== "failure" ? c3.conclusion.replace(/_/g, " ") : CK[c3.st][1], dur: dur(c3), icon: CK[c3.st][0] }));
+    return checksHtml({ head: [head[0], head[1]], headIcon: CK[head[0]][0], summary: [n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 "), rows });
   }
   function unresolvedRoots(b2) {
     const res = new Set(b2.resolved_ids || []);
@@ -1554,20 +1967,20 @@
     const cr = [...latest.values()].filter((s3) => s3 === "changes_requested").length, ap = [...latest.values()].filter((s3) => s3 === "approved").length;
     const ck = (b2.checks || []).map(checkState), fail = ck.filter((s3) => s3 === "fail").length, pend = ck.filter((s3) => s3 === "pending").length, pass = ck.filter((s3) => s3 === "pass").length;
     const it = [];
-    const add = (k3, ic, text, attr = "") => it.push(`<button class="att-i ${k3}" ${attr}>${icon(ic)}<span>${text}</span></button>`);
+    const add = (k3, ic, text, attr = {}) => it.push({ k: k3, ic, text, ...attr });
     if (roots.length) {
       if (!known) add("", "comment", `${roots.length} review thread${roots.length === 1 ? "" : "s"}`);
-      else if (open.length) add("bad", "comment", `${open.length} unresolved thread${open.length === 1 ? "" : "s"}`, 'id="nextun" title="Jump to the next unresolved thread"');
+      else if (open.length) add("bad", "comment", `${open.length} unresolved thread${open.length === 1 ? "" : "s"}`, { id: "nextun", title: "Jump to the next unresolved thread" });
       else add("ok", "check-circle-fill", "All threads resolved");
     }
     add(cr ? "bad" : ap ? "ok" : "", cr ? "file-diff" : ap ? "check" : "eye", cr ? `${cr} requesting changes` : ap ? `${ap} approved` : "No approvals yet");
-    if (ck.length) add(fail ? "bad" : pend ? "warn" : "ok", fail ? "x-circle-fill" : pend ? "dot-fill" : "check-circle-fill", fail ? `${fail} check${fail === 1 ? "" : "s"} failing` : pend ? `${pend} check${pend === 1 ? "" : "s"} running` : `${pass} check${pass === 1 ? "" : "s"} passed`, 'data-tab="checks" title="Open checks"');
+    if (ck.length) add(fail ? "bad" : pend ? "warn" : "ok", fail ? "x-circle-fill" : pend ? "dot-fill" : "check-circle-fill", fail ? `${fail} check${fail === 1 ? "" : "s"} failing` : pend ? `${pend} check${pend === 1 ? "" : "s"} running` : `${pass} check${pass === 1 ? "" : "s"} passed`, { dataTab: "checks", title: "Open checks" });
     if (p3.merged) add("done", "git-merge", "Merged");
     else if (p3.state === "closed") add("bad", "git-pull-request-closed", "Closed");
     else if (p3.mergeable === false || p3.mergeable_state === "dirty") add("bad", "alert", "Has conflicts");
     else if (p3.mergeable_state === "clean") add("ok", "git-merge", "Ready to merge");
     else if (p3.draft) add("", "git-pull-request-draft", "Draft");
-    return `<div class="attn">${it.join("")}${roots.length ? `<span class="sp"></span><button class="att-tog ${S.unres ? "on" : ""}" id="unres" title="Hide everything except review threads that are still open">${icon("comment")}Unresolved only</button>` : ""}</div>`;
+    return attentionHtml({ items: it, unres: S.unres, showUnres: roots.length > 0 });
   }
   function jumpUnresolved() {
     const b2 = S.bundle, list = unresolvedRoots(b2);
@@ -1591,7 +2004,7 @@
     }
   }
   function simple(e2, ic, text, kind = "") {
-    return `<div class="TLI"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e2.actor, 20)}</div><div class="TLI-body"><div class="row">${user(e2.actor)} <span>${text}</span> <a class="time">${when(e2.created_at).replace(/<\/?span[^>]*>/g, "")}</a></div></div></div>`;
+    return simpleHtml({ actor: e2.actor, ic, text, kind, at: e2.created_at });
   }
 
   // src/app/mergebox.ts
@@ -2961,14 +3374,14 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
   function inboxPage() {
-    const I2 = S.inbox || { loading: true }, d3 = I2.data;
+    const I3 = S.inbox || { loading: true }, d3 = I3.data;
     const row = (p3) => {
       const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at, fresh = was && p3.updated_at > was;
       return `<a class="ib-row" data-open="${esc(ref)}"><img src="${esc(p3.avatar)}" alt=""><span class="ib-t"><b>${esc(p3.title)}</b><i>${esc(ref)} \xB7 ${esc(p3.user)} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}</i></span>${fresh ? '<span class="ib-new">New activity</span>' : ""}${p3.comments ? `<span class="ib-c">${icon("comment")} ${p3.comments}</span>` : ""}</a>`;
     };
     const sec = (title, sub, list) => `<section class="ib-sec"><h2>${title}<span>${list.length}</span></h2><p>${sub}</p>${list.length ? list.map(row).join("") : '<div class="ib-none">Nothing here. Nice.</div>'}</section>`;
-    const body = I2.err ? `<div class="diff-empty err">${esc(I2.err)}</div>` : !d3 ? '<div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>' : sec("Review requested", "Waiting on you", d3.requested) + sec("Ready to merge", "Your approved pull requests", d3.ready) + sec("Your pull requests", "Open PRs you opened", d3.mine);
-    return `<div class="notes-page"><div class="np-head"><h1>${icon("checklist")} Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" ${I2.loading ? "disabled" : ""}>${I2.loading ? "Loading\u2026" : "Refresh"}</button></div></div>${body}</div>`;
+    const body = I3.err ? `<div class="diff-empty err">${esc(I3.err)}</div>` : !d3 ? '<div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>' : sec("Review requested", "Waiting on you", d3.requested) + sec("Ready to merge", "Your approved pull requests", d3.ready) + sec("Your pull requests", "Open PRs you opened", d3.mine);
+    return `<div class="notes-page"><div class="np-head"><h1>${icon("checklist")} Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" ${I3.loading ? "disabled" : ""}>${I3.loading ? "Loading\u2026" : "Refresh"}</button></div></div>${body}</div>`;
   }
   function page() {
     const b2 = S.bundle;

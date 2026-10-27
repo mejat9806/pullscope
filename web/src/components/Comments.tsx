@@ -1,0 +1,67 @@
+import type { Bundle, CommentLike, Pull, Reactions } from '../types';
+import { html, Raw } from './html';
+import { Av, I, SP, When } from './ui';
+
+const NL = '\n  ';
+
+export interface PrHeaderProps {
+  b: Bundle; st: string; ic: string; label: string; tab: string; split: boolean; hideSide: boolean; splitOk: boolean; commentsTotal: number; sq: string[]
+}
+
+function Who({ p, st }: { p: Pull; st: string }) {
+  const plural = p.commits === 1 ? '' : 's';
+  return st === 'merged'
+    ? <><a class="author" style="text-decoration:underline;text-underline-offset:2px" href={p.merged_by!.html_url}>{p.merged_by!.login}</a> merged {p.commits} commit{plural} into</>
+    : <><a class="author" href={p.user.html_url}>{p.user.login}</a> wants to merge {p.commits} commit{plural} into</>;
+}
+
+export function PrHeader({ b, st, ic, label, tab, split, hideSide, splitOk, commentsTotal, sq }: PrHeaderProps) {
+  const p = b.pull, n = p.number;
+  const at = st === 'merged' ? p.merged_at : st === 'closed' ? p.closed_at : p.created_at;
+  const tabs: [string, string, string, number][] = [['conversation', 'comment-discussion', 'Conversation', commentsTotal + 0], ['timeline', 'clock', 'Timeline', b.timeline.length], ['commits', 'git-commit', 'Commits', p.commits], ['checks', 'checklist', 'Checks', (b.checks || []).length], ['files', 'file-diff', 'Files changed', p.changed_files]];
+  return <>
+    <div class="pr-title-area"><h1 class="pr-title"><span>{p.title}</span><span class="num">#{n}</span>{p.state === 'open' && !p.merged ? <button class="copy-btn" id="editpr" title="Edit title and description">{I('pencil')}</button> : ''}</h1>{NL}
+      <div class="pr-meta"><span class={`state-pill state-${st}`}>{I(ic)}{SP}{label}</span><span><Who p={p} st={st} /></span>{SP}<span class="branch" title={`${p.base.repo.full_name}:${p.base.ref}`}>{p.base.label}</span>{SP}<span>from</span>{SP}<span class="branch">{p.head.label}</span><button class="copy-btn" id="copybranch" aria-label="Copy head branch name to clipboard">{I('copy')}</button><span>{When(at!)}</span></div></div>{NL}
+    <div class="pr-tabs"><span class="mini" title={p.title}><b>#{n}</b>{SP}{p.title}</span><nav>{tabs.map(([k, i, t, c]) => <a data-tab={k} class={tab === k ? 'sel' : ''}>{I(i)}{t}<span class="counter">{c}</span></a>)}</nav>{NL}
+      <div class="tools"><button class="split-btn" id="review" title="Submit a review">{I('eye')}<span>Review</span></button><button class={`split-btn ${hideSide || split ? '' : 'on'}`} id="sidetoggle" title="Show or hide the details panel" disabled={tab !== 'conversation' || split} style={tab !== 'conversation' ? 'visibility:hidden' : ''}>{I('sidebar-expand')}<span>Details</span></button><button class={`split-btn ${splitOk && split ? 'on' : ''}`} id="split" title={splitOk ? 'Split view: commits beside conversation' : 'Split view is available on the Conversation and Commits tabs'} disabled={!splitOk}>{I('columns')}<span>Split view</span></button><div class="diffstat"><span class="add">+{p.additions}</span><span class="del">-{p.deletions}</span><span class="sq">{sq.map((c) => <i class={c}></i>)}</span></div></div></div>
+  </>;
+}
+export const prHeaderHtml = (p: PrHeaderProps) => html(<PrHeader {...p} />);
+
+export function FoldBtn({ k, title, def, folded }: { k: string; title: string; def: boolean; folded: boolean }) {
+  return <button class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
+}
+export const foldBtnHtml = (p: Parameters<typeof FoldBtn>[0]) => html(<FoldBtn {...p} />);
+
+interface ReactionDef { k: keyof Reactions; e: string }
+export function ReactionsBar({ r, kind, id, defs }: { r: Reactions; kind: string; id: number; defs: ReactionDef[] }) {
+  const live = !!(kind && id);
+  const items = defs.filter(({ k }) => (r?.[k] ?? 0) > 0).map(({ k, e }) => live
+    ? <span class="reaction rc-btn" data-rck={kind} data-rcid={id} data-rcc={k} title="Click to add or remove your reaction"><span class="e">{e}</span><span>{r?.[k]}</span></span>
+    : <span class="reaction"><span class="e">{e}</span><span>{r?.[k]}</span></span>);
+  const add = live ? <span class="react-wrap"><button class="react-add" data-rk={kind} data-rid={id} title="Add reaction">{I('smiley')}</button></span> : null;
+  return items.length || add ? <div class="reactions">{items}{add}</div> : null;
+}
+export const reactionsBarHtml = (p: Parameters<typeof ReactionsBar>[0]) => html(<ReactionsBar {...p} />);
+
+export interface CommentBoxProps { c: CommentLike; isPr: boolean; assoc: string | undefined; body: string; folded: string; foldHtml: string; reactions: string }
+export function CommentBox({ c, assoc, body, folded, foldHtml, reactions }: CommentBoxProps) {
+  const u = c.user || c.actor;
+  return <div class={`tl-comment${folded}`} id={`c-${c.id ?? ''}`}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
+    <div class="cbox"><div class="chead"><div>{Raw(foldHtml)}{SP}<a class="author u" href={u?.html_url}><span class="author" style="font-weight:600;color:var(--fgColor-default)">{u?.login || 'ghost'}</span></a> commented{SP}<a class="ts" href={c.html_url || '#'}>{When((c.created_at || c.submitted_at)!)}</a></div>{NL}
+      <div class="rt">{assoc ? <span class="assoc">{assoc}</span> : ''}<button class="cm-btn" data-cm={c.id} title="Comment actions">⋯</button></div></div>{NL}
+      <div class="cbody">{Raw(body)}</div>{Raw(reactions)}</div></div>;
+}
+export const commentBoxHtml = (p: CommentBoxProps) => html(<CommentBox {...p} />);
+
+export interface HunkRow { kind: 'hunk' | 'add' | 'del' | 'ctx' | 'meta'; o?: number; n?: number; text: string }
+export function DiffHunkTable({ rows }: { rows: HunkRow[] }) {
+  return <table class="diff"><colgroup><col style="width:50px" /><col style="width:50px" /><col /></colgroup>{rows.map((r) => {
+    if (r.kind === 'hunk') return <tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">{r.text}</td></tr>;
+    if (r.kind === 'add') return <tr class="add"><td class="num"></td><td class="num">{r.n}</td><td class="code" data-marker="+">{r.text}</td></tr>;
+    if (r.kind === 'del') return <tr class="del"><td class="num">{r.o}</td><td class="num"></td><td class="code" data-marker="-">{r.text}</td></tr>;
+    if (r.kind === 'meta') return <tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">{r.text}</td></tr>;
+    return <tr><td class="num">{r.o}</td><td class="num">{r.n}</td><td class="code" data-marker=" ">{r.text}</td></tr>;
+  })}</table>;
+}
+export const diffHunkTableHtml = (rows: HunkRow[]) => html(<DiffHunkTable rows={rows} />);
