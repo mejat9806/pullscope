@@ -1,11 +1,9 @@
 import type { Pull, Tab } from '../types';
-import { recentListHtml, repoListHtml, sidebarHtml } from '../components/Sidebar';
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
-import { $, S, esc, icon, load } from './core';
+import { $, S, load } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
-import { prSide } from './prlist';
 
 // Native-app chrome: toolbar (history, address bar, actions) and a recent-PRs sidebar.
 
@@ -46,20 +44,3 @@ export function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); op
 
 export function stepTab(d: number) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
 
-export function sideRecent() {
-  let list;
-  if (S.sideTab === 'prs' && S.repo) {
-    list = prSide();
-  } else if (S.sideTab === 'recent') {
-    list = recentListHtml({ recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '', icon });
-  } else if (!S.hasToken) {
-    list = '<div class="sb-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="sb-btn" id="addtoken">Add token</button></div>';
-  } else if (S.reposErr) {
-    list = `<div class="sb-empty err">${esc(S.reposErr)}</div>`;
-  } else if (!S.repos) {
-    list = '<div class="sb-empty">Loading repositories…</div>';
-  } else {
-    list = repoListHtml({ repos: S.repos, repo: S.repo, filter: S.repoFilter, icon });
-  }
-  return sidebarHtml({ sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, list });
-}

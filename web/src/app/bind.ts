@@ -1,12 +1,13 @@
 import { bindWrite, drafts, rerender, saveDrafts, setBusy } from './actions';
 import { bindSticky, bpOpen, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, esc, icon, tauri, qa } from './core';
+import { $, KEY_RECENT, S, esc, icon, qa as qaAll, tauri } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
 import { confetti } from './fun';
 import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
 import { loadPrs, loadRepos, openPr, openRepo, reload } from './nav';
 import { bindNpMeta, loadInbox, npCompare, npLoadBranches, openNewPr, render, saveNotes } from './pages';
+import { repaintSide } from './side';
 import { go } from './render';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 import { jumpUnresolved } from './timeline';
@@ -47,17 +48,30 @@ export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   return true;
 }
 
+export function openClick(el: HTMLElement, e: MouseEvent) { if ((e.target as HTMLElement).closest<HTMLElement>('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open!, true); } else openFromList(el.dataset.open!, false); }
+
+export function openAux(el: HTMLElement, e: MouseEvent) { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open!, true); } }
+
+export function openCtx(el: HTMLElement, e: MouseEvent) {
+    e.preventDefault(); e.stopPropagation(); $('.react-pop')?.remove();
+    const ref = el.dataset.open, pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
+    pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
+    pop.style.left = Math.min(e.clientX, innerWidth - 180) + 'px'; pop.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
+    pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref!, true); else if (h === 'here') openFromList(ref!, false); else { const m = ref!.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m! ? `https://github.com/${m[1]}/pull/${m[2]}` : ref!).catch(() => {}); } };
+    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+}
+
+export function rmRecent(e: MouseEvent, ref: string) { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== ref); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }
+
 export function bind() {
+  // The sidebar is its own Preact tree with its own handlers; keep the imperative wiring out of it.
+  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter((e) => !e.closest('#side'));
+  const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
   bindWrite();
-  qa('[data-side]').forEach((el) => el.addEventListener('click', () => { S.sideTab = el.dataset.side!; render(); }));
   $<HTMLInputElement>('#mainfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#mainfilter')!; n.focus(); n.setSelectionRange(p, p); });
   ([['#pfauthor', 'pAuthor'], ['#pflabel', 'pLabel'], ['#pfstatus', 'pStatus']] as const).forEach(([id, k]) => $(id)?.addEventListener('change', (e) => { S[k] = (e.target as HTMLInputElement).value; render(); }));
   $<HTMLSelectElement>('#pfsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
   $('#pfclear')?.addEventListener('click', () => { S.pf = S.pAuthor = S.pLabel = S.pStatus = ''; render(); });
-  $<HTMLInputElement>('#prfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#prfilter')!; n.focus(); n.setSelectionRange(p, p); });
-  $('#prsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
-  $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = (e.target as HTMLInputElement).value; localStorage.setItem('pgroup', S.pgroup); render(); });
-  qa('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps!; loadPrs(); }));
   $('#addtoken')?.addEventListener('click', tokenDialog);
   qa('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
   $<HTMLSelectElement>('#hmsort')?.addEventListener('change', (e) => { S.hmSort = (e.target as HTMLInputElement).value; render(); });
@@ -83,24 +97,12 @@ export function bind() {
   $<HTMLInputElement>('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmrfilter')!; n.focus(); n.setSelectionRange(p, p); });
   qa('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
   $<HTMLInputElement>('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmfilter')!; n.focus(); n.setSelectionRange(p, p); });
-  $<HTMLInputElement>('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#repofilter')!; n.focus(); n.setSelectionRange(p, p); });
   qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
   qa('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
   qa('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
-  qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps!; openRepo(S.repo!, { nav: true }); }));
-  qa('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open!, true); } else openFromList(el.dataset.open!, false); }));
-  qa('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open!, true); } }));
-  qa('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
-    e.preventDefault(); e.stopPropagation(); $('.react-pop')?.remove();
-    const ref = el.dataset.open, pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
-    pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
-    pop.style.left = Math.min(e.clientX, innerWidth - 180) + 'px'; pop.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
-    pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref!, true); else if (h === 'here') openFromList(ref!, false); else { const m = ref!.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m! ? `https://github.com/${m[1]}/pull/${m[2]}` : ref!).catch(() => {}); } };
-    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
-  }));
-  // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
-  qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
+  qa('[data-open]').forEach((el) => { el.addEventListener('click', (e) => openClick(el, e)); el.addEventListener('auxclick', (e) => openAux(el, e)); el.addEventListener('contextmenu', (e) => openCtx(el, e)); });
+  qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => rmRecent(e, el.dataset.rm!)));
   qa('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab!; render(); $('.main')!.scrollTop = 0; }));
   qa('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare!.split('@'); openNewPr(repo, br); }));
   qa('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss!] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
@@ -163,6 +165,7 @@ export function bind() {
       const box = x.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
       const svg = $('svg', x); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
+    repaintSide();
     if (!now && k!.startsWith('f:')) { const fb = el.closest<HTMLElement>('.file'); if (fb && !$('table.diff, .diff-empty', fb)) { rerender(); return; } }
     if (now) return;
     // Opened: make sure the block is on screen (only scroll when part of it is cut off).

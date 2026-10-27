@@ -1,8 +1,7 @@
 import type { Cmp, PrListItem, Pull } from '../types';
-import { folded, isFolded } from './comments';
 import { S, esc, icon, when } from './core';
-import { crumbsHtml, filterBarHtml, pgHtml, prListPageHtml, sideCountHtml, sideEmptyHtml, sideHeadHtml } from '../components/PrList';
-import type { PrlRow, RcRow } from '../components/PrList';
+import { crumbsHtml, filterBarHtml, prListPageHtml } from '../components/PrList';
+import type { PrlRow } from '../components/PrList';
 import { pushBanners } from './data';
 
 export const PSORT = { updated: 'Recently updated', created: 'Newest', oldest: 'Oldest', number: 'Number', title: 'Title A–Z', author: 'Author' };
@@ -12,29 +11,6 @@ export const PGROUP = { none: 'No grouping', status: 'Status', author: 'Author',
 export const prStatus = (p: PrListItem) => (p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open');
 
 export const PICON = { open: 'git-pull-request', draft: 'git-pull-request-draft', merged: 'git-merge', closed: 'git-pull-request-closed' };
-
-export function prSide() {
-  const cur = S.bundle && S.view === 'pr' ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '';
-  const f = S.pf.toLowerCase();
-  const head = sideHeadHtml({ repo: S.repo!, state: S.prState, filter: S.pf, sort: S.psort, group: S.pgroup, sorts: Object.entries(PSORT), groups: Object.entries(PGROUP) });
-  if (!S.prs) return head + sideEmptyHtml('Loading pull requests…');
-  const list = S.prs.filter((p) => !f || `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map((l) => l.name).join(' ')}`.toLowerCase().includes(f));
-  const sorts: Record<string, Cmp> = { updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number };
-  const by = sorts[S.psort];
-  list.sort(by);
-  const row = (p: PrListItem): RcRow => { const st = prStatus(p), ref = `${S.repo}#${p.number}`; return { ref, on: ref === cur, st, icon: PICON[st], title: p.title, sub: `#${p.number} · ${p.user.login} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}` }; };
-  if (!list.length) return head + sideEmptyHtml(S.pf ? 'No matches.' : 'No pull requests.');
-  if (S.pgroup === 'none') return head + sideCountHtml(list.length, list.map(row));
-  const groups = new Map<string, PrListItem[]>(), put = (k: string, p: PrListItem) => (groups.get(k) || groups.set(k, []).get(k)!).push(p);
-  list.forEach((p) => {
-    if (S.pgroup === 'status') put({ open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' }[prStatus(p)], p);
-    else if (S.pgroup === 'author') put(p.user.login, p);
-    else if (S.pgroup === 'base') put(p.base?.ref || '—', p);
-    else if ((p.labels || []).length) p.labels.forEach((l) => put(l.name, p)); else put('No label', p);
-  });
-  const order = S.pgroup === 'status' ? ['Open', 'Draft', 'Merged', 'Closed'] : [...groups.keys()].sort((a, b) => +(a === 'No label') - +(b === 'No label') || a.localeCompare(b));
-  return head + pgHtml(order.filter((k) => groups.has(k)).map((k) => { const key = 'pg:' + S.pgroup + ':' + k; return { key, folded: folded(key), closed: isFolded(key), name: k, rows: groups.get(k)!.map(row) }; }));
-}
 
 
 export function prFiltered() {

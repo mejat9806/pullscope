@@ -2,29 +2,9 @@ import type { ComponentChildren } from 'preact';
 import { html, Raw } from './html';
 import { I, SP } from './ui';
 
-export interface RcRow { ref: string; on: boolean; st: string; icon: string; title: string; sub: string }
-export interface SideHeadProps { repo: string; state: string; filter: string; sort: string; group: string; sorts: [string, string][]; groups: [string, string][] }
 
-function Sel({ id, opts, v }: { id: string; opts: [string, string][]; v: string }) {
-  return <select class="input sb-sel" id={id}>{opts.map(([k, t]) => <option value={k} selected={k === v}>{t}</option>)}</select>;
-}
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
-export function SideHead(p: SideHeadProps) {
-  return <><div class="sb-repo"><button class="fold-btn" data-side="repos" title="All repositories">{I('chevron-left')}</button><b title={p.repo}>{p.repo}</b></div>{'\n  '}
-    <div class="seg sb-seg">{['open', 'closed', 'all'].map((s) => <button data-sps={s} class={p.state === s ? 'on' : ''}>{cap(s)}</button>)}</div>{'\n  '}
-    <input class="input sb-filter" id="prfilter" placeholder="Filter by title, #, author, label…" value={p.filter} />{'\n  '}
-    <div class="sb-ctl"><label>Sort<Sel id="prsort" opts={p.sorts} v={p.sort} /></label><label>Group<Sel id="prgroup" opts={p.groups} v={p.group} /></label></div></>;
-}
-export const sideHeadHtml = (p: SideHeadProps) => html(<SideHead {...p} />);
-
-export function RcItem({ r }: { r: RcRow }) {
-  return <a class={`rc ${r.on ? 'on' : ''}`} data-open={r.ref}><span class={`rc-i ${r.st}`}>{I(r.icon)}</span><span class="rc-t"><b>{r.title}</b><i>{r.sub}</i></span></a>;
-}
-export const rcListHtml = (rows: RcRow[]) => html(<>{rows.map((r) => <RcItem r={r} />)}</>);
-export const sideEmptyHtml = (t: string) => html(<div class="sb-empty">{t}</div>);
-export const sideCountHtml = (n: number, rows: RcRow[]) => html(<><div class="sb-count">{n} pull request{n === 1 ? '' : 's'}</div>{rows.map((r) => <RcItem r={r} />)}</>);
-export const pgHtml = (groups: { key: string; folded: string; closed: boolean; name: string; rows: RcRow[] }[]) => html(<>{groups.map((g) => <div class={`pg${g.folded}`}><div class="pg-h" data-fold={g.key}>{I(g.closed ? 'chevron-right' : 'chevron-down')}<span>{g.name}</span><i>{g.rows.length}</i></div><div class="pg-b">{g.rows.map((r) => <RcItem r={r} />)}</div></div>)}</>);
 
 export interface FilterBarProps { filter: string; authors: string[]; labels: string[]; author: string; label: string; status: string; statuses: [string, string][]; sort: string; sorts: [string, string][]; n: number; total: number; active: boolean }
 function Opts({ arr, v, all }: { arr: string[]; v: string; all: string }) {
