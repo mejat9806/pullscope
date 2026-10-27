@@ -18,4 +18,3 @@ export const Avatar = ({ u, s = 40 }: { u?: Person | null; s?: number }) => (
 export const WhenText = ({ t, lead }: { t: string; lead?: string }) => { const w = whenParts(t, lead); return <span title={w.title}>{w.text}</span>; };
 
 // Pre-built HTML (markdown bodies, diff tables) that a tab still builds as a string. It lives in a layout-neutral wrapper.
-export const Island = ({ html }: { html: string }) => <div class="island" style="display:contents" dangerouslySetInnerHTML={{ __html: html }} />;

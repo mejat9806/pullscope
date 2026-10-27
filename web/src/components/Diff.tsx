@@ -1,4 +1,4 @@
-import { html, Raw } from './html';
+import { html } from './html';
 import { DiffHunkTable, FoldBtn, ReactionsBar } from './Comments';
 import type { ConvHandlers, HunkRow, ReactionsProps } from './Comments';
 import { DraftBox, ErrLine } from './Actions';
@@ -19,11 +19,11 @@ export function Tc(p: TcProps & { on?: ConvHandlers }) {
 }
 export const tcHtml = (p: TcProps) => html(<Tc {...p} />);
 
-export interface ThreadRowProps { cols: number; folded: string; foldBtn: string; side: string; line: number; outdated: boolean; resolved: boolean; cards: string[]; reply: string; act: { tid: string; res: boolean } | null }
-export function ThreadRow(p: ThreadRowProps) {
-  return <tr class="lc-row th-row"><td colspan={p.cols}><div class={`thread inl${p.folded}`}><div class="thread-head">{Raw(p.foldBtn)}<span class="th-t">Comment on line <b>{p.side}{p.line}</b></span>{p.outdated ? <span class="res out">Outdated</span> : ''}{p.resolved ? <span class="res">Resolved</span> : ''}</div>{p.cards.map((c) => Raw(c))}{Raw(p.reply)}{p.act ? <div class="th-foot"><button class="thread-act" data-thread={p.act.tid} data-res={p.act.res ? 'unresolve' : 'resolve'}>{p.act.res ? 'Unresolve conversation' : 'Resolve conversation'}</button></div> : ''}</div></td></tr>;
+export interface ThreadRowProps { cols: number; k: string; def: boolean; folded: boolean; side: string; line: number; outdated: boolean; resolved: boolean; cards: TcProps[]; reply: ReplyProps | null; act: { tid: string; res: boolean } | null }
+export function ThreadRow(p: ThreadRowProps & { on?: ConvHandlers }) {
+  const { on } = p;
+  return <tr class="lc-row th-row"><td colspan={p.cols}><div class={`thread inl${p.folded ? ' folded' : ''}`}><div class="thread-head"><FoldBtn k={p.k} title="Hide this thread" def={p.def} folded={p.folded} onFold={on?.fold} /><span class="th-t">Comment on line <b>{p.side}{p.line}</b></span>{p.outdated ? <span class="res out">Outdated</span> : ''}{p.resolved ? <span class="res">Resolved</span> : ''}</div>{p.cards.map((c) => <Tc {...c} on={on} />)}{p.reply ? <ReplyBox {...p.reply} on={on} /> : ''}{p.act ? <div class="th-foot"><button class="thread-act" data-thread={p.act.tid} data-res={p.act.res ? 'unresolve' : 'resolve'} onClick={on && ((e) => on.thread(e, p.act!.tid, p.act!.res ? 'unresolve' : 'resolve'))}>{p.act.res ? 'Unresolve conversation' : 'Resolve conversation'}</button></div> : ''}</div></td></tr>;
 }
-export const threadRowHtml = (p: ThreadRowProps) => html(<ThreadRow {...p} />);
 
 export interface ReplyProps { rid: number | string; ph: string; err: string }
 export function ReplyBox({ rid, ph, err, on }: ReplyProps & { on?: ConvHandlers }) {
@@ -31,8 +31,9 @@ export function ReplyBox({ rid, ph, err, on }: ReplyProps & { on?: ConvHandlers 
 }
 export const replyBoxHtml = (p: ReplyProps) => html(<ReplyBox {...p} />);
 
-export const lcCardsHtml = (cards: { id: number | string; body: string }[]) => html(<>{cards.map((c) => <div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">{Raw(c.body)}</div><button class="lc-x" data-lcdel={c.id} title="Delete draft comment">{I('x')}</button></div>)}</>);
-export const lcEditHtml = (draftBox: string, code: string | null) => html(<div class="lc-edit">{Raw(draftBox)}<div class="lc-btns">{code !== null ? <button class="btn small" id="lcsuggest" data-code={code} title="Insert a suggested change for this line">± Suggest change</button> : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>);
+export interface LcHandlers { del: (id: string) => void; cancel: () => void; suggest: (e: Event) => void; add: () => void }
+export const LcCards = ({ cards, on }: { cards: { id: number | string; body: string }[]; on?: LcHandlers }) => <>{cards.map((c) => <div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body" dangerouslySetInnerHTML={{ __html: c.body }} /><button class="lc-x" data-lcdel={c.id} title="Delete draft comment" onClick={on && (() => on.del(String(c.id)))}>{I('x')}</button></div>)}</>;
+export const LcEdit = ({ code, on }: { code: string | null; on?: LcHandlers }) => <div class="lc-edit"><DraftBox k="lc" ph="Leave a comment on this line" rows={3} /><div class="lc-btns">{code !== null ? <button class="btn small" id="lcsuggest" data-code={code} title="Insert a suggested change for this line" onClick={on?.suggest}>± Suggest change</button> : ''}<span class="sp"></span><button class="btn small" id="lccancel" onClick={on?.cancel}>Cancel</button><button class="btn small primary" id="lcadd" onClick={on?.add}>Add to review</button></div></div>;
 
 export interface RvThread { folded: boolean; k: string; def: boolean; path: string; resolved: boolean; tid: string | null; hunk: HunkRow[]; cards: TcProps[]; reply: ReplyProps }
 export interface ReviewBlockProps { folded: boolean; k: string; kind: string; ic: string; user: Person | null | undefined; verb: string; url: string; at: string; sum: { ok: boolean; text: string; allRes: boolean } | null; bodyHtml: string; threads: RvThread[]; allRes: boolean }

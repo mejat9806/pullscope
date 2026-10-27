@@ -1,7 +1,9 @@
 import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
-import { html, Raw } from './html';
+import { html } from './html';
 import { ErrLine } from './Actions';
+import { FoldBtn } from './Comments';
+import type { FoldFn } from './Comments';
 import { Av, I, SP } from './ui';
 
 export function MergedBox({ head }: { head: string }) {
@@ -85,63 +87,65 @@ function SideFold({ k, folded, onFold }: { k: string; folded: boolean; onFold: (
   return <button class="fold-btn" data-fold={k} data-def="0" title="Hide section" onClick={(e) => { e.stopPropagation(); onFold(k, false); }}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
 }
 
-export interface CpRow { i: number; on: boolean; title: string; by: string; when: string; sha: string }
+export interface CpRow { i: number; on: boolean; title: string; by: string; when: string; sha: string; hidden: boolean }
 export interface CommitsDialogProps {
   rows: CpRow[]; count: number; allOn: boolean;
   since: { on: boolean; n: number } | null;
-  filter: string; q: string; selLabel: string; hasPick: boolean;
+  filter: string; selLabel: string; hasPick: boolean;
 }
-export function CommitsDialog(p: CommitsDialogProps) {
-  return <div class="dlg-bg" id="dlgbg"><div class="dlg cp-dlg"><div class="cp-h"><h2>Select commits to view</h2><button class="icon-btn" id="cpx" title="Close">{I('x')}</button></div>
-    <button class={`cp-opt${p.allOn ? ' on' : ''}`} id="cpall"><b>All commits</b><i>{p.count} commit{plural(p.count)}</i></button>
-    {p.since ? <button class={`cp-opt${p.since.on ? ' on' : ''}`} id="cpsince" disabled={!p.since.n}><b>Changes since your last review</b><i>{p.since.n ? `${p.since.n} commit${plural(p.since.n)}` : 'No new commits'}</i></button> : ''}
+export interface CpHandlers { close: () => void; all: () => void; since: () => void; save: () => void; filter: (e: Event) => void; pick: (e: Event, i: number) => void }
+export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
+  const { on } = p;
+  return <div class="dlg-bg" id="dlgbg" onMouseDown={on && ((e) => { if ((e.target as HTMLElement).id === 'dlgbg') on.close(); })}><div class="dlg cp-dlg"><div class="cp-h"><h2>Select commits to view</h2><button class="icon-btn" id="cpx" title="Close" onClick={on?.close}>{I('x')}</button></div>
+    <button class={`cp-opt${p.allOn ? ' on' : ''}`} id="cpall" onClick={on?.all}><b>All commits</b><i>{p.count} commit{plural(p.count)}</i></button>
+    {p.since ? <button class={`cp-opt${p.since.on ? ' on' : ''}`} id="cpsince" disabled={!p.since.n} onClick={on?.since}><b>Changes since your last review</b><i>{p.since.n ? `${p.since.n} commit${plural(p.since.n)}` : 'No new commits'}</i></button> : ''}
     <div class="cp-sub">Select a commit, or click a second one to view the range between them</div>
-    <input class="input cp-q" id="cpq" placeholder="Filter commits…" value={p.filter} />
-    <div class="cp-list" id="cplist" data-q={p.q}>{p.rows.map((r) => <label class={`cp-row${r.on ? ' on' : ''}`} data-cp={r.i}><input type="checkbox" checked={r.on} tabindex={-1} /><span class="cp-t"><b>{r.title}</b><i>{r.by} committed {Raw(r.when)}</i></span><code>{r.sha}</code></label>).reverse()}</div>
-    <div class="btns"><span class="cp-sel">{p.selLabel}</span><span class="sp"></span><button class="btn" id="cpcancel">Cancel</button><button class="btn primary" id="cpsave" disabled={!p.hasPick}>Save</button></div></div></div>;
+    <input class="input cp-q" id="cpq" placeholder="Filter commits…" value={p.filter} onInput={on?.filter} />
+    <div class="cp-list" id="cplist" data-q={p.filter.toLowerCase()}>{p.rows.map((r) => <label class={`cp-row${r.on ? ' on' : ''}`} data-cp={r.i} hidden={r.hidden} onClick={on && ((e) => on.pick(e, r.i))}><input type="checkbox" checked={r.on} tabindex={-1} /><span class="cp-t"><b>{r.title}</b><i>{r.by} committed {r.when}</i></span><code>{r.sha}</code></label>).reverse()}</div>
+    <div class="btns"><span class="cp-sel">{p.selLabel}</span><span class="sp"></span><button class="btn" id="cpcancel" onClick={on?.close}>Cancel</button><button class="btn primary" id="cpsave" disabled={!p.hasPick} onClick={on?.save}>Save</button></div></div></div>;
 }
-export const commitsDialogHtml = (p: CommitsDialogProps) => html(<CommitsDialog {...p} />);
 
+export interface FilesHandlers { commits: () => void; all: () => void; step: (n: number) => void; mode: (m: string) => void; sort: (e: Event) => void; finish: () => void; foldAll: (open: boolean, names: string[]) => void; fold: (e: Event, k: string, def: boolean) => void }
 export interface FcBarProps { label: string; count: number | null; code: string | null; nav: { prevOff: boolean; nextOff: boolean } | null; title: string | null; hasRange: boolean }
-export function FcBar(p: FcBarProps) {
-  return <div class="fc-bar"><button class="btn small" id="fcbtn" title="Choose which commits to view">{I('git-commit')}{SP}{p.label}{p.count !== null ? <>{SP}<span class="counter">{p.count}</span></> : ''}{p.code ? <>{SP}<code>{p.code}</code></> : ''}{SP}▾</button>{p.nav ? <div class="seg-ctl"><button data-fstep="-1" disabled={p.nav.prevOff}>‹ Prev</button><button data-fstep="1" disabled={p.nav.nextOff}>Next ›</button></div> : ''}{p.hasRange ? <><span class="fc-t">{p.title}</span><button class="link-btn" id="fcall">Show all commits</button></> : ''}</div>;
+export function FcBar(p: FcBarProps & { on?: FilesHandlers }) {
+  const { on } = p;
+  return <div class="fc-bar"><button class="btn small" id="fcbtn" title="Choose which commits to view" onClick={on?.commits}>{I('git-commit')}{SP}{p.label}{p.count !== null ? <>{SP}<span class="counter">{p.count}</span></> : ''}{p.code ? <>{SP}<code>{p.code}</code></> : ''}{SP}▾</button>{p.nav ? <div class="seg-ctl"><button data-fstep="-1" disabled={p.nav.prevOff} onClick={on && (() => on.step(-1))}>‹ Prev</button><button data-fstep="1" disabled={p.nav.nextOff} onClick={on && (() => on.step(1))}>Next ›</button></div> : ''}{p.hasRange ? <><span class="fc-t">{p.title}</span><button class="link-btn" id="fcall" onClick={on?.all}>Show all commits</button></> : ''}</div>;
 }
-export const fcBarHtml = (p: FcBarProps) => html(<FcBar {...p} />);
 
-export interface FilesBarProps { mode: string; sort: string; pending: number; allFolded: boolean; names: string }
+export interface FilesBarProps { mode: string; sort: string; pending: number; allFolded: boolean; names: string[] }
 const SORTS: [string, string][] = [['path', 'GitHub order'], ['pathz', 'Path Z–A'], ['most', 'Most changed'], ['least', 'Least changed'], ['comments', 'Most comments'], ['status', 'By status']];
-export function FilesBar(p: FilesBarProps) {
-  return <div class="files-bar"><div class="seg-ctl"><button class={p.mode === 'unified' ? 'on' : ''} data-dmode="unified">Unified</button><button class={p.mode === 'split' ? 'on' : ''} data-dmode="split">Split</button></div><select class="input fsort" id="fsort" title="Sort files">{SORTS.map(([v, t]) => <option value={v} selected={p.sort === v}>{t}</option>)}</select>{p.pending ? <button class="btn small primary" id="finishrev">Finish review · {p.pending} comment{plural(p.pending)}</button> : ''}<button class="link-btn" data-foldall={p.allFolded ? 'open' : 'close'} data-files={p.names}>{p.allFolded ? 'Expand all files' : 'Collapse all files'}</button></div>;
+export function FilesBar(p: FilesBarProps & { on?: FilesHandlers }) {
+  const { on } = p;
+  return <div class="files-bar"><div class="seg-ctl"><button class={p.mode === 'unified' ? 'on' : ''} data-dmode="unified" onClick={on && (() => on.mode('unified'))}>Unified</button><button class={p.mode === 'split' ? 'on' : ''} data-dmode="split" onClick={on && (() => on.mode('split'))}>Split</button></div><select class="input fsort" id="fsort" title="Sort files" onChange={on?.sort}>{SORTS.map(([v, t]) => <option value={v} selected={p.sort === v}>{t}</option>)}</select>{p.pending ? <button class="btn small primary" id="finishrev" onClick={on?.finish}>Finish review · {p.pending} comment{plural(p.pending)}</button> : ''}<button class="link-btn" data-foldall={p.allFolded ? 'open' : 'close'} data-files={p.names.join('\n')} onClick={on && (() => on.foldAll(p.allFolded, p.names))}>{p.allFolded ? 'Expand all files' : 'Collapse all files'}</button></div>;
 }
-export const filesBarHtml = (p: FilesBarProps) => html(<FilesBar {...p} />);
 
-export interface FileHeadProps { name: string; folded: string; closed: boolean; add: number; del: number; sq: string[]; body: string }
-export function FileBox(p: FileHeadProps) {
-  return <div class={`file${p.folded}`}><div class="file-head" data-fold={`f:${p.name}`}><span class="tgl">{I(p.closed ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+{p.add}</span>{SP}<span class="d">−{p.del}</span></span><span class="sq">{p.sq.map((c) => <i class={c}></i>)}</span><span class="path">{p.name}</span></div>{Raw(p.body)}</div>;
+export interface FileHeadProps { name: string; folded: boolean; closed: boolean; add: number; del: number; sq: string[]; children?: ComponentChildren }
+export function FileBox(p: FileHeadProps & { on?: FilesHandlers }) {
+  const { on } = p;
+  return <div class={`file${p.folded ? ' folded' : ''}`}><div class="file-head" data-fold={`f:${p.name}`} onClick={on && ((e) => on.fold(e, `f:${p.name}`, false))}><span class="tgl">{I(p.closed ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+{p.add}</span>{SP}<span class="d">−{p.del}</span></span><span class="sq">{p.sq.map((c) => <i class={c}></i>)}</span><span class="path">{p.name}</span></div>{p.children}</div>;
 }
-export const fileBoxHtml = (p: FileHeadProps) => html(<FileBox {...p} />);
 
-export function CommitsList({ rows }: { rows: string[] }) {
-  return <div style="border:1px solid var(--borderColor-default);border-radius:6px">{rows.length ? rows.map((r) => <div style="padding:16px;border-bottom:1px solid var(--borderColor-muted)">{Raw(r)}</div>) : <div class="diff-empty">No commits listed.</div>}</div>;
+export function CommitsList({ rows }: { rows: ComponentChildren[] }) {
+  return <div style="border:1px solid var(--borderColor-default);border-radius:6px">{rows.length ? rows.map((r) => <div style="padding:16px;border-bottom:1px solid var(--borderColor-muted)">{r}</div>) : <div class="diff-empty">No commits listed.</div>}</div>;
 }
-export const commitsListHtml = (rows: string[]) => html(<CommitsList rows={rows} />);
 
-export interface CmRow { sha: string; on: boolean; avatar: string; initial: string; title: string; sub: string; n: number }
-function CmItem({ c }: { c: CmRow }) {
-  return <div class={`cm ${c.on ? 'on' : ''}`} data-sha={c.sha}><span class="cm-av">{c.avatar ? Raw(c.avatar) : <i>{c.initial}</i>}</span><span class="cm-t"><b>{c.title}</b><i>{c.sub}</i></span>{c.n ? <span class="cm-n">{I('comment')}{c.n}</span> : ''}<code>{c.sha.slice(0, 7)}</code></div>;
+export interface CmRow { sha: string; on: boolean; author: Person | null | undefined; initial: string; title: string; sub: string; n: number }
+export interface SplitHandlers { hide: (k: string, v: boolean) => void; flip: () => void; pick: (sha: string) => void; gutter: (e: MouseEvent) => void; fold: FoldFn }
+function CmItem({ c, on }: { c: CmRow; on?: SplitHandlers }) {
+  return <div class={`cm ${c.on ? 'on' : ''}`} data-sha={c.sha} onClick={on && (() => on.pick(c.sha))}><span class="cm-av">{c.author ? Av(c.author, 24) : <i>{c.initial}</i>}</span><span class="cm-t"><b>{c.title}</b><i>{c.sub}</i></span>{c.n ? <span class="cm-n">{I('comment')}{c.n}</span> : ''}<code>{c.sha.slice(0, 7)}</code></div>;
 }
 export interface SplitProps {
   hl: boolean; hr: boolean; flip: boolean; lw: number;
   allOn: boolean; allSub: string; rows: CmRow[]; count: number; subTitle: string;
-  foldList: string; foldDiff: string; foldBtnList: string; foldBtnDiff: string;
-  diff: string; right: string;
+  foldList: boolean; foldDiff: boolean;
+  diff: ComponentChildren; right: ComponentChildren;
 }
-function Rail({ k, label, ic }: { k: string; label: string; ic: string }) {
-  return <button class="pane-rail" data-show={k} title={`Show ${label}`}>{I(ic)}<span>{label}</span></button>;
+function Rail({ k, label, ic, on }: { k: string; label: string; ic: string; on?: SplitHandlers }) {
+  return <button class="pane-rail" data-show={k} title={`Show ${label}`} onClick={on && (() => on.hide(k, false))}>{I(ic)}<span>{label}</span></button>;
 }
-export function SplitView(p: SplitProps) {
-  const left = p.hl ? <Rail k="l" label="Commits" ic="git-commit" /> : <section class="pane pane-l"><div class={`fold-sec${p.foldList}`}><div class="pane-h">{I('git-commit')}<span>Commits</span><span class="counter">{p.count}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)">⇄</button>{Raw(p.foldBtnList)}<button class="fold-btn" data-hide="l" title="Hide this panel">{I('x')}</button></div><div class="cm-list"><div class={`cm all ${p.allOn ? 'on' : ''}`} data-sha=""><span class="cm-av"><i>{I('diff')}</i></span><span class="cm-t"><b>All changes</b><i>{p.allSub}</i></span></div>{p.rows.map((c) => <CmItem c={c} />)}</div></div><div class={`fold-sec${p.foldDiff}`}><div class="pane-h sub">{I('file-diff')}<span>{p.subTitle}</span><span class="sp"></span>{Raw(p.foldBtnDiff)}</div><div class="pane-body">{Raw(p.diff)}</div></div></section>;
-  const right = p.hr ? <Rail k="r" label="Conversation" ic="comment-discussion" /> : <section class="pane pane-r"><div class="pane-h">{I('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)">⇄</button><button class="fold-btn" data-hide="r" title="Hide this panel">{I('x')}</button></div><div class="pane-body">{Raw(p.right)}</div></section>;
-  return <div class={`split ${p.hl ? 'hl' : ''} ${p.hr ? 'hr' : ''} ${p.flip ? 'flip' : ''}`} style={`--lw:${p.lw}%`}>{left}{p.hl || p.hr ? '' : <div class="gutter" id="gutter" title="Drag to resize"></div>}{right}</div>;
+export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
+  const { on } = p;
+  const left = p.hl ? <Rail k="l" label="Commits" ic="git-commit" on={on} /> : <section class="pane pane-l"><div class={`fold-sec${p.foldList ? ' folded' : ''}`}><div class="pane-h">{I('git-commit')}<span>Commits</span><span class="counter">{p.count}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><FoldBtn k="cm-list" title="Collapse commit list" def={false} folded={p.foldList} onFold={on?.fold} /><button class="fold-btn" data-hide="l" title="Hide this panel" onClick={on && (() => on.hide('l', true))}>{I('x')}</button></div><div class="cm-list"><div class={`cm all ${p.allOn ? 'on' : ''}`} data-sha="" onClick={on && (() => on.pick(''))}><span class="cm-av"><i>{I('diff')}</i></span><span class="cm-t"><b>All changes</b><i>{p.allSub}</i></span></div>{p.rows.map((c) => <CmItem c={c} on={on} />)}</div></div><div class={`fold-sec${p.foldDiff ? ' folded' : ''}`}><div class="pane-h sub">{I('file-diff')}<span>{p.subTitle}</span><span class="sp"></span><FoldBtn k="cm-diff" title="Collapse changes" def={false} folded={p.foldDiff} onFold={on?.fold} /></div><div class="pane-body">{p.diff}</div></div></section>;
+  const right = p.hr ? <Rail k="r" label="Conversation" ic="comment-discussion" on={on} /> : <section class="pane pane-r"><div class="pane-h">{I('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><button class="fold-btn" data-hide="r" title="Hide this panel" onClick={on && (() => on.hide('r', true))}>{I('x')}</button></div><div class="pane-body">{p.right}</div></section>;
+  return <div class={`split ${p.hl ? 'hl' : ''} ${p.hr ? 'hr' : ''} ${p.flip ? 'flip' : ''}`} style={`--lw:${p.lw}%`}>{left}{p.hl || p.hr ? '' : <div class="gutter" id="gutter" title="Drag to resize" onMouseDown={on?.gutter}></div>}{right}</div>;
 }
-export const splitViewHtml = (p: SplitProps) => html(<SplitView {...p} />);

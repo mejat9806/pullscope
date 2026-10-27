@@ -1,9 +1,11 @@
-import { bindWrite, drafts, rerender, saveDrafts } from './actions';
+import { bindWrite, closeDlg, drafts, rerender, saveDrafts } from './actions';
+import { closePop, openPop } from './dialogs';
+import { tokenDialog } from './token';
 import { bindSticky, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, esc, icon, qa as qaAll, scoped, tauri } from './core';
+import { $, KEY_RECENT, S, icon, qa as qaAll, scoped } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
-import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
+import { commitList, flipSides, openCommits, selectCommit, setFr } from './mergebox';
 import { loadPrs, loadRepos, openPr, openRepo, reload } from './nav';
 import { openNewPr, render, saveNotes } from './pages';
 import { repaintSide } from './side';
@@ -52,12 +54,9 @@ export function openClick(el: HTMLElement, e: MouseEvent) { if ((e.target as HTM
 export function openAux(el: HTMLElement, e: MouseEvent) { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open!, true); } }
 
 export function openCtx(el: HTMLElement, e: MouseEvent) {
-    e.preventDefault(); e.stopPropagation(); $('.react-pop')?.remove();
-    const ref = el.dataset.open, pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
-    pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
-    pop.style.left = Math.min(e.clientX, innerWidth - 180) + 'px'; pop.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
-    pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref!, true); else if (h === 'here') openFromList(ref!, false); else { const m = ref!.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m! ? `https://github.com/${m[1]}/pull/${m[2]}` : ref!).catch(() => {}); } };
-    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+  e.preventDefault(); e.stopPropagation();
+  const ref = el.dataset.open!;
+  openPop({ k: 'ctx', x: Math.min(e.clientX, innerWidth - 180), y: Math.min(e.clientY, innerHeight - 120), pick: (h) => { closePop(); if (h === 'new') openFromList(ref, true); else if (h === 'here') openFromList(ref, false); else { const m = ref.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m ? `https://github.com/${m[1]}/pull/${m[2]}` : ref).catch(() => {}); } } });
 }
 
 export function rmRecent(e: MouseEvent, ref: string) { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== ref); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }
@@ -83,20 +82,6 @@ export function bind(scope?: HTMLElement) {
   $('#fcbtn')?.addEventListener('click', openCommits);
   $('#fcall')?.addEventListener('click', () => setFr(null));
   qa('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle!), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
-  if ($('.cp-dlg')) {
-    const close = () => { S.dialog = ''; S.cpick = null; render(); };
-    $('#cpx')!.onclick = close; $('#cpcancel')!.onclick = close; $('#cpall')!.onclick = () => setFr(null);
-    $('#dlgbg')!.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).id === 'dlgbg') close(); });
-    $('#cpsince') && ($('#cpsince')!.onclick = () => { const sr = sinceReview(S.bundle!); if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle!).length - 1 }); });
-    $('#cpsave')!.onclick = () => { if (S.cpick) setFr({ ...S.cpick }); };
-    const filt = () => { const q = ($<HTMLInputElement>('#cpq')!.value || '').toLowerCase(); S.cfilter = q; qa('.cp-row').forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); };
-    $<HTMLInputElement>('#cpq')!.addEventListener('input', filt); filt();
-    qa('.cp-row').forEach((row) => row.addEventListener('click', (e) => {
-      e.preventDefault(); const i = Number(row.dataset.cp), p = S.cpick;
-      S.cpick = !p || (p.a !== p.b) ? { a: i, b: i } : { a: Math.min(p.a, i), b: Math.max(p.b, i) };
-      const keep = $('#cplist')!.scrollTop; S.dialog = commitsDialog(); render(); const l = $('#cplist')!; if (l) l.scrollTop = keep;
-    }));
-  }
   $<HTMLSelectElement>('#fsort')?.addEventListener('change', (e) => { S.fileSort = (e.target as HTMLInputElement).value; rerender(); });
   qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
@@ -175,44 +160,10 @@ export function bind(scope?: HTMLElement) {
 
 
 document.addEventListener('keydown', (e) => {
-  if (!(e.metaKey || e.ctrlKey)) { if (e.key === 'Escape' && S.dialog) { S.dialog = ''; render(); } return; }
+  if (!(e.metaKey || e.ctrlKey)) { if (e.key === 'Escape' && S.dlg) closeDlg(); return; }
   if (e.key === 'l') { e.preventDefault(); focusAddr(); }
   else if (e.key === 'r') { e.preventDefault(); reload(); }
   else if (e.key === '[') { e.preventDefault(); go(-1); }
   else if (e.key === ']') { e.preventDefault(); go(1); }
   else if (e.key === ',') { e.preventDefault(); tokenDialog(); }
 });
-
-
-export function tokenDialog() {
-  S.oauthHtml = ''; S.oauthLive = false;
-  S.dialog = '__TOKDLG__';
-  render();
-}
-
-// The dialog is rebuilt from state on every render, so the code box and handlers survive background redraws.
-export const tokDlgHtml = () => `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo">Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">${S.oauthHtml || ''}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_…" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
-
-export function bindTokenDialog() {
-  if (!$<HTMLInputElement>('#tokeninput')) return;
-  $('#tokcancel')!.onclick = () => { S.oauthLive = false; S.dialog = ''; render(); };
-  $('#toksave')!.onclick = async () => { const v = $<HTMLInputElement>('#tokeninput')!.value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); S.authChecked = true; if (S.hasToken) { S.gateErr = ''; loadRepos(); } else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
-  $('#oauthgo')!.onclick = async () => {
-    const show = (h: string) => { S.oauthHtml = h; if (S.dialog) { render(); } };
-    $<HTMLButtonElement>('#oauthgo')!.disabled = true; S.oauthLive = true; const me = S.oauthRun = (S.oauthRun || 0) + 1;
-    try {
-      const d = await tauri!.invoke('device_start');
-      show(`<div class="oauth-code"><span>Enter this code on GitHub</span><b>${esc(d.user_code)}</b><small>Waiting for approval…</small></div>`);
-      tauri!.invoke('open_external', { url: d.verification_uri }).catch(() => {});
-      let wait = (d.interval || 5) * 1000; const until = Date.now() + (d.expires_in || 900) * 1000;
-      while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
-        await new Promise((r) => setTimeout(r, wait));
-        if (!S.oauthLive || S.oauthRun !== me) return;
-        const st = await tauri!.invoke('device_poll', { deviceCode: d.device_code });
-        if (st === 'slow_down') wait += 5000;
-        if (st === 'ok') { S.oauthLive = false; S.hasToken = true; S.gateErr = ''; S.dialog = ''; loadRepos(); return; }
-      }
-      throw 'The code expired. Start again.';
-    } catch (e) { S.oauthLive = false; show(`<div class="err" style="margin:8px 0">${esc(String(e))}</div>`); }
-  };
-}

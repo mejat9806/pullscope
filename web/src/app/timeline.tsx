@@ -1,30 +1,23 @@
-import type { ComponentChildren } from 'preact';
-import { Bars, CommitRow, CommitRun, Committed, CrossRef, FoldBar, LabelRow, MergedRow, Simple, attentionHtml, checksHtml, commitRowHtml, referencedHtml } from '../components/Timeline';
-import type { AttItem, BarHandlers, CommitRowProps, CrossRefProps, RangeBarProps, SimpleProps, WhoBarProps } from '../components/Timeline';
+import type { ComponentChildren, VNode } from 'preact';
+import { Bars, Checks, CommitRow, CommitRun, Committed, CrossRef, FoldBar, LabelRow, MergedRow, Referenced, Simple, attentionHtml } from '../components/Timeline';
+import type { AttItem, BarHandlers, CommitRowProps, CrossRefProps, RangeBarProps, ReferencedProps, SimpleProps, WhoBarProps } from '../components/Timeline';
 import { Composer, MergeAct } from '../components/Actions';
 import type { ComposerHandlers, ComposerProps, MergeActHandlers, MergeActProps } from '../components/Actions';
 import { ClosedBox, MergeBox, MergedBox } from '../components/Merge';
 import type { MergeBoxHandlers } from '../components/Merge';
 import { html } from '../components/html';
-import { Island } from '../components/ui';
 import { CommentBox } from '../components/Comments';
 import { ReviewBlock } from '../components/Diff';
-import type { Bundle, Check, CommentLike, Person, TimelineEvent, Verification } from '../types';
+import type { Bundle, Check, CommentLike, Person, TimelineEvent } from '../types';
 import { composerProps, mergeActProps } from './actions';
 import { commentBoxProps } from './comments';
 import type { CommentBoxProps, ConvHandlers } from '../components/Comments';
-import { S, esc } from './core';
+import { S } from './core';
 import { reviewBlockProps } from './diff';
 import type { ReviewBlockProps } from '../components/Diff';
 import { mergeModel } from './mergebox';
 import type { MergeModel } from './mergebox';
 import { render } from './pages';
-
-export function commitRow(msg: string, sha: string, author: Person | null, url: string, verification: Verification | undefined, trailing = '') {
-  const first = String(msg || '').split('\n')[0];
-  return commitRowHtml({ first, sha, author, url, verification, trailing });
-}
-
 
 export function rangeBounds() {
   const H = 3600e3, now = Date.now(), r = S.range;
@@ -35,7 +28,7 @@ export function rangeBounds() {
 
 // Rows hold prebuilt HTML for comment boxes and reviews (still string views); everything else is data for live components.
 export type TlRow =
-  | { t: 'html'; h: string }
+  | { t: 'referenced'; p: ReferencedProps }
   | { t: 'comment'; p: CommentBoxProps }
   | { t: 'review'; p: ReviewBlockProps }
   | { t: 'run'; n: number; first: string; last: string }
@@ -48,7 +41,7 @@ export type TlRow =
 export interface TlModel { who: WhoBarProps | null; range: RangeBarProps; rows: TlRow[]; empty: string; merge: MergeModel | null; act: MergeActProps | null; composer: ComposerProps }
 
 export function timelineModel(b: Bundle): TlModel {
-  const p = b.pull, out: TlRow[] = [], htm = (h: string) => out.push({ t: 'html', h });
+  const p = b.pull, out: TlRow[] = [];
   const evUser = (e: TimelineEvent) => { const u = e.user || e.actor || e.author; return u?.login || (u as Person | undefined)?.name || ''; };
   const people = new Map<string, { u: Person; n: number }>(), bump = (u?: Person | null) => { if (!u?.login) return; const r = people.get(u.login) || { u, n: 0 }; r.n++; people.set(u.login, r); };
   bump(p.user); b.timeline.forEach((e) => { if (e.event === 'commented' || e.event === 'reviewed') bump(e.user); }); b.review_comments.forEach((c) => bump(c.user));
@@ -80,8 +73,7 @@ export function timelineModel(b: Bundle): TlModel {
       case 'referenced': {
         const ci = info[e.commit_id!];
         const ml = ci ? ci.message.split('\n')[0] : '';
-        const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
-        htm(referencedHtml({ actor: e.actor, at: e.created_at!, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
+        out.push({ t: 'referenced', p: { actor: e.actor, at: e.created_at!, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, msg: ml } });
         break;
       }
       case 'merged': out.push({ t: 'merged', actor: e.actor, commit: (e.commit_id || '').slice(0, 7), base: p.base.label ?? '', at: e.created_at! }, { t: 'brk' }); break;
@@ -120,16 +112,16 @@ export const CK: Record<string, [string, string]> = { pass: ['check-circle-fill'
 
 export const reqBadge = (c: Check) => ((S.bundle?.required_checks || []).includes(c.name) ? '<span class="ck-req" title="Required by branch protection">Required</span>' : '');
 
-export function checksView(b: Bundle) {
+export function checksView(b: Bundle): VNode {
   const list = (b.checks || []).map((c) => ({ ...c, st: checkState(c) }));
-  if (!list.length) return '<div class="diff-empty">No checks reported for the latest commit.</div>';
+  if (!list.length) return <div class="diff-empty">No checks reported for the latest commit.</div>;
   const n = (s: string) => list.filter((c) => c.st === s).length;
   const rank: Record<string, number> = { fail: 0, pending: 1, pass: 2, skip: 3 };
   list.sort((x, y) => rank[x.st] - rank[y.st] || String(x.name).localeCompare(String(y.name)));
   const head = n('fail') ? ['fail', `${n('fail')} failing`] : n('pending') ? ['pending', `${n('pending')} in progress`] : ['pass', 'All checks passed'];
   const dur = (c: Check) => { const s = Date.parse(c.started_at!), e = Date.parse(c.completed_at!); if (!s || !e || e < s) return ''; const t = Math.round((e - s) / 1000); return t >= 60 ? `${Math.floor(t / 60)}m ${t % 60}s` : `${t}s`; };
   const rows = list.map((c) => ({ name: c.name, st: c.st, url: c.url, desc: c.description || (c.app ? c.app : ''), req: (S.bundle?.required_checks || []).includes(c.name), status: c.st === 'fail' && c.conclusion && c.conclusion !== 'failure' ? c.conclusion.replace(/_/g, ' ') : CK[c.st][1], dur: dur(c), icon: CK[c.st][0] }));
-  return checksHtml({ head: [head[0], head[1]] as [string, string], headIcon: CK[head[0]][0], summary: [n('fail') && `${n('fail')} failing`, n('pending') && `${n('pending')} in progress`, n('pass') && `${n('pass')} passed`, n('skip') && `${n('skip')} skipped`].filter(Boolean).join(' · '), rows });
+  return <Checks head={[head[0], head[1]]} headIcon={CK[head[0]][0]} summary={[n('fail') && `${n('fail')} failing`, n('pending') && `${n('pending')} in progress`, n('pass') && `${n('pass')} passed`, n('skip') && `${n('skip')} skipped`].filter(Boolean).join(' · ')} rows={rows} />;
 }
 
 
@@ -179,7 +171,7 @@ export interface TlHandlers { conv: ConvHandlers; bars: BarHandlers; foldAll: ()
 
 function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
   switch (r.t) {
-    case 'html': return <Island html={r.h} />;
+    case 'referenced': return <Referenced {...r.p} />;
     case 'comment': return <CommentBox {...r.p} on={on?.conv} />;
     case 'review': return <ReviewBlock {...r.p} on={on?.conv} />;
     case 'run': return <CommitRun n={r.n} first={r.first} last={r.last} onTab={on?.tab} />;

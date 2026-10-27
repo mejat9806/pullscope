@@ -72,12 +72,12 @@ export interface AppState {
   sbw: number; pf: string; psort: string; pgroup: string; who: string[]; unres: boolean; range: string; rFrom: string; rTo: string; sort: 'asc' | 'desc';
   unIdx: number; nav: boolean; busy: string; actErr: ActErr | null;
   // set after startup
-  np?: NewPr | null; keepScroll?: boolean; dialog?: string | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string; eds?: EditorHandle[];
+  np?: NewPr | null; keepScroll?: boolean; dlg?: Dlg | null; pop?: Pop | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string; eds?: EditorHandle[];
   refreshing?: boolean; diffMode?: string; inbox?: InboxState | null; alive: Map<string, Alive>; oauthLive?: boolean; lcOpen?: string | null; openSeq?: number; me?: string;
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flashId?: string; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
   oauthRun?: number; lastBtn?: HTMLElement | null; cfilter?: string; busySel?: string | null; authChecked?: boolean; applied?: Set<string>; restoring?: boolean | string; recentFilter?: string;
-  oauthHtml?: string; mine?: Record<string, Promise<Set<string>>>; mainStub?: boolean; lastHtml?: string; kbId?: string; ios?: IntersectionObserver[]; homeTab?: string; flashUntil?: number; cOpen?: boolean;
+  oauth?: { code?: string; err?: string }; mine?: Record<string, Promise<Set<string>>>; mainStub?: boolean; lastHtml?: string; kbId?: string; ios?: IntersectionObserver[]; homeTab?: string; flashUntil?: number; cOpen?: boolean;
   watchAt?: number; watch?: string[]; recentState?: string; nf?: string; hmVis?: string; hmSort?: string; hmGroup?: string; fileSort?: string; autoFoldFor?: string | number;
 }
 
@@ -122,3 +122,18 @@ export type SnapSource = Pick<Pull, 'commits' | 'comments' | 'review_comments' |
 export type Cmp = (a: PrListItem, b: PrListItem) => number
 export type CheckRow = Check & { st: string }
 export interface Reviewer { u: User; st: string; prev?: string }
+
+// Open dialog / popup: plain state that a live tree renders. Handlers close over what the action needs.
+export type Dlg =
+  | { k: 'commits' }
+  | { k: 'token' }
+  | { k: 'review'; ev: string; ok: () => void | Promise<void> }
+  | { k: 'editpr'; title: string; ok: () => void | Promise<void> }
+  | { k: 'confirm'; title: string; text: string; label: string; danger: boolean; ok: () => void | Promise<void> }
+  | { k: 'editc'; ok: () => void | Promise<void> }
+  | { k: 'delc'; ok: () => void | Promise<void> }
+  | { k: 'hidec'; reasons: [string, string][]; ok: () => void | Promise<void> };
+export type Pop =
+  | { k: 'cm'; x: number; y: number; hr: boolean; edit: boolean; hide: boolean; del: boolean; pick: (h: string) => void }
+  | { k: 'react'; x: number; y: number; pick: (c: string) => void }
+  | { k: 'ctx'; x: number; y: number; pick: (h: string) => void };

@@ -1,12 +1,15 @@
+import type { VNode } from 'preact';
 import type { Bundle, CommitRow, FileChange, FrRange, Reviewer, User } from '../types';
-import { closedBoxHtml, commitsDialogHtml, commitsListHtml, fcBarHtml, fileBoxHtml, filesBarHtml, mergeBoxHtml, mergedBoxHtml, splitViewHtml } from '../components/Merge';
-import type { CkGroup, MergeBoxProps, PrSideProps } from '../components/Merge';
-import { errMsg } from './actions';
-import { foldBtn, folded, isFolded } from './comments';
-import { S, avatar, esc, tauri, when, $ } from './core';
+import { Attention, CommitRow as CommitRowView } from '../components/Timeline';
+import { CommitsList, FcBar, FileBox, FilesBar, SplitView } from '../components/Merge';
+import type { CkGroup, CommitsDialogProps, MergeBoxProps, PrSideProps, SplitHandlers } from '../components/Merge';
+import { errMsg, rerender } from './actions';
+import { isFolded } from './comments';
+import { S, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
+import { attOn, convOn, diffOn, filesOn, tlOn } from './handlers';
 import { render } from './pages';
-import { CK, attention, checkState, commitRow, timeline } from './timeline';
+import { CK, Timeline, attentionProps, checkState, timelineModel } from './timeline';
 
 export type MergeModel = { kind: 'merged'; head: string } | { kind: 'closed'; head: string } | { kind: 'open'; p: MergeBoxProps };
 export function mergeModel(b: Bundle): MergeModel {
@@ -31,7 +34,6 @@ export function mergeModel(b: Bundle): MergeModel {
     behind: p.mergeable_state === 'behind', busyUpdate: S.busy === 'update_branch', baseRef: p.base.ref, errUpdate: errMsg('update_branch'), clean,
   } };
 }
-export const mergeBox = (b: Bundle) => { const m = mergeModel(b); return m.kind === 'merged' ? mergedBoxHtml(m.head) : m.kind === 'closed' ? closedBoxHtml(m.head) : mergeBoxHtml(m.p); };
 
 
 export function sidebarProps(b: Bundle): PrSideProps {
@@ -72,7 +74,7 @@ export async function loadFr() {
   render();
 }
 
-export function setFr(r: FrRange | null) { S.fr = r; S.dialog = ''; render(); loadFr(); }
+export function setFr(r: FrRange | null) { S.fr = r; S.dlg = null; render(); loadFr(); }
 
 export function sinceReview(b: Bundle) {
   const cs = commitList(b), mine = b.timeline.filter((e) => e.event === 'reviewed' && e.user?.login === S.me && e.commit_id);
@@ -81,39 +83,34 @@ export function sinceReview(b: Bundle) {
   return at < 0 ? null : { at, n: cs.length - 1 - at };
 }
 
-export function commitsDialog() {
-  const b = S.bundle, cs = commitList(b!), pick = S.cpick || S.fr, sr = sinceReview(b!);
+export function commitsDialogProps(): CommitsDialogProps {
+  const b = S.bundle, cs = commitList(b!), pick = S.cpick || S.fr, sr = sinceReview(b!), q = (S.cfilter || '').toLowerCase();
   const on = (i: number) => !!pick && i >= pick.a && i <= pick.b;
-  return commitsDialogHtml({
-    rows: cs.map((c, i) => ({ i, on: on(i), title: String(c.message).split('\n')[0], by: c.name || c.author?.login || '', when: when(c.date!).replace(/<\/?span[^>]*>/g, ''), sha: c.sha!.slice(0, 7) })),
+  return {
+    rows: cs.map((c, i) => { const title = String(c.message).split('\n')[0], by = c.name || c.author?.login || '', w = when(c.date!).replace(/<\/?span[^>]*>/g, ''), sha = c.sha!.slice(0, 7); return { i, on: on(i), title, by, when: w, sha, hidden: !!q && !(title + by + ' committed ' + w + sha).toLowerCase().includes(q) }; }),
     count: cs.length, allOn: !S.fr,
     since: sr ? { on: !!S.fr && S.fr.a === sr.at + 1 && S.fr.b === cs.length - 1, n: sr.n } : null,
-    filter: S.cfilter || '', q: (S.cfilter || '').toLowerCase(),
+    filter: S.cfilter || '',
     selLabel: pick ? (pick.a === pick.b ? '1 commit selected' : `${pick.b - pick.a + 1} commits selected`) : 'Nothing selected', hasPick: !!pick,
-  });
+  };
 }
 
-export function openCommits() { S.cpick = S.fr ? { ...S.fr } : null; S.cfilter = ''; S.dialog = commitsDialog(); render(); }
+export function openCommits() { S.cpick = S.fr ? { ...S.fr } : null; S.cfilter = ''; S.dlg = { k: 'commits' }; render(); }
 
-export function filesView(b: Bundle) {
+export function filesView(b: Bundle): VNode {
   const cs = commitList(b), r = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = !!r && r.a === r.b;
   const sh = (i: number) => cs[i]!.sha.slice(0, 7);
-  const bar = fcBarHtml({
-    label: !r ? 'All commits' : single ? 'Commit' : `${r.b - r.a + 1} commits`, count: !r ? cs.length : null,
-    code: !r ? null : single ? sh(r.a) : `${sh(r.a)}…${sh(r.b)}`,
-    nav: single ? { prevOff: r!.a <= 0, nextOff: r!.a >= cs.length - 1 } : null,
-    title: r && single ? String(cs[r.a].message).split('\n')[0] : '', hasRange: !!r,
-  });
-  if (!r) return bar + filesList(b.files, true);
+  const bar = <FcBar label={!r ? 'All commits' : single ? 'Commit' : `${r.b - r.a + 1} commits`} count={!r ? cs.length : null} code={!r ? null : single ? sh(r.a) : `${sh(r.a)}…${sh(r.b)}`} nav={single ? { prevOff: r!.a <= 0, nextOff: r!.a >= cs.length - 1 } : null} title={r && single ? String(cs[r.a].message).split('\n')[0] : ''} hasRange={!!r} on={filesOn} />;
+  if (!r) return <>{bar}{filesList(b.files, true)}</>;
   const d = frDiff(b);
-  return bar + (d === undefined || d === 'loading' ? '<div class="diff-empty">Loading…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d));
+  return <>{bar}{d === undefined || d === 'loading' ? <div class="diff-empty">Loading…</div> : typeof d === 'string' ? <div class="diff-empty err">{d}</div> : filesList(d)}</>;
 }
 
 export const b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === 'open';
 
-export function filesList(files: FileChange[], canComment = false) {
-  if (!files.length) return '<div class="diff-empty">No files changed.</div>';
-    const pid = S.bundle?.pull?.id;
+export function filesList(files: FileChange[], canComment = false): VNode {
+  if (!files.length) return <div class="diff-empty">No files changed.</div>;
+  const pid = S.bundle?.pull?.id;
   const hasC = (f: FileChange) => (S.bundle?.review_comments || []).some((c) => c.path === f.filename) || pendList().some((p) => p.path === f.filename);
   // Big PRs open with the heavy files collapsed (like GitHub); a folded file renders no rows at all until it is opened.
   if (S.autoFoldFor !== pid) {
@@ -125,16 +122,19 @@ export function filesList(files: FileChange[], canComment = false) {
   const so: Record<string, ((x: FileChange, y: FileChange) => number) | null> = { path: null, pathz: (x, y) => y.filename.localeCompare(x.filename), most: (x, y) => (y.additions + y.deletions) - (x.additions + x.deletions), least: (x, y) => (x.additions + x.deletions) - (y.additions + y.deletions), comments: (x, y) => cnt(y) - cnt(x), status: (x, y) => String(x.status).localeCompare(String(y.status)) || x.filename.localeCompare(y.filename) };
   const srtFn = so[srt]; if (srtFn) files = [...files].sort(srtFn);
   const all = files.every((f) => S.fold['f:' + f.filename]);
-  return filesBarHtml({ mode: S.diffMode ?? '', sort: srt, pending: pendList().length, allFolded: all, names: files.map((f) => f.filename).join('\n') }) + files.map((f) => {
-    const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
-    const sq = Array.from({ length: 5 }, (_, i) => (i < a ? 'a' : i < a + d ? 'd' : ''));
-    return fileBoxHtml({ name: f.filename, folded: folded('f:' + f.filename), closed: !!S.fold['f:' + f.filename], add: f.additions, del: f.deletions, sq, body: !shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>' });
-  }).join('');
+  return <>
+    <FilesBar mode={S.diffMode ?? ''} sort={srt} pending={pendList().length} allFolded={all} names={files.map((f) => f.filename)} on={filesOn} />
+    {files.map((f) => {
+      const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
+      const sq = Array.from({ length: 5 }, (_, i) => (i < a ? 'a' : i < a + d ? 'd' : ''));
+      return <FileBox name={f.filename} folded={isFolded('f:' + f.filename)} closed={!!S.fold['f:' + f.filename]} add={f.additions} del={f.deletions} sq={sq} on={filesOn}>{!shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open(), diffOn) : <div class="diff-empty">Binary file or diff too large to display.</div>}</FileBox>;
+    })}
+  </>;
 }
 
-export function commitsView(b: Bundle) {
+export function commitsView(b: Bundle): VNode {
   const c = b.timeline.filter((e) => e.event === 'committed');
-  return commitsListHtml(c.map((e) => commitRow(e.message!, e.sha!, e.author?.avatar_url ? e.author : null, e.html_url!, e.verification)));
+  return <CommitsList rows={c.map((e) => <CommitRowView first={String(e.message || '').split('\n')[0]} sha={e.sha!} author={e.author?.avatar_url ? e.author : null} url={e.html_url!} verification={e.verification} trailing="" />)} />;
 }
 
 
@@ -146,25 +146,32 @@ export function commitList(b: Bundle): CommitRow[] {
 
 S.flip = localStorage.getItem('flip') === '1';
 
-export function flipSides() { S.flip = !S.flip; localStorage.setItem('flip', S.flip ? '1' : '0'); $('.split')?.classList.toggle('flip', S.flip); }
+export function flipSides() { S.flip = !S.flip; localStorage.setItem('flip', S.flip ? '1' : '0'); rerender(); }
 
-export function splitView(b: Bundle) {
+const hideSide = (k: string, v: boolean) => { S.hide[k] = v; localStorage.setItem('hide', JSON.stringify(S.hide)); rerender(); };
+
+function gutterDrag(e: MouseEvent) {
+  e.preventDefault(); const sp = $('.split')!, r = sp.getBoundingClientRect();
+  const mv = (ev: MouseEvent) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
+  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('lw', String(Math.round(S.lw))); };
+  document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+}
+
+const splitOn: SplitHandlers = { hide: hideSide, flip: flipSides, pick: (sha) => { selectCommit(sha); }, gutter: gutterDrag, fold: (e, k, def) => convOn.fold(e, k, def) };
+
+export function splitView(b: Bundle): VNode {
   const cs = commitList(b), sha = S.sel;
   const cnt = (c: string) => b.review_comments.filter((r) => r.original_commit_id === c || r.commit_id === c).length;
-  let diff;
+  let diff: VNode;
   if (!sha) diff = filesList(b.files, true);
   else {
     const d = S.cdiff[sha];
-    diff = d === undefined || d === 'loading' ? '<div class="diff-empty">Loading commit…</div>' : typeof d === 'string' ? `<div class="diff-empty err">${esc(d)}</div>` : filesList(d);
+    diff = d === undefined || d === 'loading' ? <div class="diff-empty">Loading commit…</div> : typeof d === 'string' ? <div class="diff-empty err">{d}</div> : filesList(d);
   }
-  return splitViewHtml({
-    hl: !!S.hide.l, hr: !!S.hide.r, flip: !!S.flip, lw: S.lw,
-    allOn: !sha, allSub: `${b.pull.changed_files} files · +${b.pull.additions} −${b.pull.deletions}`,
-    rows: cs.map((c) => ({ sha: c.sha, on: sha === c.sha, avatar: c.author ? avatar(c.author, 24) : '', initial: (c.name || '?')[0], title: String(c.message).split('\n')[0], sub: `${c.name || c.author?.login || ''} · ${when(c.date!).replace(/<\/?span[^>]*>/g, '')}`, n: cnt(c.sha) })),
-    count: cs.length, subTitle: sha ? 'Commit ' + sha.slice(0, 7) : 'All changes',
-    foldList: folded('cm-list'), foldDiff: folded('cm-diff'), foldBtnList: foldBtn('cm-list', 'Collapse commit list'), foldBtnDiff: foldBtn('cm-diff', 'Collapse changes'),
-    diff, right: attention(b) + timeline(b),
-  });
+  return <SplitView hl={!!S.hide.l} hr={!!S.hide.r} flip={!!S.flip} lw={S.lw} allOn={!sha} allSub={`${b.pull.changed_files} files · +${b.pull.additions} −${b.pull.deletions}`}
+    rows={cs.map((c) => ({ sha: c.sha, on: sha === c.sha, author: c.author, initial: (c.name || '?')[0], title: String(c.message).split('\n')[0], sub: `${c.name || c.author?.login || ''} · ${when(c.date!).replace(/<\/?span[^>]*>/g, '')}`, n: cnt(c.sha) }))}
+    count={cs.length} subTitle={sha ? 'Commit ' + sha.slice(0, 7) : 'All changes'} foldList={isFolded('cm-list')} foldDiff={isFolded('cm-diff')}
+    diff={diff} right={<><Attention {...attentionProps(b)} on={attOn} /><Timeline m={timelineModel(b)} on={tlOn} /></>} on={splitOn} />;
 }
 
 

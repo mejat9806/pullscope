@@ -1,6 +1,8 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
 import { mountEditors, rerender, saveDrafts, setBusy } from './actions';
-import { bind, bindIslands, bindTokenDialog, syncFoldAll, tokDlgHtml, tokenDialog } from './bind';
+import { bind, bindIslands, syncFoldAll } from './bind';
+import { paintDlg } from './dialogs';
+import { tokenDialog } from './token';
 import { bindSticky, openExternal } from './addressbar';
 import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
@@ -175,14 +177,14 @@ export function render() {
   const { top, rest } = hosts();
   if (needSignIn()) {
     (S.eds || []).forEach((e) => e.destroy()); S.eds = []; S.lastHtml = '';
-    clearTop(top); rest.innerHTML = `${gateHtml()}${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}`;
+    clearTop(top); rest.innerHTML = `${gateHtml()}<div id="dlg" style="display:contents"></div>`; paintDlg();
     $('#gatego')?.addEventListener('click', () => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); });
     $('#gatetok')?.addEventListener('click', tokenDialog);
-    bindTokenDialog(); return;
+    return;
   }
   paintTop(top);
   const side = $('#side'), live = liveView();
-  const html = `<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? '' : page()}</div></div></div>${S.dialog === '__TOKDLG__' ? tokDlgHtml() : S.dialog || ''}${notePanel()}`;
+  const html = `<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? '' : page()}</div></div></div><div id="dlg" style="display:contents"></div>${notePanel()}`;
   const scroll = $('.main')?.scrollTop || 0;
   const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('#page > *')?.className ?? ''}`, before = viewKey();
   const same = () => viewKey() === before;
@@ -192,12 +194,12 @@ export function render() {
   { const mn = $('.main')!; if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...qa('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement!.className + e.className, e.scrollTop]) : [];
   const key = html + (live ? '\0live' : '');
-  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); return; }
+  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); paintDlg(); return; }
   (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
-  rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live);
+  rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live); paintDlg();
   qa('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; });
   if (S.keepScroll || same()) { $('.main')!.scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn!.scrollTop += el.getBoundingClientRect().top - mn!.getBoundingClientRect().top - anchor.off; } qa('.pane-body, .cm-list, .sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; }); }
-  bind(); bindTokenDialog();
+  bind();
   if (S.fadeMain) { S.fadeMain = false; $('.main')?.classList.add('tab-in'); }
   if (S.busy && S.busySel) setBusy($!(S.busySel), true);
   syncUnread();

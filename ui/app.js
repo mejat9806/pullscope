@@ -27,7 +27,6 @@
     const w3 = whenParts(iso, lead);
     return `<span title="${w3.title}">${w3.text}</span>`;
   }
-  var avatar = (u4, s3 = 40) => `<img class="av" src="${esc(u4?.avatar_url || "")}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}" width="${s3}" height="${s3}" alt="@${esc(u4?.login || "ghost")}" style="border-radius:50%;display:block">`;
   var ASSOC = { CONTRIBUTOR: "Contributor", MEMBER: "Member", OWNER: "Owner", COLLABORATOR: "Collaborator", FIRST_TIME_CONTRIBUTOR: "First-time contributor", FIRST_TIMER: "First-timer", MANNEQUIN: "Mannequin" };
   var REACTS = [["+1", "\u{1F44D}"], ["-1", "\u{1F44E}"], ["laugh", "\u{1F604}"], ["hooray", "\u{1F389}"], ["confused", "\u{1F615}"], ["heart", "\u2764\uFE0F"], ["rocket", "\u{1F680}"], ["eyes", "\u{1F440}"]];
   var load = (k3, d3) => {
@@ -599,7 +598,54 @@
     const w3 = whenParts(t2, lead);
     return /* @__PURE__ */ u3("span", { title: w3.title, children: w3.text });
   };
-  var Island = ({ html: html2 }) => /* @__PURE__ */ u3("div", { class: "island", style: "display:contents", dangerouslySetInnerHTML: { __html: html2 } });
+
+  // src/components/Actions.tsx
+  var ErrLine = ({ m: m2 }) => m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : null;
+  var DraftBox = ({ k: k3, ph, rows }) => /* @__PURE__ */ u3("div", { class: "tt", "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
+  function Composer(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
+      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
+        I2("comment"),
+        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
+        /* @__PURE__ */ u3("kbd", { children: "C" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
+        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
+        /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
+        "\n  ",
+        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
+          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
+          /* @__PURE__ */ u3("span", { style: "flex:1" }),
+          "\n  ",
+          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: p3.closed ? "Reopen pull request" : "Close pull request" }),
+          "\n  ",
+          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, onClick: on3?.send, children: p3.busy ? "Sending\u2026" : "Comment" })
+        ] })
+      ] })
+    ] });
+  }
+  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
+  function MergeAct(p3) {
+    const { on: on3 } = p3;
+    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.err })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
+      "\n  ",
+      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
+      "\n  ",
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", onClick: on3?.draft, children: "Convert to draft" }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.errAuto })
+    ] });
+  }
 
   // src/components/Comments.tsx
   var NL = "\n  ";
@@ -621,7 +667,7 @@
       " into"
     ] });
   }
-  function PrHeader({ b: b2, st, ic, label, tab, split, hideSide, splitOk, commentsTotal, sq, on: on3 }) {
+  function PrHeader({ b: b2, st, ic, label, tab, split, hideSide: hideSide2, splitOk, commentsTotal, sq, on: on3 }) {
     const p3 = b2.pull, n2 = p3.number;
     const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
     const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
@@ -674,7 +720,7 @@
             I2("eye"),
             /* @__PURE__ */ u3("span", { children: "Review" })
           ] }),
-          /* @__PURE__ */ u3("button", { class: `split-btn ${hideSide || split ? "" : "on"}`, id: "sidetoggle", onClick: on3?.side, title: "Show or hide the details panel", disabled: tab !== "conversation" || split, style: tab !== "conversation" ? "visibility:hidden" : "", children: [
+          /* @__PURE__ */ u3("button", { class: `split-btn ${hideSide2 || split ? "" : "on"}`, id: "sidetoggle", onClick: on3?.side, title: "Show or hide the details panel", disabled: tab !== "conversation" || split, style: tab !== "conversation" ? "visibility:hidden" : "", children: [
             I2("sidebar-expand"),
             /* @__PURE__ */ u3("span", { children: "Details" })
           ] }),
@@ -700,7 +746,6 @@
   function FoldBtn({ k: k3, title, def, folded: folded2, onFold }) {
     return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e2) => onFold(e2, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
   }
-  var foldBtnHtml = (p3) => html(/* @__PURE__ */ u3(FoldBtn, { ...p3 }));
   function ReactionsBar({ r: r3, kind, id, defs, on: on3 }) {
     const live = !!(kind && id);
     const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u3("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", onClick: on3 && ((ev) => on3.toggle(ev, kind, id, k3)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: [
@@ -777,6 +822,741 @@
           /* @__PURE__ */ u3("td", { class: "code", "data-marker": " ", children: r3.text })
         ] });
       })
+    ] });
+  }
+
+  // src/components/Merge.tsx
+  function MergedBox({ head: head2 }) {
+    return /* @__PURE__ */ u3("div", { class: "TL", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-break", style: "margin-left:0" }),
+      /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+        /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-merged", style: "background:var(--bgColor-done-emphasis)", children: I2("git-merge") }) }),
+        /* @__PURE__ */ u3("div", { class: "merge-card merged-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("h3", { children: "Pull request successfully merged and closed" }),
+          /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+            "You're all set \u2014 the ",
+            /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
+            " branch can be safely deleted."
+          ] })
+        ] }) }) })
+      ] })
+    ] });
+  }
+  function ClosedBox({ head: head2 }) {
+    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
+      /* @__PURE__ */ u3("div", { class: "merge-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h3", { children: "Closed with unmerged commits" }),
+        /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+          "This pull request is closed, but the ",
+          /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
+          " branch has unmerged commits."
+        ] })
+      ] }) }) })
+    ] });
+  }
+  var plural = (n2) => n2 === 1 ? "" : "s";
+  function Sec({ k: k3, h: h3, rerunable, open: open2, children, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
+      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, onClick: on3 && ((e2) => on3.toggle(e2, k3)), children: [
+        /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
+        /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+          /* @__PURE__ */ u3("b", { children: h3[2] }),
+          /* @__PURE__ */ u3("i", { children: h3[3] || "" })
+        ] }),
+        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", onClick: on3?.rerun, children: "Re-run failed" }) : "",
+        I2(open2 ? "chevron-up" : "chevron-down", 16)
+      ] }),
+      open2 && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
+    ] });
+  }
+  function CkGroupView({ g: g2, on: on3 }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, onClick: on3 && ((e2) => on3.toggle(e2, `g${g2.k}`)), children: [
+        g2.title,
+        SP,
+        I2(g2.open ? "chevron-up" : "chevron-down", 12)
+      ] }),
+      g2.open ? g2.items.map((c3) => /* @__PURE__ */ u3("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
+        I2(c3.icon, 14),
+        /* @__PURE__ */ u3("b", { children: c3.name }),
+        c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
+        /* @__PURE__ */ u3("i", { children: c3.desc })
+      ] })) : ""
+    ] });
+  }
+  function MergeBox(p3) {
+    const { rv, ck, on: on3 } = p3;
+    const rvBody = /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+        I2("check", 14),
+        SP,
+        rv.ap,
+        " approval",
+        plural(rv.ap)
+      ] }),
+      rv.cr ? /* @__PURE__ */ u3("div", { class: "mb-line bad", children: [
+        I2("x-circle-fill", 14),
+        SP,
+        rv.cr,
+        " requested changes"
+      ] }) : "",
+      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+        I2("person", 14),
+        SP,
+        rv.pend,
+        " pending review",
+        plural(rv.pend),
+        rv.pend ? `: ${rv.pendNames}` : ""
+      ] })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { style: "background:var(--bgColor-success-emphasis)", children: I2("git-pull-request") }) }),
+      /* @__PURE__ */ u3("div", { class: "merge-card mb-card", children: [
+        p3.draft ? /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
+            /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("git-pull-request-draft", 22) }),
+            /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+              /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
+              /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
+            ] }),
+            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
+          ] }) }),
+          /* @__PURE__ */ u3(ErrLine, { m: p3.errReady })
+        ] }) : "",
+        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, on: on3, children: rvBody }),
+        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, on: on3, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2, on: on3 })) }) : "",
+        p3.behind ? /* @__PURE__ */ u3("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
+          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("alert", 22) }),
+          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u3("b", { children: "This branch is out-of-date with the base branch" }),
+            /* @__PURE__ */ u3("i", { children: [
+              "Merge the latest changes from ",
+              p3.baseRef,
+              " into this branch."
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
+        ] }) }) : "",
+        /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
+          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
+          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u3("b", { children: p3.clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved" }),
+            /* @__PURE__ */ u3("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
+          ] })
+        ] }) }),
+        /* @__PURE__ */ u3(ErrLine, { m: p3.errUpdate })
+      ] })
+    ] });
+  }
+  function ReviewerRow({ r: r3, on: on3 }) {
+    const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
+      I2(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")
+    ] }) : I2(r3.st === "approved" ? "check" : r3.st === "changes_requested" ? "file-diff" : r3.st === "req" ? "dot-fill" : "comment");
+    return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
+      /* @__PURE__ */ u3("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
+      /* @__PURE__ */ u3("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
+      /* @__PURE__ */ u3("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
+      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, onClick: (e2) => on3.rerequest(e2, r3.u.login ?? ""), children: I2("sync") }) : ""
+    ] });
+  }
+  function PrSide(p3) {
+    const { on: on3 } = p3, rv = p3.reviewers, more = rv.length - 3;
+    const rvSection = rv.length ? /* @__PURE__ */ u3(S2, { children: [
+      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })),
+      more > 0 ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
+          /* @__PURE__ */ u3("span", { children: [
+            "+",
+            more,
+            " more reviewer",
+            plural(more)
+          ] }),
+          I2(p3.showAll ? "chevron-up" : "chevron-down")
+        ] }),
+        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })) : ""
+      ] }) : ""
+    ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
+    const fb = (k3, n2) => /* @__PURE__ */ u3(SideFold, { k: "sb:" + n2, folded: p3.folded[k3], onFold: on3.fold });
+    const head2 = (k3, t2) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+      fb(k3, t2 === "people" ? "people" : t2),
+      /* @__PURE__ */ u3("span", { children: t2 }),
+      I2("gear", 16, "gear")
+    ] });
+    const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
+    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
+      /* @__PURE__ */ u3("div", { class: box("reviewers"), children: [
+        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+          fb("reviewers", "Reviewers"),
+          /* @__PURE__ */ u3("span", { children: "Reviewers" })
+        ] }),
+        rvSection
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: box("assignees"), children: [
+        head2("assignees", "Assignees"),
+        p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
+          /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
+          /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
+        ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: box("labels"), children: [
+        head2("labels", "Labels"),
+        p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: box("milestone"), children: [
+        head2("milestone", "Milestone"),
+        p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: box("people"), children: [
+        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+          fb("people", "people"),
+          /* @__PURE__ */ u3("span", { children: [
+            p3.peopleCount,
+            " participant",
+            plural(p3.peopleCount)
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u3("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
+      ] })
+    ] });
+  }
+  function SideFold({ k: k3, folded: folded2, onFold }) {
+    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e2) => {
+      e2.stopPropagation();
+      onFold(k3, false);
+    }, children: I2(folded2 ? "chevron-right" : "chevron-down") });
+  }
+  function CommitsDialog(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", onMouseDown: on3 && ((e2) => {
+      if (e2.target.id === "dlgbg") on3.close();
+    }), children: /* @__PURE__ */ u3("div", { class: "dlg cp-dlg", children: [
+      /* @__PURE__ */ u3("div", { class: "cp-h", children: [
+        /* @__PURE__ */ u3("h2", { children: "Select commits to view" }),
+        /* @__PURE__ */ u3("button", { class: "icon-btn", id: "cpx", title: "Close", onClick: on3?.close, children: I2("x") })
+      ] }),
+      /* @__PURE__ */ u3("button", { class: `cp-opt${p3.allOn ? " on" : ""}`, id: "cpall", onClick: on3?.all, children: [
+        /* @__PURE__ */ u3("b", { children: "All commits" }),
+        /* @__PURE__ */ u3("i", { children: [
+          p3.count,
+          " commit",
+          plural(p3.count)
+        ] })
+      ] }),
+      p3.since ? /* @__PURE__ */ u3("button", { class: `cp-opt${p3.since.on ? " on" : ""}`, id: "cpsince", disabled: !p3.since.n, onClick: on3?.since, children: [
+        /* @__PURE__ */ u3("b", { children: "Changes since your last review" }),
+        /* @__PURE__ */ u3("i", { children: p3.since.n ? `${p3.since.n} commit${plural(p3.since.n)}` : "No new commits" })
+      ] }) : "",
+      /* @__PURE__ */ u3("div", { class: "cp-sub", children: "Select a commit, or click a second one to view the range between them" }),
+      /* @__PURE__ */ u3("input", { class: "input cp-q", id: "cpq", placeholder: "Filter commits\u2026", value: p3.filter, onInput: on3?.filter }),
+      /* @__PURE__ */ u3("div", { class: "cp-list", id: "cplist", "data-q": p3.filter.toLowerCase(), children: p3.rows.map((r3) => /* @__PURE__ */ u3("label", { class: `cp-row${r3.on ? " on" : ""}`, "data-cp": r3.i, hidden: r3.hidden, onClick: on3 && ((e2) => on3.pick(e2, r3.i)), children: [
+        /* @__PURE__ */ u3("input", { type: "checkbox", checked: r3.on, tabindex: -1 }),
+        /* @__PURE__ */ u3("span", { class: "cp-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.title }),
+          /* @__PURE__ */ u3("i", { children: [
+            r3.by,
+            " committed ",
+            r3.when
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("code", { children: r3.sha })
+      ] })).reverse() }),
+      /* @__PURE__ */ u3("div", { class: "btns", children: [
+        /* @__PURE__ */ u3("span", { class: "cp-sel", children: p3.selLabel }),
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: "btn", id: "cpcancel", onClick: on3?.close, children: "Cancel" }),
+        /* @__PURE__ */ u3("button", { class: "btn primary", id: "cpsave", disabled: !p3.hasPick, onClick: on3?.save, children: "Save" })
+      ] })
+    ] }) });
+  }
+  function FcBar(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: "fc-bar", children: [
+      /* @__PURE__ */ u3("button", { class: "btn small", id: "fcbtn", title: "Choose which commits to view", onClick: on3?.commits, children: [
+        I2("git-commit"),
+        SP,
+        p3.label,
+        p3.count !== null ? /* @__PURE__ */ u3(S2, { children: [
+          SP,
+          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count })
+        ] }) : "",
+        p3.code ? /* @__PURE__ */ u3(S2, { children: [
+          SP,
+          /* @__PURE__ */ u3("code", { children: p3.code })
+        ] }) : "",
+        SP,
+        "\u25BE"
+      ] }),
+      p3.nav ? /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u3("button", { "data-fstep": "-1", disabled: p3.nav.prevOff, onClick: on3 && (() => on3.step(-1)), children: "\u2039 Prev" }),
+        /* @__PURE__ */ u3("button", { "data-fstep": "1", disabled: p3.nav.nextOff, onClick: on3 && (() => on3.step(1)), children: "Next \u203A" })
+      ] }) : "",
+      p3.hasRange ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("span", { class: "fc-t", children: p3.title }),
+        /* @__PURE__ */ u3("button", { class: "link-btn", id: "fcall", onClick: on3?.all, children: "Show all commits" })
+      ] }) : ""
+    ] });
+  }
+  var SORTS = [["path", "GitHub order"], ["pathz", "Path Z\u2013A"], ["most", "Most changed"], ["least", "Least changed"], ["comments", "Most comments"], ["status", "By status"]];
+  function FilesBar(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: "files-bar", children: [
+      /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u3("button", { class: p3.mode === "unified" ? "on" : "", "data-dmode": "unified", onClick: on3 && (() => on3.mode("unified")), children: "Unified" }),
+        /* @__PURE__ */ u3("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", onClick: on3 && (() => on3.mode("split")), children: "Split" })
+      ] }),
+      /* @__PURE__ */ u3("select", { class: "input fsort", id: "fsort", title: "Sort files", onChange: on3?.sort, children: SORTS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.sort === v2, children: t2 })) }),
+      p3.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", onClick: on3?.finish, children: [
+        "Finish review \xB7 ",
+        p3.pending,
+        " comment",
+        plural(p3.pending)
+      ] }) : "",
+      /* @__PURE__ */ u3("button", { class: "link-btn", "data-foldall": p3.allFolded ? "open" : "close", "data-files": p3.names.join("\n"), onClick: on3 && (() => on3.foldAll(p3.allFolded, p3.names)), children: p3.allFolded ? "Expand all files" : "Collapse all files" })
+    ] });
+  }
+  function FileBox(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: `file${p3.folded ? " folded" : ""}`, children: [
+      /* @__PURE__ */ u3("div", { class: "file-head", "data-fold": `f:${p3.name}`, onClick: on3 && ((e2) => on3.fold(e2, `f:${p3.name}`, false)), children: [
+        /* @__PURE__ */ u3("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
+        /* @__PURE__ */ u3("span", { class: "stat", children: [
+          /* @__PURE__ */ u3("span", { class: "a", children: [
+            "+",
+            p3.add
+          ] }),
+          SP,
+          /* @__PURE__ */ u3("span", { class: "d", children: [
+            "\u2212",
+            p3.del
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) }),
+        /* @__PURE__ */ u3("span", { class: "path", children: p3.name })
+      ] }),
+      p3.children
+    ] });
+  }
+  function CommitsList({ rows }) {
+    return /* @__PURE__ */ u3("div", { style: "border:1px solid var(--borderColor-default);border-radius:6px", children: rows.length ? rows.map((r3) => /* @__PURE__ */ u3("div", { style: "padding:16px;border-bottom:1px solid var(--borderColor-muted)", children: r3 })) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No commits listed." }) });
+  }
+  function CmItem({ c: c3, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: `cm ${c3.on ? "on" : ""}`, "data-sha": c3.sha, onClick: on3 && (() => on3.pick(c3.sha)), children: [
+      /* @__PURE__ */ u3("span", { class: "cm-av", children: c3.author ? Av(c3.author, 24) : /* @__PURE__ */ u3("i", { children: c3.initial }) }),
+      /* @__PURE__ */ u3("span", { class: "cm-t", children: [
+        /* @__PURE__ */ u3("b", { children: c3.title }),
+        /* @__PURE__ */ u3("i", { children: c3.sub })
+      ] }),
+      c3.n ? /* @__PURE__ */ u3("span", { class: "cm-n", children: [
+        I2("comment"),
+        c3.n
+      ] }) : "",
+      /* @__PURE__ */ u3("code", { children: c3.sha.slice(0, 7) })
+    ] });
+  }
+  function Rail({ k: k3, label, ic, on: on3 }) {
+    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, onClick: on3 && (() => on3.hide(k3, false)), children: [
+      I2(ic),
+      /* @__PURE__ */ u3("span", { children: label })
+    ] });
+  }
+  function SplitView(p3) {
+    const { on: on3 } = p3;
+    const left = p3.hl ? /* @__PURE__ */ u3(Rail, { k: "l", label: "Commits", ic: "git-commit", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-l", children: [
+      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldList ? " folded" : ""}`, children: [
+        /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+          I2("git-commit"),
+          /* @__PURE__ */ u3("span", { children: "Commits" }),
+          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count }),
+          /* @__PURE__ */ u3("span", { class: "sp" }),
+          /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
+          /* @__PURE__ */ u3(FoldBtn, { k: "cm-list", title: "Collapse commit list", def: false, folded: p3.foldList, onFold: on3?.fold }),
+          /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "l", title: "Hide this panel", onClick: on3 && (() => on3.hide("l", true)), children: I2("x") })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "cm-list", children: [
+          /* @__PURE__ */ u3("div", { class: `cm all ${p3.allOn ? "on" : ""}`, "data-sha": "", onClick: on3 && (() => on3.pick("")), children: [
+            /* @__PURE__ */ u3("span", { class: "cm-av", children: /* @__PURE__ */ u3("i", { children: I2("diff") }) }),
+            /* @__PURE__ */ u3("span", { class: "cm-t", children: [
+              /* @__PURE__ */ u3("b", { children: "All changes" }),
+              /* @__PURE__ */ u3("i", { children: p3.allSub })
+            ] })
+          ] }),
+          p3.rows.map((c3) => /* @__PURE__ */ u3(CmItem, { c: c3, on: on3 }))
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldDiff ? " folded" : ""}`, children: [
+        /* @__PURE__ */ u3("div", { class: "pane-h sub", children: [
+          I2("file-diff"),
+          /* @__PURE__ */ u3("span", { children: p3.subTitle }),
+          /* @__PURE__ */ u3("span", { class: "sp" }),
+          /* @__PURE__ */ u3(FoldBtn, { k: "cm-diff", title: "Collapse changes", def: false, folded: p3.foldDiff, onFold: on3?.fold })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.diff })
+      ] })
+    ] });
+    const right = p3.hr ? /* @__PURE__ */ u3(Rail, { k: "r", label: "Conversation", ic: "comment-discussion", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-r", children: [
+      /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+        I2("comment-discussion"),
+        /* @__PURE__ */ u3("span", { children: "Conversation" }),
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
+        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", onClick: on3 && (() => on3.hide("r", true)), children: I2("x") })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.right })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
+      left,
+      p3.hl || p3.hr ? "" : /* @__PURE__ */ u3("div", { class: "gutter", id: "gutter", title: "Drag to resize", onMouseDown: on3?.gutter }),
+      right
+    ] });
+  }
+
+  // src/components/Dialogs.tsx
+  var Err = ({ m: m2 }) => /* @__PURE__ */ u3("div", { id: "reverr", children: m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : "" });
+  var REVS = [["COMMENT", "Comment", "Submit general feedback without explicit approval."], ["APPROVE", "Approve", "Submit feedback and approve merging these changes."], ["REQUEST_CHANGES", "Request changes", "Submit feedback that must be addressed before merging."]];
+  var ReviewDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
+    /* @__PURE__ */ u3(DraftBox, { k: "review", ph: p3.ph, rows: 5 }),
+    /* @__PURE__ */ u3("div", { class: "radios", children: REVS.map(([v2, t2, d3]) => /* @__PURE__ */ u3("label", { children: [
+      /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: v2, checked: p3.ev === v2, onChange: () => p3.onEv(v2) }),
+      " ",
+      /* @__PURE__ */ u3("b", { children: t2 }),
+      " ",
+      /* @__PURE__ */ u3("span", { children: d3 })
+    ] })) }),
+    /* @__PURE__ */ u3(Err, { m: p3.err }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", onClick: p3.ok, children: "Submit review" })
+    ] })
+  ] }) });
+  var EditPrDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
+    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: p3.title, onInput: (e2) => p3.onTitle(e2.target.value), style: "width:100%;box-sizing:border-box;height:34px" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
+    /* @__PURE__ */ u3(DraftBox, { k: "prbody", ph: "Describe your changes", rows: 8 }),
+    /* @__PURE__ */ u3(Err, { m: p3.err }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", onClick: p3.ok, children: "Save" })
+    ] })
+  ] }) });
+  var ConfirmDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: p3.title }),
+    /* @__PURE__ */ u3("p", { children: p3.text }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: `btn ${p3.danger ? "danger" : "primary"}`, id: "cfok", onClick: p3.ok, children: p3.label })
+    ] })
+  ] }) });
+  var EditCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
+    /* @__PURE__ */ u3(DraftBox, { k: "editc", ph: "Edit your comment", rows: 6 }),
+    /* @__PURE__ */ u3(Err, { m: p3.err }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", onClick: p3.ok, children: "Save" })
+    ] })
+  ] }) });
+  var DeleteCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
+    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
+    /* @__PURE__ */ u3(Err, { m: p3.err }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", onClick: p3.ok, children: "Delete" })
+    ] })
+  ] }) });
+  var HideCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
+    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: p3.reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
+    /* @__PURE__ */ u3(Err, { m: p3.err }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", onClick: p3.ok, children: "Hide comment" })
+    ] })
+  ] }) });
+  var TokenDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "GitHub classic token" }),
+    /* @__PURE__ */ u3("p", { children: [
+      "Use a ",
+      /* @__PURE__ */ u3("b", { children: "classic" }),
+      " personal access token with the ",
+      /* @__PURE__ */ u3("code", { children: "repo" }),
+      " scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click ",
+      /* @__PURE__ */ u3("b", { children: "Configure SSO \u2192 Authorize" }),
+      ". Stored in your OS keychain. Leave empty and save to remove it."
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "oauth-row", children: [
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "oauthgo", onClick: p3.go, children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u3("span", { children: "or paste a token below" })
+    ] }),
+    /* @__PURE__ */ u3("div", { id: "oauthbox", children: p3.code ? /* @__PURE__ */ u3("div", { class: "oauth-code", children: [
+      /* @__PURE__ */ u3("span", { children: "Enter this code on GitHub" }),
+      /* @__PURE__ */ u3("b", { children: p3.code }),
+      /* @__PURE__ */ u3("small", { children: "Waiting for approval\u2026" })
+    ] }) : p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "margin:8px 0", children: p3.err }) : "" }),
+    /* @__PURE__ */ u3("p", { children: /* @__PURE__ */ u3("a", { href: "https://github.com/settings/tokens/new?scopes=repo&description=Pullscope", children: "Create a classic token (repo scope preselected) \u2197" }) }),
+    /* @__PURE__ */ u3("input", { class: "input", id: "tokeninput", type: "password", placeholder: "ghp_\u2026", style: "width:100%;box-sizing:border-box" }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "tokcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "toksave", onClick: p3.save, children: "Save" })
+    ] })
+  ] }) });
+  var CmPop = ({ x: x3, y: y2, hr, edit, hide: hide2, del, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
+    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
+    /* @__PURE__ */ u3("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
+    /* @__PURE__ */ u3("button", { "data-h": "quote", onClick: () => pick("quote"), children: "Quote reply" }),
+    /* @__PURE__ */ u3("button", { "data-h": "issue", onClick: () => pick("issue"), children: "Reference in new issue" }),
+    hr ? /* @__PURE__ */ u3("hr", {}) : "",
+    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", onClick: () => pick("edit"), children: "Edit" }) : "",
+    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", onClick: () => pick("hide"), children: "Hide" }) : "",
+    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", onClick: () => pick("del"), children: "Delete" }) : ""
+  ] });
+  var ReactPop = ({ x: x3, y: y2, reacts, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop", style: `left:${x3}px;top:${y2}px`, children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, onClick: () => pick(k3), children: em })) });
+  var CtxPop = ({ x: x3, y: y2, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
+    /* @__PURE__ */ u3("button", { "data-h": "new", onClick: () => pick("new"), children: "Open in new tab" }),
+    /* @__PURE__ */ u3("button", { "data-h": "here", onClick: () => pick("here"), children: "Open" }),
+    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" })
+  ] });
+
+  // src/components/Timeline.tsx
+  function CommitRow({ first, sha, author, url, verification, trailing }) {
+    const unv = verification && !verification.verified;
+    return /* @__PURE__ */ u3("div", { class: "commit-row", children: [
+      author ? /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
+      /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: url || "#", children: first }) }),
+      trailing ? Raw(trailing) : "",
+      /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
+      /* @__PURE__ */ u3("span", { style: "flex:1" }),
+      verification ? /* @__PURE__ */ u3("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
+      /* @__PURE__ */ u3("a", { class: "sha", href: url || "#", children: String(sha).slice(0, 7) })
+    ] });
+  }
+  function RangeBar({ range, from, to, desc, on: on3 }) {
+    const opts = [["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]];
+    return /* @__PURE__ */ u3("div", { class: "date-bar", children: [
+      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+        I2("clock"),
+        "When"
+      ] }),
+      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", onChange: on3?.range, children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
+      range === "custom" ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From", onChange: on3?.from }),
+        /* @__PURE__ */ u3("span", { class: "who-l", children: "to" }),
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To", onChange: on3?.to })
+      ] }) : "",
+      /* @__PURE__ */ u3("span", { class: "sp" }),
+      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", onClick: on3?.sort, children: [
+        I2(desc ? "chevron-down" : "chevron-up"),
+        /* @__PURE__ */ u3("span", { children: desc ? "Newest first" : "Oldest first" })
+      ] })
+    ] });
+  }
+  function WhoBar({ everyone, people, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "who-bar", children: [
+      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+        I2("person"),
+        "Show"
+      ] }),
+      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", onClick: on3?.whoClear, children: "Everyone" }),
+      people.map(({ u: u4, n: n2, on: sel }) => /* @__PURE__ */ u3("button", { class: `who-chip ${sel ? "on" : ""}`, "data-who": u4.login, onClick: on3 && (() => on3.who(u4.login)), title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
+        Av(u4, 18),
+        /* @__PURE__ */ u3("span", { children: u4.login }),
+        /* @__PURE__ */ u3("i", { children: n2 })
+      ] }))
+    ] });
+  }
+  function Bars({ who, range, on: on3 }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      who && /* @__PURE__ */ u3(WhoBar, { ...who, on: on3 }),
+      /* @__PURE__ */ u3(RangeBar, { ...range, on: on3 })
+    ] });
+  }
+  function FoldBar({ onClick }) {
+    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", onClick, children: [
+      I2("chevron-down"),
+      SP,
+      /* @__PURE__ */ u3("span", { children: "Collapse all conversations" })
+    ] }) });
+  }
+  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at).text });
+  var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
+  function CommitRun({ n: n2, first, last, onTab }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", onClick: onTab && (() => onTab("commits")), children: [
+        /* @__PURE__ */ u3("b", { children: [
+          n2,
+          " commits"
+        ] }),
+        SP,
+        /* @__PURE__ */ u3("span", { class: "mono", children: [
+          first,
+          " \u2026 ",
+          last
+        ] }),
+        " \xB7 view in Commits"
+      ] }) }) })
+    ] });
+  }
+  function Committed({ row }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: row })
+    ] });
+  }
+  var Linked = ({ msg, url }) => {
+    const m2 = msg.match(/^([\s\S]*?)#(\d+)([\s\S]*)$/);
+    return m2 ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("a", { href: url, children: m2[1] }),
+      /* @__PURE__ */ u3("a", { href: "#", style: "color:var(--fgColor-accent)", children: [
+        "#",
+        m2[2]
+      ] }),
+      /* @__PURE__ */ u3("a", { href: "#", children: m2[3] })
+    ] }) : /* @__PURE__ */ u3("a", { href: url, children: msg });
+  };
+  function Referenced({ actor: a3, at, commit: ci, msg }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body stack", children: [
+        /* @__PURE__ */ u3("div", { class: "row", style: "min-height:32px", children: [
+          actor(a3),
+          SP,
+          /* @__PURE__ */ u3("span", { children: "added a commit that referenced this pull request" }),
+          SP,
+          /* @__PURE__ */ u3(Time, { at })
+        ] }),
+        ci ? /* @__PURE__ */ u3("div", { class: "line2", children: /* @__PURE__ */ u3("div", { class: "commit-row", children: [
+          /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
+          /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3(Linked, { msg, url: ci.html_url }) }),
+          /* @__PURE__ */ u3("span", { class: "mono", style: "background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px", children: "\u2026" }),
+          /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
+          /* @__PURE__ */ u3("span", { style: "flex:1" }),
+          /* @__PURE__ */ u3("a", { class: "sha", href: ci.html_url, children: ci.sha.slice(0, 7) })
+        ] }) }) : ""
+      ] })
+    ] });
+  }
+  function MergedRow({ actor: a3, commit, base, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI mergedrow", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge done", children: I2("git-merge") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: [
+          "merged commit ",
+          /* @__PURE__ */ u3("b", { class: "mono", style: "color:var(--fgColor-default);font-size:12px", children: commit }),
+          " into ",
+          /* @__PURE__ */ u3("span", { class: "branch", children: base })
+        ] }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] }) })
+    ] });
+  }
+  function CrossRef(p3) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+        /* @__PURE__ */ u3("div", { class: "row", children: [
+          actor(p3.actor),
+          SP,
+          /* @__PURE__ */ u3("span", { children: [
+            "mentioned this ",
+            p3.isPr ? "pull request" : "issue"
+          ] }),
+          SP,
+          /* @__PURE__ */ u3(Time, { at: p3.at })
+        ] }),
+        "\n        ",
+        /* @__PURE__ */ u3("div", { class: "ref-card", children: [
+          /* @__PURE__ */ u3("span", { style: `color:var(--fgColor-${p3.open ? "success" : "done"});margin-top:2px`, children: I2(p3.icon) }),
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("a", { class: "t", href: p3.url, style: "color:var(--fgColor-default)", children: p3.title }),
+            /* @__PURE__ */ u3("span", { class: "r", children: [
+              p3.repo,
+              "#",
+              p3.number
+            ] })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+  function LabelRow({ actor: a3, verb, color, name, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: verb }),
+        SP,
+        /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${color};color:#fff;margin:0`, children: name }),
+        SP,
+        /* @__PURE__ */ u3("span", { children: "label" }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] })
+    ] });
+  }
+  function Simple({ actor: a3, ic, text, kind, at }) {
+    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
+      /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+        actor(a3),
+        SP,
+        /* @__PURE__ */ u3("span", { children: text }),
+        SP,
+        /* @__PURE__ */ u3(Time, { at })
+      ] }) })
+    ] });
+  }
+  function Checks({ head: head2, summary, headIcon, rows }) {
+    return /* @__PURE__ */ u3("div", { class: "checks", children: [
+      /* @__PURE__ */ u3("div", { class: `ck-head ${head2[0]}`, children: [
+        I2(headIcon, 20),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("b", { children: head2[1] }),
+          /* @__PURE__ */ u3("span", { children: summary })
+        ] })
+      ] }),
+      rows.map((c3) => /* @__PURE__ */ u3("a", { class: `ck-row ${c3.st}`, href: c3.url ? c3.url : void 0, children: [
+        /* @__PURE__ */ u3("span", { class: "ck-i", children: I2(c3.icon) }),
+        /* @__PURE__ */ u3("span", { class: "ck-n", children: [
+          /* @__PURE__ */ u3("b", { children: c3.name }),
+          c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
+          /* @__PURE__ */ u3("i", { children: c3.desc })
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "ck-s", children: c3.status }),
+        /* @__PURE__ */ u3("span", { class: "ck-d", children: c3.dur })
+      ] }))
+    ] });
+  }
+  function Attention({ items, unres, showUnres, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "attn", children: [
+      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, onClick: on3 && (it.id === "nextun" ? on3.next : it.dataTab ? () => on3.tab(it.dataTab) : void 0), children: [
+        I2(it.ic),
+        /* @__PURE__ */ u3("span", { children: it.text })
+      ] })),
+      showUnres ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", onClick: on3?.unres, children: [
+          I2("comment"),
+          "Unresolved only"
+        ] })
+      ] }) : ""
     ] });
   }
 
@@ -1015,7 +1795,6 @@
   }
   var isFolded = (k3, def = false) => k3 in S.fold ? S.fold[k3] : def;
   var folded = (k3, def = false) => isFolded(k3, def) ? " folded" : "";
-  var foldBtn = (k3, title = "Collapse / expand", def = false) => foldBtnHtml({ k: k3, title, def, folded: isFolded(k3, def) });
   var reactionProps = (r3, kind, id) => ({ r: r3 || {}, kind, id, defs: REACTS.map(([k3, e2]) => ({ k: k3, e: e2 })) });
   var liveTasks = (h3) => S.hasToken ? h3.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m2) => m2.replace(/\sdisabled(="[^"]*")?/g, "")) : h3;
   function toggleTask(body, n2) {
@@ -1083,541 +1862,6 @@
     return rows;
   }
 
-  // src/components/Actions.tsx
-  var draftBoxHtml = (key, ph, rows) => html(/* @__PURE__ */ u3("div", { class: "tt", "data-draft": key, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` }));
-  var errLineHtml = (m2) => html(/* @__PURE__ */ u3("div", { class: "act-err", children: m2 }));
-  var ErrLine = ({ m: m2 }) => m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : null;
-  var DraftBox = ({ k: k3, ph, rows }) => /* @__PURE__ */ u3("div", { class: "tt", "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
-  function Composer(p3) {
-    const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
-      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
-        I2("comment"),
-        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
-        /* @__PURE__ */ u3("kbd", { children: "C" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
-        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
-        /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
-        "\n  ",
-        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
-          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
-          /* @__PURE__ */ u3("span", { style: "flex:1" }),
-          "\n  ",
-          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: p3.closed ? "Reopen pull request" : "Close pull request" }),
-          "\n  ",
-          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, onClick: on3?.send, children: p3.busy ? "Sending\u2026" : "Comment" })
-        ] })
-      ] })
-    ] });
-  }
-  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
-  function MergeAct(p3) {
-    const { on: on3 } = p3;
-    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.err })
-    ] });
-    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
-      "\n  ",
-      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
-      "\n  ",
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", onClick: on3?.draft, children: "Convert to draft" }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.errAuto })
-    ] });
-  }
-  var reviewDialogHtml = (draftBox2) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
-    Raw(draftBox2),
-    "\n  ",
-    /* @__PURE__ */ u3("div", { class: "radios", children: [
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "COMMENT", checked: true }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Comment" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit general feedback without explicit approval." })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "APPROVE" }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Approve" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit feedback and approve merging these changes." })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "REQUEST_CHANGES" }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Request changes" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit feedback that must be addressed before merging." })
-      ] })
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("div", { id: "reverr" }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", children: "Submit review" })
-    ] })
-  ] }) }));
-  var editPrDialogHtml = (title, draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: title, style: "width:100%;box-sizing:border-box;height:34px" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-    Raw(draftBox2),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", children: "Save" })
-    ] })
-  ] }) }));
-  var confirmDlgHtml = (title, text, label, danger) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: title }),
-    /* @__PURE__ */ u3("p", { children: text }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: `btn ${danger ? "danger" : "primary"}`, id: "cfok", children: label })
-    ] })
-  ] }) }));
-  var editCommentDialogHtml = (draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
-    Raw(draftBox2),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", children: "Save" })
-    ] })
-  ] }) }));
-  var deleteCommentDialogHtml = (err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
-    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", children: "Delete" })
-    ] })
-  ] }) }));
-  var hideCommentDialogHtml = (reasons, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
-    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", children: "Hide comment" })
-    ] })
-  ] }) }));
-  var cmPopHtml = (hr, edit, hide2, del) => html(/* @__PURE__ */ u3(S2, { children: [
-    /* @__PURE__ */ u3("button", { "data-h": "link", children: "Copy link" }),
-    /* @__PURE__ */ u3("button", { "data-h": "md", children: "Copy Markdown" }),
-    /* @__PURE__ */ u3("button", { "data-h": "quote", children: "Quote reply" }),
-    /* @__PURE__ */ u3("button", { "data-h": "issue", children: "Reference in new issue" }),
-    hr ? /* @__PURE__ */ u3("hr", {}) : "",
-    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", children: "Edit" }) : "",
-    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", children: "Hide" }) : "",
-    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", children: "Delete" }) : ""
-  ] }));
-  var reactPopHtml = (reacts) => html(/* @__PURE__ */ u3(S2, { children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, children: em })) }));
-
-  // src/components/Merge.tsx
-  function MergedBox({ head: head2 }) {
-    return /* @__PURE__ */ u3("div", { class: "TL", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-break", style: "margin-left:0" }),
-      /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-        /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-merged", style: "background:var(--bgColor-done-emphasis)", children: I2("git-merge") }) }),
-        /* @__PURE__ */ u3("div", { class: "merge-card merged-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("h3", { children: "Pull request successfully merged and closed" }),
-          /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
-            "You're all set \u2014 the ",
-            /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
-            " branch can be safely deleted."
-          ] })
-        ] }) }) })
-      ] })
-    ] });
-  }
-  function ClosedBox({ head: head2 }) {
-    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
-      /* @__PURE__ */ u3("div", { class: "merge-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("h3", { children: "Closed with unmerged commits" }),
-        /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
-          "This pull request is closed, but the ",
-          /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
-          " branch has unmerged commits."
-        ] })
-      ] }) }) })
-    ] });
-  }
-  var plural = (n2) => n2 === 1 ? "" : "s";
-  function Sec({ k: k3, h: h3, rerunable, open: open2, children, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
-      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, onClick: on3 && ((e2) => on3.toggle(e2, k3)), children: [
-        /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
-        /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-          /* @__PURE__ */ u3("b", { children: h3[2] }),
-          /* @__PURE__ */ u3("i", { children: h3[3] || "" })
-        ] }),
-        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", onClick: on3?.rerun, children: "Re-run failed" }) : "",
-        I2(open2 ? "chevron-up" : "chevron-down", 16)
-      ] }),
-      open2 && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
-    ] });
-  }
-  function CkGroupView({ g: g2, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, onClick: on3 && ((e2) => on3.toggle(e2, `g${g2.k}`)), children: [
-        g2.title,
-        SP,
-        I2(g2.open ? "chevron-up" : "chevron-down", 12)
-      ] }),
-      g2.open ? g2.items.map((c3) => /* @__PURE__ */ u3("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
-        I2(c3.icon, 14),
-        /* @__PURE__ */ u3("b", { children: c3.name }),
-        c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
-        /* @__PURE__ */ u3("i", { children: c3.desc })
-      ] })) : ""
-    ] });
-  }
-  function MergeBox(p3) {
-    const { rv, ck, on: on3 } = p3;
-    const rvBody = /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
-        I2("check", 14),
-        SP,
-        rv.ap,
-        " approval",
-        plural(rv.ap)
-      ] }),
-      rv.cr ? /* @__PURE__ */ u3("div", { class: "mb-line bad", children: [
-        I2("x-circle-fill", 14),
-        SP,
-        rv.cr,
-        " requested changes"
-      ] }) : "",
-      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
-        I2("person", 14),
-        SP,
-        rv.pend,
-        " pending review",
-        plural(rv.pend),
-        rv.pend ? `: ${rv.pendNames}` : ""
-      ] })
-    ] });
-    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { style: "background:var(--bgColor-success-emphasis)", children: I2("git-pull-request") }) }),
-      /* @__PURE__ */ u3("div", { class: "merge-card mb-card", children: [
-        p3.draft ? /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
-            /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("git-pull-request-draft", 22) }),
-            /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-              /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
-              /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
-            ] }),
-            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
-          ] }) }),
-          /* @__PURE__ */ u3(ErrLine, { m: p3.errReady })
-        ] }) : "",
-        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, on: on3, children: rvBody }),
-        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, on: on3, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2, on: on3 })) }) : "",
-        p3.behind ? /* @__PURE__ */ u3("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
-          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("alert", 22) }),
-          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-            /* @__PURE__ */ u3("b", { children: "This branch is out-of-date with the base branch" }),
-            /* @__PURE__ */ u3("i", { children: [
-              "Merge the latest changes from ",
-              p3.baseRef,
-              " into this branch."
-            ] })
-          ] }),
-          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
-        ] }) }) : "",
-        /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
-          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
-          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-            /* @__PURE__ */ u3("b", { children: p3.clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved" }),
-            /* @__PURE__ */ u3("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
-          ] })
-        ] }) }),
-        /* @__PURE__ */ u3(ErrLine, { m: p3.errUpdate })
-      ] })
-    ] });
-  }
-  function ReviewerRow({ r: r3, on: on3 }) {
-    const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
-      I2(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")
-    ] }) : I2(r3.st === "approved" ? "check" : r3.st === "changes_requested" ? "file-diff" : r3.st === "req" ? "dot-fill" : "comment");
-    return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
-      /* @__PURE__ */ u3("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
-      /* @__PURE__ */ u3("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
-      /* @__PURE__ */ u3("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
-      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, onClick: (e2) => on3.rerequest(e2, r3.u.login ?? ""), children: I2("sync") }) : ""
-    ] });
-  }
-  function PrSide(p3) {
-    const { on: on3 } = p3, rv = p3.reviewers, more = rv.length - 3;
-    const rvSection = rv.length ? /* @__PURE__ */ u3(S2, { children: [
-      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })),
-      more > 0 ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
-          /* @__PURE__ */ u3("span", { children: [
-            "+",
-            more,
-            " more reviewer",
-            plural(more)
-          ] }),
-          I2(p3.showAll ? "chevron-up" : "chevron-down")
-        ] }),
-        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })) : ""
-      ] }) : ""
-    ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
-    const fb = (k3, n2) => /* @__PURE__ */ u3(SideFold, { k: "sb:" + n2, folded: p3.folded[k3], onFold: on3.fold });
-    const head2 = (k3, t2) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-      fb(k3, t2 === "people" ? "people" : t2),
-      /* @__PURE__ */ u3("span", { children: t2 }),
-      I2("gear", 16, "gear")
-    ] });
-    const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
-    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
-      /* @__PURE__ */ u3("div", { class: box("reviewers"), children: [
-        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-          fb("reviewers", "Reviewers"),
-          /* @__PURE__ */ u3("span", { children: "Reviewers" })
-        ] }),
-        rvSection
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("assignees"), children: [
-        head2("assignees", "Assignees"),
-        p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
-          /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
-          /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
-        ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("labels"), children: [
-        head2("labels", "Labels"),
-        p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("milestone"), children: [
-        head2("milestone", "Milestone"),
-        p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("people"), children: [
-        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-          fb("people", "people"),
-          /* @__PURE__ */ u3("span", { children: [
-            p3.peopleCount,
-            " participant",
-            plural(p3.peopleCount)
-          ] })
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u3("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
-      ] })
-    ] });
-  }
-  function SideFold({ k: k3, folded: folded2, onFold }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e2) => {
-      e2.stopPropagation();
-      onFold(k3, false);
-    }, children: I2(folded2 ? "chevron-right" : "chevron-down") });
-  }
-  function CommitsDialog(p3) {
-    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg cp-dlg", children: [
-      /* @__PURE__ */ u3("div", { class: "cp-h", children: [
-        /* @__PURE__ */ u3("h2", { children: "Select commits to view" }),
-        /* @__PURE__ */ u3("button", { class: "icon-btn", id: "cpx", title: "Close", children: I2("x") })
-      ] }),
-      /* @__PURE__ */ u3("button", { class: `cp-opt${p3.allOn ? " on" : ""}`, id: "cpall", children: [
-        /* @__PURE__ */ u3("b", { children: "All commits" }),
-        /* @__PURE__ */ u3("i", { children: [
-          p3.count,
-          " commit",
-          plural(p3.count)
-        ] })
-      ] }),
-      p3.since ? /* @__PURE__ */ u3("button", { class: `cp-opt${p3.since.on ? " on" : ""}`, id: "cpsince", disabled: !p3.since.n, children: [
-        /* @__PURE__ */ u3("b", { children: "Changes since your last review" }),
-        /* @__PURE__ */ u3("i", { children: p3.since.n ? `${p3.since.n} commit${plural(p3.since.n)}` : "No new commits" })
-      ] }) : "",
-      /* @__PURE__ */ u3("div", { class: "cp-sub", children: "Select a commit, or click a second one to view the range between them" }),
-      /* @__PURE__ */ u3("input", { class: "input cp-q", id: "cpq", placeholder: "Filter commits\u2026", value: p3.filter }),
-      /* @__PURE__ */ u3("div", { class: "cp-list", id: "cplist", "data-q": p3.q, children: p3.rows.map((r3) => /* @__PURE__ */ u3("label", { class: `cp-row${r3.on ? " on" : ""}`, "data-cp": r3.i, children: [
-        /* @__PURE__ */ u3("input", { type: "checkbox", checked: r3.on, tabindex: -1 }),
-        /* @__PURE__ */ u3("span", { class: "cp-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.title }),
-          /* @__PURE__ */ u3("i", { children: [
-            r3.by,
-            " committed ",
-            Raw(r3.when)
-          ] })
-        ] }),
-        /* @__PURE__ */ u3("code", { children: r3.sha })
-      ] })).reverse() }),
-      /* @__PURE__ */ u3("div", { class: "btns", children: [
-        /* @__PURE__ */ u3("span", { class: "cp-sel", children: p3.selLabel }),
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: "btn", id: "cpcancel", children: "Cancel" }),
-        /* @__PURE__ */ u3("button", { class: "btn primary", id: "cpsave", disabled: !p3.hasPick, children: "Save" })
-      ] })
-    ] }) });
-  }
-  var commitsDialogHtml = (p3) => html(/* @__PURE__ */ u3(CommitsDialog, { ...p3 }));
-  function FcBar(p3) {
-    return /* @__PURE__ */ u3("div", { class: "fc-bar", children: [
-      /* @__PURE__ */ u3("button", { class: "btn small", id: "fcbtn", title: "Choose which commits to view", children: [
-        I2("git-commit"),
-        SP,
-        p3.label,
-        p3.count !== null ? /* @__PURE__ */ u3(S2, { children: [
-          SP,
-          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count })
-        ] }) : "",
-        p3.code ? /* @__PURE__ */ u3(S2, { children: [
-          SP,
-          /* @__PURE__ */ u3("code", { children: p3.code })
-        ] }) : "",
-        SP,
-        "\u25BE"
-      ] }),
-      p3.nav ? /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
-        /* @__PURE__ */ u3("button", { "data-fstep": "-1", disabled: p3.nav.prevOff, children: "\u2039 Prev" }),
-        /* @__PURE__ */ u3("button", { "data-fstep": "1", disabled: p3.nav.nextOff, children: "Next \u203A" })
-      ] }) : "",
-      p3.hasRange ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("span", { class: "fc-t", children: p3.title }),
-        /* @__PURE__ */ u3("button", { class: "link-btn", id: "fcall", children: "Show all commits" })
-      ] }) : ""
-    ] });
-  }
-  var fcBarHtml = (p3) => html(/* @__PURE__ */ u3(FcBar, { ...p3 }));
-  var SORTS = [["path", "GitHub order"], ["pathz", "Path Z\u2013A"], ["most", "Most changed"], ["least", "Least changed"], ["comments", "Most comments"], ["status", "By status"]];
-  function FilesBar(p3) {
-    return /* @__PURE__ */ u3("div", { class: "files-bar", children: [
-      /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
-        /* @__PURE__ */ u3("button", { class: p3.mode === "unified" ? "on" : "", "data-dmode": "unified", children: "Unified" }),
-        /* @__PURE__ */ u3("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", children: "Split" })
-      ] }),
-      /* @__PURE__ */ u3("select", { class: "input fsort", id: "fsort", title: "Sort files", children: SORTS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.sort === v2, children: t2 })) }),
-      p3.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", children: [
-        "Finish review \xB7 ",
-        p3.pending,
-        " comment",
-        plural(p3.pending)
-      ] }) : "",
-      /* @__PURE__ */ u3("button", { class: "link-btn", "data-foldall": p3.allFolded ? "open" : "close", "data-files": p3.names, children: p3.allFolded ? "Expand all files" : "Collapse all files" })
-    ] });
-  }
-  var filesBarHtml = (p3) => html(/* @__PURE__ */ u3(FilesBar, { ...p3 }));
-  function FileBox(p3) {
-    return /* @__PURE__ */ u3("div", { class: `file${p3.folded}`, children: [
-      /* @__PURE__ */ u3("div", { class: "file-head", "data-fold": `f:${p3.name}`, children: [
-        /* @__PURE__ */ u3("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
-        /* @__PURE__ */ u3("span", { class: "stat", children: [
-          /* @__PURE__ */ u3("span", { class: "a", children: [
-            "+",
-            p3.add
-          ] }),
-          SP,
-          /* @__PURE__ */ u3("span", { class: "d", children: [
-            "\u2212",
-            p3.del
-          ] })
-        ] }),
-        /* @__PURE__ */ u3("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) }),
-        /* @__PURE__ */ u3("span", { class: "path", children: p3.name })
-      ] }),
-      Raw(p3.body)
-    ] });
-  }
-  var fileBoxHtml = (p3) => html(/* @__PURE__ */ u3(FileBox, { ...p3 }));
-  function CommitsList({ rows }) {
-    return /* @__PURE__ */ u3("div", { style: "border:1px solid var(--borderColor-default);border-radius:6px", children: rows.length ? rows.map((r3) => /* @__PURE__ */ u3("div", { style: "padding:16px;border-bottom:1px solid var(--borderColor-muted)", children: Raw(r3) })) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No commits listed." }) });
-  }
-  var commitsListHtml = (rows) => html(/* @__PURE__ */ u3(CommitsList, { rows }));
-  function CmItem({ c: c3 }) {
-    return /* @__PURE__ */ u3("div", { class: `cm ${c3.on ? "on" : ""}`, "data-sha": c3.sha, children: [
-      /* @__PURE__ */ u3("span", { class: "cm-av", children: c3.avatar ? Raw(c3.avatar) : /* @__PURE__ */ u3("i", { children: c3.initial }) }),
-      /* @__PURE__ */ u3("span", { class: "cm-t", children: [
-        /* @__PURE__ */ u3("b", { children: c3.title }),
-        /* @__PURE__ */ u3("i", { children: c3.sub })
-      ] }),
-      c3.n ? /* @__PURE__ */ u3("span", { class: "cm-n", children: [
-        I2("comment"),
-        c3.n
-      ] }) : "",
-      /* @__PURE__ */ u3("code", { children: c3.sha.slice(0, 7) })
-    ] });
-  }
-  function Rail({ k: k3, label, ic }) {
-    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, children: [
-      I2(ic),
-      /* @__PURE__ */ u3("span", { children: label })
-    ] });
-  }
-  function SplitView(p3) {
-    const left = p3.hl ? /* @__PURE__ */ u3(Rail, { k: "l", label: "Commits", ic: "git-commit" }) : /* @__PURE__ */ u3("section", { class: "pane pane-l", children: [
-      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldList}`, children: [
-        /* @__PURE__ */ u3("div", { class: "pane-h", children: [
-          I2("git-commit"),
-          /* @__PURE__ */ u3("span", { children: "Commits" }),
-          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count }),
-          /* @__PURE__ */ u3("span", { class: "sp" }),
-          /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", children: "\u21C4" }),
-          Raw(p3.foldBtnList),
-          /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "l", title: "Hide this panel", children: I2("x") })
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "cm-list", children: [
-          /* @__PURE__ */ u3("div", { class: `cm all ${p3.allOn ? "on" : ""}`, "data-sha": "", children: [
-            /* @__PURE__ */ u3("span", { class: "cm-av", children: /* @__PURE__ */ u3("i", { children: I2("diff") }) }),
-            /* @__PURE__ */ u3("span", { class: "cm-t", children: [
-              /* @__PURE__ */ u3("b", { children: "All changes" }),
-              /* @__PURE__ */ u3("i", { children: p3.allSub })
-            ] })
-          ] }),
-          p3.rows.map((c3) => /* @__PURE__ */ u3(CmItem, { c: c3 }))
-        ] })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldDiff}`, children: [
-        /* @__PURE__ */ u3("div", { class: "pane-h sub", children: [
-          I2("file-diff"),
-          /* @__PURE__ */ u3("span", { children: p3.subTitle }),
-          /* @__PURE__ */ u3("span", { class: "sp" }),
-          Raw(p3.foldBtnDiff)
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "pane-body", children: Raw(p3.diff) })
-      ] })
-    ] });
-    const right = p3.hr ? /* @__PURE__ */ u3(Rail, { k: "r", label: "Conversation", ic: "comment-discussion" }) : /* @__PURE__ */ u3("section", { class: "pane pane-r", children: [
-      /* @__PURE__ */ u3("div", { class: "pane-h", children: [
-        I2("comment-discussion"),
-        /* @__PURE__ */ u3("span", { children: "Conversation" }),
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", children: "\u21C4" }),
-        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", children: I2("x") })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "pane-body", children: Raw(p3.right) })
-    ] });
-    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
-      left,
-      p3.hl || p3.hr ? "" : /* @__PURE__ */ u3("div", { class: "gutter", id: "gutter", title: "Drag to resize" }),
-      right
-    ] });
-  }
-  var splitViewHtml = (p3) => html(/* @__PURE__ */ u3(SplitView, { ...p3 }));
-
   // src/components/Diff.tsx
   function Sug({ s: s3, on: on3 }) {
     return s3.kind === "note" ? /* @__PURE__ */ u3("div", { class: "sug-row", children: /* @__PURE__ */ u3("span", { class: "sug-note", children: s3.text }) }) : /* @__PURE__ */ u3("div", { class: "sug-row", children: [
@@ -1646,11 +1890,11 @@
       ] })
     ] });
   }
-  var tcHtml = (p3) => html(/* @__PURE__ */ u3(Tc, { ...p3 }));
   function ThreadRow(p3) {
-    return /* @__PURE__ */ u3("tr", { class: "lc-row th-row", children: /* @__PURE__ */ u3("td", { colspan: p3.cols, children: /* @__PURE__ */ u3("div", { class: `thread inl${p3.folded}`, children: [
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("tr", { class: "lc-row th-row", children: /* @__PURE__ */ u3("td", { colspan: p3.cols, children: /* @__PURE__ */ u3("div", { class: `thread inl${p3.folded ? " folded" : ""}`, children: [
       /* @__PURE__ */ u3("div", { class: "thread-head", children: [
-        Raw(p3.foldBtn),
+        /* @__PURE__ */ u3(FoldBtn, { k: p3.k, title: "Hide this thread", def: p3.def, folded: p3.folded, onFold: on3?.fold }),
         /* @__PURE__ */ u3("span", { class: "th-t", children: [
           "Comment on line ",
           /* @__PURE__ */ u3("b", { children: [
@@ -1661,12 +1905,11 @@
         p3.outdated ? /* @__PURE__ */ u3("span", { class: "res out", children: "Outdated" }) : "",
         p3.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : ""
       ] }),
-      p3.cards.map((c3) => Raw(c3)),
-      Raw(p3.reply),
-      p3.act ? /* @__PURE__ */ u3("div", { class: "th-foot", children: /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": p3.act.tid, "data-res": p3.act.res ? "unresolve" : "resolve", children: p3.act.res ? "Unresolve conversation" : "Resolve conversation" }) }) : ""
+      p3.cards.map((c3) => /* @__PURE__ */ u3(Tc, { ...c3, on: on3 })),
+      p3.reply ? /* @__PURE__ */ u3(ReplyBox, { ...p3.reply, on: on3 }) : "",
+      p3.act ? /* @__PURE__ */ u3("div", { class: "th-foot", children: /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": p3.act.tid, "data-res": p3.act.res ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, p3.act.tid, p3.act.res ? "unresolve" : "resolve")), children: p3.act.res ? "Unresolve conversation" : "Resolve conversation" }) }) : ""
     ] }) }) });
   }
-  var threadRowHtml = (p3) => html(/* @__PURE__ */ u3(ThreadRow, { ...p3 }));
   function ReplyBox({ rid, ph, err, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "reply", children: [
       /* @__PURE__ */ u3(DraftBox, { k: `reply-${rid}`, ph, rows: 2 }),
@@ -1674,21 +1917,20 @@
       /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, onClick: on3 && (() => on3.reply(String(rid))), children: "Reply" })
     ] });
   }
-  var replyBoxHtml = (p3) => html(/* @__PURE__ */ u3(ReplyBox, { ...p3 }));
-  var lcCardsHtml = (cards) => html(/* @__PURE__ */ u3(S2, { children: cards.map((c3) => /* @__PURE__ */ u3("div", { class: "lc-card", children: [
+  var LcCards = ({ cards, on: on3 }) => /* @__PURE__ */ u3(S2, { children: cards.map((c3) => /* @__PURE__ */ u3("div", { class: "lc-card", children: [
     /* @__PURE__ */ u3("span", { class: "lc-tag", children: "Pending" }),
-    /* @__PURE__ */ u3("div", { class: "lc-body", children: Raw(c3.body) }),
-    /* @__PURE__ */ u3("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", children: I2("x") })
-  ] })) }));
-  var lcEditHtml = (draftBox2, code) => html(/* @__PURE__ */ u3("div", { class: "lc-edit", children: [
-    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { class: "lc-body", dangerouslySetInnerHTML: { __html: c3.body } }),
+    /* @__PURE__ */ u3("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", onClick: on3 && (() => on3.del(String(c3.id))), children: I2("x") })
+  ] })) });
+  var LcEdit = ({ code, on: on3 }) => /* @__PURE__ */ u3("div", { class: "lc-edit", children: [
+    /* @__PURE__ */ u3(DraftBox, { k: "lc", ph: "Leave a comment on this line", rows: 3 }),
     /* @__PURE__ */ u3("div", { class: "lc-btns", children: [
-      code !== null ? /* @__PURE__ */ u3("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", children: "\xB1 Suggest change" }) : "",
+      code !== null ? /* @__PURE__ */ u3("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", onClick: on3?.suggest, children: "\xB1 Suggest change" }) : "",
       /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small", id: "lccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", children: "Add to review" })
+      /* @__PURE__ */ u3("button", { class: "btn small", id: "lccancel", onClick: on3?.cancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", onClick: on3?.add, children: "Add to review" })
     ] })
-  ] }));
+  ] });
   var Actor = ({ u: u4 }) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
   function ReviewBlock(p3) {
     const { on: on3 } = p3;
@@ -1725,7 +1967,7 @@
     ] });
   }
 
-  // src/app/diff.ts
+  // src/app/diff.tsx
   S.diffMode = localStorage.getItem("diffmode") || "unified";
   S.pending = load("pending", {});
   var pendKey = () => S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
@@ -1761,46 +2003,52 @@
   function threadsFor(path) {
     return (S.bundle?.review_comments || []).filter((c3) => c3.path === path);
   }
-  function lineThreads(path, line, side, cols) {
+  function lineThreads(path, line, side, cols, on3) {
     const all = threadsFor(path);
-    if (!all.length) return "";
+    if (!all.length) return [];
     const roots = all.filter((c3) => !c3.in_reply_to_id && (c3.line ?? c3.original_line) === line && (c3.side || "RIGHT") === side);
-    if (!roots.length) return "";
+    if (!roots.length) return [];
     const res = new Set(S.bundle.resolved_ids || []);
-    const b2 = S.bundle, card = (c3, rootId) => tcHtml({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c3.body_html || esc(c3.body || ""), reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: null, anchorId: false });
+    const b2 = S.bundle, card = (c3, rootId) => ({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c3.body_html || esc(c3.body || ""), reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: null, anchorId: false });
     return roots.map((r3) => {
       const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all.filter((c3) => c3.in_reply_to_id === r3.id)];
-      const act3 = tid && S.hasToken ? { tid, res: isRes } : null;
-      const reply = S.hasToken ? replyBoxHtml({ rid: r3.id, ph: "Write a reply", err: errMsg("reply-" + r3.id) }) : "";
-      return threadRowHtml({ cols, folded: folded("t:" + r3.id, isRes), foldBtn: foldBtn("t:" + r3.id, "Hide this thread", isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply, act: act3 });
-    }).join("");
+      const p3 = { cols, k: "t:" + r3.id, def: isRes, folded: isFolded("t:" + r3.id, isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply: S.hasToken ? { rid: r3.id, ph: "Write a reply", err: errMsg("reply-" + r3.id) } : null, act: tid && S.hasToken ? { tid, res: isRes } : null };
+      return /* @__PURE__ */ u3(ThreadRow, { ...p3, on: on3.conv });
+    });
   }
-  function lineExtras(path, line, side, cols, canComment, text) {
-    const k3 = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c3) => c3.path === path && c3.line === line && c3.side === side);
-    const cards = mine.length ? lcCardsHtml(mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) }))) : "";
-    const open2 = canComment && S.lcOpen === k3 ? lcEditHtml(draftBox("lc", "Leave a comment on this line", 3), side === "RIGHT" && text !== void 0 ? text : null) : "";
-    return th + (cards || open2 ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open2}</div></td></tr>` : "");
+  function lineExtras(path, line, side, cols, canComment, on3, text) {
+    const k3 = lineKey(path, line, side), th = lineThreads(path, line, side, cols, on3), mine = pendList().filter((c3) => c3.path === path && c3.line === line && c3.side === side);
+    const open2 = canComment && S.lcOpen === k3;
+    if (!mine.length && !open2) return th;
+    return [...th, /* @__PURE__ */ u3("tr", { class: "lc-row", children: /* @__PURE__ */ u3("td", { colspan: cols, children: /* @__PURE__ */ u3("div", { class: "lc", children: [
+      mine.length ? /* @__PURE__ */ u3(LcCards, { cards: mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) })), on: on3.lc }) : "",
+      open2 ? /* @__PURE__ */ u3(LcEdit, { code: side === "RIGHT" && text !== void 0 ? text : null, on: on3.lc }) : ""
+    ] }) }) })];
   }
   var diffCache = /* @__PURE__ */ new Map();
-  function diffTable(patch, path, canComment) {
+  function diffTable(patch, path, canComment, on3) {
     const open2 = S.lcOpen && String(S.lcOpen).includes(path);
-    if (open2) return diffTableBuild(patch, path, canComment);
+    if (open2) return diffTableBuild(patch, path, canComment, on3);
     const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
-    if (hit && hit.patch === patch) return hit.html;
-    const html2 = diffTableBuild(patch, path, canComment);
-    diffCache.set(key, { patch, html: html2 });
+    if (hit && hit.patch === patch) return hit.node;
+    const node = diffTableBuild(patch, path, canComment, on3);
+    diffCache.set(key, { patch, node });
     if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
-    return html2;
+    return node;
   }
-  function diffTableBuild(patch, path, canComment) {
-    const rows = parsePatch(patch), plus = (line, side) => canComment ? `<button class="lc-plus" data-lc="${esc(lineKey(path, line, side))}" title="Add a comment on this line">+</button>` : "";
+  var Code = ({ text, path, cls = "", marker }) => /* @__PURE__ */ u3("td", { class: `code${cls}`, "data-marker": marker, dangerouslySetInnerHTML: { __html: codeHtml(text, path) } });
+  function diffTableBuild(patch, path, canComment, on3) {
+    const rows = parsePatch(patch), plus = (line, side) => canComment ? /* @__PURE__ */ u3("button", { class: "lc-plus", "data-lc": lineKey(path, line, side), title: "Add a comment on this line", onClick: on3.plus, children: "+" }) : null;
     const out = [];
     if (S.diffMode === "split") {
       let i3 = 0;
       while (i3 < rows.length) {
         const r3 = rows[i3];
         if (r3.t === "hunk") {
-          out.push(`<tr class="hunk"><td class="num"></td><td class="code" colspan="3">${esc(r3.text)}</td></tr>`);
+          out.push(/* @__PURE__ */ u3("tr", { class: "hunk", children: [
+            /* @__PURE__ */ u3("td", { class: "num" }),
+            /* @__PURE__ */ u3("td", { class: "code", colspan: 3, children: r3.text })
+          ] }));
           i3++;
           continue;
         }
@@ -1809,7 +2057,15 @@
           continue;
         }
         if (r3.t === "ctx") {
-          out.push(`<tr><td class="num">${r3.o}</td><td class="code" data-marker=" ">${codeHtml(r3.text, path)}</td><td class="num">${r3.n}${plus(r3.n, "RIGHT")}</td><td class="code" data-marker=" ">${codeHtml(r3.text, path)}</td></tr>${lineExtras(path, r3.n, "RIGHT", 4, canComment, r3.text)}`);
+          out.push(/* @__PURE__ */ u3("tr", { children: [
+            /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
+            /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " }),
+            /* @__PURE__ */ u3("td", { class: "num", children: [
+              r3.n,
+              plus(r3.n, "RIGHT")
+            ] }),
+            /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " })
+          ] }), ...lineExtras(path, r3.n, "RIGHT", 4, canComment, on3, r3.text));
           i3++;
           continue;
         }
@@ -1818,28 +2074,74 @@
         while (rows[i3] && rows[i3].t === "add") adds.push(rows[i3++]);
         for (let k3 = 0; k3 < Math.max(dels.length, adds.length); k3++) {
           const d3 = dels[k3], a3 = adds[k3];
-          out.push(`<tr><td class="num${d3 ? " del" : " empty"}">${d3 ? d3.o + plus(d3.o, "LEFT") : ""}</td><td class="code${d3 ? " del" : " empty"}" ${d3 ? 'data-marker="-"' : ""}>${d3 ? codeHtml(d3.text, path) : ""}</td><td class="num${a3 ? " add" : " empty"}">${a3 ? a3.n + plus(a3.n, "RIGHT") : ""}</td><td class="code${a3 ? " add" : " empty"}" ${a3 ? 'data-marker="+"' : ""}>${a3 ? codeHtml(a3.text, path) : ""}</td></tr>${d3 ? lineExtras(path, d3.o, "LEFT", 4, canComment) : ""}${a3 ? lineExtras(path, a3.n, "RIGHT", 4, canComment, a3.text) : ""}`);
+          out.push(/* @__PURE__ */ u3("tr", { children: [
+            /* @__PURE__ */ u3("td", { class: `num${d3 ? " del" : " empty"}`, children: d3 ? /* @__PURE__ */ u3(S2, { children: [
+              d3.o,
+              plus(d3.o, "LEFT")
+            ] }) : "" }),
+            d3 ? /* @__PURE__ */ u3(Code, { text: d3.text, path, cls: " del", marker: "-" }) : /* @__PURE__ */ u3("td", { class: "code empty" }),
+            /* @__PURE__ */ u3("td", { class: `num${a3 ? " add" : " empty"}`, children: a3 ? /* @__PURE__ */ u3(S2, { children: [
+              a3.n,
+              plus(a3.n, "RIGHT")
+            ] }) : "" }),
+            a3 ? /* @__PURE__ */ u3(Code, { text: a3.text, path, cls: " add", marker: "+" }) : /* @__PURE__ */ u3("td", { class: "code empty" })
+          ] }), ...d3 ? lineExtras(path, d3.o, "LEFT", 4, canComment, on3) : [], ...a3 ? lineExtras(path, a3.n, "RIGHT", 4, canComment, on3, a3.text) : []);
         }
       }
-      return chunkTables(out, "diff sbs", '<colgroup><col style="width:64px"><col><col style="width:64px"><col></colgroup>');
+      return /* @__PURE__ */ u3("table", { class: "diff sbs", children: [
+        /* @__PURE__ */ u3("colgroup", { children: [
+          /* @__PURE__ */ u3("col", { style: "width:64px" }),
+          /* @__PURE__ */ u3("col", {}),
+          /* @__PURE__ */ u3("col", { style: "width:64px" }),
+          /* @__PURE__ */ u3("col", {})
+        ] }),
+        /* @__PURE__ */ u3("tbody", { children: out })
+      ] });
     }
     for (const r3 of rows) {
-      if (r3.t === "hunk") out.push(`<tr class="hunk"><td class="num">\u2026</td><td class="num">\u2026</td><td class="code">${esc(r3.text)}</td></tr>`);
-      else if (r3.t === "note") out.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(r3.text)}</td></tr>`);
-      else if (r3.t === "add") out.push(`<tr class="add"><td class="num"></td><td class="num">${r3.n}${plus(r3.n, "RIGHT")}</td><td class="code" data-marker="+">${codeHtml(r3.text, path)}</td></tr>${lineExtras(path, r3.n, "RIGHT", 3, canComment, r3.text)}`);
-      else if (r3.t === "del") out.push(`<tr class="del"><td class="num">${r3.o}${plus(r3.o, "LEFT")}</td><td class="num"></td><td class="code" data-marker="-">${codeHtml(r3.text, path)}</td></tr>${lineExtras(path, r3.o, "LEFT", 3, canComment)}`);
-      else out.push(`<tr><td class="num">${r3.o}</td><td class="num">${r3.n}${plus(r3.n, "RIGHT")}</td><td class="code" data-marker=" ">${codeHtml(r3.text, path)}</td></tr>${lineExtras(path, r3.n, "RIGHT", 3, canComment, r3.text)}`);
+      if (r3.t === "hunk") out.push(/* @__PURE__ */ u3("tr", { class: "hunk", children: [
+        /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
+        /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
+        /* @__PURE__ */ u3("td", { class: "code", children: r3.text })
+      ] }));
+      else if (r3.t === "note") out.push(/* @__PURE__ */ u3("tr", { children: [
+        /* @__PURE__ */ u3("td", { class: "num" }),
+        /* @__PURE__ */ u3("td", { class: "num" }),
+        /* @__PURE__ */ u3("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
+      ] }));
+      else if (r3.t === "add") out.push(/* @__PURE__ */ u3("tr", { class: "add", children: [
+        /* @__PURE__ */ u3("td", { class: "num" }),
+        /* @__PURE__ */ u3("td", { class: "num", children: [
+          r3.n,
+          plus(r3.n, "RIGHT")
+        ] }),
+        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: "+" })
+      ] }), ...lineExtras(path, r3.n, "RIGHT", 3, canComment, on3, r3.text));
+      else if (r3.t === "del") out.push(/* @__PURE__ */ u3("tr", { class: "del", children: [
+        /* @__PURE__ */ u3("td", { class: "num", children: [
+          r3.o,
+          plus(r3.o, "LEFT")
+        ] }),
+        /* @__PURE__ */ u3("td", { class: "num" }),
+        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: "-" })
+      ] }), ...lineExtras(path, r3.o, "LEFT", 3, canComment, on3));
+      else out.push(/* @__PURE__ */ u3("tr", { children: [
+        /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
+        /* @__PURE__ */ u3("td", { class: "num", children: [
+          r3.n,
+          plus(r3.n, "RIGHT")
+        ] }),
+        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " })
+      ] }), ...lineExtras(path, r3.n, "RIGHT", 3, canComment, on3, r3.text));
     }
-    return chunkTables(out, "diff", '<colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>');
-  }
-  function chunkTables(out, cls, cols, size = Infinity) {
-    if (out.length <= size) return `<table class="${cls}">${cols}${out.join("")}</table>`;
-    let h3 = "";
-    for (let i3 = 0; i3 < out.length; i3 += size) {
-      const n2 = Math.min(size, out.length - i3);
-      h3 += `<div class="dchunk" style="contain-intrinsic-size:auto ${n2 * 22}px"><table class="${cls}">${cols}${out.slice(i3, i3 + size).join("")}</table></div>`;
-    }
-    return h3;
+    return /* @__PURE__ */ u3("table", { class: "diff", children: [
+      /* @__PURE__ */ u3("colgroup", { children: [
+        /* @__PURE__ */ u3("col", { style: "width:64px" }),
+        /* @__PURE__ */ u3("col", { style: "width:64px" }),
+        /* @__PURE__ */ u3("col", {})
+      ] }),
+      /* @__PURE__ */ u3("tbody", { children: out })
+    ] });
   }
   var sugOf = (c3) => {
     const m2 = (c3.body || "").match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/);
@@ -1880,237 +2182,22 @@
     return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e2.user, verb, url: e2.html_url ?? "", at: whenParts(e2.submitted_at).text, sum, bodyHtml: hasBody ? e2.body_html : "", threads, allRes };
   }
 
-  // src/components/Timeline.tsx
-  function CommitRow({ first, sha, author, url, verification, trailing }) {
-    const unv = verification && !verification.verified;
-    return /* @__PURE__ */ u3("div", { class: "commit-row", children: [
-      author ? /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
-      /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: url || "#", children: first }) }),
-      trailing ? Raw(trailing) : "",
-      /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
-      /* @__PURE__ */ u3("span", { style: "flex:1" }),
-      verification ? /* @__PURE__ */ u3("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
-      /* @__PURE__ */ u3("a", { class: "sha", href: url || "#", children: String(sha).slice(0, 7) })
-    ] });
+  // src/app/fold.ts
+  function foldToggle(e2, k3, def) {
+    e2.stopPropagation();
+    if (e2.target.closest("a")) return;
+    const el = e2.currentTarget, now = !isFolded(k3, def);
+    S.fold[k3] = now;
+    localStorage.setItem("fold", JSON.stringify(S.fold));
+    rerender();
+    if (now) return;
+    const box = el.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane"), main = $(".main");
+    if (!box || !main || !main.contains(box)) return;
+    const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
+    if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
   }
-  var commitRowHtml = (p3) => html(/* @__PURE__ */ u3(CommitRow, { ...p3 }));
-  function RangeBar({ range, from, to, desc, on: on3 }) {
-    const opts = [["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]];
-    return /* @__PURE__ */ u3("div", { class: "date-bar", children: [
-      /* @__PURE__ */ u3("span", { class: "who-l", children: [
-        I2("clock"),
-        "When"
-      ] }),
-      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", onChange: on3?.range, children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
-      range === "custom" ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From", onChange: on3?.from }),
-        /* @__PURE__ */ u3("span", { class: "who-l", children: "to" }),
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To", onChange: on3?.to })
-      ] }) : "",
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", onClick: on3?.sort, children: [
-        I2(desc ? "chevron-down" : "chevron-up"),
-        /* @__PURE__ */ u3("span", { children: desc ? "Newest first" : "Oldest first" })
-      ] })
-    ] });
-  }
-  function WhoBar({ everyone, people, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "who-bar", children: [
-      /* @__PURE__ */ u3("span", { class: "who-l", children: [
-        I2("person"),
-        "Show"
-      ] }),
-      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", onClick: on3?.whoClear, children: "Everyone" }),
-      people.map(({ u: u4, n: n2, on: sel }) => /* @__PURE__ */ u3("button", { class: `who-chip ${sel ? "on" : ""}`, "data-who": u4.login, onClick: on3 && (() => on3.who(u4.login)), title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
-        Av(u4, 18),
-        /* @__PURE__ */ u3("span", { children: u4.login }),
-        /* @__PURE__ */ u3("i", { children: n2 })
-      ] }))
-    ] });
-  }
-  function Bars({ who, range, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      who && /* @__PURE__ */ u3(WhoBar, { ...who, on: on3 }),
-      /* @__PURE__ */ u3(RangeBar, { ...range, on: on3 })
-    ] });
-  }
-  function FoldBar({ onClick }) {
-    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", onClick, children: [
-      I2("chevron-down"),
-      SP,
-      /* @__PURE__ */ u3("span", { children: "Collapse all conversations" })
-    ] }) });
-  }
-  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at).text });
-  var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
-  function CommitRun({ n: n2, first, last, onTab }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", onClick: onTab && (() => onTab("commits")), children: [
-        /* @__PURE__ */ u3("b", { children: [
-          n2,
-          " commits"
-        ] }),
-        SP,
-        /* @__PURE__ */ u3("span", { class: "mono", children: [
-          first,
-          " \u2026 ",
-          last
-        ] }),
-        " \xB7 view in Commits"
-      ] }) }) })
-    ] });
-  }
-  function Committed({ row }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: row })
-    ] });
-  }
-  function Referenced({ actor: a3, at, commit: ci, linked }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body stack", children: [
-        /* @__PURE__ */ u3("div", { class: "row", style: "min-height:32px", children: [
-          actor(a3),
-          SP,
-          /* @__PURE__ */ u3("span", { children: "added a commit that referenced this pull request" }),
-          SP,
-          /* @__PURE__ */ u3(Time, { at })
-        ] }),
-        ci ? /* @__PURE__ */ u3("div", { class: "line2", children: /* @__PURE__ */ u3("div", { class: "commit-row", children: [
-          /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
-          /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: ci.html_url, children: Raw(linked) }) }),
-          /* @__PURE__ */ u3("span", { class: "mono", style: "background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px", children: "\u2026" }),
-          /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
-          /* @__PURE__ */ u3("span", { style: "flex:1" }),
-          /* @__PURE__ */ u3("a", { class: "sha", href: ci.html_url, children: ci.sha.slice(0, 7) })
-        ] }) }) : ""
-      ] })
-    ] });
-  }
-  var referencedHtml = (p3) => html(/* @__PURE__ */ u3(Referenced, { ...p3 }));
-  function MergedRow({ actor: a3, commit, base, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI mergedrow", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge done", children: I2("git-merge") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
-        actor(a3),
-        SP,
-        /* @__PURE__ */ u3("span", { children: [
-          "merged commit ",
-          /* @__PURE__ */ u3("b", { class: "mono", style: "color:var(--fgColor-default);font-size:12px", children: commit }),
-          " into ",
-          /* @__PURE__ */ u3("span", { class: "branch", children: base })
-        ] }),
-        SP,
-        /* @__PURE__ */ u3(Time, { at })
-      ] }) })
-    ] });
-  }
-  function CrossRef(p3) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
-        /* @__PURE__ */ u3("div", { class: "row", children: [
-          actor(p3.actor),
-          SP,
-          /* @__PURE__ */ u3("span", { children: [
-            "mentioned this ",
-            p3.isPr ? "pull request" : "issue"
-          ] }),
-          SP,
-          /* @__PURE__ */ u3(Time, { at: p3.at })
-        ] }),
-        "\n        ",
-        /* @__PURE__ */ u3("div", { class: "ref-card", children: [
-          /* @__PURE__ */ u3("span", { style: `color:var(--fgColor-${p3.open ? "success" : "done"});margin-top:2px`, children: I2(p3.icon) }),
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("a", { class: "t", href: p3.url, style: "color:var(--fgColor-default)", children: p3.title }),
-            /* @__PURE__ */ u3("span", { class: "r", children: [
-              p3.repo,
-              "#",
-              p3.number
-            ] })
-          ] })
-        ] })
-      ] })
-    ] });
-  }
-  function LabelRow({ actor: a3, verb, color, name, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
-        actor(a3),
-        SP,
-        /* @__PURE__ */ u3("span", { children: verb }),
-        SP,
-        /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${color};color:#fff;margin:0`, children: name }),
-        SP,
-        /* @__PURE__ */ u3("span", { children: "label" }),
-        SP,
-        /* @__PURE__ */ u3(Time, { at })
-      ] })
-    ] });
-  }
-  function Simple({ actor: a3, ic, text, kind, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
-        actor(a3),
-        SP,
-        /* @__PURE__ */ u3("span", { children: text }),
-        SP,
-        /* @__PURE__ */ u3(Time, { at })
-      ] }) })
-    ] });
-  }
-  function Checks({ head: head2, summary, headIcon, rows }) {
-    return /* @__PURE__ */ u3("div", { class: "checks", children: [
-      /* @__PURE__ */ u3("div", { class: `ck-head ${head2[0]}`, children: [
-        I2(headIcon, 20),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("b", { children: head2[1] }),
-          /* @__PURE__ */ u3("span", { children: summary })
-        ] })
-      ] }),
-      rows.map((c3) => /* @__PURE__ */ u3("a", { class: `ck-row ${c3.st}`, href: c3.url ? c3.url : void 0, children: [
-        /* @__PURE__ */ u3("span", { class: "ck-i", children: I2(c3.icon) }),
-        /* @__PURE__ */ u3("span", { class: "ck-n", children: [
-          /* @__PURE__ */ u3("b", { children: c3.name }),
-          c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
-          /* @__PURE__ */ u3("i", { children: c3.desc })
-        ] }),
-        /* @__PURE__ */ u3("span", { class: "ck-s", children: c3.status }),
-        /* @__PURE__ */ u3("span", { class: "ck-d", children: c3.dur })
-      ] }))
-    ] });
-  }
-  var checksHtml = (p3) => html(/* @__PURE__ */ u3(Checks, { ...p3 }));
-  function Attention({ items, unres, showUnres, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "attn", children: [
-      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, onClick: on3 && (it.id === "nextun" ? on3.next : it.dataTab ? () => on3.tab(it.dataTab) : void 0), children: [
-        I2(it.ic),
-        /* @__PURE__ */ u3("span", { children: it.text })
-      ] })),
-      showUnres ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", onClick: on3?.unres, children: [
-          I2("comment"),
-          "Unresolved only"
-        ] })
-      ] }) : ""
-    ] });
-  }
-  var attentionHtml = (p3) => html(/* @__PURE__ */ u3(Attention, { ...p3 }));
 
   // src/app/timeline.tsx
-  function commitRow(msg, sha, author, url, verification, trailing = "") {
-    const first = String(msg || "").split("\n")[0];
-    return commitRowHtml({ first, sha, author, url, verification, trailing });
-  }
   function rangeBounds() {
     const H2 = 36e5, now = Date.now(), r3 = S.range;
     if (r3 === "1h") return [now - H2, Infinity];
@@ -2124,7 +2211,7 @@
     return [-Infinity, Infinity];
   }
   function timelineModel(b2) {
-    const p3 = b2.pull, out = [], htm = (h3) => out.push({ t: "html", h: h3 });
+    const p3 = b2.pull, out = [];
     const evUser = (e2) => {
       const u4 = e2.user || e2.actor || e2.author;
       return u4?.login || u4?.name || "";
@@ -2186,8 +2273,7 @@
         case "referenced": {
           const ci = info[e2.commit_id];
           const ml = ci ? ci.message.split("\n")[0] : "";
-          const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
-          htm(referencedHtml({ actor: e2.actor, at: e2.created_at, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
+          out.push({ t: "referenced", p: { actor: e2.actor, at: e2.created_at, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, msg: ml } });
           break;
         }
         case "merged":
@@ -2261,7 +2347,7 @@
   var CK = { pass: ["check-circle-fill", "Passed"], fail: ["x-circle-fill", "Failed"], pending: ["dot-fill", "In progress"], skip: ["circle-slash", "Skipped"] };
   function checksView(b2) {
     const list = (b2.checks || []).map((c3) => ({ ...c3, st: checkState(c3) }));
-    if (!list.length) return '<div class="diff-empty">No checks reported for the latest commit.</div>';
+    if (!list.length) return /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No checks reported for the latest commit." });
     const n2 = (s3) => list.filter((c3) => c3.st === s3).length;
     const rank = { fail: 0, pending: 1, pass: 2, skip: 3 };
     list.sort((x3, y2) => rank[x3.st] - rank[y2.st] || String(x3.name).localeCompare(String(y2.name)));
@@ -2273,7 +2359,7 @@
       return t2 >= 60 ? `${Math.floor(t2 / 60)}m ${t2 % 60}s` : `${t2}s`;
     };
     const rows = list.map((c3) => ({ name: c3.name, st: c3.st, url: c3.url, desc: c3.description || (c3.app ? c3.app : ""), req: (S.bundle?.required_checks || []).includes(c3.name), status: c3.st === "fail" && c3.conclusion && c3.conclusion !== "failure" ? c3.conclusion.replace(/_/g, " ") : CK[c3.st][1], dur: dur(c3), icon: CK[c3.st][0] }));
-    return checksHtml({ head: [head2[0], head2[1]], headIcon: CK[head2[0]][0], summary: [n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 "), rows });
+    return /* @__PURE__ */ u3(Checks, { head: [head2[0], head2[1]], headIcon: CK[head2[0]][0], summary: [n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 "), rows });
   }
   function unresolvedRoots(b2) {
     const res = new Set(b2.resolved_ids || []);
@@ -2306,7 +2392,6 @@
     else if (p3.draft) add("", "git-pull-request-draft", "Draft");
     return { items: it, unres: S.unres, showUnres: roots.length > 0 };
   }
-  var attention = (b2) => attentionHtml(attentionProps(b2));
   function jumpUnresolved() {
     const b2 = S.bundle, list = unresolvedRoots(b2);
     if (!list.length) return;
@@ -2330,8 +2415,8 @@
   }
   function Row({ r: r3, on: on3 }) {
     switch (r3.t) {
-      case "html":
-        return /* @__PURE__ */ u3(Island, { html: r3.h });
+      case "referenced":
+        return /* @__PURE__ */ u3(Referenced, { ...r3.p });
       case "comment":
         return /* @__PURE__ */ u3(CommentBox, { ...r3.p, on: on3?.conv });
       case "review":
@@ -2366,9 +2451,107 @@
       /* @__PURE__ */ u3(Composer, { ...m2.composer, on: on3?.composer })
     ] });
   }
-  var timeline = (b2) => html(/* @__PURE__ */ u3(Timeline, { m: timelineModel(b2) }));
 
-  // src/app/mergebox.ts
+  // src/app/handlers.ts
+  var convOn = {
+    fold: (e2, k3, def) => foldToggle(e2, k3, def),
+    menu: (e2, b2) => cmMenu(e2, b2),
+    react: { toggle: (e2, kind, id, c3) => reactToggle(e2, kind, id, c3), add: (e2, b2) => reactAdd(e2, b2), hover: (kind, id) => {
+      getMine(kind, id);
+    } },
+    thread: (e2, node, how) => {
+      threadAct(e2, node, how);
+    },
+    sug: (e2, id) => applySuggestion(e2, id),
+    reply: (id) => {
+      sendReply(id);
+    }
+  };
+  var diffOn = { conv: convOn, plus: (e2) => lcOpen(e2), lc: { del: (id) => lcDel(id), cancel: () => lcCancel(), suggest: (e2) => lcSuggest(e2), add: () => lcAdd() } };
+  var keep = (fn) => {
+    S.keepScroll = true;
+    fn();
+    render();
+    S.keepScroll = false;
+  };
+  function openTab2(k3) {
+    S.tab = k3;
+    render();
+    document.querySelector(".main").scrollTop = 0;
+  }
+  var filesOn = {
+    commits: () => openCommits(),
+    all: () => setFr(null),
+    step: (n2) => {
+      const cs = commitList(S.bundle), i3 = (S.fr?.a ?? 0) + n2;
+      if (cs[i3]) setFr({ a: i3, b: i3 });
+    },
+    mode: (m2) => setDiffMode(m2),
+    sort: (e2) => {
+      S.fileSort = e2.target.value;
+      rerender();
+    },
+    finish: () => reviewDialog(),
+    foldAll: (allFolded, names) => {
+      names.forEach((n2) => {
+        S.fold["f:" + n2] = !allFolded;
+      });
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+      rerender();
+    },
+    fold: (e2, k3, def) => foldToggle(e2, k3, def)
+  };
+  var attOn = { next: () => jumpUnresolved(), unres: () => keep(() => {
+    S.unres = !S.unres;
+  }), tab: openTab2 };
+  var tlOn = {
+    conv: convOn,
+    bars: {
+      who: (w3) => keep(() => {
+        S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
+      }),
+      whoClear: () => keep(() => {
+        S.who = [];
+      }),
+      range: (e2) => keep(() => {
+        S.range = e2.target.value;
+        if (S.range === "custom" && !S.rFrom && !S.rTo) {
+          const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+          S.rTo = d3(Date.now());
+          S.rFrom = d3(Date.now() - 7 * 864e5);
+        }
+      }),
+      from: (e2) => keep(() => {
+        S.rFrom = e2.target.value;
+      }),
+      to: (e2) => keep(() => {
+        S.rTo = e2.target.value;
+      }),
+      sort: () => keep(() => {
+        S.sort = S.sort === "desc" ? "asc" : "desc";
+        localStorage.setItem("csort", S.sort);
+      })
+    },
+    foldAll: () => foldAllConv(),
+    tab: openTab2,
+    merge: { toggle: (e2, k3) => toggleMb(e2, k3), rerun: (e2) => {
+      rerunChecks(e2);
+    }, update: () => {
+      updateBranch();
+    }, ready: () => {
+      markReady();
+    } },
+    act: { close: () => toggleClosed(), merge: () => doMerge(), noauto: () => {
+      disableAuto();
+    }, auto: () => {
+      enableAuto();
+    }, draft: () => toDraft() },
+    composer: { toggle: () => toggleComposer(), key: (e2) => cbarKey(e2), send: () => {
+      sendComment();
+    }, close: () => toggleClosed() }
+  };
+
+  // src/app/mergebox.tsx
   function mergeModel(b2) {
     const p3 = b2.pull;
     const head2 = p3.head.label.split(":")[1];
@@ -2455,7 +2638,7 @@
   }
   function setFr(r3) {
     S.fr = r3;
-    S.dialog = "";
+    S.dlg = null;
     render();
     loadFr();
   }
@@ -2465,44 +2648,45 @@
     const at = cs.findIndex((c3) => c3.sha === mine[mine.length - 1].commit_id);
     return at < 0 ? null : { at, n: cs.length - 1 - at };
   }
-  function commitsDialog() {
-    const b2 = S.bundle, cs = commitList(b2), pick = S.cpick || S.fr, sr = sinceReview(b2);
+  function commitsDialogProps() {
+    const b2 = S.bundle, cs = commitList(b2), pick = S.cpick || S.fr, sr = sinceReview(b2), q3 = (S.cfilter || "").toLowerCase();
     const on3 = (i3) => !!pick && i3 >= pick.a && i3 <= pick.b;
-    return commitsDialogHtml({
-      rows: cs.map((c3, i3) => ({ i: i3, on: on3(i3), title: String(c3.message).split("\n")[0], by: c3.name || c3.author?.login || "", when: when(c3.date).replace(/<\/?span[^>]*>/g, ""), sha: c3.sha.slice(0, 7) })),
+    return {
+      rows: cs.map((c3, i3) => {
+        const title = String(c3.message).split("\n")[0], by = c3.name || c3.author?.login || "", w3 = when(c3.date).replace(/<\/?span[^>]*>/g, ""), sha = c3.sha.slice(0, 7);
+        return { i: i3, on: on3(i3), title, by, when: w3, sha, hidden: !!q3 && !(title + by + " committed " + w3 + sha).toLowerCase().includes(q3) };
+      }),
       count: cs.length,
       allOn: !S.fr,
       since: sr ? { on: !!S.fr && S.fr.a === sr.at + 1 && S.fr.b === cs.length - 1, n: sr.n } : null,
       filter: S.cfilter || "",
-      q: (S.cfilter || "").toLowerCase(),
       selLabel: pick ? pick.a === pick.b ? "1 commit selected" : `${pick.b - pick.a + 1} commits selected` : "Nothing selected",
       hasPick: !!pick
-    });
+    };
   }
   function openCommits() {
     S.cpick = S.fr ? { ...S.fr } : null;
     S.cfilter = "";
-    S.dialog = commitsDialog();
+    S.dlg = { k: "commits" };
     render();
   }
   function filesView(b2) {
     const cs = commitList(b2), r3 = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = !!r3 && r3.a === r3.b;
     const sh = (i3) => cs[i3].sha.slice(0, 7);
-    const bar = fcBarHtml({
-      label: !r3 ? "All commits" : single ? "Commit" : `${r3.b - r3.a + 1} commits`,
-      count: !r3 ? cs.length : null,
-      code: !r3 ? null : single ? sh(r3.a) : `${sh(r3.a)}\u2026${sh(r3.b)}`,
-      nav: single ? { prevOff: r3.a <= 0, nextOff: r3.a >= cs.length - 1 } : null,
-      title: r3 && single ? String(cs[r3.a].message).split("\n")[0] : "",
-      hasRange: !!r3
-    });
-    if (!r3) return bar + filesList(b2.files, true);
+    const bar = /* @__PURE__ */ u3(FcBar, { label: !r3 ? "All commits" : single ? "Commit" : `${r3.b - r3.a + 1} commits`, count: !r3 ? cs.length : null, code: !r3 ? null : single ? sh(r3.a) : `${sh(r3.a)}\u2026${sh(r3.b)}`, nav: single ? { prevOff: r3.a <= 0, nextOff: r3.a >= cs.length - 1 } : null, title: r3 && single ? String(cs[r3.a].message).split("\n")[0] : "", hasRange: !!r3, on: filesOn });
+    if (!r3) return /* @__PURE__ */ u3(S2, { children: [
+      bar,
+      filesList(b2.files, true)
+    ] });
     const d3 = frDiff(b2);
-    return bar + (d3 === void 0 || d3 === "loading" ? '<div class="diff-empty">Loading\u2026</div>' : typeof d3 === "string" ? `<div class="diff-empty err">${esc(d3)}</div>` : filesList(d3));
+    return /* @__PURE__ */ u3(S2, { children: [
+      bar,
+      d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Loading\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: d3 }) : filesList(d3)
+    ] });
   }
   var b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === "open";
   function filesList(files, canComment = false) {
-    if (!files.length) return '<div class="diff-empty">No files changed.</div>';
+    if (!files.length) return /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No files changed." });
     const pid = S.bundle?.pull?.id;
     const hasC = (f4) => (S.bundle?.review_comments || []).some((c3) => c3.path === f4.filename) || pendList().some((p3) => p3.path === f4.filename);
     if (S.autoFoldFor !== pid) {
@@ -2521,15 +2705,18 @@
     const srtFn = so[srt];
     if (srtFn) files = [...files].sort(srtFn);
     const all = files.every((f4) => S.fold["f:" + f4.filename]);
-    return filesBarHtml({ mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename).join("\n") }) + files.map((f4) => {
-      const t2 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t2 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t2 * 5));
-      const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
-      return fileBoxHtml({ name: f4.filename, folded: folded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, body: !shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>' });
-    }).join("");
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename), on: filesOn }),
+      files.map((f4) => {
+        const t2 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t2 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t2 * 5));
+        const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
+        return /* @__PURE__ */ u3(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, on: filesOn, children: !shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
+      })
+    ] });
   }
   function commitsView(b2) {
     const c3 = b2.timeline.filter((e2) => e2.event === "committed");
-    return commitsListHtml(c3.map((e2) => commitRow(e2.message, e2.sha, e2.author?.avatar_url ? e2.author : null, e2.html_url, e2.verification)));
+    return /* @__PURE__ */ u3(CommitsList, { rows: c3.map((e2) => /* @__PURE__ */ u3(CommitRow, { first: String(e2.message || "").split("\n")[0], sha: e2.sha, author: e2.author?.avatar_url ? e2.author : null, url: e2.html_url, verification: e2.verification, trailing: "" })) });
   }
   function commitList(b2) {
     if (b2.commits && b2.commits.length) return b2.commits.map((c3) => ({ sha: c3.sha, message: c3.commit.message, author: c3.author, name: c3.commit.author?.name, date: c3.commit.author?.date, url: c3.html_url, parent: c3.parents?.[0]?.sha }));
@@ -2539,8 +2726,33 @@
   function flipSides() {
     S.flip = !S.flip;
     localStorage.setItem("flip", S.flip ? "1" : "0");
-    $(".split")?.classList.toggle("flip", S.flip);
+    rerender();
   }
+  var hideSide = (k3, v2) => {
+    S.hide[k3] = v2;
+    localStorage.setItem("hide", JSON.stringify(S.hide));
+    rerender();
+  };
+  function gutterDrag(e2) {
+    e2.preventDefault();
+    const sp = $(".split"), r3 = sp.getBoundingClientRect();
+    const mv = (ev) => {
+      S.lw = Math.max(25, Math.min(75, (S.flip ? r3.right - ev.clientX : ev.clientX - r3.left) / r3.width * 100));
+      sp.style.setProperty("--lw", S.lw + "%");
+    };
+    const up = () => {
+      removeEventListener("mousemove", mv);
+      removeEventListener("mouseup", up);
+      document.body.classList.remove("dragging");
+      localStorage.setItem("lw", String(Math.round(S.lw)));
+    };
+    document.body.classList.add("dragging");
+    addEventListener("mousemove", mv);
+    addEventListener("mouseup", up);
+  }
+  var splitOn = { hide: hideSide, flip: flipSides, pick: (sha) => {
+    selectCommit(sha);
+  }, gutter: gutterDrag, fold: (e2, k3, def) => convOn.fold(e2, k3, def) };
   function splitView(b2) {
     const cs = commitList(b2), sha = S.sel;
     const cnt = (c3) => b2.review_comments.filter((r3) => r3.original_commit_id === c3 || r3.commit_id === c3).length;
@@ -2548,25 +2760,30 @@
     if (!sha) diff = filesList(b2.files, true);
     else {
       const d3 = S.cdiff[sha];
-      diff = d3 === void 0 || d3 === "loading" ? '<div class="diff-empty">Loading commit\u2026</div>' : typeof d3 === "string" ? `<div class="diff-empty err">${esc(d3)}</div>` : filesList(d3);
+      diff = d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Loading commit\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: d3 }) : filesList(d3);
     }
-    return splitViewHtml({
-      hl: !!S.hide.l,
-      hr: !!S.hide.r,
-      flip: !!S.flip,
-      lw: S.lw,
-      allOn: !sha,
-      allSub: `${b2.pull.changed_files} files \xB7 +${b2.pull.additions} \u2212${b2.pull.deletions}`,
-      rows: cs.map((c3) => ({ sha: c3.sha, on: sha === c3.sha, avatar: c3.author ? avatar(c3.author, 24) : "", initial: (c3.name || "?")[0], title: String(c3.message).split("\n")[0], sub: `${c3.name || c3.author?.login || ""} \xB7 ${when(c3.date).replace(/<\/?span[^>]*>/g, "")}`, n: cnt(c3.sha) })),
-      count: cs.length,
-      subTitle: sha ? "Commit " + sha.slice(0, 7) : "All changes",
-      foldList: folded("cm-list"),
-      foldDiff: folded("cm-diff"),
-      foldBtnList: foldBtn("cm-list", "Collapse commit list"),
-      foldBtnDiff: foldBtn("cm-diff", "Collapse changes"),
-      diff,
-      right: attention(b2) + timeline(b2)
-    });
+    return /* @__PURE__ */ u3(
+      SplitView,
+      {
+        hl: !!S.hide.l,
+        hr: !!S.hide.r,
+        flip: !!S.flip,
+        lw: S.lw,
+        allOn: !sha,
+        allSub: `${b2.pull.changed_files} files \xB7 +${b2.pull.additions} \u2212${b2.pull.deletions}`,
+        rows: cs.map((c3) => ({ sha: c3.sha, on: sha === c3.sha, author: c3.author, initial: (c3.name || "?")[0], title: String(c3.message).split("\n")[0], sub: `${c3.name || c3.author?.login || ""} \xB7 ${when(c3.date).replace(/<\/?span[^>]*>/g, "")}`, n: cnt(c3.sha) })),
+        count: cs.length,
+        subTitle: sha ? "Commit " + sha.slice(0, 7) : "All changes",
+        foldList: isFolded("cm-list"),
+        foldDiff: isFolded("cm-diff"),
+        diff,
+        right: /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
+          /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
+        ] }),
+        on: splitOn
+      }
+    );
   }
   async function selectCommit(sha) {
     S.sel = sha || null;
@@ -2581,6 +2798,153 @@
     }
     if (S.sel === sha) render();
   }
+
+  // src/app/token.ts
+  function tokenDialog() {
+    S.oauth = {};
+    S.oauthLive = false;
+    S.dlg = { k: "token" };
+    render();
+  }
+  async function tokenSave() {
+    const v2 = document.getElementById("tokeninput").value;
+    try {
+      await tauri?.invoke("set_token", { token: v2 });
+      S.hasToken = !!v2.trim();
+      S.authChecked = true;
+      if (S.hasToken) {
+        S.gateErr = "";
+        loadRepos();
+      } else {
+        S.repos = null;
+      }
+    } catch (e2) {
+      alert(e2);
+    }
+    S.oauthLive = false;
+    S.dlg = null;
+    render();
+  }
+  async function oauthGo() {
+    const show = (o3) => {
+      S.oauth = o3;
+      if (S.dlg) paintDlg();
+    };
+    S.oauthLive = true;
+    const me = S.oauthRun = (S.oauthRun || 0) + 1;
+    try {
+      const d3 = await tauri.invoke("device_start");
+      show({ code: d3.user_code });
+      tauri.invoke("open_external", { url: d3.verification_uri }).catch(() => {
+      });
+      let wait = (d3.interval || 5) * 1e3;
+      const until = Date.now() + (d3.expires_in || 900) * 1e3;
+      while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
+        await new Promise((r3) => setTimeout(r3, wait));
+        if (!S.oauthLive || S.oauthRun !== me) return;
+        const st = await tauri.invoke("device_poll", { deviceCode: d3.device_code });
+        if (st === "slow_down") wait += 5e3;
+        if (st === "ok") {
+          S.oauthLive = false;
+          S.hasToken = true;
+          S.gateErr = "";
+          S.dlg = null;
+          loadRepos();
+          return;
+        }
+      }
+      throw "The code expired. Start again.";
+    } catch (e2) {
+      S.oauthLive = false;
+      show({ err: String(e2) });
+    }
+  }
+
+  // src/app/dialogs.tsx
+  var paintDlg = () => {
+    const h3 = $("#dlg");
+    if (h3) R(/* @__PURE__ */ u3(Dialogs, {}), h3);
+  };
+  var cpOn = {
+    close: () => closeDlg(),
+    all: () => setFr(null),
+    since: () => {
+      const sr = sinceReview(S.bundle);
+      if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle).length - 1 });
+    },
+    save: () => {
+      if (S.cpick) setFr({ ...S.cpick });
+    },
+    filter: (e2) => {
+      S.cfilter = e2.target.value;
+      paintDlg();
+    },
+    pick: (e2, i3) => {
+      e2.preventDefault();
+      const p3 = S.cpick;
+      S.cpick = !p3 || p3.a !== p3.b ? { a: i3, b: i3 } : { a: Math.min(p3.a, i3), b: Math.max(p3.b, i3) };
+      paintDlg();
+    }
+  };
+  function Dialogs() {
+    const d3 = S.dlg;
+    if (!d3) return null;
+    const close = () => closeDlg(), ok = () => {
+      d3.k !== "commits" && d3.k !== "token" && d3.ok();
+    };
+    switch (d3.k) {
+      case "commits":
+        return /* @__PURE__ */ u3(CommitsDialog, { ...commitsDialogProps(), on: cpOn });
+      case "token":
+        return /* @__PURE__ */ u3(TokenDialog, { code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
+      case "review": {
+        const n2 = pendList().length;
+        return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, onEv: (v2) => {
+          d3.ev = v2;
+          paintDlg();
+        }, err: errMsg("review"), close, ok });
+      }
+      case "editpr":
+        return /* @__PURE__ */ u3(EditPrDialog, { title: d3.title, onTitle: (v2) => {
+          d3.title = v2;
+        }, err: errMsg("editpr"), close, ok });
+      case "confirm":
+        return /* @__PURE__ */ u3(ConfirmDialog, { title: d3.title, text: d3.text, label: d3.label, danger: d3.danger, close, ok });
+      case "editc":
+        return /* @__PURE__ */ u3(EditCommentDialog, { err: errMsg("editc"), close, ok });
+      case "delc":
+        return /* @__PURE__ */ u3(DeleteCommentDialog, { err: errMsg("delc"), close, ok });
+      case "hidec":
+        return /* @__PURE__ */ u3(HideCommentDialog, { reasons: d3.reasons, err: errMsg("hidec"), close, ok });
+    }
+  }
+  function Pops() {
+    const p3 = S.pop;
+    if (!p3) return null;
+    if (p3.k === "cm") return /* @__PURE__ */ u3(CmPop, { ...p3 });
+    if (p3.k === "ctx") return /* @__PURE__ */ u3(CtxPop, { ...p3 });
+    return /* @__PURE__ */ u3(ReactPop, { x: p3.x, y: p3.y, reacts: REACTS, pick: p3.pick });
+  }
+  var popHost = null;
+  var paintPop = () => {
+    if (!popHost) {
+      popHost = document.createElement("div");
+      popHost.id = "pop";
+      popHost.style.display = "contents";
+      document.body.appendChild(popHost);
+    }
+    R(/* @__PURE__ */ u3(Pops, {}), popHost);
+  };
+  function openPop(p3) {
+    S.pop = p3;
+    paintPop();
+  }
+  function closePop() {
+    if (!S.pop) return;
+    S.pop = null;
+    paintPop();
+  }
+  document.addEventListener("click", closePop);
 
   // src/components/Sidebar.tsx
   var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
@@ -3137,16 +3501,9 @@
   function openCtx(el, e2) {
     e2.preventDefault();
     e2.stopPropagation();
-    $(".react-pop")?.remove();
-    const ref = el.dataset.open, pop = document.createElement("div");
-    pop.className = "react-pop cm-pop";
-    pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
-    pop.style.left = Math.min(e2.clientX, innerWidth - 180) + "px";
-    pop.style.top = Math.min(e2.clientY, innerHeight - 120) + "px";
-    pop.onclick = (ev) => {
-      const h3 = ev.target.dataset.h;
-      if (!h3) return;
-      pop.remove();
+    const ref = el.dataset.open;
+    openPop({ k: "ctx", x: Math.min(e2.clientX, innerWidth - 180), y: Math.min(e2.clientY, innerHeight - 120), pick: (h3) => {
+      closePop();
       if (h3 === "new") openFromList(ref, true);
       else if (h3 === "here") openFromList(ref, false);
       else {
@@ -3154,9 +3511,7 @@
         navigator.clipboard?.writeText(m2 ? `https://github.com/${m2[1]}/pull/${m2[2]}` : ref).catch(() => {
         });
       }
-    };
-    document.body.appendChild(pop);
-    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
+    } });
   }
   function rmRecent(e2, ref) {
     e2.stopPropagation();
@@ -3200,45 +3555,6 @@
       const cs = commitList(S.bundle), i3 = (S.fr?.a ?? 0) + Number(el.dataset.fstep);
       if (cs[i3]) setFr({ a: i3, b: i3 });
     }));
-    if ($3(".cp-dlg")) {
-      const close = () => {
-        S.dialog = "";
-        S.cpick = null;
-        render();
-      };
-      $3("#cpx").onclick = close;
-      $3("#cpcancel").onclick = close;
-      $3("#cpall").onclick = () => setFr(null);
-      $3("#dlgbg").addEventListener("mousedown", (e2) => {
-        if (e2.target.id === "dlgbg") close();
-      });
-      $3("#cpsince") && ($3("#cpsince").onclick = () => {
-        const sr = sinceReview(S.bundle);
-        if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle).length - 1 });
-      });
-      $3("#cpsave").onclick = () => {
-        if (S.cpick) setFr({ ...S.cpick });
-      };
-      const filt = () => {
-        const q3 = ($3("#cpq").value || "").toLowerCase();
-        S.cfilter = q3;
-        qa2(".cp-row").forEach((r3) => {
-          r3.hidden = !!q3 && !r3.textContent.toLowerCase().includes(q3);
-        });
-      };
-      $3("#cpq").addEventListener("input", filt);
-      filt();
-      qa2(".cp-row").forEach((row) => row.addEventListener("click", (e2) => {
-        e2.preventDefault();
-        const i3 = Number(row.dataset.cp), p3 = S.cpick;
-        S.cpick = !p3 || p3.a !== p3.b ? { a: i3, b: i3 } : { a: Math.min(p3.a, i3), b: Math.max(p3.b, i3) };
-        const keep5 = $3("#cplist").scrollTop;
-        S.dialog = commitsDialog();
-        render();
-        const l3 = $3("#cplist");
-        if (l3) l3.scrollTop = keep5;
-      }));
-    }
     $3("#fsort")?.addEventListener("change", (e2) => {
       S.fileSort = e2.target.value;
       rerender();
@@ -3492,10 +3808,7 @@
   }
   document.addEventListener("keydown", (e2) => {
     if (!(e2.metaKey || e2.ctrlKey)) {
-      if (e2.key === "Escape" && S.dialog) {
-        S.dialog = "";
-        render();
-      }
+      if (e2.key === "Escape" && S.dlg) closeDlg();
       return;
     }
     if (e2.key === "l") {
@@ -3515,77 +3828,6 @@
       tokenDialog();
     }
   });
-  function tokenDialog() {
-    S.oauthHtml = "";
-    S.oauthLive = false;
-    S.dialog = "__TOKDLG__";
-    render();
-  }
-  var tokDlgHtml = () => `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO \u2192 Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo">Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">${S.oauthHtml || ""}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Pullscope">Create a classic token (repo scope preselected) \u2197</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_\u2026" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
-  function bindTokenDialog() {
-    if (!$("#tokeninput")) return;
-    $("#tokcancel").onclick = () => {
-      S.oauthLive = false;
-      S.dialog = "";
-      render();
-    };
-    $("#toksave").onclick = async () => {
-      const v2 = $("#tokeninput").value;
-      try {
-        await tauri?.invoke("set_token", { token: v2 });
-        S.hasToken = !!v2.trim();
-        S.authChecked = true;
-        if (S.hasToken) {
-          S.gateErr = "";
-          loadRepos();
-        } else {
-          S.repos = null;
-        }
-      } catch (e2) {
-        alert(e2);
-      }
-      S.oauthLive = false;
-      S.dialog = "";
-      render();
-    };
-    $("#oauthgo").onclick = async () => {
-      const show = (h3) => {
-        S.oauthHtml = h3;
-        if (S.dialog) {
-          render();
-        }
-      };
-      $("#oauthgo").disabled = true;
-      S.oauthLive = true;
-      const me = S.oauthRun = (S.oauthRun || 0) + 1;
-      try {
-        const d3 = await tauri.invoke("device_start");
-        show(`<div class="oauth-code"><span>Enter this code on GitHub</span><b>${esc(d3.user_code)}</b><small>Waiting for approval\u2026</small></div>`);
-        tauri.invoke("open_external", { url: d3.verification_uri }).catch(() => {
-        });
-        let wait = (d3.interval || 5) * 1e3;
-        const until = Date.now() + (d3.expires_in || 900) * 1e3;
-        while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
-          await new Promise((r3) => setTimeout(r3, wait));
-          if (!S.oauthLive || S.oauthRun !== me) return;
-          const st = await tauri.invoke("device_poll", { deviceCode: d3.device_code });
-          if (st === "slow_down") wait += 5e3;
-          if (st === "ok") {
-            S.oauthLive = false;
-            S.hasToken = true;
-            S.gateErr = "";
-            S.dialog = "";
-            loadRepos();
-            return;
-          }
-        }
-        throw "The code expired. Start again.";
-      } catch (e2) {
-        S.oauthLive = false;
-        show(`<div class="err" style="margin:8px 0">${esc(String(e2))}</div>`);
-      }
-    };
-  }
 
   // src/app/bindwrite.ts
   function homeProps() {
@@ -4077,7 +4319,7 @@
       /* @__PURE__ */ u3(PrListPage, { p: prListProps(), on: prl })
     ] });
   }
-  var keep = (fn) => {
+  var keep2 = (fn) => {
     S.keepScroll = true;
     fn();
     render();
@@ -4086,28 +4328,28 @@
   var notes = {
     ...open,
     check: () => pollNotes(),
-    readAll: () => keep(() => {
+    readAll: () => keep2(() => {
       S.notes.forEach((n2) => n2.read = true);
       saveNotes();
     }),
-    clear: () => keep(() => {
+    clear: () => keep2(() => {
       S.notes = [];
       saveNotes();
     }),
-    filter: (f4) => keep(() => {
+    filter: (f4) => keep2(() => {
       S.nf = f4;
     }),
     read: (e2, id) => {
       e2.stopPropagation();
       const n2 = S.notes.find((x3) => String(x3.id) === String(id));
-      if (n2) keep(() => {
+      if (n2) keep2(() => {
         n2.read = !n2.read;
         saveNotes();
       });
     },
     del: (e2, id) => {
       e2.stopPropagation();
-      keep(() => {
+      keep2(() => {
         S.notes = S.notes.filter((x3) => String(x3.id) !== String(id));
         saveNotes();
       });
@@ -4249,48 +4491,23 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] });
   }
 
-  // src/app/fold.ts
-  function foldToggle(e2, k3, def) {
-    e2.stopPropagation();
-    if (e2.target.closest("a")) return;
-    const el = e2.currentTarget, now = !isFolded(k3, def);
-    S.fold[k3] = now;
-    localStorage.setItem("fold", JSON.stringify(S.fold));
-    rerender();
-    if (now) return;
-    const box = el.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane"), main = $(".main");
-    if (!box || !main || !main.contains(box)) return;
-    const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
-    if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
-  }
-
   // src/app/pr.tsx
-  var keep2 = (fn) => {
-    S.keepScroll = true;
-    fn();
-    render();
-    S.keepScroll = false;
-  };
-  var hide = (k3, v2) => keep2(() => {
+  var hide = (k3, v2) => keep(() => {
     S.hide[k3] = v2;
     localStorage.setItem("hide", JSON.stringify(S.hide));
   });
   var head = {
-    tab: (k3) => {
-      S.tab = k3;
-      render();
-      document.querySelector(".main").scrollTop = 0;
-    },
+    tab: openTab2,
     edit: editPrDialog,
     copy: () => {
       navigator.clipboard?.writeText(S.bundle.pull.head.ref);
     },
     review: reviewDialog,
-    side: () => keep2(() => {
+    side: () => keep(() => {
       S.hide.side = !S.hide.side;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     }),
-    split: () => keep2(() => {
+    split: () => keep(() => {
       S.split = !S.split;
       localStorage.setItem("split", S.split ? "1" : "0");
     })
@@ -4307,42 +4524,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     },
     rerequest: rerequestReview
   };
-  var tlOn = {
-    conv: { fold: foldToggle, menu: cmMenu, react: { toggle: reactToggle, add: reactAdd, hover: (kind, id) => {
-      getMine(kind, id);
-    } }, thread: threadAct, sug: applySuggestion, reply: sendReply },
-    bars: {
-      who: (w3) => keep2(() => {
-        S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
-      }),
-      whoClear: () => keep2(() => {
-        S.who = [];
-      }),
-      range: (e2) => keep2(() => {
-        S.range = e2.target.value;
-        if (S.range === "custom" && !S.rFrom && !S.rTo) {
-          const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-          S.rTo = d3(Date.now());
-          S.rFrom = d3(Date.now() - 7 * 864e5);
-        }
-      }),
-      from: (e2) => keep2(() => {
-        S.rFrom = e2.target.value;
-      }),
-      to: (e2) => keep2(() => {
-        S.rTo = e2.target.value;
-      }),
-      sort: () => keep2(() => {
-        S.sort = S.sort === "desc" ? "asc" : "desc";
-        localStorage.setItem("csort", S.sort);
-      })
-    },
-    foldAll: foldAllConv,
-    tab: head.tab,
-    merge: { toggle: toggleMb, rerun: rerunChecks, update: updateBranch, ready: markReady },
-    act: { close: toggleClosed, merge: doMerge, noauto: disableAuto, auto: enableAuto, draft: toDraft },
-    composer: { toggle: toggleComposer, key: cbarKey, send: sendComment, close: toggleClosed }
-  };
   function Header() {
     const p3 = S.bundle.pull, r3 = p3.base.repo;
     const extra = /* @__PURE__ */ u3(S2, { children: [
@@ -4356,15 +4537,13 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   }
   function PrView() {
     const b2 = S.bundle;
-    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: /* @__PURE__ */ u3(Island, { html: splitView(b2) }) });
-    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : "";
+    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: splitView(b2) });
+    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : null;
     const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
     return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u3("div", { class: "rail", children: /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: { next: jumpUnresolved, unres: () => keep2(() => {
-        S.unres = !S.unres;
-      }), tab: head.tab } }),
+      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
       /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
-    ] }) : /* @__PURE__ */ u3(Island, { html: body }), side, on: { show: () => hide("side", false) } });
+    ] }) : body, side, on: { show: () => hide("side", false) } });
   }
 
   // src/components/TabStrip.tsx
@@ -4899,18 +5078,18 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       S.eds = [];
       S.lastHtml = "";
       clearTop(top);
-      rest.innerHTML = `${gateHtml()}${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}`;
+      rest.innerHTML = `${gateHtml()}<div id="dlg" style="display:contents"></div>`;
+      paintDlg();
       $("#gatego")?.addEventListener("click", () => {
         tokenDialog();
         setTimeout(() => $("#oauthgo")?.click(), 50);
       });
       $("#gatetok")?.addEventListener("click", tokenDialog);
-      bindTokenDialog();
       return;
     }
     paintTop(top);
     const side = $("#side"), live = liveView();
-    const html2 = `<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? "" : page()}</div></div></div>${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}${notePanel()}`;
+    const html2 = `<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? "" : page()}</div></div></div><div id="dlg" style="display:contents"></div>${notePanel()}`;
     const scroll = $(".main")?.scrollTop || 0;
     const viewKey = () => `${S.bundle?.pull?.id ?? ""}|${S.tab}|${$("#page > *")?.className ?? ""}`, before = viewKey();
     const same = () => viewKey() === before;
@@ -4934,6 +5113,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       if (side) paintSide(side);
       const pg = $("#page");
       if (live && pg) paintPage(pg, live);
+      paintDlg();
       return;
     }
     (S.eds || []).forEach((e2) => e2.destroy());
@@ -4942,6 +5122,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     S.lastHtml = key;
     paintSide($("#side"));
     if (live) paintPage($("#page"), live);
+    paintDlg();
     qa(".sb-list").forEach((e2) => {
       const m2 = inner.find(([k3]) => k3 === e2.parentElement.className + e2.className);
       if (m2) e2.scrollTop = m2[1];
@@ -4958,7 +5139,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       });
     }
     bind();
-    bindTokenDialog();
     if (S.fadeMain) {
       S.fadeMain = false;
       $(".main")?.classList.add("tab-in");
@@ -5474,8 +5654,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
   var prRef = () => ({ repo: S.bundle.pull.base.repo.full_name, number: S.bundle.pull.number });
-  var draftBox = (key, ph, rows = 4) => draftBoxHtml(key, ph, rows);
-  var errLine = (k3) => S.actErr && S.actErr.k === k3 ? errLineHtml(S.actErr.m) : "";
   var errMsg = (k3) => S.actErr && S.actErr.k === k3 ? S.actErr.m : "";
   function composerProps(b2) {
     const p3 = b2.pull, closed = p3.state === "closed", busy = S.busy === "comment";
@@ -5489,43 +5667,42 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     const cur = am ? { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" }[am.merge_method] || "merge" : "merge";
     return { draft: !!p3.draft, err: errMsg("merge"), method: cur, busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errMsg("automerge") };
   }
-  function reviewDialog() {
-    S.dialog = reviewDialogHtml(draftBox("review", pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", 5));
+  function closeDlg() {
+    const d3 = S.dlg;
+    if (!d3) return;
+    if (d3.k === "editpr") delete S.draft.prbody;
+    else if (d3.k === "editc") delete S.draft.editc;
+    else if (d3.k === "commits") S.cpick = null;
+    else if (d3.k === "token") S.oauthLive = false;
+    S.dlg = null;
     render();
-    $("#revcancel").onclick = () => {
-      S.dialog = "";
-      render();
-    };
-    $("#revsubmit").onclick = async () => {
-      const ev = $("input[name=rev]:checked").value;
+  }
+  function reviewDialog() {
+    S.dlg = { k: "review", ev: "COMMENT", ok: async () => {
+      const ev = S.dlg.ev;
       const lines = pendList().map(({ path, line, side, body }) => ({ path, line, side, body }));
       const r3 = await act("review", { body: S.draft.review || "", event: ev, extra: lines }, "review", true);
       if (r3 === void 0) return;
       delete S.draft.review;
       delete S.pending[pendKey()];
       savePending();
-      S.dialog = "";
+      S.dlg = null;
       await refreshPr();
-    };
+    } };
+    render();
   }
   function editPrDialog() {
     const p3 = S.bundle.pull;
     S.draft.prbody = p3.body || "";
-    S.dialog = editPrDialogHtml(p3.title, draftBox("prbody", "Describe your changes", 8), errLine("editpr"));
-    render();
-    $("#epcancel").onclick = () => {
-      delete S.draft.prbody;
-      S.dialog = "";
-      render();
-    };
-    $("#epsave").onclick = async () => {
-      const title = $("#eptitle").value;
+    S.dlg = { k: "editpr", title: p3.title, ok: async () => {
+      const title = S.dlg.title;
       const r3 = await act("edit", { body: S.draft.prbody ?? "", extra: { title } }, "editpr", true);
       if (r3 === void 0) return;
       delete S.draft.prbody;
-      S.dialog = "";
+      S.dlg = null;
       await refreshPr();
-    };
+    } };
+    render();
   }
   function addPreview(host, key) {
     const tabs = document.createElement("div");
@@ -5569,17 +5746,12 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     });
   }
   function confirmDlg(title, text, label, danger, fn) {
-    S.dialog = confirmDlgHtml(title, text, label, danger);
-    render();
-    $("#cfcancel").onclick = () => {
-      S.dialog = "";
-      render();
-    };
-    $("#cfok").onclick = async () => {
-      S.dialog = "";
+    S.dlg = { k: "confirm", title, text, label, danger, ok: async () => {
+      S.dlg = null;
       render();
       await fn();
-    };
+    } };
+    render();
   }
   document.addEventListener("click", (e2) => {
     S.lastBtn = e2.target.closest?.("button") || null;
@@ -5636,8 +5808,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     S.actErr = null;
     if (!tauri) {
       S.actErr = { k: key, m: "Writing needs the desktop app." };
-      if (inDialog) $("#reverr").innerHTML = `<div class="act-err">${S.actErr.m}</div>`;
-      else render();
+      render();
       return void 0;
     }
     S.busy = key;
@@ -5650,10 +5821,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     } catch (e2) {
       S.busy = "";
       S.actErr = { k: key, m: String(e2).replace(/^Error: /, "") };
-      if (inDialog) {
-        const el = $("#reverr");
-        if (el) el.innerHTML = `<div class="act-err">${esc(S.actErr.m)}</div>`;
-      } else render();
+      render();
       return void 0;
     }
   }
@@ -5665,51 +5833,35 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   };
   function editCommentDialog(c3, kind) {
     S.draft.editc = c3.body || "";
-    S.dialog = editCommentDialogHtml(draftBox("editc", "Edit your comment", 6), errLine("editc"));
-    render();
-    $("#eccancel").onclick = () => {
-      delete S.draft.editc;
-      S.dialog = "";
-      render();
-    };
-    $("#ecsave").onclick = async () => {
+    S.dlg = { k: "editc", ok: async () => {
       const r3 = await act("edit_comment", { id: c3.id, kind, body: S.draft.editc ?? "" }, "editc", true);
       if (r3 === void 0) return;
       delete S.draft.editc;
-      S.dialog = "";
+      S.dlg = null;
       await refreshPr(c3.id);
-    };
+    } };
+    render();
   }
   function deleteCommentDialog(c3, kind) {
-    S.dialog = deleteCommentDialogHtml(errLine("delc"));
-    render();
-    $("#dccancel").onclick = () => {
-      S.dialog = "";
-      render();
-    };
-    $("#dcdo").onclick = async () => {
+    S.dlg = { k: "delc", ok: async () => {
       const r3 = await act("delete_comment", { id: c3.id, kind }, "delc", true);
       if (r3 === void 0) return;
-      S.dialog = "";
+      S.dlg = null;
       await refreshPr();
-    };
+    } };
+    render();
   }
   function hideCommentDialog(c3) {
     const reasons = [["SPAM", "Spam"], ["ABUSE", "Abuse"], ["OFF_TOPIC", "Off-topic"], ["OUTDATED", "Outdated"], ["DUPLICATE", "Duplicate"], ["RESOLVED", "Resolved"]];
-    S.dialog = hideCommentDialogHtml(reasons, errLine("hidec"));
-    render();
-    $("#hccancel").onclick = () => {
-      S.dialog = "";
-      render();
-    };
-    $("#hcdo").onclick = async () => {
+    S.dlg = { k: "hidec", reasons, ok: async () => {
       const r3 = await act("minimize", { body: c3.node_id || "", content: $("#hcreason").value }, "hidec", true);
       if (r3 === void 0) return;
       S.fold["c:" + c3.id] = true;
       localStorage.setItem("fold", JSON.stringify(S.fold));
-      S.dialog = "";
+      S.dlg = null;
       await refreshPr();
-    };
+    } };
+    render();
   }
   function cmAction(id, root, how) {
     const b2 = S.bundle, c3 = [...b2.timeline, ...b2.review_comments].find((x3) => String(x3.id) === String(id)) || (String(b2.pull.id) === String(id) ? b2.pull : null);
@@ -5863,42 +6015,21 @@ ${q3}
   }
   function cmMenu(e2, btn) {
     e2.stopPropagation();
-    $(".react-pop")?.remove();
-    const pop = document.createElement("div");
-    pop.className = "react-pop cm-pop";
     const bb = S.bundle, cc = String(bb.pull.id) === String(btn.dataset.cm) ? bb.pull : [...bb.timeline, ...bb.review_comments].find((x3) => String(x3.id) === String(btn.dataset.cm));
     const isPr = cc === bb.pull, own = !!S.me && (cc?.user || cc?.actor)?.login === S.me;
-    pop.innerHTML = cmPopHtml(own || !isPr && S.hasToken, own, !isPr && S.hasToken, own && !isPr);
-    const r3 = btn.getBoundingClientRect();
-    pop.style.left = Math.min(r3.left - 100, innerWidth - 180) + "px";
-    pop.style.top = r3.bottom + 4 + "px";
-    pop.onclick = (ev) => {
-      const h3 = ev.target.dataset.h;
-      if (h3) {
-        pop.remove();
-        cmAction(+btn.dataset.cm, btn.dataset.root, h3);
-      }
-    };
-    document.body.appendChild(pop);
-    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
+    const r3 = btn.getBoundingClientRect(), id = +btn.dataset.cm, root = btn.dataset.root;
+    openPop({ k: "cm", x: Math.min(r3.left - 100, innerWidth - 180), y: r3.bottom + 4, hr: own || !isPr && !!S.hasToken, edit: own, hide: !isPr && !!S.hasToken, del: own && !isPr, pick: (h3) => {
+      closePop();
+      cmAction(id, root, h3);
+    } });
   }
   function reactAdd(e2, btn) {
     e2.stopPropagation();
-    $(".react-pop")?.remove();
-    const pop = document.createElement("div");
-    pop.className = "react-pop";
-    pop.innerHTML = reactPopHtml(REACTS);
-    const r3 = btn.getBoundingClientRect();
-    pop.style.left = Math.min(r3.left, innerWidth - 300) + "px";
-    pop.style.top = Math.min(r3.bottom + 4, innerHeight - 60) + "px";
-    document.body.appendChild(pop);
-    pop.addEventListener("click", (ev) => {
-      const c3 = ev.target.closest("[data-c]")?.dataset.c;
-      if (!c3) return;
-      pop.remove();
-      toggleReact(btn.dataset.rk, btn.dataset.rid, c3);
-    });
-    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }), 0);
+    const r3 = btn.getBoundingClientRect(), kind = btn.dataset.rk, id = btn.dataset.rid;
+    openPop({ k: "react", x: Math.min(r3.left, innerWidth - 300), y: Math.min(r3.bottom + 4, innerHeight - 60), pick: (c3) => {
+      closePop();
+      toggleReact(kind, id, c3);
+    } });
   }
   function reactToggle(e2, kind, id, c3) {
     e2.stopPropagation();
@@ -5945,6 +6076,49 @@ ${q3}
     delete S.draft["reply-" + id];
     if (!addLocal("reply", r3, +id)) await refreshPr(r3.id);
   }
+  function setDiffMode(m2) {
+    S.diffMode = m2;
+    localStorage.setItem("diffmode", m2);
+    rerender();
+  }
+  function lcOpen(e2) {
+    e2.stopPropagation();
+    S.lcOpen = e2.currentTarget.dataset.lc;
+    rerender();
+    setTimeout(() => S.eds?.at(-1)?.focus?.(), 200);
+  }
+  function lcCancel() {
+    S.lcOpen = "";
+    delete S.draft.lc;
+    saveDrafts();
+    rerender();
+  }
+  function lcSuggest(ev) {
+    const cur = (S.draft.lc || "").trimEnd();
+    S.draft.lc = `${cur}${cur ? "\n\n" : ""}\`\`\`suggestion
+${ev.currentTarget.dataset.code}
+\`\`\`
+`;
+    saveDrafts();
+    rerender();
+    setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
+  }
+  function lcAdd() {
+    const body = (S.draft.lc || "").trim();
+    if (!body || !S.lcOpen) return;
+    const [path, side, line] = S.lcOpen.split("");
+    (S.pending[pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body });
+    savePending();
+    S.lcOpen = "";
+    delete S.draft.lc;
+    saveDrafts();
+    rerender();
+  }
+  function lcDel(id) {
+    S.pending[pendKey()] = pendList().filter((c3) => String(c3.id) !== id);
+    savePending();
+    rerender();
+  }
   var rerender = () => {
     S.keepScroll = true;
     render();
@@ -5984,61 +6158,12 @@ ${q3}
     qa2("[data-rerequest]").forEach((b2) => b2.addEventListener("click", (e2) => rerequestReview(e2, b2.dataset.rerequest)));
     qa2("[data-thread]").forEach((btn) => btn.addEventListener("click", (e2) => threadAct(e2, btn.dataset.thread, btn.dataset.res)));
     qa2("[data-sug]").forEach((btn) => btn.addEventListener("click", (e2) => applySuggestion(e2, btn.dataset.sug)));
-    qa2("[data-dmode]").forEach((b2) => b2.addEventListener("click", () => {
-      S.diffMode = b2.dataset.dmode;
-      localStorage.setItem("diffmode", S.diffMode);
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }));
-    qa2("[data-lc]").forEach((b2) => b2.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      S.lcOpen = b2.dataset.lc;
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-      setTimeout(() => S.eds?.at(-1)?.focus?.(), 200);
-    }));
-    $3("#lccancel")?.addEventListener("click", () => {
-      S.lcOpen = "";
-      delete S.draft.lc;
-      saveDrafts();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    });
-    $3("#lcsuggest")?.addEventListener("click", (ev) => {
-      const cur = (S.draft.lc || "").trimEnd();
-      S.draft.lc = `${cur}${cur ? "\n\n" : ""}\`\`\`suggestion
-${ev.currentTarget.dataset.code}
-\`\`\`
-`;
-      saveDrafts();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-      setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
-    });
-    $3("#lcadd")?.addEventListener("click", () => {
-      const body = (S.draft.lc || "").trim();
-      if (!body || !S.lcOpen) return;
-      const [path, side, line] = S.lcOpen.split("");
-      (S.pending[pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body });
-      savePending();
-      S.lcOpen = "";
-      delete S.draft.lc;
-      saveDrafts();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    });
-    qa2("[data-lcdel]").forEach((b2) => b2.addEventListener("click", () => {
-      S.pending[pendKey()] = pendList().filter((c3) => String(c3.id) !== b2.dataset.lcdel);
-      savePending();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }));
+    qa2("[data-dmode]").forEach((b2) => b2.addEventListener("click", () => setDiffMode(b2.dataset.dmode)));
+    qa2("[data-lc]").forEach((b2) => b2.addEventListener("click", lcOpen));
+    $3("#lccancel")?.addEventListener("click", lcCancel);
+    $3("#lcsuggest")?.addEventListener("click", lcSuggest);
+    $3("#lcadd")?.addEventListener("click", lcAdd);
+    qa2("[data-lcdel]").forEach((b2) => b2.addEventListener("click", () => lcDel(b2.dataset.lcdel)));
     $3("#finishrev")?.addEventListener("click", reviewDialog);
     $3("#cbar")?.addEventListener("click", toggleComposer);
     $3("#cbar")?.addEventListener("keydown", cbarKey);

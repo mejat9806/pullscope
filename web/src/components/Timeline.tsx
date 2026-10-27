@@ -42,11 +42,12 @@ export function Committed({ row }: { row: ComponentChildren }) {
   return <div class="TLI"><div class="TLI-badge">{I('git-commit')}</div><div class="TLI-body">{row}</div></div>;
 }
 
-export interface ReferencedProps { actor: Person | null | undefined; at: string; commit: { author?: Person | null; html_url: string; sha: string } | null; linked: string }
-export function Referenced({ actor: a, at, commit: ci, linked }: ReferencedProps) {
-  return <div class="TLI"><div class="TLI-badge">{I('cross-reference')}</div><div class="TLI-body stack"><div class="row" style="min-height:32px">{actor(a)}{SP}<span>added a commit that referenced this pull request</span>{SP}<Time at={at} /></div>{ci ? <div class="line2"><div class="commit-row"><span class="TLI-avatar" style="margin:0 8px 0 0">{Av(ci.author || a, 20)}</span><span class="msg" style="flex:0 1 auto"><a href={ci.html_url}>{Raw(linked)}</a></span><span class="mono" style="background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px">…</span><span class="cm-ic">{I('comment')}</span><span style="flex:1"></span><a class="sha" href={ci.html_url}>{ci.sha.slice(0, 7)}</a></div></div> : ''}</div></div>;
+export interface ReferencedProps { actor: Person | null | undefined; at: string; commit: { author?: Person | null; html_url: string; sha: string } | null; msg: string }
+// An issue reference in the commit message becomes its own link: the text before and after it stay links to the commit.
+const Linked = ({ msg, url }: { msg: string; url: string }) => { const m = msg.match(/^([\s\S]*?)#(\d+)([\s\S]*)$/); return m ? <><a href={url}>{m[1]}</a><a href="#" style="color:var(--fgColor-accent)">#{m[2]}</a><a href="#">{m[3]}</a></> : <a href={url}>{msg}</a>; };
+export function Referenced({ actor: a, at, commit: ci, msg }: ReferencedProps) {
+  return <div class="TLI"><div class="TLI-badge">{I('cross-reference')}</div><div class="TLI-body stack"><div class="row" style="min-height:32px">{actor(a)}{SP}<span>added a commit that referenced this pull request</span>{SP}<Time at={at} /></div>{ci ? <div class="line2"><div class="commit-row"><span class="TLI-avatar" style="margin:0 8px 0 0">{Av(ci.author || a, 20)}</span><span class="msg" style="flex:0 1 auto"><Linked msg={msg} url={ci.html_url} /></span><span class="mono" style="background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px">…</span><span class="cm-ic">{I('comment')}</span><span style="flex:1"></span><a class="sha" href={ci.html_url}>{ci.sha.slice(0, 7)}</a></div></div> : ''}</div></div>;
 }
-export const referencedHtml = (p: ReferencedProps) => html(<Referenced {...p} />);
 
 export function MergedRow({ actor: a, commit, base, at }: { actor: Person | null | undefined; commit: string; base: string; at: string }) {
   return <div class="TLI mergedrow"><div class="TLI-badge done">{I('git-merge')}</div><div class="TLI-avatar">{Av(a, 20)}</div><div class="TLI-body"><div class="row">{actor(a)}{SP}<span>merged commit <b class="mono" style="color:var(--fgColor-default);font-size:12px">{commit}</b> into <span class="branch">{base}</span></span>{SP}<Time at={at} /></div></div></div>;

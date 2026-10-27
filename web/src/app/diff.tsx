@@ -1,10 +1,13 @@
 import type { Bundle, PendingComment, ReviewComment, TimelineEvent } from '../types';
-import { draftBox, errMsg } from './actions';
-import { foldBtn, folded, hunkRows, isFolded, reactionProps } from './comments';
+import type { VNode } from 'preact';
+import { errMsg } from './actions';
+import { hunkRows, isFolded, reactionProps } from './comments';
 import { S, esc, load, whenParts } from './core';
 import { b0open } from './mergebox';
-import { lcCardsHtml, lcEditHtml, replyBoxHtml, reviewBlockHtml, tcHtml, threadRowHtml } from '../components/Diff';
-import type { ReviewBlockProps, SugProps, TcProps } from '../components/Diff';
+import { LcCards, LcEdit, ReviewBlock, ThreadRow } from '../components/Diff';
+import type { LcHandlers, ReviewBlockProps, SugProps, TcProps, ThreadRowProps } from '../components/Diff';
+import type { ConvHandlers } from '../components/Comments';
+import { html } from '../components/html';
 
 // ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
 S.diffMode = localStorage.getItem('diffmode') || 'unified';
@@ -41,79 +44,72 @@ export const lcBody = (md: string) => String(md).split(/```/).map((p, i) => i % 
 // Existing review threads for one line, shown read-only under it (reply / resolve live in the Conversation tab).
 export function threadsFor(path: string) { return (S.bundle?.review_comments || []).filter((c) => c.path === path); }
 
-export function lineThreads(path: string, line: number, side: 'LEFT' | 'RIGHT', cols: number) {
-  const all = threadsFor(path); if (!all.length) return '';
-  const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return '';
+export interface DiffHandlers { conv: ConvHandlers; lc: LcHandlers; plus: (e: Event) => void }
+
+export function lineThreads(path: string, line: number, side: 'LEFT' | 'RIGHT', cols: number, on: DiffHandlers): VNode[] {
+  const all = threadsFor(path); if (!all.length) return [];
+  const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return [];
   const res = new Set(S.bundle!.resolved_ids || []);
-  const b = S.bundle, card = (c: ReviewComment, rootId: number) => tcHtml({ user: c.user, login: c.user?.login || 'ghost', at: c.created_at, id: c.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c.body_html || esc(c.body || ''), reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: null, anchorId: false });
+  const b = S.bundle, card = (c: ReviewComment, rootId: number): TcProps => ({ user: c.user, login: c.user?.login || 'ghost', at: c.created_at, id: c.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c.body_html || esc(c.body || ''), reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: null, anchorId: false });
   return roots.map((r) => {
     const isRes = res.has(r.id), tid = (b!.thread_ids || {})[r.id], list = [r, ...all.filter((c) => c.in_reply_to_id === r.id)];
-    const act = tid && S.hasToken ? { tid, res: isRes } : null;
-    const reply = S.hasToken ? replyBoxHtml({ rid: r.id, ph: 'Write a reply', err: errMsg('reply-' + r.id) }) : '';
-    return threadRowHtml({ cols, folded: folded('t:' + r.id, isRes), foldBtn: foldBtn('t:' + r.id, 'Hide this thread', isRes), side: side === 'LEFT' ? 'L' : 'R', line, outdated: r.line == null, resolved: isRes, cards: list.map((c) => card(c, r.id)), reply, act });
-  }).join('');
+    const p: ThreadRowProps = { cols, k: 't:' + r.id, def: isRes, folded: isFolded('t:' + r.id, isRes), side: side === 'LEFT' ? 'L' : 'R', line, outdated: r.line == null, resolved: isRes, cards: list.map((c) => card(c, r.id)), reply: S.hasToken ? { rid: r.id, ph: 'Write a reply', err: errMsg('reply-' + r.id) } : null, act: tid && S.hasToken ? { tid, res: isRes } : null };
+    return <ThreadRow {...p} on={on.conv} />;
+  });
 }
 
-export function lineExtras(path: string, line: number, side: 'LEFT' | 'RIGHT', cols: number, canComment: boolean, text?: string) {
-  const k = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
-  const cards = mine.length ? lcCardsHtml(mine.map((c) => ({ id: c.id, body: lcBody(c.body) }))) : '';
-  const open = canComment && S.lcOpen === k ? lcEditHtml(draftBox('lc', 'Leave a comment on this line', 3), side === 'RIGHT' && text !== undefined ? text : null) : '';
-  return th + (cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '');
+export function lineExtras(path: string, line: number, side: 'LEFT' | 'RIGHT', cols: number, canComment: boolean, on: DiffHandlers, text?: string): VNode[] {
+  const k = lineKey(path, line, side), th = lineThreads(path, line, side, cols, on), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
+  const open = canComment && S.lcOpen === k;
+  if (!mine.length && !open) return th;
+  return [...th, <tr class="lc-row"><td colspan={cols}><div class="lc">{mine.length ? <LcCards cards={mine.map((c) => ({ id: c.id, body: lcBody(c.body) }))} on={on.lc} /> : ''}{open ? <LcEdit code={side === 'RIGHT' && text !== undefined ? text : null} on={on.lc} /> : ''}</div></td></tr>];
 }
 
-// Built diff HTML is cached per file, so redraws, tab switches and returning to a PR do not rebuild thousands of rows.
-export const diffCache = new Map();
+// Built diff rows are cached per file as vnodes: Preact skips an identical vnode, so redraws, tab switches and returning to a PR do not rebuild or re-diff thousands of rows.
+export const diffCache = new Map<string, { patch: string; node: VNode }>();
 
-export function diffTable(patch: string, path: string, canComment: boolean) {
+export function diffTable(patch: string, path: string, canComment: boolean, on: DiffHandlers): VNode {
   const open = S.lcOpen && String(S.lcOpen).includes(path);
-  if (open) return diffTableBuild(patch, path, canComment);
+  if (open) return diffTableBuild(patch, path, canComment, on);
   const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + JSON.stringify(c.reactions || {}) + ((S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle!.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
-  if (hit && hit.patch === patch) return hit.html;
-  const html = diffTableBuild(patch, path, canComment);
-  diffCache.set(key, { patch, html });
-  if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
-  return html;
+  if (hit && hit.patch === patch) return hit.node;
+  const node = diffTableBuild(patch, path, canComment, on);
+  diffCache.set(key, { patch, node });
+  if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value!);
+  return node;
 }
 
-export function diffTableBuild(patch: string, path: string, canComment: boolean) {
-  const rows = parsePatch(patch), plus = (line: number, side: 'LEFT' | 'RIGHT') => canComment ? `<button class="lc-plus" data-lc="${esc(lineKey(path, line, side))}" title="Add a comment on this line">+</button>` : '';
-  const out = [];
+const Code = ({ text, path, cls = '', marker }: { text: string; path: string; cls?: string; marker?: string }) => <td class={`code${cls}`} data-marker={marker} dangerouslySetInnerHTML={{ __html: codeHtml(text, path) }} />;
+
+export function diffTableBuild(patch: string, path: string, canComment: boolean, on: DiffHandlers): VNode {
+  const rows = parsePatch(patch), plus = (line: number, side: 'LEFT' | 'RIGHT') => canComment ? <button class="lc-plus" data-lc={lineKey(path, line, side)} title="Add a comment on this line" onClick={on.plus}>+</button> : null;
+  const out: VNode[] = [];
   if (S.diffMode === 'split') {
     let i = 0;
     while (i < rows.length) {
       const r = rows[i];
-      if (r.t === 'hunk') { out.push(`<tr class="hunk"><td class="num"></td><td class="code" colspan="3">${esc(r.text)}</td></tr>`); i++; continue; }
+      if (r.t === 'hunk') { out.push(<tr class="hunk"><td class="num"></td><td class="code" colspan={3}>{r.text}</td></tr>); i++; continue; }
       if (r.t === 'note') { i++; continue; }
-      if (r.t === 'ctx') { out.push(`<tr><td class="num">${r.o}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td><td class="num">${r.n}${plus(r.n!, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n!, 'RIGHT', 4, canComment, r.text)}`); i++; continue; }
+      if (r.t === 'ctx') { out.push(<tr><td class="num">{r.o}</td><Code text={r.text} path={path} marker=" " /><td class="num">{r.n}{plus(r.n!, 'RIGHT')}</td><Code text={r.text} path={path} marker=" " /></tr>, ...lineExtras(path, r.n!, 'RIGHT', 4, canComment, on, r.text)); i++; continue; }
       const dels = [], adds = [];
       while (rows[i] && rows[i].t === 'del') dels.push(rows[i++]);
       while (rows[i] && rows[i].t === 'add') adds.push(rows[i++]);
       for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
         const d = dels[k], a = adds[k];
-        out.push(`<tr><td class="num${d ? ' del' : ' empty'}">${d ? d.o + plus(d.o!, 'LEFT') : ''}</td><td class="code${d ? ' del' : ' empty'}" ${d ? 'data-marker="-"' : ''}>${d ? codeHtml(d.text, path) : ''}</td><td class="num${a ? ' add' : ' empty'}">${a ? a.n + plus(a.n!, 'RIGHT') : ''}</td><td class="code${a ? ' add' : ' empty'}" ${a ? 'data-marker="+"' : ''}>${a ? codeHtml(a.text, path) : ''}</td></tr>${d ? lineExtras(path, d.o!, 'LEFT', 4, canComment) : ''}${a ? lineExtras(path, a.n!, 'RIGHT', 4, canComment, a.text) : ''}`);
+        out.push(<tr><td class={`num${d ? ' del' : ' empty'}`}>{d ? <>{d.o}{plus(d.o!, 'LEFT')}</> : ''}</td>{d ? <Code text={d.text} path={path} cls=" del" marker="-" /> : <td class="code empty"></td>}<td class={`num${a ? ' add' : ' empty'}`}>{a ? <>{a.n}{plus(a.n!, 'RIGHT')}</> : ''}</td>{a ? <Code text={a.text} path={path} cls=" add" marker="+" /> : <td class="code empty"></td>}</tr>, ...(d ? lineExtras(path, d.o!, 'LEFT', 4, canComment, on) : []), ...(a ? lineExtras(path, a.n!, 'RIGHT', 4, canComment, on, a.text) : []));
       }
     }
-    return chunkTables(out, 'diff sbs', '<colgroup><col style="width:64px"><col><col style="width:64px"><col></colgroup>');
+    return <table class="diff sbs"><colgroup><col style="width:64px" /><col /><col style="width:64px" /><col /></colgroup><tbody>{out}</tbody></table>;
   }
   for (const r of rows) {
-    if (r.t === 'hunk') out.push(`<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">${esc(r.text)}</td></tr>`);
-    else if (r.t === 'note') out.push(`<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">${esc(r.text)}</td></tr>`);
-    else if (r.t === 'add') out.push(`<tr class="add"><td class="num"></td><td class="num">${r.n}${plus(r.n!, 'RIGHT')}</td><td class="code" data-marker="+">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n!, 'RIGHT', 3, canComment, r.text)}`);
-    else if (r.t === 'del') out.push(`<tr class="del"><td class="num">${r.o}${plus(r.o!, 'LEFT')}</td><td class="num"></td><td class="code" data-marker="-">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.o!, 'LEFT', 3, canComment)}`);
-    else out.push(`<tr><td class="num">${r.o}</td><td class="num">${r.n}${plus(r.n!, 'RIGHT')}</td><td class="code" data-marker=" ">${codeHtml(r.text, path)}</td></tr>${lineExtras(path, r.n!, 'RIGHT', 3, canComment, r.text)}`);
+    if (r.t === 'hunk') out.push(<tr class="hunk"><td class="num">…</td><td class="num">…</td><td class="code">{r.text}</td></tr>);
+    else if (r.t === 'note') out.push(<tr><td class="num"></td><td class="num"></td><td class="code" style="color:var(--fgColor-muted)">{r.text}</td></tr>);
+    else if (r.t === 'add') out.push(<tr class="add"><td class="num"></td><td class="num">{r.n}{plus(r.n!, 'RIGHT')}</td><Code text={r.text} path={path} marker="+" /></tr>, ...lineExtras(path, r.n!, 'RIGHT', 3, canComment, on, r.text));
+    else if (r.t === 'del') out.push(<tr class="del"><td class="num">{r.o}{plus(r.o!, 'LEFT')}</td><td class="num"></td><Code text={r.text} path={path} marker="-" /></tr>, ...lineExtras(path, r.o!, 'LEFT', 3, canComment, on));
+    else out.push(<tr><td class="num">{r.o}</td><td class="num">{r.n}{plus(r.n!, 'RIGHT')}</td><Code text={r.text} path={path} marker=" " /></tr>, ...lineExtras(path, r.n!, 'RIGHT', 3, canComment, on, r.text));
   }
-  return chunkTables(out, 'diff', '<colgroup><col style="width:64px"><col style="width:64px"><col></colgroup>');
+  return <table class="diff"><colgroup><col style="width:64px" /><col style="width:64px" /><col /></colgroup><tbody>{out}</tbody></table>;
 }
-
-// Diffs render as one table per file (no lazy blocks: skipping off-screen rows made scrolling janky).
-export function chunkTables(out: string[], cls: string, cols: string, size = Infinity) {
-  if (out.length <= size) return `<table class="${cls}">${cols}${out.join('')}</table>`;
-  let h = '';
-  for (let i = 0; i < out.length; i += size) { const n = Math.min(size, out.length - i); h += `<div class="dchunk" style="contain-intrinsic-size:auto ${n * 22}px"><table class="${cls}">${cols}${out.slice(i, i + size).join('')}</table></div>`; }
-  return h;
-}
-
-
 
 // ```suggestion blocks in a review comment can be applied as a commit on the PR branch
 export const sugOf = (c: { body?: string | null }) => { const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/); return m ? m[1] : null; };
@@ -147,4 +143,4 @@ export function reviewBlockProps(e: TimelineEvent, b: Bundle): ReviewBlockProps 
   const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}` } : null;
   return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e.user, verb, url: e.html_url ?? '', at: whenParts(e.submitted_at!).text, sum, bodyHtml: hasBody ? e.body_html! : '', threads, allRes };
 }
-export const reviewBlock = (e: TimelineEvent, b: Bundle) => { const p = reviewBlockProps(e, b); return p ? reviewBlockHtml(p) : ''; };
+void html; void ReviewBlock;

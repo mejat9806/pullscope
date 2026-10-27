@@ -1,10 +1,11 @@
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { cmPopHtml, composerHtml, confirmDlgHtml, deleteCommentDialogHtml, draftBoxHtml, editCommentDialogHtml, editPrDialogHtml, errLineHtml, hideCommentDialogHtml, mergeActHtml, reactPopHtml, reviewDialogHtml } from '../components/Actions';
-import { $, REACTS, S, esc, load, tauri, qa, scoped } from './core';
+import { composerHtml, draftBoxHtml, errLineHtml, mergeActHtml } from '../components/Actions';
+import { $, S, esc, load, tauri, qa, scoped } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
+import { closePop, openPop } from './dialogs';
 import { confetti } from './fun';
 import { setComposer } from './keyboard';
 import { openPr } from './nav';
@@ -42,31 +43,33 @@ export function mergeActProps(b: Bundle): MergeActProps | null {
 export const mergeActions = (b: Bundle) => { const m = mergeActProps(b); return m ? mergeActHtml(m) : ''; };
 
 
+export function closeDlg() {
+  const d = S.dlg; if (!d) return;
+  if (d.k === 'editpr') delete S.draft.prbody; else if (d.k === 'editc') delete S.draft.editc; else if (d.k === 'commits') S.cpick = null; else if (d.k === 'token') S.oauthLive = false;
+  S.dlg = null; render();
+}
+
 export function reviewDialog() {
-  S.dialog = reviewDialogHtml(draftBox('review', pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)', 5));
-  render();
-  $('#revcancel')!.onclick = () => { S.dialog = ''; render(); };
-  $('#revsubmit')!.onclick = async () => {
-    const ev = $<HTMLInputElement>('input[name=rev]:checked')!.value;
+  S.dlg = { k: 'review', ev: 'COMMENT', ok: async () => {
+    const ev = (S.dlg as { ev: string }).ev;
     const lines = pendList().map(({ path, line, side, body }) => ({ path, line, side, body }));
     const r = await act('review', { body: S.draft.review || '', event: ev, extra: lines }, 'review', true);
     if (r === undefined) return;
-    delete S.draft.review; delete S.pending![pendKey()]; savePending(); S.dialog = ''; await refreshPr(); 
-  };
+    delete S.draft.review; delete S.pending![pendKey()]; savePending(); S.dlg = null; await refreshPr();
+  } };
+  render();
 }
 
 
 export function editPrDialog() {
   const p = S.bundle!.pull; S.draft.prbody = p.body || '';
-  S.dialog = editPrDialogHtml(p.title, draftBox('prbody', 'Describe your changes', 8), errLine('editpr'));
-  render();
-  $('#epcancel')!.onclick = () => { delete S.draft.prbody; S.dialog = ''; render(); };
-  $('#epsave')!.onclick = async () => {
-    const title = $<HTMLInputElement>('#eptitle')!.value;
+  S.dlg = { k: 'editpr', title: p.title, ok: async () => {
+    const title = (S.dlg as { title: string }).title;
     const r = await act('edit', { body: S.draft.prbody ?? '', extra: { title } }, 'editpr', true);
     if (r === undefined) return;
-    delete S.draft.prbody; S.dialog = ''; await refreshPr();
-  };
+    delete S.draft.prbody; S.dlg = null; await refreshPr();
+  } };
+  render();
 }
 
 
@@ -97,10 +100,8 @@ export function addPreview(host: HTMLElement, key: string) {
 
 
 export function confirmDlg(title: string, text: string, label: string, danger: boolean, fn: () => void | Promise<void>) {
-  S.dialog = confirmDlgHtml(title, text, label, danger);
+  S.dlg = { k: 'confirm', title, text, label, danger, ok: async () => { S.dlg = null; render(); await fn(); } };
   render();
-  $('#cfcancel')!.onclick = () => { S.dialog = ''; render(); };
-  $('#cfok')!.onclick = async () => { S.dialog = ''; render(); await fn(); };
 }
 
 
@@ -137,14 +138,14 @@ export async function act(action: string, args: ActArgs, key: string, inDialog =
 
 export async function act2(action: string, args: ActArgs, key: string, inDialog = false): Promise<ActResult | undefined> {
   S.actErr = null;
-  if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; if (inDialog) $('#reverr')!.innerHTML = `<div class="act-err">${S.actErr.m}</div>`; else render(); return undefined; }
+  if (!tauri) { S.actErr = { k: key, m: 'Writing needs the desktop app.' }; render(); return undefined; }
   S.busy = key; if (!inDialog) render();
   try {
     const r = action === 'react' ? await tauri!.invoke('toggle_reaction', { ...prRef(), kind: args.kind, id: args.id, content: args.content }) : await tauri!.invoke('pr_action', { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, extra: null, ...args });
     S.busy = ''; if (action === 'merge' || (action === 'review' && args.event === 'APPROVE')) confetti(); return (r ?? {}) as ActResult;
   } catch (e) {
     S.busy = ''; S.actErr = { k: key, m: String(e).replace(/^Error: /, '') };
-    if (inDialog) { const el = $('#reverr')!; if (el) el.innerHTML = `<div class="act-err">${esc(S.actErr.m)}</div>`; } else render();
+    render();
     return undefined;
   }
 }
@@ -154,38 +155,32 @@ export const refreshPr = (focus: string | number = '') => { qc.invalidate(`${prR
 
 export function editCommentDialog(c: ReviewComment | TimelineEvent, kind: string) {
   S.draft.editc = c.body || '';
-  S.dialog = editCommentDialogHtml(draftBox('editc', 'Edit your comment', 6), errLine('editc'));
-  render();
-  $('#eccancel')!.onclick = () => { delete S.draft.editc; S.dialog = ''; render(); };
-  $('#ecsave')!.onclick = async () => {
+  S.dlg = { k: 'editc', ok: async () => {
     const r = await act('edit_comment', { id: c.id, kind, body: S.draft.editc ?? '' }, 'editc', true);
     if (r === undefined) return;
-    delete S.draft.editc; S.dialog = ''; await refreshPr(c.id);
-  };
+    delete S.draft.editc; S.dlg = null; await refreshPr(c.id);
+  } };
+  render();
 }
 
 export function deleteCommentDialog(c: { id?: number }, kind: string) {
-  S.dialog = deleteCommentDialogHtml(errLine('delc'));
-  render();
-  $('#dccancel')!.onclick = () => { S.dialog = ''; render(); };
-  $('#dcdo')!.onclick = async () => {
+  S.dlg = { k: 'delc', ok: async () => {
     const r = await act('delete_comment', { id: c.id, kind }, 'delc', true);
     if (r === undefined) return;
-    S.dialog = ''; await refreshPr();
-  };
+    S.dlg = null; await refreshPr();
+  } };
+  render();
 }
 
 export function hideCommentDialog(c: { node_id?: string; id?: number | string }) {
   const reasons = [['SPAM', 'Spam'], ['ABUSE', 'Abuse'], ['OFF_TOPIC', 'Off-topic'], ['OUTDATED', 'Outdated'], ['DUPLICATE', 'Duplicate'], ['RESOLVED', 'Resolved']];
-  S.dialog = hideCommentDialogHtml(reasons as [string, string][], errLine('hidec'));
-  render();
-  $('#hccancel')!.onclick = () => { S.dialog = ''; render(); };
-  $('#hcdo')!.onclick = async () => {
+  S.dlg = { k: 'hidec', reasons: reasons as [string, string][], ok: async () => {
     const r = await act('minimize', { body: c.node_id || '', content: $<HTMLSelectElement>('#hcreason')!.value }, 'hidec', true);
     if (r === undefined) return;
     S.fold['c:' + c.id] = true; localStorage.setItem('fold', JSON.stringify(S.fold));
-    S.dialog = ''; await refreshPr();
-  };
+    S.dlg = null; await refreshPr();
+  } };
+  render();
 }
 
 export function cmAction(id: number, root: HTMLElement, how: string) {
@@ -264,23 +259,16 @@ export function doMerge() {
 
 // Comment, reaction, thread and suggestion handlers: shared by the live conversation and by the imperatively bound copies (diff lines, split view).
 export function cmMenu(e: Event, btn: HTMLElement) {
-  e.stopPropagation(); $('.react-pop')?.remove();
-  const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
+  e.stopPropagation();
   const bb = S.bundle, cc = String(bb!.pull.id) === String(btn.dataset.cm) ? bb!.pull : [...bb!.timeline, ...bb!.review_comments].find((x) => String(x.id) === String(btn.dataset.cm));
   const isPr = cc === bb!.pull, own = !!S.me && ((cc as CommentLike | null)?.user || (cc as CommentLike | null)?.actor)?.login === S.me;
-  pop.innerHTML = cmPopHtml(own || (!isPr && S.hasToken), own, !isPr && S.hasToken, own && !isPr);
-  const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
-  pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (h) { pop.remove(); cmAction(+btn.dataset.cm!, btn.dataset.root as unknown as HTMLElement, h); } };
-  document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+  const r = btn.getBoundingClientRect(), id = +btn.dataset.cm!, root = btn.dataset.root as unknown as HTMLElement;
+  openPop({ k: 'cm', x: Math.min(r.left - 100, innerWidth - 180), y: r.bottom + 4, hr: own || (!isPr && !!S.hasToken), edit: own, hide: !isPr && !!S.hasToken, del: own && !isPr, pick: (h) => { closePop(); cmAction(id, root, h); } });
 }
 export function reactAdd(e: Event, btn: HTMLElement) {
-  e.stopPropagation(); $('.react-pop')?.remove();
-  const pop = document.createElement('div'); pop.className = 'react-pop';
-  pop.innerHTML = reactPopHtml(REACTS as [string, string][]);
-  const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
-  document.body.appendChild(pop);
-  pop.addEventListener('click', (ev) => { const c = (ev.target as HTMLElement).closest<HTMLElement>('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk!, btn.dataset.rid!, c); });
-  setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
+  e.stopPropagation();
+  const r = btn.getBoundingClientRect(), kind = btn.dataset.rk!, id = btn.dataset.rid!;
+  openPop({ k: 'react', x: Math.min(r.left, innerWidth - 300), y: Math.min(r.bottom + 4, innerHeight - 60), pick: (c) => { closePop(); toggleReact(kind, id, c); } });
 }
 export function reactToggle(e: Event, kind: string, id: number | string, c: string) { e.stopPropagation(); toggleReact(kind, id, c); }
 export async function threadAct(e: Event, node: string, how: string) {
@@ -309,6 +297,21 @@ export async function sendReply(id: string) {
   delete S.draft['reply-' + id]; if (!addLocal('reply', r, +id)) await refreshPr(r.id);
 }
 
+// Diff view handlers: shared by the live files tab and the imperatively bound copies.
+export function setDiffMode(m: string) { S.diffMode = m; localStorage.setItem('diffmode', m); rerender(); }
+export function lcOpen(e: Event) { e.stopPropagation(); S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc; rerender(); setTimeout(() => S.eds?.at(-1)?.focus?.(), 200); }
+export function lcCancel() { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); rerender(); }
+export function lcSuggest(ev: Event) {
+  const cur = (S.draft.lc || '').trimEnd(); S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`; saveDrafts();
+  rerender(); setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
+}
+export function lcAdd() {
+  const body = (S.draft.lc || '').trim(); if (!body || !S.lcOpen) return;
+  const [path, side, line] = S.lcOpen.split('\u001f'); (S.pending![pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body }); savePending();
+  S.lcOpen = ''; delete S.draft.lc; saveDrafts(); rerender();
+}
+export function lcDel(id: string) { S.pending![pendKey()] = pendList().filter((c) => String(c.id) !== id); savePending(); rerender(); }
+
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
 const mounted = new WeakSet<Element>();
@@ -334,19 +337,12 @@ export function bindWrite(scope?: HTMLElement) {
   qa<HTMLElement>('[data-rerequest]').forEach((b) => b.addEventListener('click', (e) => rerequestReview(e, b.dataset.rerequest!)));
   qa('[data-thread]').forEach((btn) => btn.addEventListener('click', (e) => threadAct(e, btn.dataset.thread!, btn.dataset.res!)));
   qa('[data-sug]').forEach((btn) => btn.addEventListener('click', (e) => applySuggestion(e, btn.dataset.sug!)));
-  qa('[data-dmode]').forEach((b) => b.addEventListener('click', () => { S.diffMode = b.dataset.dmode; localStorage.setItem('diffmode', S.diffMode!); S.keepScroll = true; render(); S.keepScroll = false; }));
-  qa('[data-lc]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.lcOpen = b.dataset.lc; S.keepScroll = true; render(); S.keepScroll = false; setTimeout(() => S.eds?.at(-1)?.focus?.(), 200); }));
-  $('#lccancel')?.addEventListener('click', () => { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false; });
-  $('#lcsuggest')?.addEventListener('click', (ev) => {
-    const cur = (S.draft.lc || '').trimEnd(); S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`; saveDrafts();
-    S.keepScroll = true; render(); S.keepScroll = false; setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
-  });
-  $('#lcadd')?.addEventListener('click', () => {
-    const body = (S.draft.lc || '').trim(); if (!body || !S.lcOpen) return;
-    const [path, side, line] = S.lcOpen.split('\u001f'); (S.pending![pendKey()] ||= []).push({ id: Date.now(), path, side, line: +line, body }); savePending();
-    S.lcOpen = ''; delete S.draft.lc; saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false;
-  });
-  qa('[data-lcdel]').forEach((b) => b.addEventListener('click', () => { S.pending![pendKey()] = pendList().filter((c) => String(c.id) !== b.dataset.lcdel); savePending(); S.keepScroll = true; render(); S.keepScroll = false; }));
+  qa('[data-dmode]').forEach((b) => b.addEventListener('click', () => setDiffMode(b.dataset.dmode!)));
+  qa('[data-lc]').forEach((b) => b.addEventListener('click', lcOpen));
+  $('#lccancel')?.addEventListener('click', lcCancel);
+  $('#lcsuggest')?.addEventListener('click', lcSuggest);
+  $('#lcadd')?.addEventListener('click', lcAdd);
+  qa('[data-lcdel]').forEach((b) => b.addEventListener('click', () => lcDel(b.dataset.lcdel!)));
   $('#finishrev')?.addEventListener('click', reviewDialog);
   $('#cbar')?.addEventListener('click', toggleComposer);
   $('#cbar')?.addEventListener('keydown', cbarKey);
