@@ -68,10 +68,6 @@ export function bind() {
   const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter((e) => !e.closest('#side, [data-live]'));
   const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
   bindWrite();
-  $<HTMLInputElement>('#mainfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#mainfilter')!; n.focus(); n.setSelectionRange(p, p); });
-  ([['#pfauthor', 'pAuthor'], ['#pflabel', 'pLabel'], ['#pfstatus', 'pStatus']] as const).forEach(([id, k]) => $(id)?.addEventListener('change', (e) => { S[k] = (e.target as HTMLInputElement).value; render(); }));
-  $<HTMLSelectElement>('#pfsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
-  $('#pfclear')?.addEventListener('click', () => { S.pf = S.pAuthor = S.pLabel = S.pStatus = ''; render(); });
   $('#fcbtn')?.addEventListener('click', openCommits);
   $('#fcall')?.addEventListener('click', () => setFr(null));
   qa('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle!), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
@@ -93,7 +89,6 @@ export function bind() {
   qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
   qa('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
-  qa('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps!; openRepo(S.repo!, { nav: true }); }));
   qa('[data-open]').forEach((el) => { el.addEventListener('click', (e) => openClick(el, e)); el.addEventListener('auxclick', (e) => openAux(el, e)); el.addEventListener('contextmenu', (e) => openCtx(el, e)); });
   qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => rmRecent(e, el.dataset.rm!)));
   qa('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab!; render(); $('.main')!.scrollTop = 0; }));
@@ -125,11 +120,7 @@ export function bind() {
       delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n!.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
     } catch (err) { setBusy(btn!, false); n!.err = String(err).replace(/^Error: /, ''); rerender(); }
   });
-  $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
-  $('#npcheck')?.addEventListener('click', () => pollNotes());
-  $('#npreadall')?.addEventListener('click', () => { S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
-  $('#npclear')?.addEventListener('click', () => { S.notes = []; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
   qa('[data-nf]').forEach((b) => b.addEventListener('click', () => { S.nf = b.dataset.nf; S.keepScroll = true; render(); S.keepScroll = false; }));
   qa('[data-nread]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const n = S.notes.find((x) => String(x.id) === b.dataset.nread); if (n) { n.read = !n.read; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; } }));
   qa('[data-ndel]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.notes = S.notes.filter((x) => String(x.id) !== b.dataset.ndel); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; }));

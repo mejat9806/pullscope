@@ -6,16 +6,19 @@ import { I, SP } from './ui';
 export const landingHtml = (banners: string, err: string, ic: string) => html(<div class="landing">{banners ? <div class="push-wrap">{Raw(banners)}</div> : ''}{Raw(ic)}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br />Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>{err ? <div class="err">{err}</div> : ''}</div>);
 
 export interface NoteRow { id: number | string; read: boolean; ref: string; target: string; title: string; text: string; when: string }
-export function NotesPage({ f, rows, unread, total }: { f: string; rows: NoteRow[]; unread: number; total: number }) {
+export interface NotesHandlers {
+  check: () => void; readAll: () => void; clear: () => void; filter: (f: string) => void; read: (e: MouseEvent, id: number | string) => void; del: (e: MouseEvent, id: number | string) => void
+  open: (el: HTMLElement, e: MouseEvent) => void; aux: (el: HTMLElement, e: MouseEvent) => void; ctx: (el: HTMLElement, e: MouseEvent) => void
+}
+export function NotesPage({ f, rows, unread, total, on }: { f: string; rows: NoteRow[]; unread: number; total: number; on: NotesHandlers }) {
   const tabs: [string, string, number][] = [['all', 'All', total], ['unread', 'Unread', unread], ['read', 'Read', total - unread]];
-  return <div class="notes-page"><div class="np-head"><h1>{I('bell')}{SP}Notifications</h1><div class="np-tools"><button class="btn small" id="npcheck">Check now</button><button class="btn small" id="npreadall" disabled={!unread}>Mark all as read</button><button class="btn small ghost" id="npclear" disabled={!total}>Clear all</button></div></div>{'\n  '}
-    <div class="np-tabs">{tabs.map(([k, l, c]) => <button class={f === k ? 'sel' : ''} data-nf={k}>{l}<span>{c}</span></button>)}</div>{'\n  '}
-    <div class="np-list">{rows.length ? rows.map((n) => <div class={`np-row ${n.read ? '' : 'new'}`}><button class="np-dot" data-nread={n.id} title={n.read ? 'Mark as unread' : 'Mark as read'}></button>{'\n    '}
-      <a class="np-main" data-open={n.ref} data-target={n.target} data-note={n.id}><b>{n.title}</b><span>{n.text}</span><i>{n.ref} · {n.when}</i></a>{'\n    '}
-      <button class="np-act" data-nread={n.id}>{n.read ? 'Mark unread' : 'Mark read'}</button><button class="np-act del" data-ndel={n.id} title="Delete">{I('x')}</button></div>)
+  return <div class="notes-page"><div class="np-head"><h1>{I('bell')}{SP}Notifications</h1><div class="np-tools"><button class="btn small" id="npcheck" onClick={on.check}>Check now</button><button class="btn small" id="npreadall" onClick={on.readAll} disabled={!unread}>Mark all as read</button><button class="btn small ghost" id="npclear" onClick={on.clear} disabled={!total}>Clear all</button></div></div>{'\n  '}
+    <div class="np-tabs">{tabs.map(([k, l, c]) => <button class={f === k ? 'sel' : ''} data-nf={k} onClick={() => on.filter(k)}>{l}<span>{c}</span></button>)}</div>{'\n  '}
+    <div class="np-list">{rows.length ? rows.map((n) => <div class={`np-row ${n.read ? '' : 'new'}`}><button class="np-dot" data-nread={n.id} onClick={(e) => on.read(e, n.id)} title={n.read ? 'Mark as unread' : 'Mark as read'}></button>{'\n    '}
+      <a class="np-main" data-open={n.ref} data-target={n.target} data-note={n.id} onClick={(e) => on.open(e.currentTarget, e)} onAuxClick={(e) => on.aux(e.currentTarget, e)} onContextMenu={(e) => on.ctx(e.currentTarget, e)}><b>{n.title}</b><span>{n.text}</span><i>{n.ref} · {n.when}</i></a>{'\n    '}
+      <button class="np-act" data-nread={n.id} onClick={(e) => on.read(e, n.id)}>{n.read ? 'Mark unread' : 'Mark read'}</button><button class="np-act del" data-ndel={n.id} onClick={(e) => on.del(e, n.id)} title="Delete">{I('x')}</button></div>)
       : <div class="note-empty np-empty">{f === 'unread' ? 'You are all caught up.' : f === 'read' ? 'Nothing read yet.' : 'No notifications yet. New comments, commits and reviews on PRs you opened will show up here.'}</div>}</div></div>;
 }
-export const notesPageHtml = (p: Parameters<typeof NotesPage>[0]) => html(<NotesPage {...p} />);
 
 export interface NpMetaProps {
   rows: { k: NpListKey; name: string; chips: string[]; free: string[] }[];
@@ -56,12 +59,12 @@ export const newPrHtml = (p: NewPrProps) => html(<NewPr {...p} />);
 
 export interface IbRow { ref: string; avatar: string; title: string; sub: string; fresh: boolean; comments: number }
 export interface InboxProps { loading: boolean; err: string; secs: { title: string; sub: string; rows: IbRow[] }[] | null }
-export function InboxPage({ loading, err, secs }: InboxProps) {
+export interface InboxHandlers { refresh: () => void; open: (el: HTMLElement, e: MouseEvent) => void; aux: (el: HTMLElement, e: MouseEvent) => void; ctx: (el: HTMLElement, e: MouseEvent) => void }
+export function InboxPage({ p: { loading, err, secs }, on }: { p: InboxProps; on: InboxHandlers }) {
   const body: ComponentChildren = err ? <div class="diff-empty err">{err}</div> : !secs ? <div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>
-    : secs.map((s) => <section class="ib-sec"><h2>{s.title}<span>{s.rows.length}</span></h2><p>{s.sub}</p>{s.rows.length ? s.rows.map((r) => <a class="ib-row" data-open={r.ref}><img src={r.avatar} alt="" /><span class="ib-t"><b>{r.title}</b><i>{r.sub}</i></span>{r.fresh ? <span class="ib-new">New activity</span> : ''}{r.comments ? <span class="ib-c">{I('comment')}{SP}{r.comments}</span> : ''}</a>) : <div class="ib-none">Nothing here. Nice.</div>}</section>);
-  return <div class="notes-page"><div class="np-head"><h1>{I('checklist')}{SP}Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button></div></div>{body}</div>;
+    : secs.map((s) => <section class="ib-sec"><h2>{s.title}<span>{s.rows.length}</span></h2><p>{s.sub}</p>{s.rows.length ? s.rows.map((r) => <a class="ib-row" data-open={r.ref} onClick={(e) => on.open(e.currentTarget, e)} onAuxClick={(e) => on.aux(e.currentTarget, e)} onContextMenu={(e) => on.ctx(e.currentTarget, e)}><img src={r.avatar} alt="" /><span class="ib-t"><b>{r.title}</b><i>{r.sub}</i></span>{r.fresh ? <span class="ib-new">New activity</span> : ''}{r.comments ? <span class="ib-c">{I('comment')}{SP}{r.comments}</span> : ''}</a>) : <div class="ib-none">Nothing here. Nice.</div>}</section>);
+  return <div class="notes-page"><div class="np-head"><h1>{I('checklist')}{SP}Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" onClick={on.refresh} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button></div></div>{body}</div>;
 }
-export const inboxPageHtml = (p: InboxProps) => html(<InboxPage {...p} />);
 
 export const skeletonHtml = () => html(<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>{[0, 1, 2].map((i) => <div class="sk-row" style={`--i:${i}`}><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>)}</div>);
 

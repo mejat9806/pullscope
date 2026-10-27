@@ -6,14 +6,16 @@ import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
 import { commitsView, filesView, sidebar, splitView } from './mergebox';
 import { loadRepos } from './nav';
-import { crumbs, prList, repoHeader } from './prlist';
+import { crumbs, repoHeader } from './prlist';
 import { paintSide } from './side';
 import { HomeView } from './home';
+import { InboxView, NotesView, RepoView } from './views';
 import { render as paint } from 'preact';
 import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
 import { attention, checksView, timeline } from './timeline';
-import { gateHtmlStr, inboxPageHtml, landingHtml, newPrHtml, notesPageHtml, npMetaHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
+import type { InboxProps } from '../components/Pages';
+import { gateHtmlStr, landingHtml, newPrHtml, npMetaHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
 
 export function landing() {
   return landingHtml(pushBanners(), S.error ? String(S.error) : '', icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"'));
@@ -22,10 +24,10 @@ export function landing() {
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
 
-export function notesPage() {
+export function notesProps() {
   const f = S.nf || 'all', unread = S.notes.filter((n) => !n.read).length;
   const rows = S.notes.filter((n) => f === 'all' || (f === 'unread' ? !n.read : n.read)).map((n) => ({ id: n.id, read: !!n.read, ref: n.ref, target: n.target || '', title: n.title, text: n.text, when: when(n.at).replace(/<\/?span[^>]*>/g, '') }));
-  return notesPageHtml({ f, rows, unread, total: S.notes.length });
+  return { f, rows, unread, total: S.notes.length };
 }
 
 
@@ -127,11 +129,11 @@ export function openNewPr(repo?: string, head?: string) {
 
 export function openInbox() { S.view = 'inbox'; S.nav = false; render(); if (!S.inbox?.data || !qc.fresh('inbox', 45000)) { qc.set('inbox', 1 as unknown as Bundle); loadInbox(); } }
 
-export function inboxPage() {
+export function inboxProps(): InboxProps {
   const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data;
   const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0 }; };
   const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, rows: list.map(row) });
-  return inboxPageHtml({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine)] : null });
+  return ({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine)] : null });
 }
 
 
@@ -139,9 +141,7 @@ export function page() {
   const b = S.bundle;
   if (S.loading) return skeletonHtml();
   if (S.view === 'newpr') return crumbs(S.np!?.repo, [{ t: 'New pull request' }]) + newPrPage();
-  if (S.view === 'inbox') return crumbs('', [{ t: 'Inbox' }]) + inboxPage();
-  if (S.view === 'notes') return crumbs('', [{ t: 'Notifications' }]) + notesPage();
-  if (S.view === 'repo') return crumbs(S.repo!, [{ t: 'Pull requests' }]) + prList();
+  if (S.view === 'inbox' || S.view === 'notes' || S.view === 'repo') return '';
   if (S.view === 'home' || !b) return '';
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return splitPageHtml(repoHeader(b.pull) + prHeader(b), splitView(b));
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
@@ -163,7 +163,13 @@ function hosts() {
 }
 
 // Views that are already live Preact trees; every other view is still markup painted into #page.
-const liveView = (): VNode | null => (!S.loading && !S.mainStub && S.view !== 'newpr' && S.view !== 'inbox' && S.view !== 'notes' && S.view !== 'repo' && (S.view === 'home' || !S.bundle) ? <HomeView /> : null);
+const liveView = (): VNode | null => {
+  if (S.loading || S.mainStub) return null;
+  if (S.view === 'inbox') return <InboxView />;
+  if (S.view === 'notes') return <NotesView />;
+  if (S.view === 'repo') return <RepoView />;
+  return (S.view === 'home' || !S.bundle) && S.view !== 'newpr' ? <HomeView /> : null;
+};
 
 function paintPage(host: HTMLElement, live: VNode) { host.setAttribute('data-live', ''); paint(live, host); }
 

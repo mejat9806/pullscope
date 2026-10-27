@@ -950,9 +950,6 @@
   function pushBannerItems(repo) {
     return pushList(repo).slice(0, 3).map((p3) => ({ repo: p3.repo, branch: p3.branch, ago: ago(p3.at), key: `${p3.repo}@${p3.branch}@${p3.at}`, showRepo: !repo }));
   }
-  function pushBanners(repo) {
-    return pushList(repo).slice(0, 3).map((p3) => `<div class="push-banner">${icon("git-branch")}<span><b>${esc(p3.branch)}</b> had recent pushes ${ago(p3.at)}${repo ? "" : ` <i>\xB7 ${esc(p3.repo)}</i>`}</span><span class="sp"></span><button class="btn small primary" data-compare="${esc(p3.repo)}@${esc(p3.branch)}">Compare &amp; pull request</button><button class="push-x" data-pdismiss="${esc(`${p3.repo}@${p3.branch}@${p3.at}`)}" title="Dismiss">${icon("x")}</button></div>`).join("");
-  }
   async function refreshPushes(repo) {
     if (!tauri || !S.hasToken || !repo) return;
     try {
@@ -1174,7 +1171,7 @@
   }
   var closedBoxHtml = (head) => html(/* @__PURE__ */ u3(ClosedBox, { head }));
   var plural = (n2) => n2 === 1 ? "" : "s";
-  function Sec({ k: k3, h: h3, rerunable, open, children }) {
+  function Sec({ k: k3, h: h3, rerunable, open: open2, children }) {
     return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
       /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, children: [
         /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
@@ -1183,9 +1180,9 @@
           /* @__PURE__ */ u3("i", { children: h3[3] || "" })
         ] }),
         k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", children: "Re-run failed" }) : "",
-        I2(open ? "chevron-up" : "chevron-down", 16)
+        I2(open2 ? "chevron-up" : "chevron-down", 16)
       ] }),
-      open && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
+      open2 && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
     ] });
   }
   function CkGroupView({ g: g2 }) {
@@ -1681,13 +1678,13 @@
   function lineExtras(path, line, side, cols, canComment, text) {
     const k3 = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c3) => c3.path === path && c3.line === line && c3.side === side);
     const cards = mine.length ? lcCardsHtml(mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) }))) : "";
-    const open = canComment && S.lcOpen === k3 ? lcEditHtml(draftBox("lc", "Leave a comment on this line", 3), side === "RIGHT" && text !== void 0 ? text : null) : "";
-    return th + (cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : "");
+    const open2 = canComment && S.lcOpen === k3 ? lcEditHtml(draftBox("lc", "Leave a comment on this line", 3), side === "RIGHT" && text !== void 0 ? text : null) : "";
+    return th + (cards || open2 ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open2}</div></td></tr>` : "");
   }
   var diffCache = /* @__PURE__ */ new Map();
   function diffTable(patch, path, canComment) {
-    const open = S.lcOpen && String(S.lcOpen).includes(path);
-    if (open) return diffTableBuild(patch, path, canComment);
+    const open2 = S.lcOpen && String(S.lcOpen).includes(path);
+    if (open2) return diffTableBuild(patch, path, canComment);
     const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
     if (hit && hit.patch === patch) return hit.html;
     const html2 = diffTableBuild(patch, path, canComment);
@@ -2068,18 +2065,18 @@
       const x3 = t2 ? Date.parse(t2) : NaN;
       return isNaN(x3) || x3 >= rLo && x3 <= rHi;
     };
-    const keep2 = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
+    const keep3 = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
     const bars = barsHtml(people.size > 1 ? { everyone: !on3, people: [...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => ({ u: u4, n: n2, on: who.includes(u4.login) })) } : null, { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === "desc" });
     if (!S.unres && (!on3 || who.includes(p3.user.login))) out.push(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
     const evs = [];
-    for (let i3 = 0; i3 < keep2.length; ) {
+    for (let i3 = 0; i3 < keep3.length; ) {
       let j3 = i3;
-      while (j3 < keep2.length && keep2[j3].event === "committed") j3++;
+      while (j3 < keep3.length && keep3[j3].event === "committed") j3++;
       if (j3 - i3 >= 6) {
-        evs.push({ event: "commit-run", n: j3 - i3, first: keep2[i3], last: keep2[j3 - 1] });
+        evs.push({ event: "commit-run", n: j3 - i3, first: keep3[i3], last: keep3[j3 - 1] });
         i3 = j3;
       } else {
-        evs.push(keep2[i3]);
+        evs.push(keep3[i3]);
         i3++;
       }
     }
@@ -2187,7 +2184,7 @@
     return b2.review_comments.filter((c3) => !c3.in_reply_to_id && !res.has(c3.id));
   }
   function attention(b2) {
-    const p3 = b2.pull, rc = b2.review_comments, roots = rc.filter((c3) => !c3.in_reply_to_id), open = unresolvedRoots(b2);
+    const p3 = b2.pull, rc = b2.review_comments, roots = rc.filter((c3) => !c3.in_reply_to_id), open2 = unresolvedRoots(b2);
     const known = S.hasToken || (b2.resolved_ids || []).length > 0;
     const latest = /* @__PURE__ */ new Map();
     b2.timeline.filter((e2) => e2.event === "reviewed" && e2.user).forEach((e2) => {
@@ -2201,7 +2198,7 @@
     const add = (k3, ic, text, attr = {}) => it.push({ k: k3, ic, text, ...attr });
     if (roots.length) {
       if (!known) add("", "comment", `${roots.length} review thread${roots.length === 1 ? "" : "s"}`);
-      else if (open.length) add("bad", "comment", `${open.length} unresolved thread${open.length === 1 ? "" : "s"}`, { id: "nextun", title: "Jump to the next unresolved thread" });
+      else if (open2.length) add("bad", "comment", `${open2.length} unresolved thread${open2.length === 1 ? "" : "s"}`, { id: "nextun", title: "Jump to the next unresolved thread" });
       else add("ok", "check-circle-fill", "All threads resolved");
     }
     add(cr ? "bad" : ap ? "ok" : "", cr ? "file-diff" : ap ? "check" : "eye", cr ? `${cr} requesting changes` : ap ? `${ap} approved` : "No approvals yet");
@@ -2259,8 +2256,8 @@
     const grp = (k3, title) => {
       const g2 = list.filter((c3) => c3.st === k3);
       if (!g2.length) return [];
-      const open = S.mbOpen?.has("g" + k3) ?? k3 !== "pass";
-      return [{ k: k3, title, open, items: g2.map((c3) => ({ st: c3.st, url: c3.url, icon: CK[c3.st][0], name: c3.name, req: reqBadge(c3), desc: c3.description || c3.app || "" })) }];
+      const open2 = S.mbOpen?.has("g" + k3) ?? k3 !== "pass";
+      return [{ k: k3, title, open: open2, items: g2.map((c3) => ({ st: c3.st, url: c3.url, icon: CK[c3.st][0], name: c3.name, req: reqBadge(c3), desc: c3.description || c3.app || "" })) }];
     };
     return mergeBoxHtml({
       draft: !!p3.draft,
@@ -2539,31 +2536,154 @@
     ] });
   }
 
-  // src/components/PrList.tsx
+  // src/components/Home.tsx
   var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Banners({ items, on: on3 }) {
+    return /* @__PURE__ */ u3(S2, { children: items.map((p3) => /* @__PURE__ */ u3("div", { class: "push-banner", children: [
+      I2("git-branch"),
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("b", { children: p3.branch }),
+        " had recent pushes ",
+        p3.ago,
+        p3.showRepo ? /* @__PURE__ */ u3(S2, { children: [
+          " ",
+          /* @__PURE__ */ u3("i", { children: [
+            "\xB7 ",
+            p3.repo
+          ] })
+        ] }) : ""
+      ] }),
+      /* @__PURE__ */ u3("span", { class: "sp" }),
+      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
+      /* @__PURE__ */ u3("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
+    ] })) });
+  }
+  function Card({ r: r3, on: on3 }) {
+    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
+      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
+      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+        /* @__PURE__ */ u3("b", { children: r3.name }),
+        /* @__PURE__ */ u3("i", { children: [
+          r3.owner,
+          r3.archived ? " \xB7 archived" : "",
+          r3.issues ? ` \xB7 ${r3.issues} open` : ""
+        ] }),
+        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
+      ] })
+    ] });
+  }
+  function Opt({ v: v2, cur, t: t2 }) {
+    return /* @__PURE__ */ u3("option", { value: v2, selected: cur === v2, children: t2 });
+  }
+  function Body({ b: b2, on: on3 }) {
+    if (b2.kind === "addtoken") return /* @__PURE__ */ u3("div", { class: "diff-empty", children: [
+      "Add an access token to list all your repositories and their pull requests.",
+      /* @__PURE__ */ u3("br", {}),
+      /* @__PURE__ */ u3("br", {}),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
+    ] });
+    if (b2.kind === "error") return /* @__PURE__ */ u3("div", { class: "diff-empty err", children: b2.text });
+    if (b2.kind === "spinner") return /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
+    if (b2.kind === "recent") {
+      return /* @__PURE__ */ u3(S2, { children: [
+        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
+          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.state === x3 ? "on" : "", "data-rstate": x3, onClick: () => on3.rstate(x3), children: cap2(x3) })) })
+        ] }) : "",
+        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
+          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+            /* @__PURE__ */ u3("b", { children: r3.title }),
+            /* @__PURE__ */ u3("i", { children: r3.ref })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: I2("x") })
+        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
+      ] });
+    }
+    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
+        g2.owner,
+        /* @__PURE__ */ u3("span", { children: g2.cards.length })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) })
+    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) });
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
+        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.vis === x3 ? "on" : "", "data-hvis": x3, onClick: () => on3.vis(x3), children: cap2(x3) })) }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
+          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
+        ] }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
+          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
+        ] })
+      ] }),
+      grid
+    ] });
+  }
+  function Home({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
+        I2("home"),
+        SP,
+        p3.owner || "Home"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
+        "Open a pull request: type ",
+        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
+        " or paste a URL in the bar above."
+      ] }),
+      p3.banners.length ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }) }) : "",
+      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
+        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
+          I2("repo"),
+          " Repositories",
+          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
+        ] }),
+        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
+          I2("clock"),
+          " Recent",
+          /* @__PURE__ */ u3("span", { children: p3.recentCount })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3(Body, { b: p3.body, on: on3 })
+    ] });
+  }
+
+  // src/components/PrList.tsx
+  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
   function Opts({ arr, v: v2, all }) {
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("option", { value: "", children: all }),
       arr.map((x3) => /* @__PURE__ */ u3("option", { value: x3, selected: x3 === v2, children: x3 }))
     ] });
   }
-  function FilterBar(p3) {
+  function FilterBar({ p: p3, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "prl-filters", children: [
       /* @__PURE__ */ u3("span", { class: "pf-search", children: [
         I2("search"),
-        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false })
+        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false, onInput: on3.filter })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", onChange: on3.author, children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
       "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
+      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", onChange: on3.label, children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
       "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", children: [
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", onChange: on3.status, children: [
         /* @__PURE__ */ u3("option", { value: "", children: "Status: any" }),
         p3.statuses.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.status, children: t2 }))
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", children: p3.sorts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", onChange: on3.sort, children: p3.sorts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
         "Sort: ",
         t2
       ] })) }),
@@ -2573,37 +2693,36 @@
         " of ",
         p3.total
       ] }),
-      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", children: "Clear" }) : ""
+      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
     ] });
   }
-  var filterBarHtml = (p3) => html(/* @__PURE__ */ u3(FilterBar, { ...p3 }));
-  function PrListPage({ repo, state, banners, filterBar, body }) {
+  function PrListPage({ p: p3, on: on3 }) {
+    const body = p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
+      /* @__PURE__ */ u3("span", { class: "prl-main", children: [
+        /* @__PURE__ */ u3("b", { children: r3.title }),
+        r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
+        /* @__PURE__ */ u3("i", { children: r3.meta })
+      ] }),
+      /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
+    ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty });
     return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
       /* @__PURE__ */ u3("div", { class: "repoline", style: "padding-bottom:16px" }),
-      Raw(banners),
+      /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }),
       /* @__PURE__ */ u3("div", { class: "prl", children: [
         /* @__PURE__ */ u3("div", { class: "prl-head", children: [
           /* @__PURE__ */ u3("div", { children: [
             /* @__PURE__ */ u3("span", { class: "repo-ic", children: I2("repo", 16) }),
             SP,
-            /* @__PURE__ */ u3("b", { children: repo })
+            /* @__PURE__ */ u3("b", { children: p3.repo })
           ] }),
-          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: state === s3 ? "on" : "", children: cap2(s3) })) })
+          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.ps(s3), children: cap3(s3) })) })
         ] }),
-        Raw(filterBar),
+        p3.filterBar ? /* @__PURE__ */ u3(FilterBar, { p: p3.filterBar, on: on3 }) : null,
         body
       ] })
     ] });
   }
-  var prListPageHtml = (p3) => html(/* @__PURE__ */ u3(PrListPage, { repo: p3.repo, state: p3.state, banners: p3.banners, filterBar: p3.filterBar, body: p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, children: [
-    /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
-    /* @__PURE__ */ u3("span", { class: "prl-main", children: [
-      /* @__PURE__ */ u3("b", { children: r3.title }),
-      r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
-      /* @__PURE__ */ u3("i", { children: r3.meta })
-    ] }),
-    /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
-  ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty }) }));
   function Crumbs({ repo, trail, extra, on: on3 }) {
     const homeCur = !repo && !trail.length;
     const parts = [homeCur ? /* @__PURE__ */ u3("span", { class: "crumb cur home", children: [
@@ -2644,10 +2763,10 @@
     return list.sort(cmps[S.psort]);
   }
   function prFilterBar() {
-    if (!S.prs) return "";
+    if (!S.prs) return null;
     const authors = [...new Set(S.prs.map((p3) => p3.user.login))].sort((a3, b2) => a3.localeCompare(b2));
     const labels = [...new Set(S.prs.flatMap((p3) => (p3.labels || []).map((l3) => l3.name)))].sort((a3, b2) => a3.localeCompare(b2));
-    return filterBarHtml({
+    return {
       filter: S.pf,
       authors,
       labels,
@@ -2660,14 +2779,14 @@
       n: prFiltered().length,
       total: S.prs.length,
       active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus)
-    });
+    };
   }
-  function prList() {
+  function prListProps() {
     const rows = S.error || !S.prs ? null : prFiltered().map((p3) => {
       const st = p3.merged_at ? ["merged", "git-merge"] : p3.state === "closed" ? ["closed", "git-pull-request-closed"] : p3.draft ? ["draft", "git-pull-request-draft"] : ["open", "git-pull-request"];
       return { ref: `${S.repo}#${p3.number}`, st: st[0], icon: st[1], title: p3.title, labels: p3.labels || [], meta: `#${p3.number} ${p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : "opened"} ${when(p3.merged_at || p3.closed_at || p3.created_at).replace(/<\/?span[^>]*>/g, "")} by ${p3.user.login}`, avatar: p3.user.avatar_url ?? "" };
     });
-    return prListPageHtml({ repo: S.repo, state: S.prState, banners: pushBanners(S.repo), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : "", loading: !S.error && !S.prs, empty: S.prs?.length ? "No pull requests match the filters." : "No pull requests." });
+    return { repo: S.repo, state: S.prState, banners: pushBannerItems(S.repo), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : "", loading: !S.error && !S.prs, empty: S.prs?.length ? "No pull requests match the filters." : "No pull requests." };
   }
   function crumbs(repo, trail = [], extra = "") {
     return crumbsHtml({ repo, trail, extra });
@@ -2928,27 +3047,6 @@
     const qa2 = (sel, r3 = document) => qa(sel, r3).filter((e2) => !e2.closest("#side, [data-live]"));
     const $3 = (sel, r3 = document) => qa2(sel, r3)[0] ?? null;
     bindWrite();
-    $3("#mainfilter")?.addEventListener("input", (e2) => {
-      S.pf = e2.target.value;
-      const p3 = e2.target.selectionStart;
-      render();
-      const n2 = $3("#mainfilter");
-      n2.focus();
-      n2.setSelectionRange(p3, p3);
-    });
-    [["#pfauthor", "pAuthor"], ["#pflabel", "pLabel"], ["#pfstatus", "pStatus"]].forEach(([id, k3]) => $3(id)?.addEventListener("change", (e2) => {
-      S[k3] = e2.target.value;
-      render();
-    }));
-    $3("#pfsort")?.addEventListener("change", (e2) => {
-      S.psort = e2.target.value;
-      localStorage.setItem("psort", S.psort);
-      render();
-    });
-    $3("#pfclear")?.addEventListener("click", () => {
-      S.pf = S.pAuthor = S.pLabel = S.pStatus = "";
-      render();
-    });
     $3("#fcbtn")?.addEventListener("click", openCommits);
     $3("#fcall")?.addEventListener("click", () => setFr(null));
     qa2("[data-fstep]").forEach((el) => el.addEventListener("click", () => {
@@ -2987,11 +3085,11 @@
         e2.preventDefault();
         const i3 = Number(row.dataset.cp), p3 = S.cpick;
         S.cpick = !p3 || p3.a !== p3.b ? { a: i3, b: i3 } : { a: Math.min(p3.a, i3), b: Math.max(p3.b, i3) };
-        const keep3 = $3("#cplist").scrollTop;
+        const keep4 = $3("#cplist").scrollTop;
         S.dialog = commitsDialog();
         render();
         const l3 = $3("#cplist");
-        if (l3) l3.scrollTop = keep3;
+        if (l3) l3.scrollTop = keep4;
       }));
     }
     $3("#fsort")?.addEventListener("change", (e2) => {
@@ -3012,10 +3110,6 @@
       S.nav = false;
       render();
       if (S.hasToken && !S.repos) loadRepos();
-    }));
-    qa2("[data-ps]").forEach((el) => el.addEventListener("click", () => {
-      S.prState = el.dataset.ps;
-      openRepo(S.repo, { nav: true });
     }));
     qa2("[data-open]").forEach((el) => {
       el.addEventListener("click", (e2) => openClick(el, e2));
@@ -3136,27 +3230,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         rerender();
       }
     });
-    $3("#ibrefresh")?.addEventListener("click", () => loadInbox(true));
     $3("#noteall")?.addEventListener("click", () => {
       S.bell = false;
       S.view = "notes";
       S.nav = false;
       render();
-    });
-    $3("#npcheck")?.addEventListener("click", () => pollNotes());
-    $3("#npreadall")?.addEventListener("click", () => {
-      S.notes.forEach((n2) => n2.read = true);
-      saveNotes();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    });
-    $3("#npclear")?.addEventListener("click", () => {
-      S.notes = [];
-      saveNotes();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
     });
     qa2("[data-nf]").forEach((b2) => b2.addEventListener("click", () => {
       S.nf = b2.dataset.nf;
@@ -3196,7 +3274,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       S.notes.forEach((n2) => n2.read = true);
       localStorage.setItem("notes", JSON.stringify(S.notes));
     }));
-    const keep2 = (fn) => {
+    const keep3 = (fn) => {
       S.keepScroll = true;
       fn();
       render();
@@ -3250,32 +3328,32 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
       if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
     }));
-    qa2("[data-foldall]").forEach((el) => el.addEventListener("click", () => keep2(() => {
+    qa2("[data-foldall]").forEach((el) => el.addEventListener("click", () => keep3(() => {
       el.dataset.files.split("\n").forEach((n2) => {
         S.fold["f:" + n2] = el.dataset.foldall === "close";
       });
       localStorage.setItem("fold", JSON.stringify(S.fold));
     })));
-    qa2("[data-hide]").forEach((el) => el.addEventListener("click", () => keep2(() => {
+    qa2("[data-hide]").forEach((el) => el.addEventListener("click", () => keep3(() => {
       S.hide[el.dataset.hide] = true;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     })));
-    qa2("[data-show]").forEach((el) => el.addEventListener("click", () => keep2(() => {
+    qa2("[data-show]").forEach((el) => el.addEventListener("click", () => keep3(() => {
       S.hide[el.dataset.show] = false;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     })));
-    qa2("[data-who]").forEach((el) => el.addEventListener("click", () => keep2(() => {
+    qa2("[data-who]").forEach((el) => el.addEventListener("click", () => keep3(() => {
       const w3 = el.dataset.who;
       S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
     })));
-    qa2("[data-whoclear]").forEach((el) => el.addEventListener("click", () => keep2(() => {
+    qa2("[data-whoclear]").forEach((el) => el.addEventListener("click", () => keep3(() => {
       S.who = [];
     })));
-    $3("#scrim")?.addEventListener("click", () => keep2(() => {
+    $3("#scrim")?.addEventListener("click", () => keep3(() => {
       S.nav = false;
     }));
     $3("#nextun")?.addEventListener("click", jumpUnresolved);
-    $3("#crange")?.addEventListener("change", (e2) => keep2(() => {
+    $3("#crange")?.addEventListener("change", (e2) => keep3(() => {
       S.range = e2.target.value;
       if (S.range === "custom" && !S.rFrom && !S.rTo) {
         const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -3283,17 +3361,17 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         S.rFrom = d3(Date.now() - 7 * 864e5);
       }
     }));
-    $3("#cfrom")?.addEventListener("change", (e2) => keep2(() => {
+    $3("#cfrom")?.addEventListener("change", (e2) => keep3(() => {
       S.rFrom = e2.target.value;
     }));
-    $3("#cto")?.addEventListener("change", (e2) => keep2(() => {
+    $3("#cto")?.addEventListener("change", (e2) => keep3(() => {
       S.rTo = e2.target.value;
     }));
-    $3("#csort")?.addEventListener("click", () => keep2(() => {
+    $3("#csort")?.addEventListener("click", () => keep3(() => {
       S.sort = S.sort === "desc" ? "asc" : "desc";
       localStorage.setItem("csort", S.sort);
     }));
-    $3("#unres")?.addEventListener("click", () => keep2(() => {
+    $3("#unres")?.addEventListener("click", () => keep3(() => {
       S.unres = !S.unres;
     }));
     (S.ios || []).forEach((o3) => o3.disconnect());
@@ -3316,12 +3394,12 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       }
     }
     bindSticky();
-    $3("#sidetoggle")?.addEventListener("click", () => keep2(() => {
+    $3("#sidetoggle")?.addEventListener("click", () => keep3(() => {
       S.hide.side = !S.hide.side;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     }));
     qa2("[data-flip]").forEach((b2) => b2.addEventListener("click", flipSides));
-    $3("#split")?.addEventListener("click", () => keep2(() => {
+    $3("#split")?.addEventListener("click", () => keep3(() => {
       S.split = !S.split;
       localStorage.setItem("split", S.split ? "1" : "0");
     }));
@@ -3478,129 +3556,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     };
   }
 
-  // src/components/Home.tsx
-  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Banners({ items, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: items.map((p3) => /* @__PURE__ */ u3("div", { class: "push-banner", children: [
-      I2("git-branch"),
-      /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("b", { children: p3.branch }),
-        " had recent pushes ",
-        p3.ago,
-        p3.showRepo ? /* @__PURE__ */ u3(S2, { children: [
-          " ",
-          /* @__PURE__ */ u3("i", { children: [
-            "\xB7 ",
-            p3.repo
-          ] })
-        ] }) : ""
-      ] }),
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
-      /* @__PURE__ */ u3("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
-    ] })) });
-  }
-  function Card({ r: r3, on: on3 }) {
-    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
-      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
-      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-        /* @__PURE__ */ u3("b", { children: r3.name }),
-        /* @__PURE__ */ u3("i", { children: [
-          r3.owner,
-          r3.archived ? " \xB7 archived" : "",
-          r3.issues ? ` \xB7 ${r3.issues} open` : ""
-        ] }),
-        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
-      ] })
-    ] });
-  }
-  function Opt({ v: v2, cur, t: t2 }) {
-    return /* @__PURE__ */ u3("option", { value: v2, selected: cur === v2, children: t2 });
-  }
-  function Body({ b: b2, on: on3 }) {
-    if (b2.kind === "addtoken") return /* @__PURE__ */ u3("div", { class: "diff-empty", children: [
-      "Add an access token to list all your repositories and their pull requests.",
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
-    ] });
-    if (b2.kind === "error") return /* @__PURE__ */ u3("div", { class: "diff-empty err", children: b2.text });
-    if (b2.kind === "spinner") return /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
-    if (b2.kind === "recent") {
-      return /* @__PURE__ */ u3(S2, { children: [
-        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
-          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.state === x3 ? "on" : "", "data-rstate": x3, onClick: () => on3.rstate(x3), children: cap3(x3) })) })
-        ] }) : "",
-        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
-          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-            /* @__PURE__ */ u3("b", { children: r3.title }),
-            /* @__PURE__ */ u3("i", { children: r3.ref })
-          ] }),
-          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: I2("x") })
-        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
-      ] });
-    }
-    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
-        g2.owner,
-        /* @__PURE__ */ u3("span", { children: g2.cards.length })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) })
-    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) });
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
-        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.vis === x3 ? "on" : "", "data-hvis": x3, onClick: () => on3.vis(x3), children: cap3(x3) })) }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
-          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
-        ] }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
-          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
-        ] })
-      ] }),
-      grid
-    ] });
-  }
-  function Home({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
-        I2("home"),
-        SP,
-        p3.owner || "Home"
-      ] }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
-        "Open a pull request: type ",
-        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
-        " or paste a URL in the bar above."
-      ] }),
-      p3.banners.length ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }) }) : "",
-      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
-        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
-          I2("repo"),
-          " Repositories",
-          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
-        ] }),
-        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
-          I2("clock"),
-          " Recent",
-          /* @__PURE__ */ u3("span", { children: p3.recentCount })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3(Body, { b: p3.body, on: on3 })
-    ] });
-  }
-
   // src/app/bindwrite.ts
   function homeProps() {
     const tab = S.homeTab || "repos", owner = S.homeOwner || "";
@@ -3703,340 +3658,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] });
   }
 
-  // src/components/TabStrip.tsx
-  function TabStrip({ tabs, cur, recents, menu, closedFirst, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
-      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, onClick: (e2) => {
-        if (e2.target.closest(".pt-x")) return;
-        on3.open(i3);
-      }, onAuxClick: (e2) => on3.aux(e2, i3), onMouseDown: (e2) => on3.down(e2, i3), title: t2.ref + " \xB7 " + t2.title, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: /* @__PURE__ */ u3(Icon, { n: t2.icon }) }),
-        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
-          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
-          " ",
-          t2.title
-        ] }),
-        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, onClick: (e2) => on3.close(e2, i3), "aria-label": "Close tab", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
-      ] })),
-      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", onClick: on3.add, title: "New tab (\u2318T)", "aria-label": "New tab", children: [
-        /* @__PURE__ */ u3(Icon, { n: "plus" }),
-        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
-      ] }),
-      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", ref: on3.menu, children: [
-        /* @__PURE__ */ u3("a", { "data-tabhome": "", onClick: on3.home, children: [
-          /* @__PURE__ */ u3(Icon, { n: "home" }),
-          " Home"
-        ] }),
-        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
-        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, onClick: () => on3.fresh(r3.ref), children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
-          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
-            /* @__PURE__ */ u3("i", { children: r3.ref }),
-            " ",
-            r3.title
-          ] })
-        ] })),
-        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3("h6", { children: "Closed" }),
-          /* @__PURE__ */ u3("a", { "data-tabreopen": "", onClick: on3.reopen, children: [
-            /* @__PURE__ */ u3(Icon, { n: "clock" }),
-            " Reopen ",
-            closedFirst,
-            " ",
-            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
-          ] })
-        ] })
-      ] })
-    ] });
-  }
-
-  // src/components/Toolbar.tsx
-  var NL2 = "\n  ";
-  function Toolbar(p3) {
-    const label = p3.profile ? p3.profile.name || p3.profile.login : "";
-    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
-      NL2,
-      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", onClick: p3.on.back, disabled: !p3.canBack, title: "Back (\u2318[)", children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", onClick: p3.on.fwd, disabled: !p3.canFwd, title: "Forward (\u2318])", children: /* @__PURE__ */ u3(Icon, { n: "chevron-right" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", onClick: p3.on.reload, disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: /* @__PURE__ */ u3(Icon, { n: "sync" }) })
-      ] }),
-      NL2,
-      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
-        /* @__PURE__ */ u3(Icon, { n: "search" }),
-        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
-      ] }),
-      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
-        /* @__PURE__ */ u3(Icon, { n: "sync" }),
-        " ",
-        p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
-      ] }),
-      NL2,
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", onClick: p3.on.retry, "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: /* @__PURE__ */ u3(Icon, { n: "alert" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", onClick: p3.on.external, disabled: !p3.hasBundle, title: "Open on github.com", children: /* @__PURE__ */ u3(Icon, { n: "link-external" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", onClick: p3.on.newPr, title: "New pull request", children: /* @__PURE__ */ u3(Icon, { n: "plus" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", onClick: p3.on.inbox, title: "Inbox: PRs that need you", children: /* @__PURE__ */ u3(Icon, { n: "checklist" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", onClick: p3.on.bell, title: "Notifications", children: [
-          /* @__PURE__ */ u3(Icon, { n: "bell" }),
-          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
-        ] }),
-        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", onClick: p3.on.mode, role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
-          /* @__PURE__ */ u3("i", { class: "st" }),
-          /* @__PURE__ */ u3("i", { class: "st s2" }),
-          /* @__PURE__ */ u3("i", { class: "st s3" }),
-          /* @__PURE__ */ u3("i", { class: "cl" }),
-          /* @__PURE__ */ u3("i", { class: "cl c2" }),
-          /* @__PURE__ */ u3("span", { class: "knob", children: [
-            /* @__PURE__ */ u3("b", { class: "cr" }),
-            /* @__PURE__ */ u3("b", { class: "cr c2" }),
-            /* @__PURE__ */ u3("b", { class: "cr c3" })
-          ] })
-        ] }),
-        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
-          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
-          /* @__PURE__ */ u3("span", { children: label }),
-          /* @__PURE__ */ u3(Icon, { n: "chevron-down", s: 12 })
-        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u3(Icon, { n: "key" }) })
-      ] })
-    ] });
-  }
-
-  // src/app/top.tsx
-  var keep = (fn) => {
-    S.keepScroll = true;
-    fn();
-    render();
-    S.keepScroll = false;
-  };
-  var mode = (e2) => {
-    const btn = e2.currentTarget, r3 = btn.getBoundingClientRect(), x3 = r3.left + r3.width / 2, y2 = r3.top + r3.height / 2;
-    S.mode = isDark() ? "light" : "dark";
-    localStorage.setItem("mode", S.mode);
-    const swap = () => {
-      applyMode();
-      btn.classList.toggle("dark", isDark());
-      btn.setAttribute("aria-checked", String(isDark()));
-      btn.title = `Switch to ${isDark() ? "light" : "dark"} mode`;
-    };
-    btn.classList.remove("pop");
-    void btn.offsetWidth;
-    btn.classList.add("pop");
-    if (!document.startViewTransition) {
-      swap();
-      return;
-    }
-    const end = Math.hypot(Math.max(x3, innerWidth - x3), Math.max(y2, innerHeight - y2));
-    document.documentElement.classList.add("vt");
-    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x3}px ${y2}px)`, `circle(${end}px at ${x3}px ${y2}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished.finally(() => document.documentElement.classList.remove("vt")));
-  };
-  var prof = (e2) => {
-    e2.stopPropagation();
-    const had = $(".prof-pop");
-    $(".react-pop")?.remove();
-    if (had) return;
-    const pr = S.profile, pop = document.createElement("div");
-    pop.className = "react-pop cm-pop prof-pop";
-    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon("link-external")} Your GitHub profile</button><button data-h="token">${icon("key")} Access token\u2026</button><button data-h="out" class="danger">Sign out</button>`;
-    const r3 = e2.currentTarget.getBoundingClientRect();
-    pop.style.right = Math.max(8, innerWidth - r3.right) + "px";
-    pop.style.top = r3.bottom + 6 + "px";
-    pop.onclick = async (ev) => {
-      const h3 = ev.target.closest("[data-h]")?.dataset.h;
-      if (!h3) return;
-      pop.remove();
-      if (h3 === "profile") openExternal(pr.html_url);
-      else if (h3 === "token") tokenDialog();
-      else {
-        try {
-          await tauri?.invoke("set_token", { token: "" });
-        } catch {
-        }
-        S.hasToken = false;
-        S.profile = null;
-        S.me = "";
-        S.repos = null;
-        try {
-          localStorage.removeItem("profile");
-        } catch {
-        }
-        render();
-      }
-    };
-    document.body.appendChild(pop);
-    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
-  };
-  var tb = {
-    nav: (e2) => {
-      e2.stopPropagation();
-      if (matchMedia("(min-width: 901px)").matches) {
-        S.hide.nav = !S.hide.nav;
-        try {
-          localStorage.setItem("hide", JSON.stringify(S.hide));
-        } catch {
-        }
-        $(".shell")?.classList.toggle("nav-hidden", S.hide.nav);
-        return;
-      }
-      keep(() => {
-        S.nav = !S.nav;
-      });
-    },
-    back: () => go(-1),
-    fwd: () => go(1),
-    reload,
-    external: () => openExternal(S.bundle.pull.html_url),
-    mode,
-    addr: (e2) => {
-      e2.preventDefault();
-      openPr($("#addrinput").value);
-      $("#addrinput").blur();
-    },
-    upd: async () => {
-      const u4 = S.update;
-      if (!u4 || u4.busy) return;
-      u4.busy = true;
-      render();
-      try {
-        await u4.obj.downloadAndInstall();
-        await window.__TAURI__.process.relaunch();
-      } catch (e2) {
-        u4.busy = false;
-        S.actErr = { k: "update", m: "Update failed: " + String(e2) };
-        render();
-      }
-    },
-    retry: (ev) => {
-      setBusy(ev.currentTarget, true);
-      S.offline = navigator.onLine === false;
-      reload();
-    },
-    newPr: () => openNewPr(),
-    inbox: openInbox,
-    bell: (e2) => {
-      e2.stopPropagation();
-      setBell(!S.bell);
-    },
-    signin: tokenDialog,
-    prof
-  };
-  var tabDown = (e2, from) => {
-    const el = e2.currentTarget;
-    if (e2.button !== 0 || e2.target.closest(".pt-x")) return;
-    const x0 = e2.clientX;
-    let moved = false, to = from;
-    const strip = el.parentElement, tabs = [...strip.querySelectorAll(".ptab")];
-    const mv = (ev) => {
-      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
-      if (!moved) {
-        moved = true;
-        el.classList.add("drag");
-        document.body.classList.add("dragging");
-      }
-      el.style.transform = `translateX(${ev.clientX - x0}px)`;
-      to = tabs.reduce((best, t2, i3) => {
-        const r3 = t2.getBoundingClientRect();
-        return ev.clientX > r3.left + r3.width / 2 ? i3 : best;
-      }, 0);
-      tabs.forEach((t2, i3) => {
-        if (t2 !== el) t2.style.transform = from < to && i3 > from && i3 <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i3 < from && i3 >= to ? `translateX(${el.offsetWidth}px)` : "";
-      });
-    };
-    const up = () => {
-      removeEventListener("mousemove", mv);
-      removeEventListener("mouseup", up);
-      document.body.classList.remove("dragging");
-      if (!moved) return;
-      el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
-      if (to !== from) {
-        const [t2] = S.tabs.splice(from, 1);
-        S.tabs.splice(to, 0, t2);
-        saveTabs();
-      }
-      render();
-    };
-    addEventListener("mousemove", mv);
-    addEventListener("mouseup", up);
-  };
-  var ts = {
-    open: (i3) => {
-      const t2 = S.tabs[i3];
-      if (t2.ref !== curRef()) {
-        if (fastTab(t2.ref)) return;
-        stashCurrent();
-        tabSnap();
-        S.fadeMain = true;
-        S.tabMenu = false;
-        openPr(t2.ref, { nav: true, restore: t2.tab });
-      }
-    },
-    aux: (e2, i3) => {
-      if (e2.button === 1) {
-        e2.preventDefault();
-        closeTab(i3);
-      }
-    },
-    down: tabDown,
-    close: (e2, i3) => {
-      e2.stopPropagation();
-      closeTab(i3);
-    },
-    add: (e2) => {
-      e2.stopPropagation();
-      S.tabMenu = !S.tabMenu;
-      rerender();
-    },
-    fresh: (ref) => openFromList(ref, true),
-    home: () => {
-      S.tabMenu = false;
-      S.view = "home";
-      render();
-    },
-    reopen: () => {
-      S.tabMenu = false;
-      reopenTab();
-    },
-    menu: (m2) => {
-      const a3 = $("#tabadd");
-      if (m2 && a3) {
-        const r3 = a3.getBoundingClientRect();
-        m2.style.top = r3.bottom + 4 + "px";
-        m2.style.left = Math.min(r3.left, innerWidth - 350) + "px";
-        m2.style.marginTop = "0";
-      }
-    }
-  };
-  function Top() {
-    const b2 = S.bundle, pr = S.profile, open = new Set(S.tabs.map((t2) => t2.ref));
-    return /* @__PURE__ */ u3(S2, { children: [
-      S.refreshing && /* @__PURE__ */ u3("div", { class: "refreshing-bar" }),
-      /* @__PURE__ */ u3(
-        Toolbar,
-        {
-          prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
-          hasBundle: !!b2,
-          canBack: !(S.hist.length < 2 || S.hi < 1),
-          canFwd: !(S.hi >= S.hist.length - 1),
-          update: S.update ? { busy: S.update.busy, version: S.update.version } : null,
-          offline: isOff(),
-          unread: S.notes.filter((n2) => !n2.read).length,
-          dark: isDark(),
-          profile: pr,
-          hasToken: S.hasToken,
-          avatar: S.hasToken && pr ? avUrl(pr.avatar_url, 56) : "",
-          on: tb
-        }
-      ),
-      /* @__PURE__ */ u3(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
-    ] });
-  }
-  var paintTop = (host) => R(/* @__PURE__ */ u3(Top, {}), host);
-  var clearTop = (host) => R(null, host);
-
   // src/components/Pages.tsx
-  function NotesPage({ f: f4, rows, unread, total }) {
+  function NotesPage({ f: f4, rows, unread, total, on: on3 }) {
     const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
     return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
       /* @__PURE__ */ u3("div", { class: "np-head", children: [
@@ -4046,21 +3669,21 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           "Notifications"
         ] }),
         /* @__PURE__ */ u3("div", { class: "np-tools", children: [
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", children: "Check now" }),
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", disabled: !unread, children: "Mark all as read" }),
-          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", disabled: !total, children: "Clear all" })
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", onClick: on3.readAll, disabled: !unread, children: "Mark all as read" }),
+          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", onClick: on3.clear, disabled: !total, children: "Clear all" })
         ] })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, children: [
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, onClick: () => on3.filter(k3), children: [
         l3,
         /* @__PURE__ */ u3("span", { children: c3 })
       ] })) }),
       "\n  ",
       /* @__PURE__ */ u3("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u3("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
-        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, title: n2.read ? "Mark as unread" : "Mark as read" }),
+        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), title: n2.read ? "Mark as unread" : "Mark as read" }),
         "\n    ",
-        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, children: [
+        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
           /* @__PURE__ */ u3("b", { children: n2.title }),
           /* @__PURE__ */ u3("span", { children: n2.text }),
           /* @__PURE__ */ u3("i", { children: [
@@ -4070,12 +3693,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           ] })
         ] }),
         "\n    ",
-        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, children: n2.read ? "Mark unread" : "Mark read" }),
-        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, title: "Delete", children: I2("x") })
+        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), children: n2.read ? "Mark unread" : "Mark read" }),
+        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, onClick: (e2) => on3.del(e2, n2.id), title: "Delete", children: I2("x") })
       ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
     ] });
   }
-  var notesPageHtml = (p3) => html(/* @__PURE__ */ u3(NotesPage, { ...p3 }));
   function NpMeta(p3) {
     return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
       p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
@@ -4210,7 +3832,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] });
   }
   var newPrHtml = (p3) => html(/* @__PURE__ */ u3(NewPr, { ...p3 }));
-  function InboxPage({ loading, err, secs }) {
+  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
     const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
@@ -4221,7 +3843,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         /* @__PURE__ */ u3("span", { children: s3.rows.length })
       ] }),
       /* @__PURE__ */ u3("p", { children: s3.sub }),
-      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, children: [
+      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
         /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
         /* @__PURE__ */ u3("span", { class: "ib-t", children: [
           /* @__PURE__ */ u3("b", { children: r3.title }),
@@ -4242,12 +3864,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           SP,
           "Inbox"
         ] }),
-        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
       ] }),
       body
     ] });
   }
-  var inboxPageHtml = (p3) => html(/* @__PURE__ */ u3(InboxPage, { ...p3 }));
   var skeletonHtml = () => html(/* @__PURE__ */ u3("div", { class: "skel", "aria-busy": "true", children: [
     /* @__PURE__ */ u3("div", { class: "sk sk-crumb" }),
     /* @__PURE__ */ u3("div", { class: "sk sk-title" }),
@@ -4317,14 +3938,443 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] })
   ] }) }));
 
+  // src/app/views.tsx
+  var open = { open: openClick, aux: openAux, ctx: openCtx };
+  var typedPf = (e2) => {
+    S.pf = e2.target.value;
+    render();
+  };
+  var prl = {
+    ...open,
+    ps: (s3) => {
+      S.prState = s3;
+      openRepo(S.repo, { nav: true });
+    },
+    compare: (repo, br) => openNewPr(repo, br),
+    dismiss: (key) => {
+      pushDis[key] = 1;
+      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
+      rerender();
+    },
+    filter: typedPf,
+    author: (e2) => {
+      S.pAuthor = e2.target.value;
+      render();
+    },
+    label: (e2) => {
+      S.pLabel = e2.target.value;
+      render();
+    },
+    status: (e2) => {
+      S.pStatus = e2.target.value;
+      render();
+    },
+    sort: (e2) => {
+      S.psort = e2.target.value;
+      localStorage.setItem("psort", S.psort);
+      render();
+    },
+    clear: () => {
+      S.pf = S.pAuthor = S.pLabel = S.pStatus = "";
+      render();
+    }
+  };
+  function RepoView() {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: S.repo, trail: [{ t: "Pull requests" }], extra: "", on: crumbs2 }),
+      /* @__PURE__ */ u3(PrListPage, { p: prListProps(), on: prl })
+    ] });
+  }
+  var keep = (fn) => {
+    S.keepScroll = true;
+    fn();
+    render();
+    S.keepScroll = false;
+  };
+  var notes = {
+    ...open,
+    check: () => pollNotes(),
+    readAll: () => keep(() => {
+      S.notes.forEach((n2) => n2.read = true);
+      saveNotes();
+    }),
+    clear: () => keep(() => {
+      S.notes = [];
+      saveNotes();
+    }),
+    filter: (f4) => keep(() => {
+      S.nf = f4;
+    }),
+    read: (e2, id) => {
+      e2.stopPropagation();
+      const n2 = S.notes.find((x3) => String(x3.id) === String(id));
+      if (n2) keep(() => {
+        n2.read = !n2.read;
+        saveNotes();
+      });
+    },
+    del: (e2, id) => {
+      e2.stopPropagation();
+      keep(() => {
+        S.notes = S.notes.filter((x3) => String(x3.id) !== String(id));
+        saveNotes();
+      });
+    }
+  };
+  function NotesView() {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Notifications" }], extra: "", on: crumbs2 }),
+      /* @__PURE__ */ u3(NotesPage, { ...notesProps(), on: notes })
+    ] });
+  }
+  var inbox = { ...open, refresh: () => loadInbox2(true) };
+  function InboxView() {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Inbox" }], extra: "", on: crumbs2 }),
+      /* @__PURE__ */ u3(InboxPage, { p: inboxProps(), on: inbox })
+    ] });
+  }
+
+  // src/components/TabStrip.tsx
+  function TabStrip({ tabs, cur, recents, menu, closedFirst, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
+      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, onClick: (e2) => {
+        if (e2.target.closest(".pt-x")) return;
+        on3.open(i3);
+      }, onAuxClick: (e2) => on3.aux(e2, i3), onMouseDown: (e2) => on3.down(e2, i3), title: t2.ref + " \xB7 " + t2.title, children: [
+        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: /* @__PURE__ */ u3(Icon, { n: t2.icon }) }),
+        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
+          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
+          " ",
+          t2.title
+        ] }),
+        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
+        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, onClick: (e2) => on3.close(e2, i3), "aria-label": "Close tab", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
+      ] })),
+      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", onClick: on3.add, title: "New tab (\u2318T)", "aria-label": "New tab", children: [
+        /* @__PURE__ */ u3(Icon, { n: "plus" }),
+        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
+      ] }),
+      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", ref: on3.menu, children: [
+        /* @__PURE__ */ u3("a", { "data-tabhome": "", onClick: on3.home, children: [
+          /* @__PURE__ */ u3(Icon, { n: "home" }),
+          " Home"
+        ] }),
+        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
+        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, onClick: () => on3.fresh(r3.ref), children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
+          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
+            /* @__PURE__ */ u3("i", { children: r3.ref }),
+            " ",
+            r3.title
+          ] })
+        ] })),
+        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3("h6", { children: "Closed" }),
+          /* @__PURE__ */ u3("a", { "data-tabreopen": "", onClick: on3.reopen, children: [
+            /* @__PURE__ */ u3(Icon, { n: "clock" }),
+            " Reopen ",
+            closedFirst,
+            " ",
+            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+
+  // src/components/Toolbar.tsx
+  var NL2 = "\n  ";
+  function Toolbar(p3) {
+    const label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
+      NL2,
+      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", onClick: p3.on.back, disabled: !p3.canBack, title: "Back (\u2318[)", children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", onClick: p3.on.fwd, disabled: !p3.canFwd, title: "Forward (\u2318])", children: /* @__PURE__ */ u3(Icon, { n: "chevron-right" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", onClick: p3.on.reload, disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: /* @__PURE__ */ u3(Icon, { n: "sync" }) })
+      ] }),
+      NL2,
+      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
+        /* @__PURE__ */ u3(Icon, { n: "search" }),
+        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+      ] }),
+      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
+        /* @__PURE__ */ u3(Icon, { n: "sync" }),
+        " ",
+        p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
+      ] }),
+      NL2,
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", onClick: p3.on.retry, "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: /* @__PURE__ */ u3(Icon, { n: "alert" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", onClick: p3.on.external, disabled: !p3.hasBundle, title: "Open on github.com", children: /* @__PURE__ */ u3(Icon, { n: "link-external" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", onClick: p3.on.newPr, title: "New pull request", children: /* @__PURE__ */ u3(Icon, { n: "plus" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", onClick: p3.on.inbox, title: "Inbox: PRs that need you", children: /* @__PURE__ */ u3(Icon, { n: "checklist" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", onClick: p3.on.bell, title: "Notifications", children: [
+          /* @__PURE__ */ u3(Icon, { n: "bell" }),
+          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
+        ] }),
+        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", onClick: p3.on.mode, role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
+          /* @__PURE__ */ u3("i", { class: "st" }),
+          /* @__PURE__ */ u3("i", { class: "st s2" }),
+          /* @__PURE__ */ u3("i", { class: "st s3" }),
+          /* @__PURE__ */ u3("i", { class: "cl" }),
+          /* @__PURE__ */ u3("i", { class: "cl c2" }),
+          /* @__PURE__ */ u3("span", { class: "knob", children: [
+            /* @__PURE__ */ u3("b", { class: "cr" }),
+            /* @__PURE__ */ u3("b", { class: "cr c2" }),
+            /* @__PURE__ */ u3("b", { class: "cr c3" })
+          ] })
+        ] }),
+        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
+          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
+          /* @__PURE__ */ u3("span", { children: label }),
+          /* @__PURE__ */ u3(Icon, { n: "chevron-down", s: 12 })
+        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u3(Icon, { n: "key" }) })
+      ] })
+    ] });
+  }
+
+  // src/app/top.tsx
+  var keep2 = (fn) => {
+    S.keepScroll = true;
+    fn();
+    render();
+    S.keepScroll = false;
+  };
+  var mode = (e2) => {
+    const btn = e2.currentTarget, r3 = btn.getBoundingClientRect(), x3 = r3.left + r3.width / 2, y2 = r3.top + r3.height / 2;
+    S.mode = isDark() ? "light" : "dark";
+    localStorage.setItem("mode", S.mode);
+    const swap = () => {
+      applyMode();
+      btn.classList.toggle("dark", isDark());
+      btn.setAttribute("aria-checked", String(isDark()));
+      btn.title = `Switch to ${isDark() ? "light" : "dark"} mode`;
+    };
+    btn.classList.remove("pop");
+    void btn.offsetWidth;
+    btn.classList.add("pop");
+    if (!document.startViewTransition) {
+      swap();
+      return;
+    }
+    const end = Math.hypot(Math.max(x3, innerWidth - x3), Math.max(y2, innerHeight - y2));
+    document.documentElement.classList.add("vt");
+    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x3}px ${y2}px)`, `circle(${end}px at ${x3}px ${y2}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished.finally(() => document.documentElement.classList.remove("vt")));
+  };
+  var prof = (e2) => {
+    e2.stopPropagation();
+    const had = $(".prof-pop");
+    $(".react-pop")?.remove();
+    if (had) return;
+    const pr = S.profile, pop = document.createElement("div");
+    pop.className = "react-pop cm-pop prof-pop";
+    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon("link-external")} Your GitHub profile</button><button data-h="token">${icon("key")} Access token\u2026</button><button data-h="out" class="danger">Sign out</button>`;
+    const r3 = e2.currentTarget.getBoundingClientRect();
+    pop.style.right = Math.max(8, innerWidth - r3.right) + "px";
+    pop.style.top = r3.bottom + 6 + "px";
+    pop.onclick = async (ev) => {
+      const h3 = ev.target.closest("[data-h]")?.dataset.h;
+      if (!h3) return;
+      pop.remove();
+      if (h3 === "profile") openExternal(pr.html_url);
+      else if (h3 === "token") tokenDialog();
+      else {
+        try {
+          await tauri?.invoke("set_token", { token: "" });
+        } catch {
+        }
+        S.hasToken = false;
+        S.profile = null;
+        S.me = "";
+        S.repos = null;
+        try {
+          localStorage.removeItem("profile");
+        } catch {
+        }
+        render();
+      }
+    };
+    document.body.appendChild(pop);
+    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
+  };
+  var tb = {
+    nav: (e2) => {
+      e2.stopPropagation();
+      if (matchMedia("(min-width: 901px)").matches) {
+        S.hide.nav = !S.hide.nav;
+        try {
+          localStorage.setItem("hide", JSON.stringify(S.hide));
+        } catch {
+        }
+        $(".shell")?.classList.toggle("nav-hidden", S.hide.nav);
+        return;
+      }
+      keep2(() => {
+        S.nav = !S.nav;
+      });
+    },
+    back: () => go(-1),
+    fwd: () => go(1),
+    reload,
+    external: () => openExternal(S.bundle.pull.html_url),
+    mode,
+    addr: (e2) => {
+      e2.preventDefault();
+      openPr($("#addrinput").value);
+      $("#addrinput").blur();
+    },
+    upd: async () => {
+      const u4 = S.update;
+      if (!u4 || u4.busy) return;
+      u4.busy = true;
+      render();
+      try {
+        await u4.obj.downloadAndInstall();
+        await window.__TAURI__.process.relaunch();
+      } catch (e2) {
+        u4.busy = false;
+        S.actErr = { k: "update", m: "Update failed: " + String(e2) };
+        render();
+      }
+    },
+    retry: (ev) => {
+      setBusy(ev.currentTarget, true);
+      S.offline = navigator.onLine === false;
+      reload();
+    },
+    newPr: () => openNewPr(),
+    inbox: openInbox,
+    bell: (e2) => {
+      e2.stopPropagation();
+      setBell(!S.bell);
+    },
+    signin: tokenDialog,
+    prof
+  };
+  var tabDown = (e2, from) => {
+    const el = e2.currentTarget;
+    if (e2.button !== 0 || e2.target.closest(".pt-x")) return;
+    const x0 = e2.clientX;
+    let moved = false, to = from;
+    const strip = el.parentElement, tabs = [...strip.querySelectorAll(".ptab")];
+    const mv = (ev) => {
+      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
+      if (!moved) {
+        moved = true;
+        el.classList.add("drag");
+        document.body.classList.add("dragging");
+      }
+      el.style.transform = `translateX(${ev.clientX - x0}px)`;
+      to = tabs.reduce((best, t2, i3) => {
+        const r3 = t2.getBoundingClientRect();
+        return ev.clientX > r3.left + r3.width / 2 ? i3 : best;
+      }, 0);
+      tabs.forEach((t2, i3) => {
+        if (t2 !== el) t2.style.transform = from < to && i3 > from && i3 <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i3 < from && i3 >= to ? `translateX(${el.offsetWidth}px)` : "";
+      });
+    };
+    const up = () => {
+      removeEventListener("mousemove", mv);
+      removeEventListener("mouseup", up);
+      document.body.classList.remove("dragging");
+      if (!moved) return;
+      el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
+      if (to !== from) {
+        const [t2] = S.tabs.splice(from, 1);
+        S.tabs.splice(to, 0, t2);
+        saveTabs();
+      }
+      render();
+    };
+    addEventListener("mousemove", mv);
+    addEventListener("mouseup", up);
+  };
+  var ts = {
+    open: (i3) => {
+      const t2 = S.tabs[i3];
+      if (t2.ref !== curRef()) {
+        if (fastTab(t2.ref)) return;
+        stashCurrent();
+        tabSnap();
+        S.fadeMain = true;
+        S.tabMenu = false;
+        openPr(t2.ref, { nav: true, restore: t2.tab });
+      }
+    },
+    aux: (e2, i3) => {
+      if (e2.button === 1) {
+        e2.preventDefault();
+        closeTab(i3);
+      }
+    },
+    down: tabDown,
+    close: (e2, i3) => {
+      e2.stopPropagation();
+      closeTab(i3);
+    },
+    add: (e2) => {
+      e2.stopPropagation();
+      S.tabMenu = !S.tabMenu;
+      rerender();
+    },
+    fresh: (ref) => openFromList(ref, true),
+    home: () => {
+      S.tabMenu = false;
+      S.view = "home";
+      render();
+    },
+    reopen: () => {
+      S.tabMenu = false;
+      reopenTab();
+    },
+    menu: (m2) => {
+      const a3 = $("#tabadd");
+      if (m2 && a3) {
+        const r3 = a3.getBoundingClientRect();
+        m2.style.top = r3.bottom + 4 + "px";
+        m2.style.left = Math.min(r3.left, innerWidth - 350) + "px";
+        m2.style.marginTop = "0";
+      }
+    }
+  };
+  function Top() {
+    const b2 = S.bundle, pr = S.profile, open2 = new Set(S.tabs.map((t2) => t2.ref));
+    return /* @__PURE__ */ u3(S2, { children: [
+      S.refreshing && /* @__PURE__ */ u3("div", { class: "refreshing-bar" }),
+      /* @__PURE__ */ u3(
+        Toolbar,
+        {
+          prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
+          hasBundle: !!b2,
+          canBack: !(S.hist.length < 2 || S.hi < 1),
+          canFwd: !(S.hi >= S.hist.length - 1),
+          update: S.update ? { busy: S.update.busy, version: S.update.version } : null,
+          offline: isOff(),
+          unread: S.notes.filter((n2) => !n2.read).length,
+          dark: isDark(),
+          profile: pr,
+          hasToken: S.hasToken,
+          avatar: S.hasToken && pr ? avUrl(pr.avatar_url, 56) : "",
+          on: tb
+        }
+      ),
+      /* @__PURE__ */ u3(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open2.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
+    ] });
+  }
+  var paintTop = (host) => R(/* @__PURE__ */ u3(Top, {}), host);
+  var clearTop = (host) => R(null, host);
+
   // src/app/pages.tsx
   var saveNotes = () => localStorage.setItem("notes", JSON.stringify(S.notes));
-  function notesPage() {
+  function notesProps() {
     const f4 = S.nf || "all", unread = S.notes.filter((n2) => !n2.read).length;
     const rows = S.notes.filter((n2) => f4 === "all" || (f4 === "unread" ? !n2.read : n2.read)).map((n2) => ({ id: n2.id, read: !!n2.read, ref: n2.ref, target: n2.target || "", title: n2.title, text: n2.text, when: when(n2.at).replace(/<\/?span[^>]*>/g, "") }));
-    return notesPageHtml({ f: f4, rows, unread, total: S.notes.length });
+    return { f: f4, rows, unread, total: S.notes.length };
   }
-  async function loadInbox(force = false) {
+  async function loadInbox2(force = false) {
     S.inbox = S.inbox || { data: null, err: "", loading: true };
     S.inbox.loading = true;
     S.inbox.err = "";
@@ -4474,25 +4524,23 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     render();
     if (!S.inbox?.data || !qc.fresh("inbox", 45e3)) {
       qc.set("inbox", 1);
-      loadInbox();
+      loadInbox2();
     }
   }
-  function inboxPage() {
+  function inboxProps() {
     const I3 = S.inbox || { loading: true }, d3 = I3.data;
     const row = (p3) => {
       const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at;
       return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
     const sec = (title, sub, list) => ({ title, sub, rows: list.map(row) });
-    return inboxPageHtml({ loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null });
+    return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   function page() {
     const b2 = S.bundle;
     if (S.loading) return skeletonHtml();
     if (S.view === "newpr") return crumbs(S.np?.repo, [{ t: "New pull request" }]) + newPrPage();
-    if (S.view === "inbox") return crumbs("", [{ t: "Inbox" }]) + inboxPage();
-    if (S.view === "notes") return crumbs("", [{ t: "Notifications" }]) + notesPage();
-    if (S.view === "repo") return crumbs(S.repo, [{ t: "Pull requests" }]) + prList();
+    if (S.view === "inbox" || S.view === "notes" || S.view === "repo") return "";
     if (S.view === "home" || !b2) return "";
     if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return splitPageHtml(repoHeader(b2.pull) + prHeader(b2), splitView(b2));
     const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : attention(b2) + timeline(b2);
@@ -4508,7 +4556,13 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     if (!app.querySelector(":scope > #top")) app.innerHTML = '<div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div>';
     return { top: $("#top"), rest: $("#rest") };
   }
-  var liveView = () => !S.loading && !S.mainStub && S.view !== "newpr" && S.view !== "inbox" && S.view !== "notes" && S.view !== "repo" && (S.view === "home" || !S.bundle) ? /* @__PURE__ */ u3(HomeView, {}) : null;
+  var liveView = () => {
+    if (S.loading || S.mainStub) return null;
+    if (S.view === "inbox") return /* @__PURE__ */ u3(InboxView, {});
+    if (S.view === "notes") return /* @__PURE__ */ u3(NotesView, {});
+    if (S.view === "repo") return /* @__PURE__ */ u3(RepoView, {});
+    return (S.view === "home" || !S.bundle) && S.view !== "newpr" ? /* @__PURE__ */ u3(HomeView, {}) : null;
+  };
   function paintPage(host, live) {
     host.setAttribute("data-live", "");
     R(live, host);
@@ -5086,12 +5140,12 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     draw();
     inp.focus();
   }
-  function setComposer(open, focus) {
+  function setComposer(open2, focus) {
     const el = document.getElementById("composer");
     if (!el) return false;
-    S.cOpen = open;
-    el.classList.toggle("collapsed", !open);
-    if (open && focus) {
+    S.cOpen = open2;
+    el.classList.toggle("collapsed", !open2);
+    if (open2 && focus) {
       let tries = 0;
       const t2 = setInterval(() => {
         const pm = $(".ProseMirror", el);
@@ -5240,8 +5294,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   var errLine = (k3) => S.actErr && S.actErr.k === k3 ? errLineHtml(S.actErr.m) : "";
   function composer(b2) {
     const p3 = b2.pull, closed = p3.state === "closed", busy = S.busy === "comment";
-    const open = busy || S.cOpen === true, dr = (S.draft.comment || "").trim();
-    return composerHtml({ open, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", draftBox: draftBox("comment", "Write a comment\u2026 (Markdown supported)"), err: errLine("comment"), merged: !!p3.merged, closed, busy });
+    const open2 = busy || S.cOpen === true, dr = (S.draft.comment || "").trim();
+    return composerHtml({ open: open2, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", draftBox: draftBox("comment", "Write a comment\u2026 (Markdown supported)"), err: errLine("comment"), merged: !!p3.merged, closed, busy });
   }
   function mergeActions(b2) {
     const p3 = b2.pull;
@@ -5523,10 +5577,10 @@ ${q3}
     }
     return true;
   }
-  function setBell(open) {
-    S.bell = open;
-    $(".note-panel")?.classList.toggle("open", open);
-    if (!open && S.notes.some((n2) => !n2.read)) {
+  function setBell(open2) {
+    S.bell = open2;
+    $(".note-panel")?.classList.toggle("open", open2);
+    if (!open2 && S.notes.some((n2) => !n2.read)) {
       S.notes.forEach((n2) => n2.read = true);
       saveNotes();
       qa(".note-panel .note.new").forEach((el) => el.classList.remove("new"));

@@ -10,7 +10,7 @@ import { loadRepos, openRepo } from './nav';
 import { openNewPr, render } from './pages';
 import { rerender } from './actions';
 
-const crumbs: CrumbHandlers = {
+export const crumbs: CrumbHandlers = {
   home: () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); },
   owner: (o) => { S.view = 'home'; S.homeOwner = o; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); },
   repo: (r) => openRepo(r),

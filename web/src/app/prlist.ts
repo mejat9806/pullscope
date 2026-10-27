@@ -1,8 +1,8 @@
 import type { Cmp, PrListItem, Pull } from '../types';
 import { S, esc, icon, when } from './core';
-import { crumbsHtml, filterBarHtml, prListPageHtml } from '../components/PrList';
-import type { PrlRow } from '../components/PrList';
-import { pushBanners } from './data';
+import { crumbsHtml } from '../components/PrList';
+import type { FilterBarProps, PrListProps, PrlRow } from '../components/PrList';
+import { pushBannerItems } from './data';
 
 export const PSORT = { updated: 'Recently updated', created: 'Newest', oldest: 'Oldest', number: 'Number', title: 'Title A–Z', author: 'Author' };
 
@@ -22,22 +22,22 @@ export function prFiltered() {
   return list.sort(cmps[S.psort]);
 }
 
-export function prFilterBar() {
-  if (!S.prs) return '';
+export function prFilterBar(): FilterBarProps | null {
+  if (!S.prs) return null;
   const authors = [...new Set(S.prs.map((p) => p.user.login))].sort((a, b) => a.localeCompare(b));
   const labels = [...new Set(S.prs.flatMap((p) => (p.labels || []).map((l) => l.name)))].sort((a, b) => a.localeCompare(b));
-  return filterBarHtml({
+  return {
     filter: S.pf, authors, labels, author: S.pAuthor!, label: S.pLabel!, status: S.pStatus ?? '', statuses: Object.entries({ open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' }),
     sort: S.psort, sorts: Object.entries(PSORT), n: prFiltered().length, total: S.prs.length, active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus),
-  });
+  };
 }
 
-export function prList() {
+export function prListProps(): PrListProps {
   const rows = S.error || !S.prs ? null : prFiltered().map((p): PrlRow => {
     const st = p.merged_at ? ['merged', 'git-merge'] : p.state === 'closed' ? ['closed', 'git-pull-request-closed'] : p.draft ? ['draft', 'git-pull-request-draft'] : ['open', 'git-pull-request'];
     return { ref: `${S.repo}#${p.number}`, st: st[0], icon: st[1], title: p.title, labels: p.labels || [], meta: `#${p.number} ${p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : 'opened'} ${when(p.merged_at || p.closed_at || p.created_at).replace(/<\/?span[^>]*>/g, '')} by ${p.user.login}`, avatar: p.user.avatar_url ?? '' };
   });
-  return prListPageHtml({ repo: S.repo!, state: S.prState, banners: pushBanners(S.repo!), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : '', loading: !S.error && !S.prs, empty: S.prs?.length ? 'No pull requests match the filters.' : 'No pull requests.' });
+  return { repo: S.repo!, state: S.prState, banners: pushBannerItems(S.repo!), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : '', loading: !S.error && !S.prs, empty: S.prs?.length ? 'No pull requests match the filters.' : 'No pull requests.' };
 }
 
 
