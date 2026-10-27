@@ -4,23 +4,30 @@ import { I, SP } from './ui';
 export const draftBoxHtml = (key: string, ph: string, rows: number) => html(<div class="tt" data-draft={key} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>);
 export const errLineHtml = (m: string) => html(<div class="act-err">{m}</div>);
 
-export interface ComposerProps { open: boolean; draft: string; draftBox: string; err: string; merged: boolean; closed: boolean; busy: boolean }
-export function Composer(p: ComposerProps) {
-  return <div class={`composer dock${p.open ? '' : ' collapsed'}`} id="composer"><div class="composer-h" id="cbar" role="button" tabindex={0} title="Write a comment (C)">{I('comment')}<b>Add a comment</b><span class="cbar-ph">{p.draft ? `Draft: ${p.draft}` : 'Write a comment…'}</span><kbd>C</kbd><span class="cbar-x">{I('chevron-down')}</span></div>{'\n  '}
-    <div class="composer-body">{Raw(p.draftBox)}{Raw(p.err)}{'\n  '}
+export const ErrLine = ({ m }: { m: string }) => (m ? <div class="act-err">{m}</div> : null);
+export const DraftBox = ({ k, ph, rows }: { k: string; ph: string; rows: number }) => <div class="tt" data-draft={k} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>;
+
+export interface ComposerHandlers { toggle: () => void; key: (e: KeyboardEvent) => void; send: () => void; close: () => void }
+export interface ComposerProps { open: boolean; draft: string; err: string; merged: boolean; closed: boolean; busy: boolean }
+export function Composer(p: ComposerProps & { on?: ComposerHandlers }) {
+  const { on } = p;
+  return <div class={`composer dock${p.open ? '' : ' collapsed'}`} id="composer"><div class="composer-h" id="cbar" role="button" tabindex={0} title="Write a comment (C)" onClick={on?.toggle} onKeyDown={on?.key}>{I('comment')}<b>Add a comment</b><span class="cbar-ph">{p.draft ? `Draft: ${p.draft}` : 'Write a comment…'}</span><kbd>C</kbd><span class="cbar-x">{I('chevron-down')}</span></div>{'\n  '}
+    <div class="composer-body"><DraftBox k="comment" ph="Write a comment… (Markdown supported)" rows={4} /><ErrLine m={p.err} />{'\n  '}
       <div class="composer-f"><span class="hint">⌘↵ to send · Esc to collapse</span><span style="flex:1"></span>{'\n  '}
-        {p.merged ? '' : <button class="btn ghost" id="doclose">{p.closed ? 'Reopen pull request' : 'Close pull request'}</button>}{'\n  '}
-        <button class="btn primary" id="docomment" disabled={p.busy}>{p.busy ? 'Sending…' : 'Comment'}</button></div></div></div>;
+        {p.merged ? '' : <button class="btn ghost" id="doclose" onClick={on?.close}>{p.closed ? 'Reopen pull request' : 'Close pull request'}</button>}{'\n  '}
+        <button class="btn primary" id="docomment" disabled={p.busy} onClick={on?.send}>{p.busy ? 'Sending…' : 'Comment'}</button></div></div></div>;
 }
 export const composerHtml = (p: ComposerProps) => html(<Composer {...p} />);
 
+export interface MergeActHandlers { close: () => void; merge: () => void; noauto: () => void; auto: () => void; draft: () => void }
 export interface MergeActProps { draft: boolean; err: string; method: string; busy: boolean; auto: { method: string; busy: boolean } | null; canAuto: boolean; autoBusy: boolean; errAuto: string }
 const METHODS: [string, string][] = [['merge', 'Create a merge commit'], ['squash', 'Squash and merge'], ['rebase', 'Rebase and merge']];
-export function MergeAct(p: MergeActProps) {
-  if (p.draft) return <div class="merge-act"><button class="btn ghost" id="doclose">Close pull request</button>{Raw(p.err)}</div>;
-  return <div class="merge-act"><select class="sel" id="mmethod">{METHODS.map(([v, t]) => <option value={v} selected={p.method === v}>{t}</option>)}</select><button class="btn primary" id="domerge" disabled={p.busy}>{p.busy ? 'Merging…' : 'Merge pull request'}</button>{'\n  '}
-    {p.auto ? <button class="btn" id="noauto" title={`Auto-merge is on (${p.auto.method})`}>{p.auto.busy ? 'Turning off…' : 'Disable auto-merge'}</button> : p.canAuto ? <button class="btn" id="doauto" title="Merge automatically once required checks and reviews pass">{p.autoBusy ? 'Enabling…' : 'Enable auto-merge'}</button> : ''}{'\n  '}
-    <button class="btn ghost" id="todraft" title="Mark as draft again">Convert to draft</button>{Raw(p.err)}{Raw(p.errAuto)}</div>;
+export function MergeAct(p: MergeActProps & { on?: MergeActHandlers }) {
+  const { on } = p;
+  if (p.draft) return <div class="merge-act"><button class="btn ghost" id="doclose" onClick={on?.close}>Close pull request</button><ErrLine m={p.err} /></div>;
+  return <div class="merge-act"><select class="sel" id="mmethod">{METHODS.map(([v, t]) => <option value={v} selected={p.method === v}>{t}</option>)}</select><button class="btn primary" id="domerge" disabled={p.busy} onClick={on?.merge}>{p.busy ? 'Merging…' : 'Merge pull request'}</button>{'\n  '}
+    {p.auto ? <button class="btn" id="noauto" title={`Auto-merge is on (${p.auto.method})`} onClick={on?.noauto}>{p.auto.busy ? 'Turning off…' : 'Disable auto-merge'}</button> : p.canAuto ? <button class="btn" id="doauto" title="Merge automatically once required checks and reviews pass" onClick={on?.auto}>{p.autoBusy ? 'Enabling…' : 'Enable auto-merge'}</button> : ''}{'\n  '}
+    <button class="btn ghost" id="todraft" title="Mark as draft again" onClick={on?.draft}>Convert to draft</button><ErrLine m={p.err} /><ErrLine m={p.errAuto} /></div>;
 }
 export const mergeActHtml = (p: MergeActProps) => html(<MergeAct {...p} />);
 

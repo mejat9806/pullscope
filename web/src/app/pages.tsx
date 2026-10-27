@@ -1,6 +1,6 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
 import { mountEditors, rerender, saveDrafts, setBusy } from './actions';
-import { bind, bindIslands, bindTokenDialog, tokDlgHtml, tokenDialog } from './bind';
+import { bind, bindIslands, bindTokenDialog, syncFoldAll, tokDlgHtml, tokenDialog } from './bind';
 import { bindSticky, openExternal } from './addressbar';
 import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
@@ -167,7 +167,7 @@ const followLink = (e: MouseEvent) => {
 function paintPage(host: HTMLElement, live: VNode) {
   host.setAttribute('data-live', '');
   if (!linkHosts.has(host)) { linkHosts.add(host); host.addEventListener('click', followLink); }
-  paint(live, host); mountEditors(); bindIslands(); bindSticky();
+  paint(live, host); mountEditors(); bindIslands(); syncFoldAll(); bindSticky();
 }
 
 export function render() {

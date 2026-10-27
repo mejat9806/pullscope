@@ -1,3 +1,4 @@
+import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
 import { cmPopHtml, composerHtml, confirmDlgHtml, deleteCommentDialogHtml, draftBoxHtml, editCommentDialogHtml, editPrDialogHtml, errLineHtml, hideCommentDialogHtml, mergeActHtml, reactPopHtml, reviewDialogHtml } from '../components/Actions';
@@ -24,20 +25,21 @@ export const draftBox = (key: string, ph: string, rows = 4) => draftBoxHtml(key,
 export const errLine = (k: string) => (S.actErr && S.actErr.k === k ? errLineHtml(S.actErr.m) : '');
 
 
-export function composer(b: Bundle) {
+export const errMsg = (k: string) => (S.actErr && S.actErr.k === k ? S.actErr.m : '');
+export function composerProps(b: Bundle): ComposerProps {
   const p = b.pull, closed = p.state === 'closed', busy = S.busy === 'comment';
   const open = busy || S.cOpen === true, dr = (S.draft.comment || '').trim();
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
-  return composerHtml({ open, draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '', draftBox: draftBox('comment', 'Write a comment… (Markdown supported)'), err: errLine('comment'), merged: !!p.merged, closed, busy });
+  return { open, draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '', err: errMsg('comment'), merged: !!p.merged, closed, busy };
 }
-
-
-export function mergeActions(b: Bundle) {
-  const p = b.pull; if (p.merged || p.state === 'closed') return '';
+export const composer = (b: Bundle) => composerHtml(composerProps(b));
+export function mergeActProps(b: Bundle): MergeActProps | null {
+  const p = b.pull; if (p.merged || p.state === 'closed') return null;
   const busy = S.busy === 'merge', am = p.auto_merge, blocked = p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
   const cur = am ? (({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' } as Record<string, string>)[am.merge_method!] || 'merge') : 'merge';
-  return mergeActHtml({ draft: !!p.draft, err: errLine('merge'), method: cur, busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errLine('automerge') });
+  return { draft: !!p.draft, err: errMsg('merge'), method: cur, busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errMsg('automerge') };
 }
+export const mergeActions = (b: Bundle) => { const m = mergeActProps(b); return m ? mergeActHtml(m) : ''; };
 
 
 export function reviewDialog() {
@@ -237,6 +239,29 @@ export async function rerequestReview(e: Event, login: string) {
   const r = await act('rerequest', { body: login }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
   await refreshPr();
 }
+// Merge box, merge actions and composer handlers: shared by the live PR page and by the imperatively bound copies (split view).
+export function toggleComposer() { setComposer(document.getElementById('composer')!.classList.contains('collapsed'), true); }
+export function cbarKey(e: KeyboardEvent) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } }
+export async function sendComment() {
+  const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
+  delete S.draft.comment; S.cOpen = false; if (!addLocal('commented', r)) await refreshPr(r.id);
+}
+export function toggleClosed() {
+  const closed = S.bundle!.pull.state === 'closed';
+  confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });
+}
+export function toggleMb(e: Event, k: string) { if ((e.target as HTMLElement).closest<HTMLElement>('#rerunck')) return; S.mbOpen = S.mbOpen || new Set(); S.mbOpen.has(k) ? S.mbOpen.delete(k) : S.mbOpen.add(k); rerender(); }
+export async function rerunChecks(e: Event) { e.stopPropagation(); const urls = (S.bundle!.checks || []).filter((c) => checkState(c) === 'fail' && c.url).map((c) => c.url); setBusy(e.currentTarget as HTMLElement, true); const r = await act('rerun', { extra: urls }, 'rerun'); if (r !== undefined) { S.actErr = null; await refreshPr(); } else setBusy(e.currentTarget as HTMLElement, false); }
+export async function updateBranch() { const r = await act('update_branch', {}, 'update_branch'); if (r !== undefined) await refreshPr(); }
+export async function markReady() { const r = await act('ready', {}, 'ready'); if (r !== undefined) await refreshPr(); }
+export function toDraft() { confirmDlg('Convert to draft?', 'Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.', 'Convert to draft', false, async () => { const r = await act('draft', {}, 'merge'); if (r !== undefined) await refreshPr(); }); }
+export async function enableAuto() { const r = await act('automerge', { method: $<HTMLSelectElement>('#mmethod')!.value }, 'automerge'); if (r !== undefined) await refreshPr(); }
+export async function disableAuto() { const r = await act('disable_automerge', {}, 'automerge'); if (r !== undefined) await refreshPr(); }
+export function doMerge() {
+  const m = $<HTMLSelectElement>('#mmethod')!.value, p = S.bundle!.pull, names: Record<string, string> = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
+  confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
+}
+
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
 const mounted = new WeakSet<Element>();
@@ -304,12 +329,9 @@ export function bindWrite(scope?: HTMLElement) {
   });
   qa('[data-lcdel]').forEach((b) => b.addEventListener('click', () => { S.pending![pendKey()] = pendList().filter((c) => String(c.id) !== b.dataset.lcdel); savePending(); S.keepScroll = true; render(); S.keepScroll = false; }));
   $('#finishrev')?.addEventListener('click', reviewDialog);
-  $('#cbar')?.addEventListener('click', () => setComposer(document.getElementById('composer')!.classList.contains('collapsed'), true));
-  $('#cbar')?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } });
-  $('#docomment')?.addEventListener('click', async () => {
-    const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
-    delete S.draft.comment; S.cOpen = false; if (!addLocal('commented', r)) await refreshPr(r.id);
-  });
+  $('#cbar')?.addEventListener('click', toggleComposer);
+  $('#cbar')?.addEventListener('keydown', cbarKey);
+  $('#docomment')?.addEventListener('click', sendComment);
   qa('[data-sendreply]').forEach((btn) => btn.addEventListener('click', async () => {
     const id = btn.dataset.sendreply, r = await act('reply', { id: +id!, body: S.draft['reply-' + id] || '' }, 'reply-' + id); if (r === undefined) return;
     delete S.draft['reply-' + id]; if (!addLocal('reply', r, +id!)) await refreshPr(r.id);
@@ -326,21 +348,15 @@ export function bindWrite(scope?: HTMLElement) {
   qa('.rc-btn').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rck!, el.dataset.rcid!)));
   qa('.react-add').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rk!, el.dataset.rid!)));
   qa('.rc-btn').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); toggleReact(el.dataset.rck!, el.dataset.rcid!, el.dataset.rcc!); }));
-  $('#doclose')?.addEventListener('click', () => {
-    const closed = S.bundle!.pull.state === 'closed';
-    confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });
-  });
-  qa('[data-mb]').forEach((el) => el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('#rerunck')) return; S.mbOpen = S.mbOpen || new Set(); const k = el.dataset.mb; S.mbOpen!.has(k!) ? S.mbOpen!.delete(k!) : S.mbOpen!.add(k!); rerender(); }));
-  $('#rerunck')?.addEventListener('click', async (e) => { e.stopPropagation(); const urls = (S.bundle!.checks || []).filter((c) => checkState(c) === 'fail' && c.url).map((c) => c.url); setBusy(e.currentTarget as HTMLElement, true); const r = await act('rerun', { extra: urls }, 'rerun'); if (r !== undefined) { S.actErr = null; await refreshPr(); } else setBusy(e.currentTarget as HTMLElement, false); });
-  $('#updbranch')?.addEventListener('click', async () => { const r = await act('update_branch', {}, 'update_branch'); if (r !== undefined) await refreshPr(); });
-  $('#doready')?.addEventListener('click', async () => { const r = await act('ready', {}, 'ready'); if (r !== undefined) await refreshPr(); });
-  $('#todraft')?.addEventListener('click', () => confirmDlg('Convert to draft?', 'Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.', 'Convert to draft', false, async () => { const r = await act('draft', {}, 'merge'); if (r !== undefined) await refreshPr(); }));
-  $('#doauto')?.addEventListener('click', async () => { const r = await act('automerge', { method: $<HTMLSelectElement>('#mmethod')!.value }, 'automerge'); if (r !== undefined) await refreshPr(); });
-  $('#noauto')?.addEventListener('click', async () => { const r = await act('disable_automerge', {}, 'automerge'); if (r !== undefined) await refreshPr(); });
+  $('#doclose')?.addEventListener('click', toggleClosed);
+  qa('[data-mb]').forEach((el) => el.addEventListener('click', (e) => toggleMb(e, el.dataset.mb!)));
+  $('#rerunck')?.addEventListener('click', rerunChecks);
+  $('#updbranch')?.addEventListener('click', updateBranch);
+  $('#doready')?.addEventListener('click', markReady);
+  $('#todraft')?.addEventListener('click', toDraft);
+  $('#doauto')?.addEventListener('click', enableAuto);
+  $('#noauto')?.addEventListener('click', disableAuto);
   $('#editpr')?.addEventListener('click', editPrDialog);
-  $('#domerge')?.addEventListener('click', () => {
-    const m = $<HTMLSelectElement>('#mmethod')!.value, p = S.bundle!.pull, names: Record<string, string> = { merge: 'merge commit', squash: 'squash and merge', rebase: 'rebase and merge' };
-    confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
-  });
+  $('#domerge')?.addEventListener('click', doMerge);
   $('#review')?.addEventListener('click', reviewDialog);
 }

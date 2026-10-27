@@ -1090,6 +1090,151 @@
     return diffHunkTableHtml(rows);
   }
 
+  // src/components/Actions.tsx
+  var draftBoxHtml = (key, ph, rows) => html(/* @__PURE__ */ u3("div", { class: "tt", "data-draft": key, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` }));
+  var errLineHtml = (m2) => html(/* @__PURE__ */ u3("div", { class: "act-err", children: m2 }));
+  var ErrLine = ({ m: m2 }) => m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : null;
+  var DraftBox = ({ k: k3, ph, rows }) => /* @__PURE__ */ u3("div", { class: "tt", "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
+  function Composer(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
+      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
+        I2("comment"),
+        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
+        /* @__PURE__ */ u3("kbd", { children: "C" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
+        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
+        /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
+        "\n  ",
+        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
+          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
+          /* @__PURE__ */ u3("span", { style: "flex:1" }),
+          "\n  ",
+          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: p3.closed ? "Reopen pull request" : "Close pull request" }),
+          "\n  ",
+          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, onClick: on3?.send, children: p3.busy ? "Sending\u2026" : "Comment" })
+        ] })
+      ] })
+    ] });
+  }
+  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
+  function MergeAct(p3) {
+    const { on: on3 } = p3;
+    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.err })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
+      "\n  ",
+      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
+      "\n  ",
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", onClick: on3?.draft, children: "Convert to draft" }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
+      /* @__PURE__ */ u3(ErrLine, { m: p3.errAuto })
+    ] });
+  }
+  var reviewDialogHtml = (draftBox2) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
+    Raw(draftBox2),
+    "\n  ",
+    /* @__PURE__ */ u3("div", { class: "radios", children: [
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "COMMENT", checked: true }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Comment" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit general feedback without explicit approval." })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "APPROVE" }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Approve" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit feedback and approve merging these changes." })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "REQUEST_CHANGES" }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Request changes" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit feedback that must be addressed before merging." })
+      ] })
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("div", { id: "reverr" }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", children: "Submit review" })
+    ] })
+  ] }) }));
+  var editPrDialogHtml = (title, draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
+    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: title, style: "width:100%;box-sizing:border-box;height:34px" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
+    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", children: "Save" })
+    ] })
+  ] }) }));
+  var confirmDlgHtml = (title, text, label, danger) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: title }),
+    /* @__PURE__ */ u3("p", { children: text }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: `btn ${danger ? "danger" : "primary"}`, id: "cfok", children: label })
+    ] })
+  ] }) }));
+  var editCommentDialogHtml = (draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
+    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", children: "Save" })
+    ] })
+  ] }) }));
+  var deleteCommentDialogHtml = (err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
+    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", children: "Delete" })
+    ] })
+  ] }) }));
+  var hideCommentDialogHtml = (reasons, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
+    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", children: "Hide comment" })
+    ] })
+  ] }) }));
+  var cmPopHtml = (hr, edit, hide2, del) => html(/* @__PURE__ */ u3(S2, { children: [
+    /* @__PURE__ */ u3("button", { "data-h": "link", children: "Copy link" }),
+    /* @__PURE__ */ u3("button", { "data-h": "md", children: "Copy Markdown" }),
+    /* @__PURE__ */ u3("button", { "data-h": "quote", children: "Quote reply" }),
+    /* @__PURE__ */ u3("button", { "data-h": "issue", children: "Reference in new issue" }),
+    hr ? /* @__PURE__ */ u3("hr", {}) : "",
+    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", children: "Edit" }) : "",
+    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", children: "Hide" }) : "",
+    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", children: "Delete" }) : ""
+  ] }));
+  var reactPopHtml = (reacts) => html(/* @__PURE__ */ u3(S2, { children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, children: em })) }));
+
   // src/components/Merge.tsx
   function MergedBox({ head: head2 }) {
     return /* @__PURE__ */ u3("div", { class: "TL", children: [
@@ -1107,7 +1252,6 @@
       ] })
     ] });
   }
-  var mergedBoxHtml = (head2) => html(/* @__PURE__ */ u3(MergedBox, { head: head2 }));
   function ClosedBox({ head: head2 }) {
     return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
       /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
@@ -1121,25 +1265,24 @@
       ] }) }) })
     ] });
   }
-  var closedBoxHtml = (head2) => html(/* @__PURE__ */ u3(ClosedBox, { head: head2 }));
   var plural = (n2) => n2 === 1 ? "" : "s";
-  function Sec({ k: k3, h: h3, rerunable, open: open2, children }) {
+  function Sec({ k: k3, h: h3, rerunable, open: open2, children, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
-      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, children: [
+      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, onClick: on3 && ((e2) => on3.toggle(e2, k3)), children: [
         /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
         /* @__PURE__ */ u3("span", { class: "mb-t", children: [
           /* @__PURE__ */ u3("b", { children: h3[2] }),
           /* @__PURE__ */ u3("i", { children: h3[3] || "" })
         ] }),
-        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", children: "Re-run failed" }) : "",
+        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", onClick: on3?.rerun, children: "Re-run failed" }) : "",
         I2(open2 ? "chevron-up" : "chevron-down", 16)
       ] }),
       open2 && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
     ] });
   }
-  function CkGroupView({ g: g2 }) {
+  function CkGroupView({ g: g2, on: on3 }) {
     return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, children: [
+      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, onClick: on3 && ((e2) => on3.toggle(e2, `g${g2.k}`)), children: [
         g2.title,
         SP,
         I2(g2.open ? "chevron-up" : "chevron-down", 12)
@@ -1147,13 +1290,13 @@
       g2.open ? g2.items.map((c3) => /* @__PURE__ */ u3("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
         I2(c3.icon, 14),
         /* @__PURE__ */ u3("b", { children: c3.name }),
-        Raw(c3.req),
+        c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
         /* @__PURE__ */ u3("i", { children: c3.desc })
       ] })) : ""
     ] });
   }
   function MergeBox(p3) {
-    const { rv, ck } = p3;
+    const { rv, ck, on: on3 } = p3;
     const rvBody = /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("div", { class: "mb-line", children: [
         I2("check", 14),
@@ -1187,12 +1330,12 @@
               /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
               /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
             ] }),
-            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
+            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
           ] }) }),
-          Raw(p3.errReady)
+          /* @__PURE__ */ u3(ErrLine, { m: p3.errReady })
         ] }) : "",
-        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, children: rvBody }),
-        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2 })) }) : "",
+        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, on: on3, children: rvBody }),
+        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, on: on3, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2, on: on3 })) }) : "",
         p3.behind ? /* @__PURE__ */ u3("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
           /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("alert", 22) }),
           /* @__PURE__ */ u3("span", { class: "mb-t", children: [
@@ -1203,7 +1346,7 @@
               " into this branch."
             ] })
           ] }),
-          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
+          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
         ] }) }) : "",
         /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
           /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
@@ -1212,11 +1355,10 @@
             /* @__PURE__ */ u3("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
           ] })
         ] }) }),
-        Raw(p3.errUpdate)
+        /* @__PURE__ */ u3(ErrLine, { m: p3.errUpdate })
       ] })
     ] });
   }
-  var mergeBoxHtml = (p3) => html(/* @__PURE__ */ u3(MergeBox, { ...p3 }));
   function ReviewerRow({ r: r3, on: on3 }) {
     const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
@@ -1744,7 +1886,7 @@
     return /* @__PURE__ */ u3("div", { class: "commit-row", children: [
       author ? /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
       /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: url || "#", children: first }) }),
-      Raw(trailing),
+      trailing ? Raw(trailing) : "",
       /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
       /* @__PURE__ */ u3("span", { style: "flex:1" }),
       verification ? /* @__PURE__ */ u3("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
@@ -1752,69 +1894,59 @@
     ] });
   }
   var commitRowHtml = (p3) => html(/* @__PURE__ */ u3(CommitRow, { ...p3 }));
-  function RangeBar({ range, from, to, desc }) {
+  function RangeBar({ range, from, to, desc, on: on3 }) {
     const opts = [["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]];
     return /* @__PURE__ */ u3("div", { class: "date-bar", children: [
       /* @__PURE__ */ u3("span", { class: "who-l", children: [
         I2("clock"),
         "When"
       ] }),
-      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
+      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", onChange: on3?.range, children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
       range === "custom" ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From" }),
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From", onChange: on3?.from }),
         /* @__PURE__ */ u3("span", { class: "who-l", children: "to" }),
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To" })
+        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To", onChange: on3?.to })
       ] }) : "",
       /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", children: [
+      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", onClick: on3?.sort, children: [
         I2(desc ? "chevron-down" : "chevron-up"),
         /* @__PURE__ */ u3("span", { children: desc ? "Newest first" : "Oldest first" })
       ] })
     ] });
   }
-  function WhoBar({ everyone, people }) {
+  function WhoBar({ everyone, people, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "who-bar", children: [
       /* @__PURE__ */ u3("span", { class: "who-l", children: [
         I2("person"),
         "Show"
       ] }),
-      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", children: "Everyone" }),
-      people.map(({ u: u4, n: n2, on: on3 }) => /* @__PURE__ */ u3("button", { class: `who-chip ${on3 ? "on" : ""}`, "data-who": u4.login, title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
+      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", onClick: on3?.whoClear, children: "Everyone" }),
+      people.map(({ u: u4, n: n2, on: sel }) => /* @__PURE__ */ u3("button", { class: `who-chip ${sel ? "on" : ""}`, "data-who": u4.login, onClick: on3 && (() => on3.who(u4.login)), title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
         Av(u4, 18),
         /* @__PURE__ */ u3("span", { children: u4.login }),
         /* @__PURE__ */ u3("i", { children: n2 })
       ] }))
     ] });
   }
-  var barsHtml = (who, range) => html(/* @__PURE__ */ u3(S2, { children: [
-    who && /* @__PURE__ */ u3(WhoBar, { ...who }),
-    /* @__PURE__ */ u3(RangeBar, { ...range })
-  ] }));
-  function FoldBar() {
-    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", children: [
+  function Bars({ who, range, on: on3 }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      who && /* @__PURE__ */ u3(WhoBar, { ...who, on: on3 }),
+      /* @__PURE__ */ u3(RangeBar, { ...range, on: on3 })
+    ] });
+  }
+  function FoldBar({ onClick }) {
+    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", onClick, children: [
       I2("chevron-down"),
       SP,
       /* @__PURE__ */ u3("span", { children: "Collapse all conversations" })
     ] }) });
   }
-  function TlWrap({ bars, rows, empty, tail }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      Raw(bars),
-      /* @__PURE__ */ u3(FoldBar, {}),
-      /* @__PURE__ */ u3("div", { class: "TL", children: [
-        Raw(rows),
-        empty ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: empty }) : ""
-      ] }),
-      Raw(tail)
-    ] });
-  }
-  var tlWrapHtml = (p3) => html(/* @__PURE__ */ u3(TlWrap, { ...p3 }));
-  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: Raw(when(at).replace(/<\/?span[^>]*>/g, "")) });
+  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at).text });
   var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
-  function CommitRun({ n: n2, first, last }) {
+  function CommitRun({ n: n2, first, last, onTab }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", onClick: onTab && (() => onTab("commits")), children: [
         /* @__PURE__ */ u3("b", { children: [
           n2,
           " commits"
@@ -1829,14 +1961,12 @@
       ] }) }) })
     ] });
   }
-  var commitRunHtml = (p3) => html(/* @__PURE__ */ u3(CommitRun, { ...p3 }));
   function Committed({ row }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: Raw(row) })
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: row })
     ] });
   }
-  var committedHtml = (row) => html(/* @__PURE__ */ u3(Committed, { row }));
   function Referenced({ actor: a3, at, commit: ci, linked }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
@@ -1878,7 +2008,6 @@
       ] }) })
     ] });
   }
-  var mergedRowHtml = (p3) => html(/* @__PURE__ */ u3(MergedRow, { ...p3 }));
   function CrossRef(p3) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
@@ -1908,7 +2037,6 @@
       ] })
     ] });
   }
-  var crossRefHtml = (p3) => html(/* @__PURE__ */ u3(CrossRef, { ...p3 }));
   function LabelRow({ actor: a3, verb, color, name, at }) {
     return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
@@ -1926,7 +2054,6 @@
       ] })
     ] });
   }
-  var labelRowHtml = (p3) => html(/* @__PURE__ */ u3(LabelRow, { ...p3 }));
   function Simple({ actor: a3, ic, text, kind, at }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
@@ -1934,13 +2061,12 @@
       /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
         actor(a3),
         SP,
-        /* @__PURE__ */ u3("span", { children: Raw(text) }),
+        /* @__PURE__ */ u3("span", { children: text }),
         SP,
         /* @__PURE__ */ u3(Time, { at })
       ] }) })
     ] });
   }
-  var simpleHtml = (p3) => html(/* @__PURE__ */ u3(Simple, { ...p3 }));
   function Checks({ head: head2, summary, headIcon, rows }) {
     return /* @__PURE__ */ u3("div", { class: "checks", children: [
       /* @__PURE__ */ u3("div", { class: `ck-head ${head2[0]}`, children: [
@@ -1980,7 +2106,7 @@
   }
   var attentionHtml = (p3) => html(/* @__PURE__ */ u3(Attention, { ...p3 }));
 
-  // src/app/timeline.ts
+  // src/app/timeline.tsx
   function commitRow(msg, sha, author, url, verification, trailing = "") {
     const first = String(msg || "").split("\n")[0];
     return commitRowHtml({ first, sha, author, url, verification, trailing });
@@ -1997,8 +2123,8 @@
     }
     return [-Infinity, Infinity];
   }
-  function timeline(b2) {
-    const p3 = b2.pull, out = [];
+  function timelineModel(b2) {
+    const p3 = b2.pull, out = [], htm = (h3) => out.push({ t: "html", h: h3 });
     const evUser = (e2) => {
       const u4 = e2.user || e2.actor || e2.author;
       return u4?.login || u4?.name || "";
@@ -2025,8 +2151,7 @@
       return isNaN(x3) || x3 >= rLo && x3 <= rHi;
     };
     const keep4 = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
-    const bars = barsHtml(people.size > 1 ? { everyone: !on3, people: [...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => ({ u: u4, n: n2, on: who.includes(u4.login) })) } : null, { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === "desc" });
-    if (!S.unres && (!on3 || who.includes(p3.user.login))) out.push(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
+    if (!S.unres && (!on3 || who.includes(p3.user.login))) htm(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
     const evs = [];
     for (let i3 = 0; i3 < keep4.length; ) {
       let j3 = i3;
@@ -2041,87 +2166,97 @@
     }
     if (S.sort === "desc") evs.reverse();
     const info = b2.commit_info || {};
-    let merged = false;
+    const simpleRow = (e2, ic, text, kind = "") => out.push({ t: "simple", p: { actor: e2.actor, ic, text, kind, at: e2.created_at } });
     for (const e2 of evs) {
       switch (e2.event) {
         case "commented":
-          out.push(commentBox(e2));
+          htm(commentBox(e2));
           break;
         case "commit-run":
-          out.push(commitRunHtml({ n: e2.n, first: e2.first.sha.slice(0, 7), last: e2.last.sha.slice(0, 7) }));
+          out.push({ t: "run", n: e2.n, first: e2.first.sha.slice(0, 7), last: e2.last.sha.slice(0, 7) });
           break;
         case "reviewed":
-          out.push(reviewBlock(e2, b2));
+          htm(reviewBlock(e2, b2));
           break;
         case "committed":
-          out.push(committedHtml(commitRow(e2.message, e2.sha, info[e2.sha]?.author || (e2.author?.avatar_url ? e2.author : null), e2.html_url, e2.verification)));
+          out.push({ t: "committed", row: { first: String(e2.message || "").split("\n")[0], sha: e2.sha, author: info[e2.sha]?.author || (e2.author?.avatar_url ? e2.author : null), url: e2.html_url, verification: e2.verification, trailing: "" } });
           break;
         case "referenced": {
           const ci = info[e2.commit_id];
           const ml = ci ? ci.message.split("\n")[0] : "";
           const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
-          out.push(referencedHtml({ actor: e2.actor, at: e2.created_at, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
+          htm(referencedHtml({ actor: e2.actor, at: e2.created_at, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
           break;
         }
         case "merged":
-          merged = true;
-          out.push(mergedRowHtml({ actor: e2.actor, commit: (e2.commit_id || "").slice(0, 7), base: p3.base.label ?? "", at: e2.created_at }));
-          out.push('<div class="TLI-break"></div>');
+          out.push({ t: "merged", actor: e2.actor, commit: (e2.commit_id || "").slice(0, 7), base: p3.base.label ?? "", at: e2.created_at }, { t: "brk" });
           break;
         case "closed":
-          if (!p3.merged) out.push(simple(e2, "git-pull-request-closed", "closed this", "danger"));
+          if (!p3.merged) simpleRow(e2, "git-pull-request-closed", "closed this", "danger");
           break;
         case "reopened":
-          out.push(simple(e2, "git-pull-request", "reopened this", "success"));
+          simpleRow(e2, "git-pull-request", "reopened this", "success");
           break;
         case "cross-referenced": {
           const i3 = e2.source?.issue;
           if (!i3) break;
           const isPr = !!i3.pull_request;
-          out.push(crossRefHtml({ actor: e2.actor, at: e2.created_at, isPr, open: i3.state === "open", icon: isPr ? i3.state === "open" ? "git-pull-request" : "git-merge" : "issue-opened", url: i3.html_url, title: i3.title.split("\n")[0].slice(0, 120), repo: i3.repository?.full_name || "", number: i3.number }));
+          out.push({ t: "cross", p: { actor: e2.actor, at: e2.created_at, isPr, open: i3.state === "open", icon: isPr ? i3.state === "open" ? "git-pull-request" : "git-merge" : "issue-opened", url: i3.html_url, title: i3.title.split("\n")[0].slice(0, 120), repo: i3.repository?.full_name || "", number: i3.number } });
           break;
         }
         case "labeled":
         case "unlabeled":
-          out.push(labelRowHtml({ actor: e2.actor, verb: e2.event === "labeled" ? "added" : "removed", color: e2.label?.color ?? "", name: e2.label?.name ?? "", at: e2.created_at }));
+          out.push({ t: "label", actor: e2.actor, verb: e2.event === "labeled" ? "added" : "removed", color: e2.label?.color ?? "", name: e2.label?.name ?? "", at: e2.created_at });
           break;
         case "assigned":
         case "unassigned":
-          out.push(simple(e2, "person", `${e2.event} ${e2.assignee ? esc(e2.assignee.login) : ""}`));
+          simpleRow(e2, "person", `${e2.event} ${e2.assignee ? e2.assignee.login : ""}`);
           break;
         case "review_requested":
-          out.push(simple(e2, "eye", `requested a review from ${esc(e2.requested_reviewer?.login || e2.requested_team?.name || "")}`));
+          simpleRow(e2, "eye", `requested a review from ${e2.requested_reviewer?.login || e2.requested_team?.name || ""}`);
           break;
         case "renamed":
-          out.push(simple(e2, "pencil", `changed the title <s>${esc(e2.rename?.from)}</s> ${esc(e2.rename?.to)}`));
+          simpleRow(e2, "pencil", /* @__PURE__ */ u3(S2, { children: [
+            "changed the title ",
+            /* @__PURE__ */ u3("s", { children: e2.rename?.from }),
+            " ",
+            e2.rename?.to
+          ] }));
           break;
         case "head_ref_force_pushed":
-          out.push(simple(e2, "repo-push", "force-pushed the head branch"));
+          simpleRow(e2, "repo-push", "force-pushed the head branch");
           break;
         case "head_ref_deleted":
-          out.push(simple(e2, "git-branch", "deleted the head branch"));
+          simpleRow(e2, "git-branch", "deleted the head branch");
           break;
         case "ready_for_review":
-          out.push(simple(e2, "eye", "marked this pull request as ready for review"));
+          simpleRow(e2, "eye", "marked this pull request as ready for review");
           break;
         case "convert_to_draft":
-          out.push(simple(e2, "git-pull-request-draft", "marked this pull request as draft"));
+          simpleRow(e2, "git-pull-request-draft", "marked this pull request as draft");
           break;
         case "milestoned":
-          out.push(simple(e2, "milestone", `added this to the ${esc(e2.milestone?.title)} milestone`));
+          simpleRow(e2, "milestone", `added this to the ${e2.milestone?.title ?? ""} milestone`);
           break;
         case "locked":
-          out.push(simple(e2, "lock", "locked this conversation"));
+          simpleRow(e2, "lock", "locked this conversation");
           break;
         default:
           break;
       }
     }
-    return tlWrapHtml({ bars, rows: out.join(""), empty: !evs.length && (on3 || rangeOn) ? rangeOn ? "No activity in this period." : "Nothing from the selected accounts." : "", tail: `${on3 ? "" : mergeBox(b2)}${mergeActions(b2)}${composer(b2)}` });
+    return {
+      who: people.size > 1 ? { everyone: !on3, people: [...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => ({ u: u4, n: n2, on: who.includes(u4.login) })) } : null,
+      range: { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === "desc" },
+      rows: out,
+      empty: !evs.length && (on3 || rangeOn) ? rangeOn ? "No activity in this period." : "Nothing from the selected accounts." : "",
+      merge: on3 ? null : mergeModel(b2),
+      act: mergeActProps(b2),
+      composer: composerProps(b2)
+    };
   }
   var checkState = (c3) => c3.status !== "completed" ? "pending" : c3.conclusion === "success" ? "pass" : ["skipped", "neutral"].includes(c3.conclusion) ? "skip" : "fail";
   var CK = { pass: ["check-circle-fill", "Passed"], fail: ["x-circle-fill", "Failed"], pending: ["dot-fill", "In progress"], skip: ["circle-slash", "Skipped"] };
-  var reqBadge = (c3) => (S.bundle?.required_checks || []).includes(c3.name) ? '<span class="ck-req" title="Required by branch protection">Required</span>' : "";
   function checksView(b2) {
     const list = (b2.checks || []).map((c3) => ({ ...c3, st: checkState(c3) }));
     if (!list.length) return '<div class="diff-empty">No checks reported for the latest commit.</div>';
@@ -2191,16 +2326,48 @@
       el.classList.add("flash");
     }
   }
-  function simple(e2, ic, text, kind = "") {
-    return simpleHtml({ actor: e2.actor, ic, text, kind, at: e2.created_at });
+  function Row({ r: r3, on: on3 }) {
+    switch (r3.t) {
+      case "html":
+        return /* @__PURE__ */ u3(Island, { html: r3.h });
+      case "run":
+        return /* @__PURE__ */ u3(CommitRun, { n: r3.n, first: r3.first, last: r3.last, onTab: on3?.tab });
+      case "committed":
+        return /* @__PURE__ */ u3(Committed, { row: /* @__PURE__ */ u3(CommitRow, { ...r3.row }) });
+      case "merged":
+        return /* @__PURE__ */ u3(MergedRow, { actor: r3.actor, commit: r3.commit, base: r3.base, at: r3.at });
+      case "brk":
+        return /* @__PURE__ */ u3("div", { class: "TLI-break" });
+      case "cross":
+        return /* @__PURE__ */ u3(CrossRef, { ...r3.p });
+      case "label":
+        return /* @__PURE__ */ u3(LabelRow, { actor: r3.actor, verb: r3.verb, color: r3.color, name: r3.name, at: r3.at });
+      case "simple":
+        return /* @__PURE__ */ u3(Simple, { ...r3.p });
+    }
   }
+  function Timeline({ m: m2, on: on3 }) {
+    const box = m2.merge && (m2.merge.kind === "merged" ? /* @__PURE__ */ u3(MergedBox, { head: m2.merge.head }) : m2.merge.kind === "closed" ? /* @__PURE__ */ u3(ClosedBox, { head: m2.merge.head }) : /* @__PURE__ */ u3(MergeBox, { ...m2.merge.p, on: on3?.merge }));
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Bars, { who: m2.who, range: m2.range, on: on3?.bars }),
+      /* @__PURE__ */ u3(FoldBar, { onClick: on3?.foldAll }),
+      /* @__PURE__ */ u3("div", { class: "TL", children: [
+        m2.rows.map((r3) => /* @__PURE__ */ u3(Row, { r: r3, on: on3 })),
+        m2.empty ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: m2.empty }) : ""
+      ] }),
+      box,
+      m2.act ? /* @__PURE__ */ u3(MergeAct, { ...m2.act, on: on3?.act }) : "",
+      /* @__PURE__ */ u3(Composer, { ...m2.composer, on: on3?.composer })
+    ] });
+  }
+  var timeline = (b2) => html(/* @__PURE__ */ u3(Timeline, { m: timelineModel(b2) }));
 
   // src/app/mergebox.ts
-  function mergeBox(b2) {
+  function mergeModel(b2) {
     const p3 = b2.pull;
     const head2 = p3.head.label.split(":")[1];
-    if (p3.merged) return mergedBoxHtml(head2);
-    if (p3.state === "closed") return closedBoxHtml(head2);
+    if (p3.merged) return { kind: "merged", head: head2 };
+    if (p3.state === "closed") return { kind: "closed", head: head2 };
     const clean = p3.mergeable_state === "clean" || p3.mergeable !== false;
     const latest = /* @__PURE__ */ new Map();
     b2.timeline.filter((e2) => e2.event === "reviewed" && e2.user).forEach((e2) => {
@@ -2217,20 +2384,20 @@
       const g2 = list.filter((c3) => c3.st === k3);
       if (!g2.length) return [];
       const open2 = S.mbOpen?.has("g" + k3) ?? k3 !== "pass";
-      return [{ k: k3, title, open: open2, items: g2.map((c3) => ({ st: c3.st, url: c3.url, icon: CK[c3.st][0], name: c3.name, req: reqBadge(c3), desc: c3.description || c3.app || "" })) }];
+      return [{ k: k3, title, open: open2, items: g2.map((c3) => ({ st: c3.st, url: c3.url, icon: CK[c3.st][0], name: c3.name, req: (S.bundle?.required_checks || []).includes(c3.name), desc: c3.description || c3.app || "" })) }];
     };
-    return mergeBoxHtml({
+    return { kind: "open", p: {
       draft: !!p3.draft,
       busyReady: S.busy === "ready",
-      errReady: errLine("ready"),
+      errReady: errMsg("ready"),
       rv: { h: rvHead, open: !!S.mbOpen?.has("rv"), ap, cr, pend: pendRev, pendNames: (p3.requested_reviewers || []).map((u4) => u4.login).join(", ") },
       ck: list.length ? { h: ckHead.concat(ckSub), open: !!S.mbOpen?.has("ck"), rerunable: list.some((c3) => c3.st === "fail" && /\/actions\/runs\//.test(c3.url || "")), groups: [...grp("fail", "Failing checks"), ...grp("pending", "In progress"), ...grp("skip", "Neutral checks"), ...grp("pass", "Successful checks")] } : null,
       behind: p3.mergeable_state === "behind",
       busyUpdate: S.busy === "update_branch",
       baseRef: p3.base.ref,
-      errUpdate: errLine("update_branch"),
+      errUpdate: errMsg("update_branch"),
       clean
-    });
+    } };
   }
   function sidebarProps(b2) {
     const p3 = b2.pull;
@@ -3001,6 +3168,27 @@
       bind(el);
     });
   }
+  function syncFoldAll() {
+    const els = [...qa(".TL [data-fold]")], l3 = document.querySelector("#foldallconv span");
+    if (l3 && els.length) l3.textContent = els.every((x3) => isFolded(x3.dataset.fold, x3.dataset.def === "1")) ? "Expand all conversations" : "Collapse all conversations";
+  }
+  function foldAllConv() {
+    const els = [...qa(".TL [data-fold]")];
+    if (!els.length) return;
+    const now = els.some((x3) => !isFolded(x3.dataset.fold, x3.dataset.def === "1"));
+    els.forEach((x3) => {
+      S.fold[x3.dataset.fold] = now;
+      const box = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
+      if (box) box.classList.toggle("folded", now);
+      const svg = $("svg", x3);
+      if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
+    });
+    try {
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+    } catch {
+    }
+    $("#foldallconv span").textContent = now ? "Expand all conversations" : "Collapse all conversations";
+  }
   function bind(scope) {
     const { qa: qa2, $: $3 } = scoped(scope);
     bindWrite(scope);
@@ -3138,27 +3326,8 @@
       render();
       S.keepScroll = false;
     };
-    {
-      const els = [...qa2(".TL [data-fold]")], l3 = $3("#foldallconv span");
-      if (l3 && els.length && els.every((x3) => isFolded(x3.dataset.fold, x3.dataset.def === "1"))) l3.textContent = "Expand all conversations";
-    }
-    $3("#foldallconv")?.addEventListener("click", () => {
-      const els = [...qa2(".TL [data-fold]")];
-      if (!els.length) return;
-      const now = els.some((x3) => !isFolded(x3.dataset.fold, x3.dataset.def === "1"));
-      els.forEach((x3) => {
-        S.fold[x3.dataset.fold] = now;
-        const box = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
-        if (box) box.classList.toggle("folded", now);
-        const svg = $3("svg", x3);
-        if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
-      });
-      try {
-        localStorage.setItem("fold", JSON.stringify(S.fold));
-      } catch {
-      }
-      $3("#foldallconv span").textContent = now ? "Expand all conversations" : "Collapse all conversations";
-    });
+    syncFoldAll();
+    $3("#foldallconv")?.addEventListener("click", foldAllConv);
     qa2("[data-fold]").forEach((el) => el.addEventListener("click", (e2) => {
       e2.stopPropagation();
       if (e2.target.closest("a")) return;
@@ -4121,6 +4290,39 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     },
     rerequest: rerequestReview
   };
+  var tlOn = {
+    bars: {
+      who: (w3) => keep2(() => {
+        S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
+      }),
+      whoClear: () => keep2(() => {
+        S.who = [];
+      }),
+      range: (e2) => keep2(() => {
+        S.range = e2.target.value;
+        if (S.range === "custom" && !S.rFrom && !S.rTo) {
+          const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+          S.rTo = d3(Date.now());
+          S.rFrom = d3(Date.now() - 7 * 864e5);
+        }
+      }),
+      from: (e2) => keep2(() => {
+        S.rFrom = e2.target.value;
+      }),
+      to: (e2) => keep2(() => {
+        S.rTo = e2.target.value;
+      }),
+      sort: () => keep2(() => {
+        S.sort = S.sort === "desc" ? "asc" : "desc";
+        localStorage.setItem("csort", S.sort);
+      })
+    },
+    foldAll: foldAllConv,
+    tab: head.tab,
+    merge: { toggle: toggleMb, rerun: rerunChecks, update: updateBranch, ready: markReady },
+    act: { close: toggleClosed, merge: doMerge, noauto: disableAuto, auto: enableAuto, draft: toDraft },
+    composer: { toggle: toggleComposer, key: cbarKey, send: sendComment, close: toggleClosed }
+  };
   function Header() {
     const p3 = S.bundle.pull, r3 = p3.base.repo;
     const extra = /* @__PURE__ */ u3(S2, { children: [
@@ -4135,13 +4337,13 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function PrView() {
     const b2 = S.bundle;
     if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: /* @__PURE__ */ u3(Island, { html: splitView(b2) }) });
-    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : "";
+    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : "";
     const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
-    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
+    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u3("div", { class: "rail", children: /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: { next: jumpUnresolved, unres: () => keep2(() => {
         S.unres = !S.unres;
       }), tab: head.tab } }),
-      /* @__PURE__ */ u3(Island, { html: timeline(b2) })
+      /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
     ] }) : /* @__PURE__ */ u3(Island, { html: body }), side, on: { show: () => hide("side", false) } });
   }
 
@@ -4666,6 +4868,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     R(live, host);
     mountEditors();
     bindIslands();
+    syncFoldAll();
     bindSticky();
   }
   function render() {
@@ -5033,149 +5236,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
 
-  // src/components/Actions.tsx
-  var draftBoxHtml = (key, ph, rows) => html(/* @__PURE__ */ u3("div", { class: "tt", "data-draft": key, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` }));
-  var errLineHtml = (m2) => html(/* @__PURE__ */ u3("div", { class: "act-err", children: m2 }));
-  function Composer(p3) {
-    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
-      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", children: [
-        I2("comment"),
-        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
-        /* @__PURE__ */ u3("kbd", { children: "C" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
-        Raw(p3.draftBox),
-        Raw(p3.err),
-        "\n  ",
-        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
-          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
-          /* @__PURE__ */ u3("span", { style: "flex:1" }),
-          "\n  ",
-          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", children: p3.closed ? "Reopen pull request" : "Close pull request" }),
-          "\n  ",
-          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, children: p3.busy ? "Sending\u2026" : "Comment" })
-        ] })
-      ] })
-    ] });
-  }
-  var composerHtml = (p3) => html(/* @__PURE__ */ u3(Composer, { ...p3 }));
-  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
-  function MergeAct(p3) {
-    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", children: "Close pull request" }),
-      Raw(p3.err)
-    ] });
-    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
-      "\n  ",
-      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
-      "\n  ",
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", children: "Convert to draft" }),
-      Raw(p3.err),
-      Raw(p3.errAuto)
-    ] });
-  }
-  var mergeActHtml = (p3) => html(/* @__PURE__ */ u3(MergeAct, { ...p3 }));
-  var reviewDialogHtml = (draftBox2) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
-    Raw(draftBox2),
-    "\n  ",
-    /* @__PURE__ */ u3("div", { class: "radios", children: [
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "COMMENT", checked: true }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Comment" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit general feedback without explicit approval." })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "APPROVE" }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Approve" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit feedback and approve merging these changes." })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "REQUEST_CHANGES" }),
-        " ",
-        /* @__PURE__ */ u3("b", { children: "Request changes" }),
-        " ",
-        /* @__PURE__ */ u3("span", { children: "Submit feedback that must be addressed before merging." })
-      ] })
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("div", { id: "reverr" }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", children: "Submit review" })
-    ] })
-  ] }) }));
-  var editPrDialogHtml = (title, draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: title, style: "width:100%;box-sizing:border-box;height:34px" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-    Raw(draftBox2),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", children: "Save" })
-    ] })
-  ] }) }));
-  var confirmDlgHtml = (title, text, label, danger) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: title }),
-    /* @__PURE__ */ u3("p", { children: text }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: `btn ${danger ? "danger" : "primary"}`, id: "cfok", children: label })
-    ] })
-  ] }) }));
-  var editCommentDialogHtml = (draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
-    Raw(draftBox2),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", children: "Save" })
-    ] })
-  ] }) }));
-  var deleteCommentDialogHtml = (err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
-    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", children: "Delete" })
-    ] })
-  ] }) }));
-  var hideCommentDialogHtml = (reasons, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
-    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
-    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", children: "Hide comment" })
-    ] })
-  ] }) }));
-  var cmPopHtml = (hr, edit, hide2, del) => html(/* @__PURE__ */ u3(S2, { children: [
-    /* @__PURE__ */ u3("button", { "data-h": "link", children: "Copy link" }),
-    /* @__PURE__ */ u3("button", { "data-h": "md", children: "Copy Markdown" }),
-    /* @__PURE__ */ u3("button", { "data-h": "quote", children: "Quote reply" }),
-    /* @__PURE__ */ u3("button", { "data-h": "issue", children: "Reference in new issue" }),
-    hr ? /* @__PURE__ */ u3("hr", {}) : "",
-    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", children: "Edit" }) : "",
-    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", children: "Hide" }) : "",
-    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", children: "Delete" }) : ""
-  ] }));
-  var reactPopHtml = (reacts) => html(/* @__PURE__ */ u3(S2, { children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, children: em })) }));
-
   // src/app/keyboard.ts
   var typing = (t2) => t2 && (t2.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t2.isContentEditable);
   var kbItems = () => [...qa(".main .tl-comment, .main .tc")].filter((e2) => e2.offsetParent);
@@ -5396,17 +5456,18 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   var prRef = () => ({ repo: S.bundle.pull.base.repo.full_name, number: S.bundle.pull.number });
   var draftBox = (key, ph, rows = 4) => draftBoxHtml(key, ph, rows);
   var errLine = (k3) => S.actErr && S.actErr.k === k3 ? errLineHtml(S.actErr.m) : "";
-  function composer(b2) {
+  var errMsg = (k3) => S.actErr && S.actErr.k === k3 ? S.actErr.m : "";
+  function composerProps(b2) {
     const p3 = b2.pull, closed = p3.state === "closed", busy = S.busy === "comment";
     const open2 = busy || S.cOpen === true, dr = (S.draft.comment || "").trim();
-    return composerHtml({ open: open2, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", draftBox: draftBox("comment", "Write a comment\u2026 (Markdown supported)"), err: errLine("comment"), merged: !!p3.merged, closed, busy });
+    return { open: open2, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", err: errMsg("comment"), merged: !!p3.merged, closed, busy };
   }
-  function mergeActions(b2) {
+  function mergeActProps(b2) {
     const p3 = b2.pull;
-    if (p3.merged || p3.state === "closed") return "";
+    if (p3.merged || p3.state === "closed") return null;
     const busy = S.busy === "merge", am = p3.auto_merge, blocked = p3.mergeable_state !== "clean" && p3.mergeable_state !== "unstable";
     const cur = am ? { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" }[am.merge_method] || "merge" : "merge";
-    return mergeActHtml({ draft: !!p3.draft, err: errLine("merge"), method: cur, busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errLine("automerge") });
+    return { draft: !!p3.draft, err: errMsg("merge"), method: cur, busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errMsg("automerge") };
   }
   function reviewDialog() {
     S.dialog = reviewDialogHtml(draftBox("review", pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", 5));
@@ -5712,6 +5773,74 @@ ${q3}
     }
     await refreshPr();
   }
+  function toggleComposer() {
+    setComposer(document.getElementById("composer").classList.contains("collapsed"), true);
+  }
+  function cbarKey(e2) {
+    if (e2.key === "Enter" || e2.key === " ") {
+      e2.preventDefault();
+      e2.currentTarget.click();
+    }
+  }
+  async function sendComment() {
+    const r3 = await act("comment", { body: S.draft.comment || "" }, "comment");
+    if (r3 === void 0) return;
+    delete S.draft.comment;
+    S.cOpen = false;
+    if (!addLocal("commented", r3)) await refreshPr(r3.id);
+  }
+  function toggleClosed() {
+    const closed = S.bundle.pull.state === "closed";
+    confirmDlg(closed ? "Reopen this pull request?" : "Close this pull request?", closed ? "It will be open for review again." : "It will be closed without merging. You can reopen it later.", closed ? "Reopen" : "Close pull request", !closed, async () => {
+      const r3 = await act(closed ? "reopen" : "close", {}, "close");
+      if (r3 !== void 0) await refreshPr();
+    });
+  }
+  function toggleMb(e2, k3) {
+    if (e2.target.closest("#rerunck")) return;
+    S.mbOpen = S.mbOpen || /* @__PURE__ */ new Set();
+    S.mbOpen.has(k3) ? S.mbOpen.delete(k3) : S.mbOpen.add(k3);
+    rerender();
+  }
+  async function rerunChecks(e2) {
+    e2.stopPropagation();
+    const urls = (S.bundle.checks || []).filter((c3) => checkState(c3) === "fail" && c3.url).map((c3) => c3.url);
+    setBusy(e2.currentTarget, true);
+    const r3 = await act("rerun", { extra: urls }, "rerun");
+    if (r3 !== void 0) {
+      S.actErr = null;
+      await refreshPr();
+    } else setBusy(e2.currentTarget, false);
+  }
+  async function updateBranch() {
+    const r3 = await act("update_branch", {}, "update_branch");
+    if (r3 !== void 0) await refreshPr();
+  }
+  async function markReady() {
+    const r3 = await act("ready", {}, "ready");
+    if (r3 !== void 0) await refreshPr();
+  }
+  function toDraft() {
+    confirmDlg("Convert to draft?", "Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.", "Convert to draft", false, async () => {
+      const r3 = await act("draft", {}, "merge");
+      if (r3 !== void 0) await refreshPr();
+    });
+  }
+  async function enableAuto() {
+    const r3 = await act("automerge", { method: $("#mmethod").value }, "automerge");
+    if (r3 !== void 0) await refreshPr();
+  }
+  async function disableAuto() {
+    const r3 = await act("disable_automerge", {}, "automerge");
+    if (r3 !== void 0) await refreshPr();
+  }
+  function doMerge() {
+    const m2 = $("#mmethod").value, p3 = S.bundle.pull, names = { merge: "merge commit", squash: "squash and merge", rebase: "rebase and merge" };
+    confirmDlg("Merge this pull request?", `${p3.head.label} will be merged into ${p3.base.label} using ${names[m2]}. This changes the repository and cannot be undone from here.`, "Merge", false, async () => {
+      const r3 = await act("merge", { method: m2 }, "merge");
+      if (r3 !== void 0) await refreshPr();
+    });
+  }
   var rerender = () => {
     S.keepScroll = true;
     render();
@@ -5860,20 +5989,9 @@ ${ev.currentTarget.dataset.code}
       S.keepScroll = false;
     }));
     $3("#finishrev")?.addEventListener("click", reviewDialog);
-    $3("#cbar")?.addEventListener("click", () => setComposer(document.getElementById("composer").classList.contains("collapsed"), true));
-    $3("#cbar")?.addEventListener("keydown", (e2) => {
-      if (e2.key === "Enter" || e2.key === " ") {
-        e2.preventDefault();
-        e2.currentTarget.click();
-      }
-    });
-    $3("#docomment")?.addEventListener("click", async () => {
-      const r3 = await act("comment", { body: S.draft.comment || "" }, "comment");
-      if (r3 === void 0) return;
-      delete S.draft.comment;
-      S.cOpen = false;
-      if (!addLocal("commented", r3)) await refreshPr(r3.id);
-    });
+    $3("#cbar")?.addEventListener("click", toggleComposer);
+    $3("#cbar")?.addEventListener("keydown", cbarKey);
+    $3("#docomment")?.addEventListener("click", sendComment);
     qa2("[data-sendreply]").forEach((btn) => btn.addEventListener("click", async () => {
       const id = btn.dataset.sendreply, r3 = await act("reply", { id: +id, body: S.draft["reply-" + id] || "" }, "reply-" + id);
       if (r3 === void 0) return;
@@ -5904,58 +6022,16 @@ ${ev.currentTarget.dataset.code}
       e2.stopPropagation();
       toggleReact(el.dataset.rck, el.dataset.rcid, el.dataset.rcc);
     }));
-    $3("#doclose")?.addEventListener("click", () => {
-      const closed = S.bundle.pull.state === "closed";
-      confirmDlg(closed ? "Reopen this pull request?" : "Close this pull request?", closed ? "It will be open for review again." : "It will be closed without merging. You can reopen it later.", closed ? "Reopen" : "Close pull request", !closed, async () => {
-        const r3 = await act(closed ? "reopen" : "close", {}, "close");
-        if (r3 !== void 0) await refreshPr();
-      });
-    });
-    qa2("[data-mb]").forEach((el) => el.addEventListener("click", (e2) => {
-      if (e2.target.closest("#rerunck")) return;
-      S.mbOpen = S.mbOpen || /* @__PURE__ */ new Set();
-      const k3 = el.dataset.mb;
-      S.mbOpen.has(k3) ? S.mbOpen.delete(k3) : S.mbOpen.add(k3);
-      rerender();
-    }));
-    $3("#rerunck")?.addEventListener("click", async (e2) => {
-      e2.stopPropagation();
-      const urls = (S.bundle.checks || []).filter((c3) => checkState(c3) === "fail" && c3.url).map((c3) => c3.url);
-      setBusy(e2.currentTarget, true);
-      const r3 = await act("rerun", { extra: urls }, "rerun");
-      if (r3 !== void 0) {
-        S.actErr = null;
-        await refreshPr();
-      } else setBusy(e2.currentTarget, false);
-    });
-    $3("#updbranch")?.addEventListener("click", async () => {
-      const r3 = await act("update_branch", {}, "update_branch");
-      if (r3 !== void 0) await refreshPr();
-    });
-    $3("#doready")?.addEventListener("click", async () => {
-      const r3 = await act("ready", {}, "ready");
-      if (r3 !== void 0) await refreshPr();
-    });
-    $3("#todraft")?.addEventListener("click", () => confirmDlg("Convert to draft?", "Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.", "Convert to draft", false, async () => {
-      const r3 = await act("draft", {}, "merge");
-      if (r3 !== void 0) await refreshPr();
-    }));
-    $3("#doauto")?.addEventListener("click", async () => {
-      const r3 = await act("automerge", { method: $3("#mmethod").value }, "automerge");
-      if (r3 !== void 0) await refreshPr();
-    });
-    $3("#noauto")?.addEventListener("click", async () => {
-      const r3 = await act("disable_automerge", {}, "automerge");
-      if (r3 !== void 0) await refreshPr();
-    });
+    $3("#doclose")?.addEventListener("click", toggleClosed);
+    qa2("[data-mb]").forEach((el) => el.addEventListener("click", (e2) => toggleMb(e2, el.dataset.mb)));
+    $3("#rerunck")?.addEventListener("click", rerunChecks);
+    $3("#updbranch")?.addEventListener("click", updateBranch);
+    $3("#doready")?.addEventListener("click", markReady);
+    $3("#todraft")?.addEventListener("click", toDraft);
+    $3("#doauto")?.addEventListener("click", enableAuto);
+    $3("#noauto")?.addEventListener("click", disableAuto);
     $3("#editpr")?.addEventListener("click", editPrDialog);
-    $3("#domerge")?.addEventListener("click", () => {
-      const m2 = $3("#mmethod").value, p3 = S.bundle.pull, names = { merge: "merge commit", squash: "squash and merge", rebase: "rebase and merge" };
-      confirmDlg("Merge this pull request?", `${p3.head.label} will be merged into ${p3.base.label} using ${names[m2]}. This changes the repository and cannot be undone from here.`, "Merge", false, async () => {
-        const r3 = await act("merge", { method: m2 }, "merge");
-        if (r3 !== void 0) await refreshPr();
-      });
-    });
+    $3("#domerge")?.addEventListener("click", doMerge);
     $3("#review")?.addEventListener("click", reviewDialog);
   }
 

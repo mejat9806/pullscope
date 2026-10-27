@@ -1,11 +1,19 @@
-import { attentionHtml, barsHtml, checksHtml, commitRowHtml, commitRunHtml, committedHtml, crossRefHtml, labelRowHtml, mergedRowHtml, referencedHtml, simpleHtml, tlWrapHtml } from '../components/Timeline';
-import type { AttItem } from '../components/Timeline';
+import type { ComponentChildren } from 'preact';
+import { Bars, CommitRow, CommitRun, Committed, CrossRef, FoldBar, LabelRow, MergedRow, Simple, attentionHtml, checksHtml, commitRowHtml, referencedHtml } from '../components/Timeline';
+import type { AttItem, BarHandlers, CommitRowProps, CrossRefProps, RangeBarProps, SimpleProps, WhoBarProps } from '../components/Timeline';
+import { Composer, MergeAct } from '../components/Actions';
+import type { ComposerHandlers, ComposerProps, MergeActHandlers, MergeActProps } from '../components/Actions';
+import { ClosedBox, MergeBox, MergedBox } from '../components/Merge';
+import type { MergeBoxHandlers } from '../components/Merge';
+import { html } from '../components/html';
+import { Island } from '../components/ui';
 import type { Bundle, Check, CommentLike, Person, TimelineEvent, Verification } from '../types';
-import { composer, mergeActions } from './actions';
+import { composerProps, mergeActProps } from './actions';
 import { commentBox } from './comments';
 import { S, avatar, esc, icon, user, when } from './core';
 import { reviewBlock } from './diff';
-import { mergeBox } from './mergebox';
+import { mergeModel } from './mergebox';
+import type { MergeModel } from './mergebox';
 import { render } from './pages';
 
 export function commitRow(msg: string, sha: string, author: Person | null, url: string, verification: Verification | undefined, trailing = '') {
@@ -21,8 +29,20 @@ export function rangeBounds() {
   return [-Infinity, Infinity];
 }
 
-export function timeline(b: Bundle) {
-  const p = b.pull, out = [];
+// Rows hold prebuilt HTML for comment boxes and reviews (still string views); everything else is data for live components.
+export type TlRow =
+  | { t: 'html'; h: string }
+  | { t: 'run'; n: number; first: string; last: string }
+  | { t: 'committed'; row: CommitRowProps }
+  | { t: 'merged'; actor: Person | null | undefined; commit: string; base: string; at: string }
+  | { t: 'brk' }
+  | { t: 'cross'; p: CrossRefProps }
+  | { t: 'label'; actor: Person | null | undefined; verb: string; color: string; name: string; at: string }
+  | { t: 'simple'; p: SimpleProps };
+export interface TlModel { who: WhoBarProps | null; range: RangeBarProps; rows: TlRow[]; empty: string; merge: MergeModel | null; act: MergeActProps | null; composer: ComposerProps }
+
+export function timelineModel(b: Bundle): TlModel {
+  const p = b.pull, out: TlRow[] = [], htm = (h: string) => out.push({ t: 'html', h });
   const evUser = (e: TimelineEvent) => { const u = e.user || e.actor || e.author; return u?.login || (u as Person | undefined)?.name || ''; };
   const people = new Map<string, { u: Person; n: number }>(), bump = (u?: Person | null) => { if (!u?.login) return; const r = people.get(u.login) || { u, n: 0 }; r.n++; people.set(u.login, r); };
   bump(p.user); b.timeline.forEach((e) => { if (e.event === 'commented' || e.event === 'reviewed') bump(e.user); }); b.review_comments.forEach((c) => bump(c.user));
@@ -35,8 +55,7 @@ export function timeline(b: Bundle) {
   const [rLo, rHi] = rangeBounds(), rangeOn = S.range !== 'all';
   const inRange = (t: string) => { const x = t ? Date.parse(t) : NaN; return isNaN(x) || (x >= rLo && x <= rHi); };
   const keep = !rangeOn ? byKind : byKind.filter((e) => inRange(evTime(e)) || (e.event === 'reviewed' && b.review_comments.some((c) => c.pull_request_review_id === e.id && inRange(c.created_at)) ) || (e.event === 'reviewed' && b.review_comments.some((c) => inRange(c.created_at) && b.review_comments.some((r) => r.id === c.in_reply_to_id && r.pull_request_review_id === e.id))));
-  const bars = barsHtml(people.size > 1 ? { everyone: !on, people: [...people.values()].sort((x, y) => y.n - x.n).map(({ u, n }) => ({ u, n, on: who.includes(u.login!) })) } : null, { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === 'desc' });
-  if (!S.unres && (!on || who.includes(p.user.login))) out.push(commentBox({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
+  if (!S.unres && (!on || who.includes(p.user.login))) htm(commentBox({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
   // Long runs of commits collapse into one row (the Commits tab lists them), so comments stay reachable.
   const evs = [];
   for (let i = 0; i < keep.length;) {
@@ -45,43 +64,48 @@ export function timeline(b: Bundle) {
   }
   if (S.sort === 'desc') evs.reverse();
   const info = b.commit_info || {};
-  let merged = false;
+  const simpleRow = (e: TimelineEvent, ic: string, text: ComponentChildren, kind = '') => out.push({ t: 'simple', p: { actor: e.actor, ic, text, kind, at: e.created_at! } });
   for (const e of evs) {
     switch (e.event) {
-      case 'commented': out.push(commentBox(e as CommentLike)); break;
-      case 'commit-run': out.push(commitRunHtml({ n: e.n!, first: e.first!.sha!.slice(0, 7), last: e.last!.sha!.slice(0, 7) })); break;
-      case 'reviewed': out.push(reviewBlock(e, b)); break;
-      case 'committed': out.push(committedHtml(commitRow(e.message!, e.sha!, info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null), e.html_url!, e.verification))); break;
+      case 'commented': htm(commentBox(e as CommentLike)); break;
+      case 'commit-run': out.push({ t: 'run', n: e.n!, first: e.first!.sha!.slice(0, 7), last: e.last!.sha!.slice(0, 7) }); break;
+      case 'reviewed': htm(reviewBlock(e, b)); break;
+      case 'committed': out.push({ t: 'committed', row: { first: String(e.message || '').split('\n')[0], sha: e.sha!, author: info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null), url: e.html_url!, verification: e.verification, trailing: '' } }); break;
       case 'referenced': {
         const ci = info[e.commit_id!];
         const ml = ci ? ci.message.split('\n')[0] : '';
         const linked = esc(ml).replace(/#(\d+)/, '</a><a href="#" style="color:var(--fgColor-accent)">#$1</a><a href="#">');
-        out.push(referencedHtml({ actor: e.actor, at: e.created_at!, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
+        htm(referencedHtml({ actor: e.actor, at: e.created_at!, commit: ci ? { author: ci.author, html_url: ci.html_url, sha: ci.sha } : null, linked }));
         break;
       }
-      case 'merged': merged = true; out.push(mergedRowHtml({ actor: e.actor, commit: (e.commit_id || '').slice(0, 7), base: p.base.label ?? '', at: e.created_at! })); out.push('<div class="TLI-break"></div>'); break;
-      case 'closed': if (!p.merged) out.push(simple(e, 'git-pull-request-closed', 'closed this', 'danger')); break;
-      case 'reopened': out.push(simple(e, 'git-pull-request', 'reopened this', 'success')); break;
+      case 'merged': out.push({ t: 'merged', actor: e.actor, commit: (e.commit_id || '').slice(0, 7), base: p.base.label ?? '', at: e.created_at! }, { t: 'brk' }); break;
+      case 'closed': if (!p.merged) simpleRow(e, 'git-pull-request-closed', 'closed this', 'danger'); break;
+      case 'reopened': simpleRow(e, 'git-pull-request', 'reopened this', 'success'); break;
       case 'cross-referenced': {
         const i = e.source?.issue; if (!i) break;
         const isPr = !!i.pull_request;
-        out.push(crossRefHtml({ actor: e.actor, at: e.created_at!, isPr, open: i.state === 'open', icon: isPr ? (i.state === 'open' ? 'git-pull-request' : 'git-merge') : 'issue-opened', url: i.html_url, title: i.title.split('\n')[0].slice(0, 120), repo: i.repository?.full_name || '', number: i.number }));
+        out.push({ t: 'cross', p: { actor: e.actor, at: e.created_at!, isPr, open: i.state === 'open', icon: isPr ? (i.state === 'open' ? 'git-pull-request' : 'git-merge') : 'issue-opened', url: i.html_url, title: i.title.split('\n')[0].slice(0, 120), repo: i.repository?.full_name || '', number: i.number } });
         break;
       }
-      case 'labeled': case 'unlabeled': out.push(labelRowHtml({ actor: e.actor, verb: e.event === 'labeled' ? 'added' : 'removed', color: e.label?.color ?? '', name: e.label?.name ?? '', at: e.created_at! })); break;
-      case 'assigned': case 'unassigned': out.push(simple(e, 'person', `${e.event} ${e.assignee ? esc(e.assignee.login) : ''}`)); break;
-      case 'review_requested': out.push(simple(e, 'eye', `requested a review from ${esc(e.requested_reviewer?.login || e.requested_team?.name || '')}`)); break;
-      case 'renamed': out.push(simple(e, 'pencil', `changed the title <s>${esc(e.rename?.from)}</s> ${esc(e.rename?.to)}`)); break;
-      case 'head_ref_force_pushed': out.push(simple(e, 'repo-push', 'force-pushed the head branch')); break;
-      case 'head_ref_deleted': out.push(simple(e, 'git-branch', 'deleted the head branch')); break;
-      case 'ready_for_review': out.push(simple(e, 'eye', 'marked this pull request as ready for review')); break;
-      case 'convert_to_draft': out.push(simple(e, 'git-pull-request-draft', 'marked this pull request as draft')); break;
-      case 'milestoned': out.push(simple(e, 'milestone', `added this to the ${esc(e.milestone?.title)} milestone`)); break;
-      case 'locked': out.push(simple(e, 'lock', 'locked this conversation')); break;
+      case 'labeled': case 'unlabeled': out.push({ t: 'label', actor: e.actor, verb: e.event === 'labeled' ? 'added' : 'removed', color: e.label?.color ?? '', name: e.label?.name ?? '', at: e.created_at! }); break;
+      case 'assigned': case 'unassigned': simpleRow(e, 'person', `${e.event} ${e.assignee ? e.assignee.login : ''}`); break;
+      case 'review_requested': simpleRow(e, 'eye', `requested a review from ${e.requested_reviewer?.login || e.requested_team?.name || ''}`); break;
+      case 'renamed': simpleRow(e, 'pencil', <>changed the title <s>{e.rename?.from}</s> {e.rename?.to}</>); break;
+      case 'head_ref_force_pushed': simpleRow(e, 'repo-push', 'force-pushed the head branch'); break;
+      case 'head_ref_deleted': simpleRow(e, 'git-branch', 'deleted the head branch'); break;
+      case 'ready_for_review': simpleRow(e, 'eye', 'marked this pull request as ready for review'); break;
+      case 'convert_to_draft': simpleRow(e, 'git-pull-request-draft', 'marked this pull request as draft'); break;
+      case 'milestoned': simpleRow(e, 'milestone', `added this to the ${e.milestone?.title ?? ''} milestone`); break;
+      case 'locked': simpleRow(e, 'lock', 'locked this conversation'); break;
       default: break; // subscribed, unsubscribed, mentioned: hidden by GitHub as well
     }
   }
-  return tlWrapHtml({ bars, rows: out.join(''), empty: !evs.length && (on || rangeOn) ? (rangeOn ? 'No activity in this period.' : 'Nothing from the selected accounts.') : '', tail: `${on ? '' : mergeBox(b)}${mergeActions(b)}${composer(b)}` });
+  return {
+    who: people.size > 1 ? { everyone: !on, people: [...people.values()].sort((x, y) => y.n - x.n).map(({ u, n }) => ({ u, n, on: who.includes(u.login!) })) } : null,
+    range: { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === 'desc' },
+    rows: out, empty: !evs.length && (on || rangeOn) ? (rangeOn ? 'No activity in this period.' : 'Nothing from the selected accounts.') : '',
+    merge: on ? null : mergeModel(b), act: mergeActProps(b), composer: composerProps(b),
+  };
 }
 
 export const checkState = (c: Check) => (c.status !== 'completed' ? 'pending' : c.conclusion === 'success' ? 'pass' : ['skipped', 'neutral'].includes(c.conclusion!) ? 'skip' : 'fail');
@@ -144,6 +168,29 @@ export function jumpUnresolved() {
 }
 
 
-export function simple(e: TimelineEvent, ic: string, text: string, kind = '') {
-  return simpleHtml({ actor: e.actor, ic, text, kind, at: e.created_at! });
+
+export interface TlHandlers { bars: BarHandlers; foldAll: () => void; tab: (k: string) => void; merge: MergeBoxHandlers; act: MergeActHandlers; composer: ComposerHandlers }
+
+function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
+  switch (r.t) {
+    case 'html': return <Island html={r.h} />;
+    case 'run': return <CommitRun n={r.n} first={r.first} last={r.last} onTab={on?.tab} />;
+    case 'committed': return <Committed row={<CommitRow {...r.row} />} />;
+    case 'merged': return <MergedRow actor={r.actor} commit={r.commit} base={r.base} at={r.at} />;
+    case 'brk': return <div class="TLI-break"></div>;
+    case 'cross': return <CrossRef {...r.p} />;
+    case 'label': return <LabelRow actor={r.actor} verb={r.verb} color={r.color} name={r.name} at={r.at} />;
+    case 'simple': return <Simple {...r.p} />;
+  }
 }
+
+export function Timeline({ m, on }: { m: TlModel; on?: TlHandlers }) {
+  const box = m.merge && (m.merge.kind === 'merged' ? <MergedBox head={m.merge.head} /> : m.merge.kind === 'closed' ? <ClosedBox head={m.merge.head} /> : <MergeBox {...m.merge.p} on={on?.merge} />);
+  return <>
+    <Bars who={m.who} range={m.range} on={on?.bars} /><FoldBar onClick={on?.foldAll} />
+    <div class="TL">{m.rows.map((r) => <Row r={r} on={on} />)}{m.empty ? <div class="diff-empty">{m.empty}</div> : ''}</div>
+    {box}{m.act ? <MergeAct {...m.act} on={on?.act} /> : ''}<Composer {...m.composer} on={on?.composer} />
+  </>;
+}
+
+export const timeline = (b: Bundle) => html(<Timeline m={timelineModel(b)} />);

@@ -1,6 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
 import { html, Raw } from './html';
+import { ErrLine } from './Actions';
 import { Av, I, SP, When } from './ui';
 
 export function MergedBox({ head }: { head: string }) {
@@ -13,8 +14,9 @@ export function ClosedBox({ head }: { head: string }) {
 }
 export const closedBoxHtml = (head: string) => html(<ClosedBox head={head} />);
 
-export interface CkItem { st: string; url?: string; icon: string; name: string; req: string; desc: string }
+export interface CkItem { st: string; url?: string; icon: string; name: string; req: boolean; desc: string }
 export interface CkGroup { k: string; title: string; open: boolean; items: CkItem[] }
+export interface MergeBoxHandlers { toggle: (e: Event, k: string) => void; rerun: (e: Event) => void; update: () => void; ready: () => void }
 export interface MergeBoxProps {
   draft: boolean; busyReady: boolean; errReady: string;
   rv: { h: string[]; open: boolean; ap: number; cr: number; pend: number; pendNames: string };
@@ -25,23 +27,23 @@ export interface MergeBoxProps {
 
 const plural = (n: number) => (n === 1 ? '' : 's');
 
-function Sec({ k, h, rerunable, open, children }: { k: string; h: string[]; rerunable?: boolean; open: boolean; children: ComponentChildren }) {
-  return <div class="mb-sec"><button class={`mb-h ${h[0]}`} data-mb={k}><span class="mb-ic">{I(h[1], 22)}</span><span class="mb-t"><b>{h[2]}</b><i>{h[3] || ''}</i></span>{k === 'ck' && rerunable ? <span class="btn small" id="rerunck" role="button">Re-run failed</span> : ''}{I(open ? 'chevron-up' : 'chevron-down', 16)}</button>{open && children ? <div class="mb-body">{children}</div> : ''}</div>;
+function Sec({ k, h, rerunable, open, children, on }: { k: string; h: string[]; rerunable?: boolean; open: boolean; children: ComponentChildren; on?: MergeBoxHandlers }) {
+  return <div class="mb-sec"><button class={`mb-h ${h[0]}`} data-mb={k} onClick={on && ((e) => on.toggle(e, k))}><span class="mb-ic">{I(h[1], 22)}</span><span class="mb-t"><b>{h[2]}</b><i>{h[3] || ''}</i></span>{k === 'ck' && rerunable ? <span class="btn small" id="rerunck" role="button" onClick={on?.rerun}>Re-run failed</span> : ''}{I(open ? 'chevron-up' : 'chevron-down', 16)}</button>{open && children ? <div class="mb-body">{children}</div> : ''}</div>;
 }
 
-function CkGroupView({ g }: { g: CkGroup }) {
-  return <><button class="mb-grp" data-mb={`g${g.k}`}>{g.title}{SP}{I(g.open ? 'chevron-up' : 'chevron-down', 12)}</button>{g.open ? g.items.map((c) => <a class={`mb-ck ${c.st}`} href={c.url || undefined}>{I(c.icon, 14)}<b>{c.name}</b>{Raw(c.req)}<i>{c.desc}</i></a>) : ''}</>;
+function CkGroupView({ g, on }: { g: CkGroup; on?: MergeBoxHandlers }) {
+  return <><button class="mb-grp" data-mb={`g${g.k}`} onClick={on && ((e) => on.toggle(e, `g${g.k}`))}>{g.title}{SP}{I(g.open ? 'chevron-up' : 'chevron-down', 12)}</button>{g.open ? g.items.map((c) => <a class={`mb-ck ${c.st}`} href={c.url || undefined}>{I(c.icon, 14)}<b>{c.name}</b>{c.req ? <span class="ck-req" title="Required by branch protection">Required</span> : ''}<i>{c.desc}</i></a>) : ''}</>;
 }
 
-export function MergeBox(p: MergeBoxProps) {
-  const { rv, ck } = p;
+export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
+  const { rv, ck, on } = p;
   const rvBody = <><div class="mb-line">{I('check', 14)}{SP}{rv.ap} approval{plural(rv.ap)}</div>{rv.cr ? <div class="mb-line bad">{I('x-circle-fill', 14)}{SP}{rv.cr} requested changes</div> : ''}<div class="mb-line">{I('person', 14)}{SP}{rv.pend} pending review{plural(rv.pend)}{rv.pend ? `: ${rv.pendNames}` : ''}</div></>;
   return <div class="merge-box"><div class="badge"><span style="background:var(--bgColor-success-emphasis)">{I('git-pull-request')}</span></div><div class="merge-card mb-card">
-    {p.draft ? <><div class="mb-sec"><div class="mb-h"><span class="mb-ic">{I('git-pull-request-draft', 22)}</span><span class="mb-t"><b>This pull request is still a work in progress</b><i>Draft pull requests cannot be merged.</i></span><button class="btn primary" id="doready">{p.busyReady ? 'Updating…' : 'Ready for review'}</button></div></div>{Raw(p.errReady)}</> : ''}
-    <Sec k="rv" h={rv.h} open={rv.open}>{rvBody}</Sec>
-    {ck ? <Sec k="ck" h={ck.h} rerunable={ck.rerunable} open={ck.open}>{ck.groups.map((g) => <CkGroupView g={g} />)}</Sec> : ''}
-    {p.behind ? <div class="mb-sec mb-warn"><div class="mb-h"><span class="mb-ic">{I('alert', 22)}</span><span class="mb-t"><b>This branch is out-of-date with the base branch</b><i>Merge the latest changes from {p.baseRef} into this branch.</i></span><button class="btn" id="updbranch">{p.busyUpdate ? 'Updating…' : 'Update branch'}</button></div></div> : ''}
-    <div class="mb-sec"><div class={`mb-h ${p.clean ? 'ok' : 'bad'}`}><span class="mb-ic">{I(p.clean ? 'check-circle-fill' : 'alert', 22)}</span><span class="mb-t"><b>{p.clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</b><i>{p.clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</i></span></div></div>{Raw(p.errUpdate)}</div></div>;
+    {p.draft ? <><div class="mb-sec"><div class="mb-h"><span class="mb-ic">{I('git-pull-request-draft', 22)}</span><span class="mb-t"><b>This pull request is still a work in progress</b><i>Draft pull requests cannot be merged.</i></span><button class="btn primary" id="doready" onClick={on?.ready}>{p.busyReady ? 'Updating…' : 'Ready for review'}</button></div></div><ErrLine m={p.errReady} /></> : ''}
+    <Sec k="rv" h={rv.h} open={rv.open} on={on}>{rvBody}</Sec>
+    {ck ? <Sec k="ck" h={ck.h} rerunable={ck.rerunable} open={ck.open} on={on}>{ck.groups.map((g) => <CkGroupView g={g} on={on} />)}</Sec> : ''}
+    {p.behind ? <div class="mb-sec mb-warn"><div class="mb-h"><span class="mb-ic">{I('alert', 22)}</span><span class="mb-t"><b>This branch is out-of-date with the base branch</b><i>Merge the latest changes from {p.baseRef} into this branch.</i></span><button class="btn" id="updbranch" onClick={on?.update}>{p.busyUpdate ? 'Updating…' : 'Update branch'}</button></div></div> : ''}
+    <div class="mb-sec"><div class={`mb-h ${p.clean ? 'ok' : 'bad'}`}><span class="mb-ic">{I(p.clean ? 'check-circle-fill' : 'alert', 22)}</span><span class="mb-t"><b>{p.clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</b><i>{p.clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</i></span></div></div><ErrLine m={p.errUpdate} /></div></div>;
 }
 export const mergeBoxHtml = (p: MergeBoxProps) => html(<MergeBox {...p} />);
 

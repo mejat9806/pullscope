@@ -1,18 +1,19 @@
 import type { Bundle, CommitRow, FileChange, FrRange, Reviewer, User } from '../types';
 import { closedBoxHtml, commitsDialogHtml, commitsListHtml, fcBarHtml, fileBoxHtml, filesBarHtml, mergeBoxHtml, mergedBoxHtml, splitViewHtml } from '../components/Merge';
-import type { CkGroup, PrSideProps } from '../components/Merge';
-import { errLine } from './actions';
+import type { CkGroup, MergeBoxProps, PrSideProps } from '../components/Merge';
+import { errMsg } from './actions';
 import { foldBtn, folded, isFolded } from './comments';
 import { S, avatar, esc, icon, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
 import { render } from './pages';
 import { CK, attention, checkState, commitRow, reqBadge, timeline } from './timeline';
 
-export function mergeBox(b: Bundle) {
+export type MergeModel = { kind: 'merged'; head: string } | { kind: 'closed'; head: string } | { kind: 'open'; p: MergeBoxProps };
+export function mergeModel(b: Bundle): MergeModel {
   const p = b.pull;
   const head = p.head.label!.split(':')[1];
-  if (p.merged) return mergedBoxHtml(head);
-  if (p.state === 'closed') return closedBoxHtml(head);
+  if (p.merged) return { kind: 'merged', head };
+  if (p.state === 'closed') return { kind: 'closed', head };
   const clean = p.mergeable_state === 'clean' || p.mergeable !== false;
   const latest = new Map();
   b.timeline.filter((e) => e.event === 'reviewed' && e.user).forEach((e) => { const st = e.state!.toLowerCase(); if (st === 'commented' && latest.has(e.user!.login)) return; latest.set(e.user!.login, st); });
@@ -22,14 +23,15 @@ export function mergeBox(b: Bundle) {
   const ckHead = cnt('fail') ? ['bad', 'x-circle-fill', `${cnt('fail')} check${cnt('fail') === 1 ? '' : 's'} failing`] : cnt('pending') ? ['', 'dot-fill', `${cnt('pending')} check${cnt('pending') === 1 ? '' : 's'} in progress`] : ['ok', 'check-circle-fill', 'All checks have passed'];
   const ckSub = [cnt('skip') && `${cnt('skip')} neutral`, cnt('pass') && `${cnt('pass')} successful`, cnt('fail') && `${cnt('fail')} failing`, cnt('pending') && `${cnt('pending')} pending`].filter(Boolean).join(', ');
   const grp = (k: string, title: string): CkGroup[] => { const g = list.filter((c) => c.st === k); if (!g.length) return []; const open = S.mbOpen?.has('g' + k) ?? k !== 'pass';
-    return [{ k, title, open, items: g.map((c) => ({ st: c.st, url: c.url, icon: CK[c.st][0], name: c.name, req: reqBadge(c), desc: c.description || c.app || '' })) }]; };
-  return mergeBoxHtml({
-    draft: !!p.draft, busyReady: S.busy === 'ready', errReady: errLine('ready'),
+    return [{ k, title, open, items: g.map((c) => ({ st: c.st, url: c.url, icon: CK[c.st][0], name: c.name, req: (S.bundle?.required_checks || []).includes(c.name), desc: c.description || c.app || '' })) }]; };
+  return { kind: 'open', p: {
+    draft: !!p.draft, busyReady: S.busy === 'ready', errReady: errMsg('ready'),
     rv: { h: rvHead, open: !!S.mbOpen?.has('rv'), ap, cr, pend: pendRev, pendNames: (p.requested_reviewers || []).map((u) => u.login).join(', ') },
     ck: list.length ? { h: ckHead.concat(ckSub), open: !!S.mbOpen?.has('ck'), rerunable: list.some((c) => c.st === 'fail' && /\/actions\/runs\//.test(c.url || '')), groups: [...grp('fail', 'Failing checks'), ...grp('pending', 'In progress'), ...grp('skip', 'Neutral checks'), ...grp('pass', 'Successful checks')] } : null,
-    behind: p.mergeable_state === 'behind', busyUpdate: S.busy === 'update_branch', baseRef: p.base.ref, errUpdate: errLine('update_branch'), clean,
-  });
+    behind: p.mergeable_state === 'behind', busyUpdate: S.busy === 'update_branch', baseRef: p.base.ref, errUpdate: errMsg('update_branch'), clean,
+  } };
 }
+export const mergeBox = (b: Bundle) => { const m = mergeModel(b); return m.kind === 'merged' ? mergedBoxHtml(m.head) : m.kind === 'closed' ? closedBoxHtml(m.head) : mergeBoxHtml(m.p); };
 
 
 export function sidebarProps(b: Bundle): PrSideProps {

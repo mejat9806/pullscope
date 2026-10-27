@@ -6,14 +6,16 @@ import { PrLayout, SplitLayout } from '../components/Pages';
 import { PrSide } from '../components/Merge';
 import type { PrSideHandlers } from '../components/Merge';
 import { Attention } from '../components/Timeline';
+import type { TlHandlers } from './timeline';
 import { I, Island } from '../components/ui';
-import { editPrDialog, rerequestReview, rerender, reviewDialog } from './actions';
+import { cbarKey, disableAuto, doMerge, editPrDialog, enableAuto, markReady, rerequestReview, rerender, rerunChecks, reviewDialog, sendComment, toDraft, toggleClosed, toggleComposer, toggleMb, updateBranch } from './actions';
+import { foldAllConv } from './bind';
 import { S, esc, icon } from './core';
 import { isFolded, prHeaderProps } from './comments';
 import { crumbs } from './home';
 import { filesView, commitsView, sidebarProps, splitView } from './mergebox';
 import { render } from './pages';
-import { attentionProps, checksView, jumpUnresolved, timeline } from './timeline';
+import { Timeline, attentionProps, checksView, jumpUnresolved, timelineModel } from './timeline';
 
 const keep = (fn: () => void) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
 const hide = (k: string, v: boolean) => keep(() => { S.hide[k] = v; localStorage.setItem('hide', JSON.stringify(S.hide)); });
@@ -33,6 +35,22 @@ const sideOn: PrSideHandlers = {
   rerequest: rerequestReview,
 };
 
+const tlOn: TlHandlers = {
+  bars: {
+    who: (w) => keep(() => { S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; }),
+    whoClear: () => keep(() => { S.who = []; }),
+    range: (e) => keep(() => { S.range = (e.target as HTMLInputElement).value; if (S.range === 'custom' && !S.rFrom && !S.rTo) { const d = (t: number) => new Date(t - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); S.rTo = d(Date.now()); S.rFrom = d(Date.now() - 7 * 864e5); } }),
+    from: (e) => keep(() => { S.rFrom = (e.target as HTMLInputElement).value; }),
+    to: (e) => keep(() => { S.rTo = (e.target as HTMLInputElement).value; }),
+    sort: () => keep(() => { S.sort = S.sort === 'desc' ? 'asc' : 'desc'; localStorage.setItem('csort', S.sort); }),
+  },
+  foldAll: foldAllConv,
+  tab: head.tab,
+  merge: { toggle: toggleMb, rerun: rerunChecks, update: updateBranch, ready: markReady },
+  act: { close: toggleClosed, merge: doMerge, noauto: disableAuto, auto: enableAuto, draft: toDraft },
+  composer: { toggle: toggleComposer, key: cbarKey, send: sendComment, close: toggleClosed },
+};
+
 function Header() {
   const p = S.bundle!.pull, r = p.base.repo;
   const extra = <><a class="crumb gh" href={r.html_url} data-ext="" title="Open on GitHub">{I('link-external', 12)}</a>{S.refreshing ? <span class="stale">Refreshing…</span> : ''}</>;
@@ -42,9 +60,9 @@ function Header() {
 export function PrView() {
   const b = S.bundle!;
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return <SplitLayout header={<Header />} split={<Island html={splitView(b)} />} />;
-  const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : '';
+  const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : '';
   const side = S.tab !== 'conversation' ? { kind: 'none' as const } : S.hide.side ? { kind: 'rail' as const } : { kind: 'aside' as const, inner: <PrSide {...sidebarProps(b)} on={sideOn} />, on: { hide: () => hide('side', true) } };
-  return <PrLayout header={<Header />} body={S.tab === 'conversation' ? <><Attention {...attentionProps(b)} on={{ next: jumpUnresolved, unres: () => keep(() => { S.unres = !S.unres; }), tab: head.tab }} /><Island html={timeline(b)} /></> : <Island html={body} />} side={side} on={{ show: () => hide('side', false) }} />;
+  return <PrLayout header={<Header />} body={S.tab === 'timeline' ? <div class="rail"><Timeline m={timelineModel(b)} on={tlOn} /></div> : S.tab === 'conversation' ? <><Attention {...attentionProps(b)} on={{ next: jumpUnresolved, unres: () => keep(() => { S.unres = !S.unres; }), tab: head.tab }} /><Timeline m={timelineModel(b)} on={tlOn} /></> : <Island html={body} />} side={side} on={{ show: () => hide('side', false) }} />;
 }
 
 export const prView = (): VNode => <PrView />;

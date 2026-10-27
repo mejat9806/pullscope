@@ -1,49 +1,46 @@
+import type { ComponentChildren } from 'preact';
 import type { Person, Verification } from '../types';
 import { html, Raw } from './html';
-import { when } from '../app/core';
+import { whenParts } from '../app/core';
 import { Av, I, SP } from './ui';
 
 export interface CommitRowProps { first: string; sha: string; author: Person | null; url: string; verification: Verification | undefined; trailing: string }
 export function CommitRow({ first, sha, author, url, verification, trailing }: CommitRowProps) {
   const unv = verification && !verification.verified;
-  return <div class="commit-row">{author ? <span class="TLI-avatar" style="margin-right:8px">{Av(author, 20)}</span> : ''}<span class="msg" style="flex:0 1 auto"><a href={url || '#'}>{first}</a></span>{Raw(trailing)}<span class="cm-ic">{I('comment')}</span><span style="flex:1"></span>{verification ? <span class={`label-pill ${unv ? 'warn' : 'ok'}`}>{unv ? 'Unverified' : 'Verified'}</span> : ''}<a class="sha" href={url || '#'}>{String(sha).slice(0, 7)}</a></div>;
+  return <div class="commit-row">{author ? <span class="TLI-avatar" style="margin-right:8px">{Av(author, 20)}</span> : ''}<span class="msg" style="flex:0 1 auto"><a href={url || '#'}>{first}</a></span>{trailing ? Raw(trailing) : ''}<span class="cm-ic">{I('comment')}</span><span style="flex:1"></span>{verification ? <span class={`label-pill ${unv ? 'warn' : 'ok'}`}>{unv ? 'Unverified' : 'Verified'}</span> : ''}<a class="sha" href={url || '#'}>{String(sha).slice(0, 7)}</a></div>;
 }
 export const commitRowHtml = (p: CommitRowProps) => html(<CommitRow {...p} />);
 
+export interface BarHandlers { who: (login: string) => void; whoClear: () => void; range: (e: Event) => void; from: (e: Event) => void; to: (e: Event) => void; sort: () => void }
 export interface RangeBarProps { range: string; from: string; to: string; desc: boolean }
-export function RangeBar({ range, from, to, desc }: RangeBarProps) {
+export function RangeBar({ range, from, to, desc, on }: RangeBarProps & { on?: BarHandlers }) {
   const opts = [['all', 'Any time'], ['1h', 'Last hour'], ['24h', 'Last 24 hours'], ['7d', 'Last 7 days'], ['30d', 'Last 30 days'], ['custom', 'Custom range…']];
-  return <div class="date-bar"><span class="who-l">{I('clock')}When</span><select class="sel" id="crange" title="Only show activity from this period">{opts.map(([v, l]) => <option value={v} selected={range === v}>{l}</option>)}</select>{range === 'custom' ? <><input type="date" class="input" id="cfrom" value={from} title="From" /><span class="who-l">to</span><input type="date" class="input" id="cto" value={to} title="To" /></> : ''}<span class="sp"></span><button class="who-chip" id="csort" title="Flip the order of the timeline">{I(desc ? 'chevron-down' : 'chevron-up')}<span>{desc ? 'Newest first' : 'Oldest first'}</span></button></div>;
+  return <div class="date-bar"><span class="who-l">{I('clock')}When</span><select class="sel" id="crange" title="Only show activity from this period" onChange={on?.range}>{opts.map(([v, l]) => <option value={v} selected={range === v}>{l}</option>)}</select>{range === 'custom' ? <><input type="date" class="input" id="cfrom" value={from} title="From" onChange={on?.from} /><span class="who-l">to</span><input type="date" class="input" id="cto" value={to} title="To" onChange={on?.to} /></> : ''}<span class="sp"></span><button class="who-chip" id="csort" title="Flip the order of the timeline" onClick={on?.sort}>{I(desc ? 'chevron-down' : 'chevron-up')}<span>{desc ? 'Newest first' : 'Oldest first'}</span></button></div>;
 }
 
 export interface WhoBarProps { everyone: boolean; people: { u: Person; n: number; on: boolean }[] }
-export function WhoBar({ everyone, people }: WhoBarProps) {
-  return <div class="who-bar"><span class="who-l">{I('person')}Show</span><button class={`who-chip ${everyone ? 'on' : ''}`} data-whoclear="1">Everyone</button>{people.map(({ u, n, on }) => <button class={`who-chip ${on ? 'on' : ''}`} data-who={u.login} title={`${n} comment${n === 1 ? '' : 's'}`}>{Av(u, 18)}<span>{u.login}</span><i>{n}</i></button>)}</div>;
+export function WhoBar({ everyone, people, on }: WhoBarProps & { on?: BarHandlers }) {
+  return <div class="who-bar"><span class="who-l">{I('person')}Show</span><button class={`who-chip ${everyone ? 'on' : ''}`} data-whoclear="1" onClick={on?.whoClear}>Everyone</button>{people.map(({ u, n, on: sel }) => <button class={`who-chip ${sel ? 'on' : ''}`} data-who={u.login} onClick={on && (() => on.who(u.login!))} title={`${n} comment${n === 1 ? '' : 's'}`}>{Av(u, 18)}<span>{u.login}</span><i>{n}</i></button>)}</div>;
 }
-export const barsHtml = (who: WhoBarProps | null, range: RangeBarProps) => html(<>{who && <WhoBar {...who} />}<RangeBar {...range} /></>);
-
-export function FoldBar() {
-  return <div class="fold-bar"><button class="btn small" id="foldallconv" title="Collapse or expand every comment, review and thread">{I('chevron-down')}{SP}<span>Collapse all conversations</span></button></div>;
+export function Bars({ who, range, on }: { who: WhoBarProps | null; range: RangeBarProps; on?: BarHandlers }) {
+  return <>{who && <WhoBar {...who} on={on} />}<RangeBar {...range} on={on} /></>;
 }
 
-export interface TlWrapProps { bars: string; rows: string; empty: string; tail: string }
-export function TlWrap({ bars, rows, empty, tail }: TlWrapProps) {
-  return <>{Raw(bars)}<FoldBar /><div class="TL">{Raw(rows)}{empty ? <div class="diff-empty">{empty}</div> : ''}</div>{Raw(tail)}</>;
+export function FoldBar({ onClick }: { onClick?: () => void }) {
+  return <div class="fold-bar"><button class="btn small" id="foldallconv" title="Collapse or expand every comment, review and thread" onClick={onClick}>{I('chevron-down')}{SP}<span>Collapse all conversations</span></button></div>;
 }
-export const tlWrapHtml = (p: TlWrapProps) => html(<TlWrap {...p} />);
 
-const Time = ({ at }: { at: string }) => <a class="time">{Raw(when(at).replace(/<\/?span[^>]*>/g, ''))}</a>;
+const Time = ({ at }: { at: string }) => <a class="time">{whenParts(at).text}</a>;
 const actor = (u?: Person | null) => (u ? <a class="actor" href={u.html_url}>{u.login}</a> : <span class="actor">ghost</span>);
 
-export function CommitRun({ n, first, last }: { n: number; first: string; last: string }) {
-  return <div class="TLI"><div class="TLI-badge">{I('git-commit')}</div><div class="TLI-body"><div class="row"><a data-tab="commits" class="run"><b>{n} commits</b>{SP}<span class="mono">{first} … {last}</span> · view in Commits</a></div></div></div>;
+export function CommitRun({ n, first, last, onTab }: { n: number; first: string; last: string; onTab?: (k: string) => void }) {
+  return <div class="TLI"><div class="TLI-badge">{I('git-commit')}</div><div class="TLI-body"><div class="row"><a data-tab="commits" class="run" onClick={onTab && (() => onTab('commits'))}><b>{n} commits</b>{SP}<span class="mono">{first} … {last}</span> · view in Commits</a></div></div></div>;
 }
 export const commitRunHtml = (p: Parameters<typeof CommitRun>[0]) => html(<CommitRun {...p} />);
 
-export function Committed({ row }: { row: string }) {
-  return <div class="TLI"><div class="TLI-badge">{I('git-commit')}</div><div class="TLI-body">{Raw(row)}</div></div>;
+export function Committed({ row }: { row: ComponentChildren }) {
+  return <div class="TLI"><div class="TLI-badge">{I('git-commit')}</div><div class="TLI-body">{row}</div></div>;
 }
-export const committedHtml = (row: string) => html(<Committed row={row} />);
 
 export interface ReferencedProps { actor: Person | null | undefined; at: string; commit: { author?: Person | null; html_url: string; sha: string } | null; linked: string }
 export function Referenced({ actor: a, at, commit: ci, linked }: ReferencedProps) {
@@ -68,8 +65,9 @@ export function LabelRow({ actor: a, verb, color, name, at }: { actor: Person | 
 }
 export const labelRowHtml = (p: Parameters<typeof LabelRow>[0]) => html(<LabelRow {...p} />);
 
-export function Simple({ actor: a, ic, text, kind, at }: { actor: Person | null | undefined; ic: string; text: string; kind: string; at: string }) {
-  return <div class="TLI"><div class={`TLI-badge ${kind}`}>{I(ic)}</div><div class="TLI-avatar">{Av(a, 20)}</div><div class="TLI-body"><div class="row">{actor(a)}{SP}<span>{Raw(text)}</span>{SP}<Time at={at} /></div></div></div>;
+export interface SimpleProps { actor: Person | null | undefined; ic: string; text: ComponentChildren; kind: string; at: string }
+export function Simple({ actor: a, ic, text, kind, at }: SimpleProps) {
+  return <div class="TLI"><div class={`TLI-badge ${kind}`}>{I(ic)}</div><div class="TLI-avatar">{Av(a, 20)}</div><div class="TLI-body"><div class="row">{actor(a)}{SP}<span>{text}</span>{SP}<Time at={at} /></div></div></div>;
 }
 export const simpleHtml = (p: Parameters<typeof Simple>[0]) => html(<Simple {...p} />);
 
