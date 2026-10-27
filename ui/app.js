@@ -590,12 +590,22 @@
   }
 
   // src/components/Shell.tsx
+  var Main = (p3) => {
+    const ref = A2(null), seen2 = A2(p3.scroll?.n);
+    _2(() => {
+      if (p3.scroll && p3.scroll.n !== seen2.current) {
+        seen2.current = p3.scroll.n;
+        ref.current.scrollTop = p3.scroll.top;
+      }
+    });
+    return /* @__PURE__ */ u3("div", { class: p3.cls, ref, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: p3.children }) });
+  };
   var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
     /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
       /* @__PURE__ */ u3("div", { id: "side", style: "display:contents", children: p3.side }),
       /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
       /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3("div", { class: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: k3.children }) }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, scroll: p3.scroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
     ] }),
     /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: p3.dlg }),
     /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents", children: p3.notes })
@@ -1833,35 +1843,43 @@
       return l3.replace(/^(\s*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\])/, (m3, a3, x2, z3) => ++i3 === n2 ? a3 + (x2 === " " ? "x" : " ") + z3 : m3);
     }).join("\n");
   }
+  var setTaskHtml = (html, n2, on3) => {
+    let i3 = -1;
+    return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m3) => ++i3 === n2 ? on3 ? /\schecked/.test(m3) ? m3 : m3.replace(/<input/, "<input checked") : m3.replace(/\schecked(="[^"]*")?/, "") : m3);
+  };
   document.addEventListener("click", async (e3) => {
     const cb = e3.target.closest("input.task-list-item-checkbox");
     if (!cb || cb.disabled || !S.bundle) return;
     const box = cb.closest(".tl-comment"), md = cb.closest(".markdown-body");
     if (!box || !md) return;
+    e3.preventDefault();
     const id = box.id.replace(/^c-/, ""), b2 = S.bundle;
     const c3 = String(b2.pull.id) === id ? b2.pull : b2.timeline.find((x2) => String(x2.id) === id);
     if (!c3) return;
     const n2 = [...md.querySelectorAll("input.task-list-item-checkbox")].indexOf(cb), body = toggleTask(c3.body || "", n2);
-    if (body === (c3.body || "")) {
-      e3.preventDefault();
-      return;
-    }
-    const on3 = cb.checked;
+    if (body === (c3.body || "")) return;
+    const on3 = cb.checked, was = c3.body_html || "";
+    c3.body_html = setTaskHtml(was, n2, on3);
+    rerender();
     const r3 = c3 === b2.pull ? await act("edit", { body, extra: {} }, "task", true) : await act("edit_comment", { id: c3.id, kind: "issue_comment", body }, "task", true);
     if (r3 === void 0) {
-      cb.checked = !on3;
+      c3.body_html = was;
+      rerender();
       alert(`Couldn't update the checkbox: ${S.actErr?.m || "unknown error"}`);
       return;
     }
     c3.body = body;
-    let i3 = -1;
-    c3.body_html = (c3.body_html || "").replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m3) => ++i3 === n2 ? on3 ? /\schecked/.test(m3) ? m3 : m3.replace(/<input/, "<input checked") : m3.replace(/\schecked(="[^"]*")?/, "") : m3);
     const key = `${prRef().repo}#${prRef().number}`;
     qc.set(key, b2);
     qc.m.get(key).at = Date.now() - 2e4;
     tauri?.invoke("invalidate_pr", { url: key }).catch(() => {
     });
   });
+  function hasComment(elId) {
+    const b2 = S.bundle, id = elId.replace(/^c-/, "");
+    if (!b2) return false;
+    return String(b2.pull.id) === id || b2.timeline.some((x2) => String(x2.id) === id) || b2.review_comments.some((x2) => String(x2.id) === id);
+  }
   function commentBoxProps(c3, { isPr = false, flush = false } = {}) {
     return { kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id), c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
   }
@@ -2430,8 +2448,7 @@
     S.keepScroll = true;
     render();
     S.keepScroll = false;
-    const el = document.getElementById("c-" + c3.id);
-    if (el) {
+    {
       setFlash("c-" + c3.id, { block: "center", smooth: true });
       S.keepScroll = true;
       render();
@@ -2504,7 +2521,7 @@
   function openTab(k3) {
     S.tab = k3;
     render();
-    document.querySelector(".main").scrollTop = 0;
+    scrollMain(0);
   }
   var filesOn = {
     commits: () => openCommits(),
@@ -2969,7 +2986,7 @@
     S.openSeq = (S.openSeq || 0) + 1;
     const ref = S.view === "pr" && S.bundle ? curRef() : "", m3 = $(".main"), sh = shownPage();
     if (!ref || !m3 || !sh || sh.ref !== ref || !S.tabs.some((t3) => t3.ref === ref)) return;
-    S.alive.set(ref, { vnode: sh.vnode, bundle: S.bundle, tab: S.tab, key: aliveKey(), scroll: m3.scrollTop });
+    S.alive.set(ref, { vnode: sh.vnode, bundle: S.bundle, tab: S.tab, key: aliveKey(), scroll: S.mainTop || 0 });
     while (S.alive.size > 6) {
       const old = S.alive.keys().next().value;
       S.alive.delete(old);
@@ -3016,7 +3033,7 @@
     }
     S.stash = a3;
     render();
-    $(".main").scrollTop = a3.scroll;
+    scrollMain(a3.scroll);
     if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref)).then((d3) => {
       if (JSON.stringify(d3) === JSON.stringify(a3.bundle)) {
         qc.m.set(ref, { data: a3.bundle, at: Date.now() });
@@ -3120,7 +3137,9 @@
   var scrollRaf = 0;
   document.addEventListener("scroll", (e3) => {
     const mn = e3.target;
-    if (!mn.classList?.contains("main") || S.view !== "pr" || S.restoring || scrollRaf) return;
+    if (!mn.classList?.contains("main")) return;
+    S.mainTop = mn.scrollTop;
+    if (S.view !== "pr" || S.restoring || scrollRaf) return;
     scrollRaf = requestAnimationFrame(() => {
       scrollRaf = 0;
       const t3 = S.tabs[tabIdx()];
@@ -3151,7 +3170,7 @@
     const t3 = S.tabs[tabIdx()];
     if (t3) {
       t3.tab = S.tab;
-      t3.scroll = $(".main")?.scrollTop || 0;
+      t3.scroll = S.mainTop || 0;
     }
   }
   function tabPut(ref, p3, opts = {}) {
@@ -3834,14 +3853,9 @@
   }
 
   // src/app/side.tsx
-  var typed = (e3, key, id) => {
-    const t3 = e3.target;
-    S[key] = t3.value;
-    const p3 = t3.selectionStart;
+  var typed = (e3, key) => {
+    S[key] = e3.target.value;
     render();
-    const n2 = $("#" + id);
-    n2.focus();
-    n2.setSelectionRange(p3, p3);
   };
   var on = {
     side: (tab) => {
@@ -3852,7 +3866,7 @@
       S.prState = state;
       loadPrs();
     },
-    pf: (e3) => typed(e3, "pf", "prfilter"),
+    pf: (e3) => typed(e3, "pf"),
     psort: (e3) => {
       S.psort = e3.target.value;
       localStorage.setItem("psort", S.psort);
@@ -3863,7 +3877,7 @@
       localStorage.setItem("pgroup", S.pgroup);
       render();
     },
-    repoFilter: (e3) => typed(e3, "repoFilter", "repofilter"),
+    repoFilter: (e3) => typed(e3, "repoFilter"),
     repo: (name) => openRepo(name),
     addToken: tokenDialog,
     open: openClick,
@@ -4987,6 +5001,11 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
+  function scrollMain(top) {
+    S.mainTop = top;
+    S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top };
+    repaintShell({ scroll: S.scrollReq });
+  }
   var repaintShell = (patch) => {
     const cur = shellProps();
     if (cur) setShell({ ...cur, ...patch });
@@ -5030,7 +5049,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
     batch(() => {
       paintTop();
-      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, kept });
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live2 }, onPage: followLink, kept });
       paintSide();
       paintDlg();
       paintNotes();
@@ -5709,8 +5728,7 @@ ${q3}
     S.keepScroll = true;
     render();
     S.keepScroll = false;
-    const el = document.getElementById("c-" + r3.id);
-    if (el) {
+    {
       setFlash("c-" + r3.id, { block: "start", pop: true });
       S.keepScroll = true;
       render();
@@ -6075,15 +6093,14 @@ ${ev.currentTarget.dataset.code}
     S.keepScroll = keepTab;
     render();
     S.keepScroll = false;
-    if (!keepTab && !restore && $(".main")) $(".main").scrollTop = 0;
+    if (!keepTab && !restore) scrollMain(0);
     const focusNow = () => {
       if (!S.bundle || !S.focus) return false;
       if (S.tab !== "conversation" && S.tab !== "timeline") {
         S.tab = "conversation";
         render();
       }
-      const el = document.getElementById("c-" + S.focus);
-      if (!el) return false;
+      if (!hasComment(S.focus)) return false;
       setFlash(S.focus, { block: "start" });
       S.focus = "";
       S.keepScroll = true;
@@ -6136,10 +6153,7 @@ ${ev.currentTarget.dataset.code}
     render();
     S.keepScroll = false;
     if (savedScroll) {
-      const put = () => {
-        const m3 = $(".main");
-        if (m3) m3.scrollTop = savedScroll;
-      };
+      const put = () => scrollMain(savedScroll);
       put();
       requestAnimationFrame(put);
       setTimeout(() => {
@@ -6148,7 +6162,7 @@ ${ev.currentTarget.dataset.code}
       }, 250);
     }
     if (!keepTab && !stale && !focused && !flashLive() && !tabSwitch) enterAnim();
-    if (S.bundle && !stale && !keepTab && !focused) $(".main").scrollTop = 0;
+    if (S.bundle && !stale && !keepTab && !focused) scrollMain(0);
     if (S.bundle && S.focus) {
       const id = S.focus;
       S.focus = "";
@@ -6156,8 +6170,7 @@ ${ev.currentTarget.dataset.code}
         S.tab = "conversation";
         render();
       }
-      const el = document.getElementById("c-" + id);
-      if (el) {
+      if (hasComment(id)) {
         setFlash(id, { block: "start" });
         S.keepScroll = true;
         render();

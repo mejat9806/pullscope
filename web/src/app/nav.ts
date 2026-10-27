@@ -1,9 +1,9 @@
 import { drafts, rerender, saveDrafts } from './actions';
-import { stateOf } from './comments';
-import { $, KEY_RECENT, S, flashLive, setFlash, tauri } from './core';
+import { hasComment, stateOf } from './comments';
+import { KEY_RECENT, S, flashLive, setFlash, tauri } from './core';
 import { loadPr, qc, refreshPushes, remember } from './data';
 import { enterAnim } from './fun';
-import { openNewPr, render } from './pages';
+import { openNewPr, render, scrollMain } from './pages';
 import { saveTabs, tabIdx, tabPut, tabSnap } from './tabs';
 
 export async function loadRepos() {
@@ -56,13 +56,12 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
   else S.loading = true;
   const hot = fresh;
   S.keepScroll = keepTab; render(); S.keepScroll = false;
-  if (!keepTab && !restore && $('.main')) $('.main')!.scrollTop = 0; // a different PR never inherits the previous page's scroll
+  if (!keepTab && !restore) scrollMain(0); // a different PR never inherits the previous page's scroll
   // Jump to the comment from the copy already on screen; the refresh below only tops it up.
   const focusNow = () => {
     if (!S.bundle || !S.focus) return false;
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
-    const el = document.getElementById('c-' + S.focus);
-    if (!el) return false;
+    if (!hasComment(S.focus)) return false;
     setFlash(S.focus, { block: 'start' }); S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false; return true;
   };
   const focused = focusNow();
@@ -80,12 +79,11 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (stale_()) return; if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
   S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = restore ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
-  if (savedScroll) { const put = () => { const m = $('.main')!; if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !flashLive() && !tabSwitch) enterAnim();
-  if (S.bundle && !stale && !keepTab && !focused) $('.main')!.scrollTop = 0;
+  if (savedScroll) { const put = () => scrollMain(savedScroll); put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !flashLive() && !tabSwitch) enterAnim();
+  if (S.bundle && !stale && !keepTab && !focused) scrollMain(0);
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
-    const el = document.getElementById('c-' + id);
-    if (el) { setFlash(id, { block: 'start' }); S.keepScroll = true; render(); S.keepScroll = false; }
+    if (hasComment(id)) { setFlash(id, { block: 'start' }); S.keepScroll = true; render(); S.keepScroll = false; }
   }
 }

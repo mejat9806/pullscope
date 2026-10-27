@@ -203,7 +203,7 @@ export function addLocal(kind: string, r: ReviewComment | TimelineEvent, rootId?
   else { const root = b.review_comments.find((c) => c.id === rootId); if (!root) return false; b.review_comments.push({ ...r, pull_request_review_id: root.pull_request_review_id, path: root.path, diff_hunk: root.diff_hunk, position: root.position, original_position: root.original_position } as ReviewComment); }
   qc.set(`${prRef().repo}#${prRef().number}`, b); qc.invalidate(`${prRef().repo}#${prRef().number}`); qc.m.get(`${prRef().repo}#${prRef().number}`)!.at = Date.now() - 20000;
   S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false;
-  const el = document.getElementById('c-' + r.id); if (el) { setFlash('c-' + r.id, { block: 'start', pop: true }); S.keepScroll = true; render(); S.keepScroll = false; }
+  { setFlash('c-' + r.id, { block: 'start', pop: true }); S.keepScroll = true; render(); S.keepScroll = false; }
   return true;
 }
 

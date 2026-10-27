@@ -1,6 +1,6 @@
 import type { CommentBoxProps, HunkRow, PrHeaderProps, ReactionsProps } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
-import { act, prRef } from './actions';
+import { act, prRef, rerender } from './actions';
 import { ASSOC, REACTS, S, flashFor, tauri } from './core';
 import { qc } from './data';
 
@@ -41,21 +41,32 @@ export function toggleTask(body: string, n: number) {
   }).join('\n');
 }
 
+// The nth task-list checkbox of rendered comment HTML, set on or off.
+const setTaskHtml = (html: string, n: number, on: boolean) => { let i = -1; return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => (++i === n ? (on ? (/\schecked/.test(m) ? m : m.replace(/<input/, '<input checked')) : m.replace(/\schecked(="[^"]*")?/, '')) : m)); };
+
+// Ticking a task: the checkbox is drawn from the comment's HTML, so the new state is written there at once (the browser's own toggle is cancelled) and put back if saving fails.
 document.addEventListener('click', async (e) => {
   const cb = (e.target as HTMLElement).closest<HTMLInputElement>('input.task-list-item-checkbox'); if (!cb || cb.disabled || !S.bundle) return;
   const box = cb.closest<HTMLElement>('.tl-comment'), md = cb.closest<HTMLElement>('.markdown-body'); if (!box || !md) return;
+  e.preventDefault();
   const id = box.id.replace(/^c-/, ''), b = S.bundle;
   const c = String(b.pull.id) === id ? b.pull : b.timeline.find((x) => String(x.id) === id); if (!c) return;
   const n = [...md.querySelectorAll('input.task-list-item-checkbox')].indexOf(cb), body = toggleTask(c.body || '', n);
-  if (body === (c.body || '')) { e.preventDefault(); return; }
-  const on = cb.checked; // the browser has already flipped it; keep that, undo only if saving fails
+  if (body === (c.body || '')) return;
+  const on = cb.checked, was = c.body_html || '';
+  c.body_html = setTaskHtml(was, n, on); rerender();
   const r = c === b.pull ? await act('edit', { body, extra: {} }, 'task', true) : await act('edit_comment', { id: c.id, kind: 'issue_comment', body }, 'task', true);
-  if (r === undefined) { cb.checked = !on; alert(`Couldn't update the checkbox: ${S.actErr?.m || 'unknown error'}`); return; }
-  c.body = body; let i = -1;
-  c.body_html = (c.body_html || '').replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => (++i === n ? (on ? (/\schecked/.test(m) ? m : m.replace(/<input/, '<input checked')) : m.replace(/\schecked(="[^"]*")?/, '')) : m));
+  if (r === undefined) { c.body_html = was; rerender(); alert(`Couldn't update the checkbox: ${S.actErr?.m || 'unknown error'}`); return; }
+  c.body = body;
   const key = `${prRef().repo}#${prRef().number}`; qc.set(key, b); qc.m.get(key)!.at = Date.now() - 20000;
   tauri?.invoke('invalidate_pr', { url: key }).catch(() => {});
 });
+
+// Whether a comment with this element id (`c-<id>`) is on the page.
+export function hasComment(elId: string) {
+  const b = S.bundle, id = elId.replace(/^c-/, ''); if (!b) return false;
+  return String(b.pull.id) === id || b.timeline.some((x) => String(x.id) === id) || b.review_comments.some((x) => String(x.id) === id);
+}
 
 export function commentBoxProps(c: CommentLike, { isPr = false, flush = false } = {}): CommentBoxProps {
   return { kb: S.kbId === 'c-' + c.id, flash: flashFor('c-' + c.id), c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };

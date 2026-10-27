@@ -7,7 +7,7 @@ import { foldAllConv } from './bind';
 import { S } from './core';
 import { foldToggle } from './fold';
 import { commitList, openCommits, setFr } from './mergebox';
-import { render } from './pages';
+import { render, scrollMain } from './pages';
 import { jumpUnresolved } from './timeline';
 import type { TlHandlers } from './timeline';
 
@@ -25,7 +25,7 @@ export const diffOn: DiffHandlers = { conv: convOn, plus: (e) => lcOpen(e), lc: 
 
 export const keep = (fn: () => void) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
 
-export function openTab(k: string) { S.tab = k; render(); document.querySelector('.main')!.scrollTop = 0; }
+export function openTab(k: string) { S.tab = k; render(); scrollMain(0); }
 
 export const filesOn: FilesHandlers = {
   commits: () => openCommits(), all: () => setFr(null),

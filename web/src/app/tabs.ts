@@ -1,7 +1,7 @@
 import type { Pull, Tab } from '../types';
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
-import { $, S, load } from './core';
+import { S, load } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
 
@@ -18,7 +18,7 @@ export const saveTabs = () => { try { localStorage.setItem(KEY_TABS, JSON.string
 
 export const tabIdx = () => S.tabs.findIndex((t) => t.ref === curRef());
 
-export function tabSnap() { const t = S.tabs[tabIdx()]; if (t) { t.tab = S.tab; t.scroll = $('.main')?.scrollTop || 0; } }
+export function tabSnap() { const t = S.tabs[tabIdx()]; if (t) { t.tab = S.tab; t.scroll = S.mainTop || 0; } }
 
 export function tabPut(ref: string, p: Pull, opts: { at?: number; newTab?: boolean } = {}) {
   const [state, ic] = stateOf(p), item = { ref, title: p.title, state, icon: ic, tab: S.tab, dot: false };

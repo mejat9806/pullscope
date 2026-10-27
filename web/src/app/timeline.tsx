@@ -159,8 +159,7 @@ export function jumpUnresolved() {
   S.fold['r:' + c.pull_request_review_id] = false; S.fold['t:' + first.id] = false; S.fold['c:' + c.id] = false;
   localStorage.setItem('fold', JSON.stringify(S.fold));
   S.keepScroll = true; render(); S.keepScroll = false;
-  const el = document.getElementById('c-' + c.id);
-  if (el) { setFlash('c-' + c.id, { block: 'center', smooth: true }); S.keepScroll = true; render(); S.keepScroll = false; }
+  { setFlash('c-' + c.id, { block: 'center', smooth: true }); S.keepScroll = true; render(); S.keepScroll = false; }
 }
 
 

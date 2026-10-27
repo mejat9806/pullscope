@@ -5,23 +5,22 @@ import type { Cmp, PrListItem } from '../types';
 import { openAux, openClick, openCtx, rmRecent } from './bind';
 import { tokenDialog } from './token';
 import { folded, isFolded } from './comments';
-import { $, S, when } from './core';
+import { S, when } from './core';
 import { rerender } from './actions';
 import { loadPrs, openRepo } from './nav';
 import { render } from './pages';
 import { PGROUP, PICON, PSORT, prStatus } from './prlist';
 
-const typed = (e: Event, key: 'pf' | 'repoFilter', id: string) => {
-  const t = e.target as HTMLInputElement; S[key] = t.value; const p = t.selectionStart; render(); const n = $<HTMLInputElement>('#' + id)!; n.focus(); n.setSelectionRange(p, p);
-};
+// The filter box keeps its caret across the repaint: the same input element stays in the tree.
+const typed = (e: Event, key: 'pf' | 'repoFilter') => { S[key] = (e.target as HTMLInputElement).value; render(); };
 
 const on: SideHandlers = {
   side: (tab) => { S.sideTab = tab; render(); },
   sps: (state) => { S.prState = state; loadPrs(); },
-  pf: (e) => typed(e, 'pf', 'prfilter'),
+  pf: (e) => typed(e, 'pf'),
   psort: (e) => { S.psort = (e.target as HTMLSelectElement).value; localStorage.setItem('psort', S.psort); render(); },
   pgroup: (e) => { S.pgroup = (e.target as HTMLSelectElement).value; localStorage.setItem('pgroup', S.pgroup); render(); },
-  repoFilter: (e) => typed(e, 'repoFilter', 'repofilter'),
+  repoFilter: (e) => typed(e, 'repoFilter'),
   repo: (name) => openRepo(name),
   addToken: tokenDialog,
   open: openClick, aux: openAux, ctx: openCtx, rm: rmRecent,

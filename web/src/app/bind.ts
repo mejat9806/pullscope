@@ -5,7 +5,7 @@ import { isFolded } from './comments';
 import { $, KEY_RECENT, S } from './core';
 import { loadPr, qc } from './data';
 import { loadPrs, openPr } from './nav';
-import { render, repaintShell, saveNotes, setDragging, shownPage } from './pages';
+import { render, repaintShell, saveNotes, scrollMain, setDragging, shownPage } from './pages';
 import type { FoldKey } from './timeline';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 
@@ -17,7 +17,7 @@ export const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sb
 export function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
   const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main'), sh = shownPage();
   if (!ref || !m || !sh || sh.ref !== ref || !S.tabs.some((t) => t.ref === ref)) return;
-  S.alive.set(ref, { vnode: sh.vnode, bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
+  S.alive.set(ref, { vnode: sh.vnode, bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: S.mainTop || 0 });
   while (S.alive.size > 6) { const old = S.alive.keys().next().value!; S.alive.delete(old); }
 }
 
@@ -34,7 +34,7 @@ export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   // The parked page goes back in untouched (same vnode: no diff, scroll and editors as they were).
   S.stash = a; render();
-  $('.main')!.scrollTop = a.scroll;
+  scrollMain(a.scroll);
   // Quietly check for newer data; only redraw if something actually changed.
   if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref))!.then((d) => {
     if (JSON.stringify(d) === JSON.stringify(a.bundle)) { qc.m.set(ref, { data: a.bundle, at: Date.now() }); return; }
@@ -76,6 +76,6 @@ document.addEventListener('dblclick', (e) => { if ((e.target as HTMLElement).clo
 document.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest?.('#scrim')) { S.nav = false; S.keepScroll = true; render(); S.keepScroll = false; } });
 let scrollRaf = 0;
 document.addEventListener('scroll', (e) => {
-  const mn = e.target as HTMLElement; if (!mn.classList?.contains('main') || S.view !== 'pr' || S.restoring || scrollRaf) return;
+  const mn = e.target as HTMLElement; if (!mn.classList?.contains('main')) return; S.mainTop = mn.scrollTop; if (S.view !== 'pr' || S.restoring || scrollRaf) return;
   scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } });
 }, { capture: true, passive: true });
