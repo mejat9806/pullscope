@@ -6,6 +6,28 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 
 > The screenshots show the public PR [octocat/Hello-World#6](https://github.com/octocat/Hello-World/pull/6) with some sample repositories, checks and reviewers filled in so every screen has something to show.
 
+## Pullscope vs. reviewing on github.com
+
+Pullscope does not replace GitHub. It reads and writes the same pull requests through the GitHub API, so everything you do there shows up on github.com and the other way round. What changes is how you work through a pile of PRs.
+
+| | github.com | Pullscope |
+|---|---|---|
+| Where it runs | A browser tab among many | A dedicated desktop app (macOS, Windows, Linux) |
+| Several PRs at once | One page per PR, you juggle browser tabs | Built-in tabs that survive a restart and show a dot when a background PR has new activity |
+| Commits and diff next to the conversation | Separate pages; you jump between tabs | **Split view** shows the conversation and the commits or diff side by side |
+| What needs your attention | You read the page to find unresolved threads, failing checks and requested changes | **Attention chips** summarise them at the top and jump you to each one |
+| Your review queue | Notifications and the PR list, spread over several pages | An **Inbox** of PRs waiting on you, your approved PRs ready to merge, and your own open PRs |
+| Staying current | You reload the page | The open PR refreshes itself when something changes; a notification and a menu-bar count appear for new commits, comments, reviews and branch pushes |
+| Slow or no network | Page fails to load | Shows the last saved copy and a quiet offline indicator |
+| Opening a PR | Navigate through repo pages | Paste `owner/repo#123` or a URL in the address bar, with autocomplete |
+| Starting a PR | One long form | Searchable repository and branch pickers (your branches first, grouped by prefix, with last-commit age), PR templates filled in for you, reviewers and labels beside the description |
+| Long diffs | Can be slow to render | Syntax-highlighted, unified or side by side, loaded progressively |
+| Memory use | A full browser page per PR | One app that keeps a few PRs open and caches them on disk |
+
+### What github.com still does better
+
+Pullscope is only about pull requests. It has no issues, projects, discussions, code search or file browsing, no repository settings, and no Actions log viewer (failed checks open on GitHub). Re-running checks works for GitHub Actions only, and notifications are polled about once a minute because GitHub has no push channel for third-party apps. For anything outside the review loop, use github.com.
+
 ## What it does
 
 **Read a pull request**
@@ -20,9 +42,10 @@ A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2
 ![Split view](docs/screenshots/split-view.png)
 
 **Review**
-- Line comments with a rich editor (toolbar, GitHub-style markdown shortcuts, `@` mentions, `:` emoji), saved as a draft review and submitted together.
+- Line comments with a rich editor (toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions, `:` emoji), saved as a draft review and submitted together.
 - Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
-- Resolve and unresolve threads, re-request a review, react to comments.
+- Resolve and unresolve threads, re-request a review, react to comments. A comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
+- Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
 - **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
 
 ![Line comment](docs/screenshots/line-comment.png)
