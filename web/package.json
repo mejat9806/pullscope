@@ -1,0 +1,17 @@
+{
+  "name": "pullscope-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.tsx --bundle --format=iife --target=es2022 --jsx=automatic --jsx-import-source=preact --outfile=../ui/app.js",
+    "watch": "npm run build -- --watch",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.24.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "typescript": "^5.6.3"
+  }
+}
