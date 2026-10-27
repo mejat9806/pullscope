@@ -1983,7 +1983,7 @@ if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 
     const c = document.getElementById('composer'); if (!c || !el.contains(c)) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop; lastTop = el.scrollTop;
     if (dist < 24 && !atEnd) { atEnd = true; if (c.classList.contains('collapsed')) { setComposer(true, false); auto = true; } }
-    if (dist > 400) { atEnd = false; if (up) { if (auto && !c.classList.contains('collapsed') && !c.contains(document.activeElement) && !(S.draft.comment || '').trim()) setComposer(false); auto = false; } }
+    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && !c.classList.contains('collapsed') && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && document.activeElement.blur(); setComposer(false); } }
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !e.target.closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
 })();
