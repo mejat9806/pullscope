@@ -965,3 +965,10 @@ table.diff { contain: layout paint; }
 /* No floating formatting bar over selected text; the toolbar above the editor does the same job. */
 .tt-bubble { display: none !important; }
 .tt-bar .tt-link { border: 1px solid var(--borderColor-default); background: var(--bgColor-default); color: var(--fgColor-default); margin-left: 6px; } .tt-bar .tt-link[hidden] { display: none; }
+.markdown-body ul.contains-task-list, .markdown-body .contains-task-list { list-style: none; padding-left: 0; }
+.markdown-body li.task-list-item { list-style: none; display: block; margin: 4px 0; }
+.markdown-body li.task-list-item > .task-list-item-checkbox, .markdown-body .task-list-item-checkbox { margin: 0 6px 0 0; vertical-align: middle; accent-color: var(--fgColor-accent); }
+.markdown-body li.task-list-item ul, .markdown-body li.task-list-item ol { padding-left: 24px; }
+.markdown-body li.task-list-item ul { list-style: disc; } .markdown-body li.task-list-item ul ul { list-style: circle; }
+.markdown-body li.task-list-item > p { display: inline; margin: 0; }
+.markdown-body input.task-list-item-checkbox:not([disabled]) { cursor: pointer; }

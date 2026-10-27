@@ -234,10 +234,32 @@ function reactionsHtml(r, kind, id) {
   return items.length || add ? `<div class="reactions">${items.join('')}${add}</div>` : '';
 }
 
+const liveTasks = (h) => S.hasToken ? h.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => m.replace(/\sdisabled(="[^"]*")?/g, '')) : h;
+function toggleTask(body, n) {
+  let i = -1, fence = false;
+  return body.split('\n').map((l) => {
+    if (/^\s*(```|~~~)/.test(l)) { fence = !fence; return l; }
+    if (fence) return l;
+    return l.replace(/^(\s*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\])/, (m, a, x, z) => (++i === n ? a + (x === ' ' ? 'x' : ' ') + z : m));
+  }).join('\n');
+}
+document.addEventListener('click', async (e) => {
+  const cb = e.target.closest?.('input.task-list-item-checkbox'); if (!cb || cb.disabled || !S.bundle) return;
+  const box = cb.closest('.tl-comment'), md = cb.closest('.markdown-body'); if (!box || !md) return;
+  e.preventDefault();
+  const id = box.id.replace(/^c-/, ''), b = S.bundle;
+  const c = String(b.pull.id) === id ? b.pull : b.timeline.find((x) => String(x.id) === id); if (!c) return;
+  const n = [...md.querySelectorAll('input.task-list-item-checkbox')].indexOf(cb), body = toggleTask(c.body || '', n);
+  if (body === (c.body || '')) return;
+  cb.checked = !cb.checked;
+  const r = c === b.pull ? await act('edit', { body, extra: {} }, 'task', true) : await act('edit_comment', { id: c.id, kind: 'issue_comment', body }, 'task', true);
+  if (r === undefined) { cb.checked = !cb.checked; return; }
+  await refreshPr(c === b.pull ? undefined : c.id);
+});
 function commentBox(c, { isPr = false } = {}) {
   const u = c.user || c.actor;
   const assoc = ASSOC[c.author_association];
-  const body = c.body_html && c.body_html.trim() ? `<div class="markdown-body">${c.body_html}</div>` : '<span class="empty">No description provided.</span>';
+  const body = c.body_html && c.body_html.trim() ? `<div class="markdown-body">${liveTasks(c.body_html)}</div>` : '<span class="empty">No description provided.</span>';
   return `<div class="tl-comment${folded('c:' + c.id)}" id="c-${esc(c.id ?? '')}"><div class="avatar-col"><a href="${esc(u?.html_url)}">${avatar(u, 40)}</a></div>
   <div class="cbox"><div class="chead"><div>${foldBtn('c:' + c.id, 'Hide this comment')} <a class="author u" href="${esc(u?.html_url)}"><span class="author" style="font-weight:600;color:var(--fgColor-default)">${esc(u?.login || 'ghost')}</span></a> ${isPr ? 'commented' : 'commented'} <a class="ts" href="${esc(c.html_url || '#')}">${when(c.created_at || c.submitted_at)}</a></div>
   <div class="rt">${assoc ? `<span class="assoc">${assoc}</span>` : ''}<button class="cm-btn" data-cm="${esc(c.id)}" title="Comment actions">⋯</button></div></div>
