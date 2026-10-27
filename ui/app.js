@@ -873,11 +873,17 @@ function openPalette() {
   el.addEventListener('mousedown', (e) => { if (e.target === el) el.remove(); });
   draw(); inp.focus();
 }
+function setComposer(open, focus) {
+  const el = document.getElementById('composer'); if (!el) return false;
+  S.cOpen = open; el.classList.toggle('collapsed', !open);
+  if (open && focus) { let tries = 0; const t = setInterval(() => { const pm = el.querySelector('.ProseMirror'); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 25) clearInterval(t); }, 60); }
+  return true;
+}
 function showHelp() {
   if (document.querySelector('.palette')) return;
   const el = document.createElement('div'); el.className = 'dlg-bg palette';
   const k = (a, b) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('New pull request', 'n')}${k('New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T')}${k('Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab')}${k('Open a PR in a new tab', '⌘-click')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
+  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Write a comment (docked at the bottom)', 'c')}${k('New pull request', 'n')}${k('New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T')}${k('Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab')}${k('Open a PR in a new tab', '⌘-click')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
   document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
   const esc2 = (e) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
@@ -892,18 +898,20 @@ document.addEventListener('keydown', (e) => {
     if (/^[1-9]$/.test(k) && S.tabs[+k - 1]) { e.preventDefault(); openTab(S.tabs[+k - 1].ref); return; }
     if (e.key === 'Tab' && e.ctrlKey) { e.preventDefault(); stepTab(e.shiftKey ? -1 : 1); return; }
   }
+  if (e.key === 'Escape' && !e.defaultPrevented && e.target.closest?.('#composer') && !document.querySelector('.tt-slash')) { e.preventDefault(); e.target.blur?.(); setComposer(false); return; }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || document.querySelector('.palette, .dlg-bg')) return;
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
   else if (e.key === ']') kbStep(1, openThreads); else if (e.key === '[') kbStep(-1, openThreads);
   else if (e.key === '?') showHelp();
   else if (e.key === 'n') { e.preventDefault(); openNewPr(); }
+  else if (e.key === 'c' && S.view === 'pr' && document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); }
   else if (e.key === 'f' && document.querySelector('.split')) flipSides();
   else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
   else if (e.key === 'd' && S.bundle) { const b = document.querySelector(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`); if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
   else if (e.key === 'r') {
-    const cur = kbCur(), host = (cur?.closest('.thread')?.querySelector('.reply .tt')) || document.querySelector('[data-draft="comment"]');
-    if (!host) return; e.preventDefault(); host.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    const cur = kbCur(), host = cur?.closest('.thread')?.querySelector('.reply .tt');
+    if (!host) { if (document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); } return; } e.preventDefault(); host.scrollIntoView({ block: 'center', behavior: 'smooth' });
     let tries = 0; const t = setInterval(() => { const pm = host.querySelector('.ProseMirror'); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 20) clearInterval(t); }, 80);
   }
 });
@@ -917,10 +925,13 @@ const errLine = (k) => (S.actErr && S.actErr.k === k ? `<div class="act-err">${e
 
 function composer(b) {
   const p = b.pull, closed = p.state === 'closed', busy = S.busy === 'comment';
-  return `<div class="composer"><div class="composer-h">${icon('comment')}<b>Add a comment</b></div>${draftBox('comment', 'Write a comment… (Markdown supported)')}${errLine('comment')}
-  <div class="composer-f"><span class="hint">⌘↵ to send</span><span style="flex:1"></span>
+  const open = busy || (S.cOpen ?? !!(S.draft.comment || '').trim());
+  // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
+  return `<div class="composer dock${open ? '' : ' collapsed'}" id="composer"><div class="composer-h" id="cbar" role="button" tabindex="0" title="Write a comment (C)">${icon('comment')}<b>Add a comment</b><span class="cbar-ph">Write a comment…</span><kbd>C</kbd><span class="cbar-x">${icon('chevron-down')}</span></div>
+  <div class="composer-body">${draftBox('comment', 'Write a comment… (Markdown supported)')}${errLine('comment')}
+  <div class="composer-f"><span class="hint">⌘↵ to send · Esc to collapse</span><span style="flex:1"></span>
   ${p.merged ? '' : `<button class="btn ghost" id="doclose">${closed ? 'Reopen pull request' : 'Close pull request'}</button>`}
-  <button class="btn primary" id="docomment" ${busy ? 'disabled' : ''}>${busy ? 'Sending…' : 'Comment'}</button></div></div>`;
+  <button class="btn primary" id="docomment" ${busy ? 'disabled' : ''}>${busy ? 'Sending…' : 'Comment'}</button></div></div></div>`;
 }
 
 function mergeActions(b) {
@@ -1168,9 +1179,11 @@ function bindWrite() {
   });
   document.querySelectorAll('[data-lcdel]').forEach((b) => b.addEventListener('click', () => { S.pending[pendKey()] = pendList().filter((c) => String(c.id) !== b.dataset.lcdel); savePending(); S.keepScroll = true; render(); S.keepScroll = false; }));
   $('#finishrev')?.addEventListener('click', reviewDialog);
+  $('#cbar')?.addEventListener('click', () => setComposer(document.getElementById('composer').classList.contains('collapsed'), true));
+  $('#cbar')?.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } });
   $('#docomment')?.addEventListener('click', async () => {
     const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
-    delete S.draft.comment; if (!addLocal('commented', r)) await refreshPr(r.id);
+    delete S.draft.comment; S.cOpen = false; if (!addLocal('commented', r)) await refreshPr(r.id);
   });
   document.querySelectorAll('[data-sendreply]').forEach((btn) => btn.addEventListener('click', async () => {
     const id = btn.dataset.sendreply, r = await act('reply', { id: +id, body: S.draft['reply-' + id] || '' }, 'reply-' + id); if (r === undefined) return;

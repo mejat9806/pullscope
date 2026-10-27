@@ -992,3 +992,15 @@ table.diff { contain: layout paint; }
 .date-bar .sp { flex: 1; }
 #totop { position: fixed; right: 22px; bottom: 22px; z-index: 50; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--borderColor-default); background: var(--bgColor-default); color: var(--fgColor-default); box-shadow: 0 6px 18px rgba(0,0,0,.35); cursor: pointer; display: grid; place-items: center; transition: transform .2s cubic-bezier(.3,1.6,.5,1), background .2s; }
 #totop:hover { transform: translateY(-2px); background: var(--bgColor-neutral-muted); } #totop[hidden] { display: none; }
+.composer.dock { position: sticky; bottom: 12px; z-index: 20; box-shadow: 0 -6px 28px rgba(0,0,0,.28), 0 0 0 .5px var(--borderColor-default); }
+.composer.dock .composer-h { cursor: pointer; user-select: none; } .composer.dock .composer-h:hover { background: var(--bgColor-muted); }
+.composer-body { max-height: 58vh; overflow-y: auto; }
+.cbar-ph, .composer-h kbd, .cbar-x { display: none; color: var(--fgColor-muted); }
+.cbar-x { display: inline-flex; margin-left: auto; }
+.composer.collapsed .composer-body { display: none; }
+.composer.collapsed .composer-h { border-bottom: 0; }
+.composer.collapsed .cbar-ph { display: inline; flex: 1; margin-left: 6px; font-size: 13px; }
+.composer.collapsed .composer-h kbd { display: inline-block; font-size: 11px; padding: 1px 6px; border: 1px solid var(--borderColor-default); border-radius: 5px; font-family: inherit; }
+.composer.collapsed .cbar-x { display: none; }
+.composer.collapsed .composer-h b { display: none; }
+.composer-h .cbar-x svg { transition: transform .2s; }
