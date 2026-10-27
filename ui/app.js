@@ -246,15 +246,17 @@ function toggleTask(body, n) {
 document.addEventListener('click', async (e) => {
   const cb = e.target.closest?.('input.task-list-item-checkbox'); if (!cb || cb.disabled || !S.bundle) return;
   const box = cb.closest('.tl-comment'), md = cb.closest('.markdown-body'); if (!box || !md) return;
-  e.preventDefault();
   const id = box.id.replace(/^c-/, ''), b = S.bundle;
   const c = String(b.pull.id) === id ? b.pull : b.timeline.find((x) => String(x.id) === id); if (!c) return;
   const n = [...md.querySelectorAll('input.task-list-item-checkbox')].indexOf(cb), body = toggleTask(c.body || '', n);
-  if (body === (c.body || '')) return;
-  cb.checked = !cb.checked;
+  if (body === (c.body || '')) { e.preventDefault(); return; }
+  const on = cb.checked; // the browser has already flipped it; keep that, undo only if saving fails
   const r = c === b.pull ? await act('edit', { body, extra: {} }, 'task', true) : await act('edit_comment', { id: c.id, kind: 'issue_comment', body }, 'task', true);
-  if (r === undefined) { cb.checked = !cb.checked; return; }
-  await refreshPr(c === b.pull ? undefined : c.id);
+  if (r === undefined) { cb.checked = !on; alert(`Couldn't update the checkbox: ${S.actErr?.m || 'unknown error'}`); return; }
+  c.body = body; let i = -1;
+  c.body_html = (c.body_html || '').replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => (++i === n ? (on ? (/\schecked/.test(m) ? m : m.replace(/<input/, '<input checked')) : m.replace(/\schecked(="[^"]*")?/, '')) : m));
+  const key = `${prRef().repo}#${prRef().number}`; qc.set(key, b); qc.m.get(key).at = Date.now() - 20000;
+  tauri?.invoke('invalidate_pr', { url: key }).catch(() => {});
 });
 function commentBox(c, { isPr = false } = {}) {
   const u = c.user || c.actor;
