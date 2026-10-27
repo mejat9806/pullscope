@@ -1,5 +1,6 @@
 import { render as paint } from 'preact';
 import { CmPop, CommitsDialog, ConfirmDialog, CtxPop, DeleteCommentDialog, EditCommentDialog, EditPrDialog, HideCommentDialog, ReactPop, ReviewDialog, TokenDialog } from '../components/Dialogs';
+import { ProfPop } from '../components/Overlays';
 import type { CpHandlers } from '../components/Merge';
 import { closeDlg, errMsg } from './actions';
 import { $, REACTS, S } from './core';
@@ -38,6 +39,7 @@ function Pops() {
   const p = S.pop; if (!p) return null;
   if (p.k === 'cm') return <CmPop {...p} />;
   if (p.k === 'ctx') return <CtxPop {...p} />;
+  if (p.k === 'prof') return <ProfPop {...p} />;
   return <ReactPop x={p.x} y={p.y} reacts={REACTS as [string, string][]} pick={p.pick} />;
 }
 

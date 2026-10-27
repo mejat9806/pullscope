@@ -1,3 +1,4 @@
+import { options } from 'preact';
 import { editorMount } from '../components/Actions';
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
@@ -101,11 +102,28 @@ export function confirmDlg(title: string, text: string, label: string, danger: b
 
 // Runs a write action. Returns the API response, or undefined after showing an error under `key`.
 // Any write action puts a spinner in the button that started it and disables it until the request settles.
-document.addEventListener('click', (e) => { S.lastBtn = (e.target as HTMLElement).closest?.('button') || null; }, true);
+document.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest?.('button'); S.lastSel = b ? btnSel(b) : null; }, true);
 
 export const btnSel = (b: HTMLElement) => { if (b.id) return '#' + b.id; const a = [...b.attributes].find((x) => x.name.startsWith('data-')); return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null; };
+// The same selector, computed from a button's props, so the views can tell which button is busy while they render.
+export const propSel = (p: Record<string, unknown>) => { if (p.id) return '#' + String(p.id); const k = Object.keys(p).find((x) => x.startsWith('data-') && p[x] != null); return k ? `button[${k}="${CSS.escape(String(p[k]))}"]` : null; };
 
-export const setBusy = (b: (HTMLElement & { disabled?: boolean }) | null, on: boolean) => { if (!b) return; b.classList.toggle('is-busy', on); b.disabled = on; b.setAttribute('aria-busy', on ? 'true' : 'false'); };
+const prevVnode = options.vnode;
+options.vnode = (v) => {
+  if (v.type === 'button' && S.busySels?.length) {
+    const p = v.props as Record<string, unknown>, sel = propSel(p);
+    if (sel && S.busySels.includes(sel)) { p.class = `${String(p.class ?? p.className ?? '')} is-busy`.trim(); delete p.className; p.disabled = true; p['aria-busy'] = 'true'; }
+  }
+  prevVnode?.(v);
+};
+
+// A busy button is state (S.busySels): the views draw it with the spinner class and disabled until the request settles.
+export const setBusy = (sel: string | null, on: boolean) => {
+  if (!sel) return;
+  const l = S.busySels ||= [], i = l.indexOf(sel);
+  if (on) l.push(sel); else if (i >= 0) l.splice(i, 1); else return;
+  rerender();
+};
 
 // Add a reaction, or remove it when you already left it (clicking the same emoji again), like github.com.
 S.mine = {};
@@ -126,8 +144,8 @@ export async function toggleReact(kind: string, rid: number | string, c: string)
 
 export type ActResult = ReviewComment & { added?: boolean };
 export async function act(action: string, args: ActArgs, key: string, inDialog = false) {
-  const btn = S.lastBtn && document.contains(S.lastBtn) ? S.lastBtn : null; S.busySel = btn ? btnSel(btn) : null; setBusy(btn!, true);
-  try { return await act2(action, args, key, inDialog); } finally { S.busySel = null; setBusy(btn!, false); }
+  const sel = S.lastSel ?? null; setBusy(sel, true);
+  try { return await act2(action, args, key, inDialog); } finally { setBusy(sel, false); }
 }
 
 export async function act2(action: string, args: ActArgs, key: string, inDialog = false): Promise<ActResult | undefined> {
@@ -222,7 +240,7 @@ export function toggleClosed() {
   confirmDlg(closed ? 'Reopen this pull request?' : 'Close this pull request?', closed ? 'It will be open for review again.' : 'It will be closed without merging. You can reopen it later.', closed ? 'Reopen' : 'Close pull request', !closed, async () => { const r = await act(closed ? 'reopen' : 'close', {}, 'close'); if (r !== undefined) await refreshPr(); });
 }
 export function toggleMb(e: Event, k: string) { if ((e.target as HTMLElement).closest<HTMLElement>('#rerunck')) return; S.mbOpen = S.mbOpen || new Set(); S.mbOpen.has(k) ? S.mbOpen.delete(k) : S.mbOpen.add(k); rerender(); }
-export async function rerunChecks(e: Event) { e.stopPropagation(); const urls = (S.bundle!.checks || []).filter((c) => checkState(c) === 'fail' && c.url).map((c) => c.url); setBusy(e.currentTarget as HTMLElement, true); const r = await act('rerun', { extra: urls }, 'rerun'); if (r !== undefined) { S.actErr = null; await refreshPr(); } else setBusy(e.currentTarget as HTMLElement, false); }
+export async function rerunChecks(e: Event) { e.stopPropagation(); const urls = (S.bundle!.checks || []).filter((c) => checkState(c) === 'fail' && c.url).map((c) => c.url); const sel = btnSel(e.currentTarget as HTMLElement); setBusy(sel, true); try { const r = await act('rerun', { extra: urls }, 'rerun'); if (r !== undefined) { S.actErr = null; await refreshPr(); } } finally { setBusy(sel, false); } }
 export async function updateBranch() { const r = await act('update_branch', {}, 'update_branch'); if (r !== undefined) await refreshPr(); }
 export async function markReady() { const r = await act('ready', {}, 'ready'); if (r !== undefined) await refreshPr(); }
 export function toDraft() { confirmDlg('Convert to draft?', 'Reviewers keep their reviews, but the pull request cannot be merged until it is marked ready again.', 'Convert to draft', false, async () => { const r = await act('draft', {}, 'merge'); if (r !== undefined) await refreshPr(); }); }

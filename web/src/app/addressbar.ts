@@ -1,6 +1,7 @@
 import type { AcRow, BpGroup, BpRow, BranchInfo, PrListItem, RepoSummary } from '../types';
-import { $, S, esc, icon, tauri } from './core';
+import { $, S, tauri } from './core';
 import { openPr } from './nav';
+import { OV, paintOv } from './overlay';
 import { render } from './pages';
 import { curRef, openTab } from './tabs';
 
@@ -25,7 +26,7 @@ export function acRows(q: string) {
   return rows.slice(0, 12);
 }
 
-export function acClose() { document.getElementById('acpop')?.remove(); AC.rows = []; AC.sel = -1; }
+export function acClose() { AC.rows = []; AC.sel = -1; if (OV.ac) { OV.ac = null; paintOv(); } }
 
 export function acDraw() {
   const inp = $<HTMLInputElement>('#addrinput')!; if (!inp || document.activeElement !== inp) return acClose();
@@ -34,11 +35,8 @@ export function acDraw() {
   if (m && AC.prs[m[1]] === undefined && tauri) { AC.prs[m[1]] = null; tauri!.invoke('list_prs', { repo: m[1], state: 'all' }).then((r) => { AC.prs[m[1]] = r; acDraw(); }).catch(() => { AC.prs[m[1]] = []; }); }
   if (!AC.rows.length) return acClose();
   AC.sel = Math.min(AC.sel, AC.rows.length - 1);
-  let pop = document.getElementById('acpop');
-  if (!pop) { pop = document.createElement('div'); pop.id = 'acpop'; pop.className = 'acpop'; document.body.appendChild(pop); pop.addEventListener('mousedown', (e) => { e.preventDefault(); const r = (e.target as HTMLElement).closest<HTMLElement>('.ac-row'); if (r) acPick(AC.rows[+r.dataset.i!]); }); }
-  const b = inp.closest<HTMLElement>('.addr')!.getBoundingClientRect(); pop.style.left = b.left + 'px'; pop.style.top = b.bottom + 6 + 'px'; pop.style.width = b.width + 'px';
-  pop.innerHTML = AC.rows.map((r, i) => `<div class="ac-row${i === AC.sel ? ' on' : ''}" data-i="${i}"><span class="ac-i ${r.state || ''}">${icon(r.ic!)}</span><span class="ac-t"><b>${esc(r.label!)}</b><i>${esc(r.sub!)}</i></span></div>`).join('');
-  $('.on', pop)?.scrollIntoView({ block: 'nearest' });
+  const b = inp.closest<HTMLElement>('.addr')!.getBoundingClientRect();
+  OV.ac = { rows: AC.rows, sel: AC.sel, left: b.left, top: b.bottom + 6, width: b.width, pick: acPick }; paintOv();
 }
 
 export function acPick(r: AcRow) {
@@ -54,7 +52,7 @@ document.addEventListener('input', (e) => { if ((e.target as HTMLElement).id ===
 document.addEventListener('focusout', (e) => { if ((e.target as HTMLElement).id === 'addrinput') setTimeout(acClose, 120); });
 
 document.addEventListener('keydown', (e) => {
-  if ((e.target as HTMLElement).id !== 'addrinput' || !document.getElementById('acpop')) return;
+  if ((e.target as HTMLElement).id !== 'addrinput' || !OV.ac) return;
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const n = AC.rows.length; AC.sel = e.key === 'ArrowDown' ? (AC.sel + 1) % n : (AC.sel - 1 + n) % n; acDraw(); }
   else if (e.key === 'Tab' && AC.rows.length) { e.preventDefault(); const r = AC.rows[Math.max(0, AC.sel)]; if (r.fill) acPick(r); else { (e.target as HTMLInputElement).value = r.ref!; AC.sel = -1; acDraw(); } }
   else if (e.key === 'Enter' && AC.sel >= 0) { e.preventDefault(); acPick(AC.rows[AC.sel]); }
@@ -69,7 +67,7 @@ document.addEventListener('keydown', (e) => {
 }
 
 // Branch picker for the New PR page: search, your branches first, the rest grouped by prefix with last-commit age.
-export function bpClose() { document.getElementById('bppop')?.remove(); }
+export function bpClose() { if (OV.bp) { OV.bp = null; paintOv(); } }
 
 export function bpAge(t: string) { if (!t) return ''; const m = Math.max(1, Math.round((Date.now() - +new Date(t)) / 60000)); return m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : m < 43200 ? `${Math.round(m / 1440)}d` : `${Math.round(m / 43200)}mo`; }
 
@@ -102,32 +100,10 @@ export function bpOpen(btn: HTMLElement, side: 'repo' | 'base' | 'head', pick: (
   bpClose();
   const n = S.np, br = repoMode ? null : n!.branches[n!.repo]; if (!repoMode && !br) return;
   const cur = repoMode ? n!.repo : n![side], me = S.profile?.login || '', r = btn.getBoundingClientRect();
-  const pop = document.createElement('div'); pop.id = 'bppop'; pop.className = 'bp-pop';
-  const w = Math.max(r.width, 340);
-  pop.style.cssText = `left:${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px;width:${w}px;`;
-  pop.innerHTML = `<input class="bp-q" placeholder="${repoMode ? 'Filter repositories…' : 'Filter branches…'}" spellcheck="false"><div class="bp-list"></div>`;
-  document.body.appendChild(pop);
-  const below = innerHeight - r.bottom, up = below < 300 && r.top > below;
-  pop.style.maxHeight = Math.min(420, (up ? r.top : below) - 16) + 'px'; if (up) pop.style.bottom = innerHeight - r.top + 4 + 'px'; else pop.style.top = r.bottom + 4 + 'px';
-  const q = $<HTMLInputElement>('.bp-q', pop), list = $('.bp-list', pop); let act = 0, rows: BpRow[] = [];
-  const draw = () => {
-    const groups = repoMode ? rpGroups(S.repos || [], q!.value.trim(), me) : bpGroups(br!, q!.value.trim(), me); rows = groups.flatMap(([, l]) => l);
-    act = Math.max(0, Math.min(act, rows.length - 1)); let i = 0;
-    list!.innerHTML = groups.length && rows.length ? groups.map(([h, l]) => `${h ? `<div class="bp-h">${esc(h)}<span>${l.length}</span></div>` : ''}${l.map((x) => `<div class="bp-r${i++ === act ? ' act' : ''}${x.name === cur ? ' cur' : ''}" data-b="${esc(x.name)}"><span class="bp-ck">${x.name === cur ? '✓' : ''}</span><span class="bp-n">${esc(x.name)}</span>${x.by ? `<span class="bp-by">${esc(x.by)}</span>` : ''}<span class="bp-t">${bpAge(x.at)}</span></div>`).join('')}`).join('') : '<div class="bp-empty">No matches</div>';
-    list!.querySelector('.act')?.scrollIntoView({ block: 'nearest' });
-  };
-  const done = (v?: string) => { bpClose(); document.removeEventListener('mousedown', away, true); if (v && v !== cur) pick(v); };
-  const away = (e: Event) => { if (!pop.contains(e.target as Node | null)) done(); };
-  list!.addEventListener('click', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-b]'); if (b) done(b.dataset.b); });
-  list!.addEventListener('mousemove', (e) => { const b = (e.target as HTMLElement).closest<HTMLElement>('[data-b]'); if (b && !b.classList.contains('act')) { list!.querySelector('.act')?.classList.remove('act'); b.classList.add('act'); act = [...list!.querySelectorAll('[data-b]')].indexOf(b); } });
-  q!.addEventListener('input', () => { act = 0; draw(); });
-  q!.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { e.preventDefault(); done(); }
-    else if (e.key === 'Enter') { e.preventDefault(); done(rows[act]?.name); }
-    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, Math.min(rows.length - 1, act + (e.key === 'ArrowDown' ? 1 : -1))); draw(); }
-  });
-  document.addEventListener('mousedown', away, true);
-  draw(); q!.focus();
+  const w = Math.max(r.width, 340), below = innerHeight - r.bottom, up = below < 300 && r.top > below;
+  const style = `left:${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px;width:${w}px;max-height:${Math.min(420, (up ? r.top : below) - 16)}px;${up ? `bottom:${innerHeight - r.top + 4}px` : `top:${r.bottom + 4}px`}`;
+  const done = (v?: string) => { bpClose(); if (v && v !== cur) pick(v); };
+  OV.bp = { repoMode, style, cur, age: bpAge, done, groupsFor: (q) => (repoMode ? rpGroups(S.repos || [], q, me) : bpGroups(br!, q, me)) }; paintOv();
 }
 
 export function focusAddr() { const i = $<HTMLInputElement>('#addrinput')!; i?.focus(); i?.select(); }

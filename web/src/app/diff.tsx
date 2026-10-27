@@ -70,7 +70,7 @@ export const diffCache = new Map<string, { patch: string; node: VNode }>();
 export function diffTable(patch: string, path: string, canComment: boolean, on: DiffHandlers): VNode {
   const open = S.lcOpen && String(S.lcOpen).includes(path);
   if (open) return diffTableBuild(patch, path, canComment, on);
-  const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + JSON.stringify(c.reactions || {}) + ((S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle!.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
+  const key = `${(S.busySels || []).join(',')}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + JSON.stringify(c.reactions || {}) + ((S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle!.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
   if (hit && hit.patch === patch) return hit.node;
   const node = diffTableBuild(patch, path, canComment, on);
   diffCache.set(key, { patch, node });

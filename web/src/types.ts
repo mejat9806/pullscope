@@ -72,11 +72,11 @@ export interface AppState {
   sbw: number; pf: string; psort: string; pgroup: string; who: string[]; unres: boolean; range: string; rFrom: string; rTo: string; sort: 'asc' | 'desc';
   unIdx: number; nav: boolean; busy: string; actErr: ActErr | null;
   // set after startup
-  np?: NewPr | null; keepScroll?: boolean; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
+  np?: NewPr | null; keepScroll?: boolean; themePop?: number; drag?: { from: number; to: number; dx: number; w: number } | null; tabMenuAt?: { top: number; left: number } | null; busySels?: string[]; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
   refreshing?: boolean; diffMode?: string; inbox?: InboxState | null; alive: Map<string, Alive>; oauthLive?: boolean; lcOpen?: string | null; openSeq?: number; me?: string;
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flashId?: string; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
-  oauthRun?: number; lastBtn?: HTMLElement | null; cfilter?: string; busySel?: string | null; authChecked?: boolean; applied?: Set<string>; restoring?: boolean | string; recentFilter?: string;
+  oauthRun?: number; lastSel?: string | null; cfilter?: string; authChecked?: boolean; applied?: Set<string>; restoring?: boolean | string; recentFilter?: string;
   oauth?: { code?: string; err?: string }; mine?: Record<string, Promise<Set<string>>>; stash?: Alive | null; kbId?: string; ios?: IntersectionObserver[]; homeTab?: string; flashUntil?: number; cOpen?: boolean;
   watchAt?: number; watch?: string[]; recentState?: string; nf?: string; hmVis?: string; hmSort?: string; hmGroup?: string; fileSort?: string; autoFoldFor?: string | number;
 }
@@ -136,4 +136,5 @@ export type Dlg =
 export type Pop =
   | { k: 'cm'; x: number; y: number; hr: boolean; edit: boolean; hide: boolean; del: boolean; pick: (h: string) => void }
   | { k: 'react'; x: number; y: number; pick: (c: string) => void }
-  | { k: 'ctx'; x: number; y: number; pick: (h: string) => void };
+  | { k: 'ctx'; x: number; y: number; pick: (h: string) => void }
+  | { k: 'prof'; right: number; top: number; name: string; login: string; avatar: string; pick: (h: string) => void };

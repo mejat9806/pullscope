@@ -9,7 +9,7 @@ export interface ToolbarHandlers {
 
 export interface ToolbarProps {
   prRef: string; hasBundle: boolean; canBack: boolean; canFwd: boolean; update: { busy?: boolean; version: string } | null
-  offline: boolean; unread: number; dark: boolean; profile: Profile | null; hasToken: boolean; avatar: string
+  offline: boolean; unread: number; dark: boolean; pop: number; profile: Profile | null; hasToken: boolean; avatar: string
   on: ToolbarHandlers
 }
 
@@ -32,7 +32,7 @@ export function Toolbar(p: ToolbarProps) {
         <button class="tb-btn" id="newprbtn" onClick={p.on.newPr} title="New pull request"><Icon n={'plus'} /></button>
         <button class="tb-btn" id="inboxbtn" onClick={p.on.inbox} title="Inbox: PRs that need you"><Icon n={'checklist'} /></button>
         <button class="tb-btn bell" id="bell" onClick={p.on.bell} title="Notifications"><Icon n={'bell'} />{p.unread > 0 && <i class="dot">{p.unread}</i>}</button>
-        <button class={`theme-sw${p.dark ? ' dark' : ''}`} id="mode" onClick={p.on.mode} role="switch" aria-checked={p.dark} title={`Switch to ${p.dark ? 'light' : 'dark'} mode`}><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button>
+        <button key={p.pop} class={`theme-sw${p.dark ? ' dark' : ''}${p.pop ? ' pop' : ''}`} id="mode" onClick={p.on.mode} role="switch" aria-checked={p.dark} title={`Switch to ${p.dark ? 'light' : 'dark'} mode`}><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button>
         {p.hasToken && p.profile
           ? <button class="prof-btn" id="profbtn" onClick={p.on.prof} title={`${label} — account menu`}><img src={p.avatar} alt="" /><span>{label}</span><Icon n={'chevron-down'} s={12} /></button>
           : <button class="tb-btn" id="signin" onClick={p.on.signin} title="Access token"><Icon n={'key'} /></button>}

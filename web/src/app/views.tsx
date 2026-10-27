@@ -3,7 +3,7 @@ import type { PrListHandlers } from '../components/PrList';
 import { InboxPage, NewPr, NotesPage } from '../components/Pages';
 import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/Pages';
 import { openAux, openClick, openCtx } from './bind';
-import { rerender, saveDrafts, setBusy } from './actions';
+import { btnSel, rerender, saveDrafts, setBusy } from './actions';
 import { bpOpen } from './addressbar';
 import { S, tauri } from './core';
 import { confetti } from './fun';
@@ -79,7 +79,7 @@ const newpr: NewPrHandlers = {
   mile: (e) => { np().milestone = val(e); },
   issues: (e) => { np().issues = val(e); },
   create: async (e) => {
-    const n = np(), btn = e.currentTarget as HTMLButtonElement; setBusy(btn, true); n.err = '';
+    const n = np(), sel = btnSel(e.currentTarget as HTMLElement); setBusy(sel, true); n.err = '';
     try {
       const nums = [...new Set((n.issues.match(/\d+/g) || []))];
       const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();
@@ -87,7 +87,7 @@ const newpr: NewPrHandlers = {
       const r = await tauri!.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body, draft: n.draft, extra });
       const warn = r.warnings?.length ? `Created, but ${r.warnings.join(' · ')}` : '';
       delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
-    } catch (err) { setBusy(btn, false); n.err = String(err).replace(/^Error: /, ''); rerender(); }
+    } catch (err) { n.err = String(err).replace(/^Error: /, ''); } finally { setBusy(sel, false); }
   },
 };
 
