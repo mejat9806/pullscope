@@ -1261,9 +1261,9 @@ function newPrPage() {
   return `<div class="notes-page np-new"><div class="np-head"><h1>${icon('git-pull-request')} New pull request</h1></div>
   <div class="np-card">
     <div class="np-box"><label class="np-l">Repository</label>${repoSel}
-    <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><select class="sel" id="npbase" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.base) : '<option>Loading…</option>'}</select></div>
+    <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" ${br ? '' : 'disabled'}><span>${br ? esc(n.base || 'Choose a branch') : 'Loading…'}</span>${icon('chevron-down', 14)}</button></div>
       <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>
-      <div><label class="np-l">Head <i>changes from</i></label><select class="sel" id="nphead" ${br ? '' : 'disabled'}>${br ? opts(br.branches, n.head) : '<option>Loading…</option>'}</select></div></div>
+      <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" ${br ? '' : 'disabled'}><span>${br ? esc(n.head || 'Choose a branch') : 'Loading…'}</span>${icon('chevron-down', 14)}</button></div></div>
     <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div></div>
     <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n.title)}"></div>
     <div class="np-box"><label class="np-l">Description</label>${(() => { const t = n.tpl[`${n.repo}|${n.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}</div>
@@ -1454,6 +1454,55 @@ document.addEventListener('keydown', (e) => {
   const free = (e) => e.button === 0 && e.target.closest('.toolbar') && !e.target.closest('button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop');
   document.addEventListener('mousedown', (e) => { if (!free(e)) return; e.preventDefault(); if (e.detail === 2) win()?.toggleMaximize?.(); else win()?.startDragging?.(); });
 }
+// Branch picker for the New PR page: search, your branches first, the rest grouped by prefix with last-commit age.
+function bpClose() { document.getElementById('bppop')?.remove(); }
+function bpAge(t) { if (!t) return ''; const m = Math.max(1, Math.round((Date.now() - new Date(t)) / 60000)); return m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : m < 43200 ? `${Math.round(m / 1440)}d` : `${Math.round(m / 43200)}mo`; }
+function bpGroups(br, q, me) {
+  const det = new Map((br.details || []).map((d) => [d.name, d])), rank = new Map(br.branches.map((b, i) => [b, i]));
+  const all = br.branches.map((name) => ({ name, at: det.get(name)?.at || '', by: det.get(name)?.by || '' }))
+    .sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : rank.get(a.name) - rank.get(b.name)));
+  if (q) { const t = q.toLowerCase(); return [['', all.filter((x) => x.name.toLowerCase().includes(t))]]; }
+  const out = [], used = new Set(), take = (f) => all.filter((x) => !used.has(x.name) && f(x) && used.add(x.name));
+  const def = take((x) => x.name === br.default); if (def.length) out.push(['Default', def]);
+  const mine = me ? take((x) => x.by && x.by.toLowerCase() === me.toLowerCase()) : []; if (mine.length) out.push(['Your branches', mine]);
+  const rest = take(() => true), pre = new Map();
+  rest.forEach((x) => { const k = x.name.includes('/') ? x.name.split('/')[0] + '/' : ''; (pre.get(k) || pre.set(k, []).get(k)).push(x); });
+  const single = [];
+  [...pre.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0])).forEach(([k, l]) => { if (k && l.length > 1) out.push([k, l]); else single.push(...l); });
+  if (single.length) out.push([out.length ? 'Other' : '', single.sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0))]);
+  return out;
+}
+function bpOpen(btn, side, pick) {
+  bpClose();
+  const n = S.np, br = n.branches[n.repo]; if (!br) return;
+  const cur = n[side], me = S.profile?.login || '', r = btn.getBoundingClientRect();
+  const pop = document.createElement('div'); pop.id = 'bppop'; pop.className = 'bp-pop';
+  const w = Math.max(r.width, 340);
+  pop.style.cssText = `left:${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px;width:${w}px;`;
+  pop.innerHTML = `<input class="bp-q" placeholder="Filter branches…" spellcheck="false"><div class="bp-list"></div>`;
+  document.body.appendChild(pop);
+  const below = innerHeight - r.bottom, up = below < 300 && r.top > below;
+  pop.style.maxHeight = Math.min(420, (up ? r.top : below) - 16) + 'px'; if (up) pop.style.bottom = innerHeight - r.top + 4 + 'px'; else pop.style.top = r.bottom + 4 + 'px';
+  const q = pop.querySelector('.bp-q'), list = pop.querySelector('.bp-list'); let act = 0, rows = [];
+  const draw = () => {
+    const groups = bpGroups(br, q.value.trim(), me); rows = groups.flatMap(([, l]) => l);
+    act = Math.max(0, Math.min(act, rows.length - 1)); let i = 0;
+    list.innerHTML = groups.length && rows.length ? groups.map(([h, l]) => `${h ? `<div class="bp-h">${esc(h)}<span>${l.length}</span></div>` : ''}${l.map((x) => `<div class="bp-r${i++ === act ? ' act' : ''}${x.name === cur ? ' cur' : ''}" data-b="${esc(x.name)}"><span class="bp-ck">${x.name === cur ? '✓' : ''}</span><span class="bp-n">${esc(x.name)}</span>${x.by ? `<span class="bp-by">${esc(x.by)}</span>` : ''}<span class="bp-t">${bpAge(x.at)}</span></div>`).join('')}`).join('') : '<div class="bp-empty">No matching branches</div>';
+    list.querySelector('.act')?.scrollIntoView({ block: 'nearest' });
+  };
+  const done = (v) => { bpClose(); document.removeEventListener('mousedown', away, true); if (v && v !== cur) pick(v); };
+  const away = (e) => { if (!pop.contains(e.target)) done(); };
+  list.addEventListener('click', (e) => { const b = e.target.closest('[data-b]'); if (b) done(b.dataset.b); });
+  list.addEventListener('mousemove', (e) => { const b = e.target.closest('[data-b]'); if (b && !b.classList.contains('act')) { list.querySelector('.act')?.classList.remove('act'); b.classList.add('act'); act = [...list.querySelectorAll('[data-b]')].indexOf(b); } });
+  q.addEventListener('input', () => { act = 0; draw(); });
+  q.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); done(); }
+    else if (e.key === 'Enter') { e.preventDefault(); done(rows[act]?.name); }
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); act = Math.max(0, Math.min(rows.length - 1, act + (e.key === 'ArrowDown' ? 1 : -1))); draw(); }
+  });
+  document.addEventListener('mousedown', away, true);
+  draw(); q.focus();
+}
 function focusAddr() { const i = $('#addrinput'); i?.focus(); i?.select(); }
 const avUrl = (u, n) => `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
 function loadProfile() {
@@ -1629,8 +1678,8 @@ function bind() {
   const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
   $('#nprepo')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); });
   $('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value.trim(); S.np.base = ''; S.np.head = ''; }); npLoadBranches(S.np.repo); });
-  $('#npbase')?.addEventListener('change', (e) => { npSet(() => { S.np.base = e.target.value; }); npCompare(); });
-  $('#nphead')?.addEventListener('change', (e) => { npSet(() => { S.np.head = e.target.value; S.np.titleTouched = false; }); npCompare(); });
+  $('#npbase')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'base', (v) => { npSet(() => { S.np.base = v; }); npCompare(); }));
+  $('#nphead')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'head', (v) => { npSet(() => { S.np.head = v; S.np.titleTouched = false; }); npCompare(); }));
   $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np.base, S.np.head] = [S.np.head, S.np.base]; }); npCompare(); });
   $('#nptpl')?.addEventListener('change', (e) => {
     const n = S.np, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = e.target.value === '' ? '' : t[+e.target.value].body;

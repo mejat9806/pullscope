@@ -113,7 +113,22 @@ async fn list_branches(repo: String) -> Result<serde_json::Value, String> {
     let info = github::get(&c, &format!("https://api.github.com/repos/{repo}"), Some(&token)).await?;
     let list = github::get_paged(&c, &format!("https://api.github.com/repos/{repo}/branches?per_page=100"), Some(&token), 5).await?;
     let names: Vec<_> = list.iter().filter_map(|b| b["name"].as_str().map(|s| serde_json::Value::from(s))).collect();
-    Ok(serde_json::json!({ "default": info["default_branch"], "branches": names, "can_push": info["permissions"]["push"] }))
+    // Last commit date and author per branch, newest first, for the branch picker (best effort).
+    let mut details: Vec<serde_json::Value> = Vec::new();
+    if let Some((owner, name)) = repo.split_once('/') {
+        let q = "query($o:String!,$n:String!,$a:String){repository(owner:$o,name:$n){refs(refPrefix:\"refs/heads/\",first:100,after:$a,orderBy:{field:TAG_COMMIT_DATE,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{name target{... on Commit{committedDate author{user{login}}}}}}}}";
+        let mut after = serde_json::Value::Null;
+        for _ in 0..5 {
+            let Ok(g) = github::send(&c, reqwest::Method::POST, "https://api.github.com/graphql", Some(&token), serde_json::json!({ "query": q, "variables": { "o": owner, "n": name, "a": after } })).await else { break };
+            let refs = &g["data"]["repository"]["refs"];
+            for n in refs["nodes"].as_array().cloned().unwrap_or_default() {
+                if let Some(b) = n["name"].as_str() { details.push(serde_json::json!({ "name": b, "at": n["target"]["committedDate"], "by": n["target"]["author"]["user"]["login"] })); }
+            }
+            if refs["pageInfo"]["hasNextPage"].as_bool() != Some(true) { break; }
+            after = refs["pageInfo"]["endCursor"].clone();
+        }
+    }
+    Ok(serde_json::json!({ "default": info["default_branch"], "branches": names, "details": details, "can_push": info["permissions"]["push"] }))
 }
 
 /// How far `head` is ahead of `base`: commit subjects and changed-file count (also used to prefill the title).
