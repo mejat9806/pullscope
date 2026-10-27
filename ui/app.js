@@ -550,6 +550,20 @@
   }
   var Z = /* @__PURE__ */ new Set(["area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr"]);
 
+  // src/components/html.tsx
+  var OPEN = "\uE000";
+  var CLOSE = "\uE001";
+  var chunks = [];
+  var Raw = (s3) => {
+    chunks.push(s3);
+    return `${OPEN}${chunks.length - 1}${CLOSE}`;
+  };
+  var html = (node) => {
+    const out = D2(node).replace(/(\d+)/g, (_3, i3) => chunks[+i3]);
+    chunks = [];
+    return out;
+  };
+
   // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
   var f3 = 0;
   function u3(e2, t2, n2, o3, i3, u4) {
@@ -561,6 +575,60 @@
     return l.vnode && l.vnode(l3), l3;
   }
 
+  // src/components/Toolbar.tsx
+  var NL = "\n  ";
+  function Toolbar(p3) {
+    const { icon: icon2 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
+      NL,
+      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon2("three-bars")) }),
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon2("chevron-left")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon2("chevron-right")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon2("sync")) })
+      ] }),
+      NL,
+      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", children: [
+        Raw(icon2("search")),
+        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+      ] }),
+      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", title: "Download and install the new version, then restart", children: [
+        Raw(icon2("sync")),
+        " ",
+        p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
+      ] }),
+      NL,
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon2("alert")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon2("link-external")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon2("plus")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon2("checklist")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", title: "Notifications", children: [
+          Raw(icon2("bell")),
+          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
+        ] }),
+        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
+          /* @__PURE__ */ u3("i", { class: "st" }),
+          /* @__PURE__ */ u3("i", { class: "st s2" }),
+          /* @__PURE__ */ u3("i", { class: "st s3" }),
+          /* @__PURE__ */ u3("i", { class: "cl" }),
+          /* @__PURE__ */ u3("i", { class: "cl c2" }),
+          /* @__PURE__ */ u3("span", { class: "knob", children: [
+            /* @__PURE__ */ u3("b", { class: "cr" }),
+            /* @__PURE__ */ u3("b", { class: "cr c2" }),
+            /* @__PURE__ */ u3("b", { class: "cr c3" })
+          ] })
+        ] }),
+        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", title: `${label} \u2014 account menu`, children: [
+          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
+          /* @__PURE__ */ u3("span", { children: label }),
+          Raw(icon2("chevron-down", 12))
+        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon2("key")) })
+      ] })
+    ] });
+  }
+  var toolbarHtml = (p3) => html(/* @__PURE__ */ u3(Toolbar, { ...p3 }));
+
   // src/components/SideTabs.tsx
   var tabClass = (on) => on ? "on" : "";
   function SideTabs({ active, hasRepo }) {
@@ -570,7 +638,7 @@
       /* @__PURE__ */ u3("button", { "data-side": "recent", class: tabClass(active === "recent"), children: "Recent" })
     ] });
   }
-  var sideTabsHtml = (props) => D2(/* @__PURE__ */ u3(SideTabs, { ...props }));
+  var sideTabsHtml = (props) => html(/* @__PURE__ */ u3(SideTabs, { ...props }));
 
   // src/app/prlist.ts
   var PSORT = { updated: "Recently updated", created: "Newest", oldest: "Oldest", number: "Number", title: "Title A\u2013Z", author: "Author" };
@@ -738,11 +806,21 @@
     return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (\u2318T)" aria-label="New tab">${icon("plus")}${S.tabs.length < 2 ? "<span>New tab</span>" : ""}</button>${menu}</div>`;
   }
   function toolbar() {
-    const b2 = S.bundle, ref = b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "";
-    return `<header class="toolbar" data-tauri-drag-region>
-  <button class="tb-btn nav-btn" id="navbtn" title="Show or hide the sidebar">${icon("three-bars")}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? "disabled" : ""} title="Back (\u2318[)">${icon("chevron-left")}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? "disabled" : ""} title="Forward (\u2318])">${icon("chevron-right")}</button><button class="tb-btn" id="reload" ${b2 ? "" : "disabled"} title="Reload (\u2318R)">${icon("sync")}</button></div>
-  <form id="addr" class="addr">${icon("search")}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (\u2318L)" spellcheck="false" autocomplete="off"></form>${S.update ? `<button class="upd" id="upd" title="Download and install the new version, then restart">${icon("sync")} ${S.update.busy ? "Updating\u2026" : "Update to v" + esc(S.update.version)}</button>` : ""}
-  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? "on" : ""}" id="retry" data-tip="Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon("alert")}</button><button class="tb-btn" id="external" ${b2 ? "" : "disabled"} title="Open on github.com">${icon("link-external")}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon("plus")}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon("checklist")}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon("bell")}${S.notes.some((n2) => !n2.read) ? `<i class="dot">${S.notes.filter((n2) => !n2.read).length}</i>` : ""}</button><button class="theme-sw${isDark() ? " dark" : ""}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? "light" : "dark"} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button>${S.hasToken && S.profile ? `<button class="prof-btn" id="profbtn" title="${esc(S.profile.name || S.profile.login)} \u2014 account menu"><img src="${esc(avUrl(S.profile.avatar_url, 56))}" alt=""><span>${esc(S.profile.name || S.profile.login)}</span>${icon("chevron-down", 12)}</button>` : `<button class="tb-btn" id="signin" title="Access token">${icon("key")}</button>`}</div></header>`;
+    const b2 = S.bundle, pr = S.profile;
+    return toolbarHtml({
+      prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
+      hasBundle: !!b2,
+      canBack: !(S.hist.length < 2 || S.hi < 1),
+      canFwd: !(S.hi >= S.hist.length - 1),
+      update: S.update ? { busy: S.update.busy, version: S.update.version } : null,
+      offline: isOff(),
+      unread: S.notes.filter((n2) => !n2.read).length,
+      dark: isDark(),
+      profile: pr,
+      hasToken: S.hasToken,
+      avatar: S.hasToken && pr ? avUrl(pr.avatar_url, 56) : "",
+      icon
+    });
   }
   function sideRecent() {
     const tabs = sideTabsHtml({ active: S.sideTab, hasRepo: !!S.repo });
@@ -1139,10 +1217,10 @@
     if (open) return diffTableBuild(patch, path, canComment);
     const key = `${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
     if (hit && hit.patch === patch) return hit.html;
-    const html = diffTableBuild(patch, path, canComment);
-    diffCache.set(key, { patch, html });
+    const html2 = diffTableBuild(patch, path, canComment);
+    diffCache.set(key, { patch, html: html2 });
     if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
-    return html;
+    return html2;
   }
   function diffTableBuild(patch, path, canComment) {
     const rows = parsePatch(patch), plus = (line, side) => canComment ? `<button class="lc-plus" data-lc="${esc(lineKey(path, line, side))}" title="Add a comment on this line">+</button>` : "";
@@ -2854,7 +2932,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       bindTokenDialog();
       return;
     }
-    const html = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ""}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? "" : page()}</div></div>${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}${notePanel()}`;
+    const html2 = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ""}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? "" : page()}</div></div>${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}${notePanel()}`;
     const scroll = $(".main")?.scrollTop || 0;
     const viewKey = () => `${S.bundle?.pull?.id ?? ""}|${S.tab}|${$(".main > *")?.className ?? ""}`, before = viewKey();
     const same = () => viewKey() === before;
@@ -2873,11 +2951,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       }
     }
     const inner = true ? [...qa(".pane-body, .cm-list, .sb-list")].map((e2) => [e2.parentElement.className + e2.className, e2.scrollTop]) : [];
-    if (html === S.lastHtml && $("#app").firstElementChild && !S.fadeMain) return;
+    if (html2 === S.lastHtml && $("#app").firstElementChild && !S.fadeMain) return;
     (S.eds || []).forEach((e2) => e2.destroy());
     S.eds = [];
-    $("#app").innerHTML = html;
-    S.lastHtml = html;
+    $("#app").innerHTML = html2;
+    S.lastHtml = html2;
     qa(".sb-list").forEach((e2) => {
       const m2 = inner.find(([k3]) => k3 === e2.parentElement.className + e2.className);
       if (m2) e2.scrollTop = m2[1];
@@ -3501,8 +3579,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       try {
         if (!tauri) throw new Error("offline");
         const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
-        const html = await tauri.invoke("render_markdown", { text: md, repo });
-        if (!pv.hidden) pv.innerHTML = html;
+        const html2 = await tauri.invoke("render_markdown", { text: md, repo });
+        if (!pv.hidden) pv.innerHTML = html2;
       } catch (e2) {
         if (!pv.hidden) pv.innerHTML = `<pre class="pv-raw"></pre><div class="act-err">Couldn't render the preview (${esc(String(e2).replace(/^Error: /, ""))}). Showing the raw Markdown.</div>`, $(".pv-raw", pv).textContent = md;
       }

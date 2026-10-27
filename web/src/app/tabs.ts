@@ -1,4 +1,5 @@
 import type { Pull, Tab } from '../types';
+import { toolbarHtml } from '../components/Toolbar';
 import { sideTabsHtml } from '../components/SideTabs';
 import { avUrl } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
@@ -57,11 +58,12 @@ export function tabStrip() {
 }
 
 export function toolbar() {
-  const b = S.bundle, ref = b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '';
-  return `<header class="toolbar" data-tauri-drag-region>
-  <button class="tb-btn nav-btn" id="navbtn" title="Show or hide the sidebar">${icon('three-bars')}</button><div class="tb-group"><button class="tb-btn" id="back" ${S.hist.length < 2 || S.hi < 1 ? 'disabled' : ''} title="Back (⌘[)">${icon('chevron-left')}</button><button class="tb-btn" id="fwd" ${S.hi >= S.hist.length - 1 ? 'disabled' : ''} title="Forward (⌘])">${icon('chevron-right')}</button><button class="tb-btn" id="reload" ${b ? '' : 'disabled'} title="Reload (⌘R)">${icon('sync')}</button></div>
-  <form id="addr" class="addr">${icon('search')}<input id="addrinput" value="${esc(ref)}" placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck="false" autocomplete="off"></form>${S.update ? `<button class="upd" id="upd" title="Download and install the new version, then restart">${icon('sync')} ${S.update.busy ? 'Updating…' : 'Update to v' + esc(S.update.version)}</button>` : ''}
-  <div class="tb-group"><button class="tb-btn off-ind ${isOff() ? 'on' : ''}" id="retry" data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex="${isOff() ? 0 : -1}">${icon('alert')}</button><button class="tb-btn" id="external" ${b ? '' : 'disabled'} title="Open on github.com">${icon('link-external')}</button><button class="tb-btn" id="newprbtn" title="New pull request">${icon('plus')}</button><button class="tb-btn" id="inboxbtn" title="Inbox: PRs that need you">${icon('checklist')}</button><button class="tb-btn bell" id="bell" title="Notifications">${icon('bell')}${S.notes.some((n) => !n.read) ? `<i class="dot">${S.notes.filter((n) => !n.read).length}</i>` : ''}</button><button class="theme-sw${isDark() ? ' dark' : ''}" id="mode" role="switch" aria-checked="${isDark()}" title="Switch to ${isDark() ? 'light' : 'dark'} mode"><i class="st"></i><i class="st s2"></i><i class="st s3"></i><i class="cl"></i><i class="cl c2"></i><span class="knob"><b class="cr"></b><b class="cr c2"></b><b class="cr c3"></b></span></button>${S.hasToken && S.profile ? `<button class="prof-btn" id="profbtn" title="${esc(S.profile.name || S.profile.login)} — account menu"><img src="${esc(avUrl(S.profile.avatar_url!, 56))}" alt=""><span>${esc(S.profile.name || S.profile.login)}</span>${icon('chevron-down', 12)}</button>` : `<button class="tb-btn" id="signin" title="Access token">${icon('key')}</button>`}</div></header>`;
+  const b = S.bundle, pr = S.profile;
+  return toolbarHtml({
+    prRef: b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '', hasBundle: !!b, canBack: !(S.hist.length < 2 || S.hi < 1), canFwd: !(S.hi >= S.hist.length - 1),
+    update: S.update ? { busy: S.update.busy, version: S.update.version } : null, offline: isOff(), unread: S.notes.filter((n) => !n.read).length,
+    dark: isDark(), profile: pr, hasToken: S.hasToken, avatar: S.hasToken && pr ? avUrl(pr.avatar_url!, 56) : '', icon,
+  });
 }
 
 export function sideRecent() {

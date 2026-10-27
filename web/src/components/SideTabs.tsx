@@ -1,4 +1,4 @@
-import { renderToString } from 'preact-render-to-string';
+import { html } from './html';
 
 interface Props { active: string; hasRepo: boolean }
 
@@ -14,4 +14,4 @@ export function SideTabs({ active, hasRepo }: Props) {
   );
 }
 
-export const sideTabsHtml = (props: Props) => renderToString(<SideTabs {...props} />);
+export const sideTabsHtml = (props: Props) => html(<SideTabs {...props} />);
