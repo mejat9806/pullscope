@@ -1,6 +1,7 @@
 import type { Pull, Tab } from '../types';
+import { recentListHtml, repoListHtml, sidebarHtml } from '../components/Sidebar';
+import { tabStripHtml } from '../components/TabStrip';
 import { toolbarHtml } from '../components/Toolbar';
-import { sideTabsHtml } from '../components/SideTabs';
 import { avUrl } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
@@ -49,12 +50,8 @@ export function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); op
 export function stepTab(d: number) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
 
 export function tabStrip() {
-  const cur = S.tabPending || curRef();
-  const tabs = S.tabs.map((t, i) => `<div class="ptab ${t.ref === cur ? 'on' : ''}" data-tab="${i}" title="${esc(t.ref + ' · ' + t.title)}"><span class="rc-i ${t.state}">${icon(t.icon)}</span><span class="pt-t"><i>${esc(t.ref.split('/').pop())}</i> ${esc(t.title)}</span>${t.dot ? '<span class="pt-dot"></span>' : ''}<button class="pt-x" data-tabx="${i}" aria-label="Close tab">${icon('x')}</button></div>`).join('');
   const open = new Set(S.tabs.map((t) => t.ref));
-  const recents = S.recent.filter((r) => !open.has(r.ref)).slice(0, 8);
-  const menu = S.tabMenu ? `<div class="pt-menu"><a data-tabhome>${icon('home')} Home</a>${recents.length ? '<h6>Recent</h6>' : ''}${recents.map((r) => `<a data-tabnew="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="pt-mt"><i>${esc(r.ref)}</i> ${esc(r.title)}</span></a>`).join('')}${S.closed.length ? `<h6>Closed</h6><a data-tabreopen>${icon('clock')} Reopen ${esc(S.closed[0].ref)} <kbd>⌘⇧T</kbd></a>` : ''}</div>` : '';
-  return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (⌘T)" aria-label="New tab">${icon('plus')}${S.tabs.length < 2 ? '<span>New tab</span>' : ''}</button>${menu}</div>`;
+  return tabStripHtml({ tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r) => !open.has(r.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, icon });
 }
 
 export function toolbar() {
@@ -67,12 +64,11 @@ export function toolbar() {
 }
 
 export function sideRecent() {
-  const tabs = sideTabsHtml({ active: S.sideTab, hasRepo: !!S.repo });
   let list;
   if (S.sideTab === 'prs' && S.repo) {
     list = prSide();
   } else if (S.sideTab === 'recent') {
-    list = S.recent.map((r) => `<a class="rc ${S.bundle && r.ref === `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` ? 'on' : ''}" data-open="${esc(r.ref)}"><span class="rc-i ${r.state}">${icon(r.icon)}</span><span class="rc-t"><b>${esc(r.title)}</b><i>${esc(r.ref)}</i></span><button class="rc-x" data-rm="${esc(r.ref)}" title="Remove">${icon('x')}</button></a>`).join('') || '<div class="sb-empty">Pull requests you open appear here.</div>';
+    list = recentListHtml({ recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '', icon });
   } else if (!S.hasToken) {
     list = '<div class="sb-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="sb-btn" id="addtoken">Add token</button></div>';
   } else if (S.reposErr) {
@@ -80,8 +76,7 @@ export function sideRecent() {
   } else if (!S.repos) {
     list = '<div class="sb-empty">Loading repositories…</div>';
   } else {
-    const f = S.repoFilter.toLowerCase();
-    list = `<input class="input sb-filter" id="repofilter" placeholder="Find a repository…" value="${esc(S.repoFilter)}">` + (S.repos.filter((r) => r.full_name.toLowerCase().includes(f)).map((r) => `<a class="rc ${S.repo === r.full_name ? 'on' : ''}" data-repo="${esc(r.full_name)}"><span class="rc-i ${r.private ? 'closed' : ''}" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="rc-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}</i></span></a>`).join('') || '<div class="sb-empty">No matches.</div>');
+    list = repoListHtml({ repos: S.repos, repo: S.repo, filter: S.repoFilter, icon });
   }
-  return `<aside class="sidebar">${tabs}<div class="sb-list">${list}</div><div class="sb-foot">${S.hasToken ? 'Signed in with token' : 'Anonymous · 60 requests/hour'}</div></aside>`;
+  return sidebarHtml({ sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, list });
 }

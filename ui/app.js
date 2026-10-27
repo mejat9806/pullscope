@@ -575,6 +575,98 @@
     return l.vnode && l.vnode(l3), l3;
   }
 
+  // src/components/SideTabs.tsx
+  var tabClass = (on) => on ? "on" : "";
+  function SideTabs({ active, hasRepo }) {
+    return /* @__PURE__ */ u3("div", { class: "sb-tabs", children: [
+      /* @__PURE__ */ u3("button", { "data-side": "repos", class: tabClass(active === "repos"), children: "Repos" }),
+      hasRepo && /* @__PURE__ */ u3("button", { "data-side": "prs", class: tabClass(active === "prs"), children: "PRs" }),
+      /* @__PURE__ */ u3("button", { "data-side": "recent", class: tabClass(active === "recent"), children: "Recent" })
+    ] });
+  }
+
+  // src/components/Sidebar.tsx
+  function RecentList({ recent, curRef: curRef2, icon: icon2 }) {
+    if (!recent.length) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Pull requests you open appear here." });
+    return /* @__PURE__ */ u3(S2, { children: recent.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${r3.ref === curRef2 ? "on" : ""}`, "data-open": r3.ref, children: [
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon2(r3.icon)) }),
+      /* @__PURE__ */ u3("span", { class: "rc-t", children: [
+        /* @__PURE__ */ u3("b", { children: r3.title }),
+        /* @__PURE__ */ u3("i", { children: r3.ref })
+      ] }),
+      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: Raw(icon2("x")) })
+    ] })) });
+  }
+  function RepoList({ repos, repo, filter, icon: icon2 }) {
+    const f4 = filter.toLowerCase(), shown = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter }),
+      shown.length ? shown.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, children: [
+        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: Raw(icon2(r3.private ? "lock" : "repo")) }),
+        /* @__PURE__ */ u3("span", { class: "rc-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.full_name.split("/")[1] }),
+          /* @__PURE__ */ u3("i", { children: r3.full_name.split("/")[0] })
+        ] })
+      ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "No matches." })
+    ] });
+  }
+  function Sidebar({ sideTab, hasRepo, hasToken, list }) {
+    return /* @__PURE__ */ u3("aside", { class: "sidebar", children: [
+      /* @__PURE__ */ u3(SideTabs, { active: sideTab, hasRepo }),
+      /* @__PURE__ */ u3("div", { class: "sb-list", children: Raw(list) }),
+      /* @__PURE__ */ u3("div", { class: "sb-foot", children: hasToken ? "Signed in with token" : "Anonymous \xB7 60 requests/hour" })
+    ] });
+  }
+  var recentListHtml = (p3) => html(/* @__PURE__ */ u3(RecentList, { ...p3 }));
+  var repoListHtml = (p3) => html(/* @__PURE__ */ u3(RepoList, { ...p3 }));
+  var sidebarHtml = (p3) => html(/* @__PURE__ */ u3(Sidebar, { ...p3 }));
+
+  // src/components/TabStrip.tsx
+  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon2 }) {
+    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
+      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, title: t2.ref + " \xB7 " + t2.title, children: [
+        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon2(t2.icon)) }),
+        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
+          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
+          " ",
+          t2.title
+        ] }),
+        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
+        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon2("x")) })
+      ] })),
+      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", title: "New tab (\u2318T)", "aria-label": "New tab", children: [
+        Raw(icon2("plus")),
+        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
+      ] }),
+      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", children: [
+        /* @__PURE__ */ u3("a", { "data-tabhome": "", children: [
+          Raw(icon2("home")),
+          " Home"
+        ] }),
+        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
+        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon2(r3.icon)) }),
+          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
+            /* @__PURE__ */ u3("i", { children: r3.ref }),
+            " ",
+            r3.title
+          ] })
+        ] })),
+        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3("h6", { children: "Closed" }),
+          /* @__PURE__ */ u3("a", { "data-tabreopen": "", children: [
+            Raw(icon2("clock")),
+            " Reopen ",
+            closedFirst,
+            " ",
+            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+  var tabStripHtml = (p3) => html(/* @__PURE__ */ u3(TabStrip, { ...p3 }));
+
   // src/components/Toolbar.tsx
   var NL = "\n  ";
   function Toolbar(p3) {
@@ -628,17 +720,6 @@
     ] });
   }
   var toolbarHtml = (p3) => html(/* @__PURE__ */ u3(Toolbar, { ...p3 }));
-
-  // src/components/SideTabs.tsx
-  var tabClass = (on) => on ? "on" : "";
-  function SideTabs({ active, hasRepo }) {
-    return /* @__PURE__ */ u3("div", { class: "sb-tabs", children: [
-      /* @__PURE__ */ u3("button", { "data-side": "repos", class: tabClass(active === "repos"), children: "Repos" }),
-      hasRepo && /* @__PURE__ */ u3("button", { "data-side": "prs", class: tabClass(active === "prs"), children: "PRs" }),
-      /* @__PURE__ */ u3("button", { "data-side": "recent", class: tabClass(active === "recent"), children: "Recent" })
-    ] });
-  }
-  var sideTabsHtml = (props) => html(/* @__PURE__ */ u3(SideTabs, { ...props }));
 
   // src/app/prlist.ts
   var PSORT = { updated: "Recently updated", created: "Newest", oldest: "Oldest", number: "Number", title: "Title A\u2013Z", author: "Author" };
@@ -798,12 +879,8 @@
     openTab(n2.ref);
   }
   function tabStrip() {
-    const cur = S.tabPending || curRef();
-    const tabs = S.tabs.map((t2, i3) => `<div class="ptab ${t2.ref === cur ? "on" : ""}" data-tab="${i3}" title="${esc(t2.ref + " \xB7 " + t2.title)}"><span class="rc-i ${t2.state}">${icon(t2.icon)}</span><span class="pt-t"><i>${esc(t2.ref.split("/").pop())}</i> ${esc(t2.title)}</span>${t2.dot ? '<span class="pt-dot"></span>' : ""}<button class="pt-x" data-tabx="${i3}" aria-label="Close tab">${icon("x")}</button></div>`).join("");
     const open = new Set(S.tabs.map((t2) => t2.ref));
-    const recents = S.recent.filter((r3) => !open.has(r3.ref)).slice(0, 8);
-    const menu = S.tabMenu ? `<div class="pt-menu"><a data-tabhome>${icon("home")} Home</a>${recents.length ? "<h6>Recent</h6>" : ""}${recents.map((r3) => `<a data-tabnew="${esc(r3.ref)}"><span class="rc-i ${r3.state}">${icon(r3.icon)}</span><span class="pt-mt"><i>${esc(r3.ref)}</i> ${esc(r3.title)}</span></a>`).join("")}${S.closed.length ? `<h6>Closed</h6><a data-tabreopen>${icon("clock")} Reopen ${esc(S.closed[0].ref)} <kbd>\u2318\u21E7T</kbd></a>` : ""}</div>` : "";
-    return `<div class="ptabs">${tabs}<button class="pt-add" id="tabadd" title="New tab (\u2318T)" aria-label="New tab">${icon("plus")}${S.tabs.length < 2 ? "<span>New tab</span>" : ""}</button>${menu}</div>`;
+    return tabStripHtml({ tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, icon });
   }
   function toolbar() {
     const b2 = S.bundle, pr = S.profile;
@@ -823,12 +900,11 @@
     });
   }
   function sideRecent() {
-    const tabs = sideTabsHtml({ active: S.sideTab, hasRepo: !!S.repo });
     let list;
     if (S.sideTab === "prs" && S.repo) {
       list = prSide();
     } else if (S.sideTab === "recent") {
-      list = S.recent.map((r3) => `<a class="rc ${S.bundle && r3.ref === `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` ? "on" : ""}" data-open="${esc(r3.ref)}"><span class="rc-i ${r3.state}">${icon(r3.icon)}</span><span class="rc-t"><b>${esc(r3.title)}</b><i>${esc(r3.ref)}</i></span><button class="rc-x" data-rm="${esc(r3.ref)}" title="Remove">${icon("x")}</button></a>`).join("") || '<div class="sb-empty">Pull requests you open appear here.</div>';
+      list = recentListHtml({ recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "", icon });
     } else if (!S.hasToken) {
       list = '<div class="sb-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="sb-btn" id="addtoken">Add token</button></div>';
     } else if (S.reposErr) {
@@ -836,10 +912,9 @@
     } else if (!S.repos) {
       list = '<div class="sb-empty">Loading repositories\u2026</div>';
     } else {
-      const f4 = S.repoFilter.toLowerCase();
-      list = `<input class="input sb-filter" id="repofilter" placeholder="Find a repository\u2026" value="${esc(S.repoFilter)}">` + (S.repos.filter((r3) => r3.full_name.toLowerCase().includes(f4)).map((r3) => `<a class="rc ${S.repo === r3.full_name ? "on" : ""}" data-repo="${esc(r3.full_name)}"><span class="rc-i ${r3.private ? "closed" : ""}" style="color:var(--fgColor-muted)">${icon(r3.private ? "lock" : "repo")}</span><span class="rc-t"><b>${esc(r3.full_name.split("/")[1])}</b><i>${esc(r3.full_name.split("/")[0])}</i></span></a>`).join("") || '<div class="sb-empty">No matches.</div>');
+      list = repoListHtml({ repos: S.repos, repo: S.repo, filter: S.repoFilter, icon });
     }
-    return `<aside class="sidebar">${tabs}<div class="sb-list">${list}</div><div class="sb-foot">${S.hasToken ? "Signed in with token" : "Anonymous \xB7 60 requests/hour"}</div></aside>`;
+    return sidebarHtml({ sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, list });
   }
 
   // src/app/data.ts
