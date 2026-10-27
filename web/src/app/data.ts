@@ -1,7 +1,7 @@
 import type { PushBanner } from '../components/Home';
 import type { Bundle, Check, FreshItem, Snap, SnapSource } from '../types';
 import { rerender } from './actions';
-import { S, esc, flags, icon, load, tauri, when } from './core';
+import { S, esc, flags, icon, load, tauri } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
 import { curRef, saveTabs } from './tabs';
@@ -119,7 +119,3 @@ export async function pollBranches(refs: string[], cur: string) {
   }
 }
 
-export function notePanel() {
-  const rows = S.notes.map((n) => `<a class="note ${n.read ? '' : 'new'}" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>`).join('') || '<div class="note-empty">No notifications yet. New comments, commits and reviews on PRs you opened will show up here.</div>';
-  return `<div class="note-panel${S.bell ? ' open' : ''}"><div class="note-h"><b>Notifications</b><span><button id="noteall">View all</button> <button id="notecheck">Check now</button> <button id="noteclear">Clear all</button></span></div>${rows}</div>`;
-}

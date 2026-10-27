@@ -1,15 +1,14 @@
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { composerHtml, draftBoxHtml, errLineHtml, mergeActHtml } from '../components/Actions';
-import { $, S, esc, load, tauri, qa, scoped } from './core';
+import { $, S, esc, load, tauri, qa } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { closePop, openPop } from './dialogs';
 import { confetti } from './fun';
 import { setComposer } from './keyboard';
 import { openPr } from './nav';
-import { render, saveNotes } from './pages';
+import { render } from './pages';
 import { checkState } from './timeline';
 
 // ---- Write actions (comment, reply, review, merge, close/reopen) ----
@@ -21,10 +20,6 @@ export function saveDrafts() { if (!S.draftRef) return; const d = Object.fromEnt
 
 export const prRef = () => ({ repo: S.bundle!.pull.base.repo.full_name, number: S.bundle!.pull.number });
 
-export const draftBox = (key: string, ph: string, rows = 4) => draftBoxHtml(key, ph, rows);
-
-export const errLine = (k: string) => (S.actErr && S.actErr.k === k ? errLineHtml(S.actErr.m) : '');
-
 
 export const errMsg = (k: string) => (S.actErr && S.actErr.k === k ? S.actErr.m : '');
 export function composerProps(b: Bundle): ComposerProps {
@@ -33,14 +28,12 @@ export function composerProps(b: Bundle): ComposerProps {
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
   return { open, draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '', err: errMsg('comment'), merged: !!p.merged, closed, busy };
 }
-export const composer = (b: Bundle) => composerHtml(composerProps(b));
 export function mergeActProps(b: Bundle): MergeActProps | null {
   const p = b.pull; if (p.merged || p.state === 'closed') return null;
   const busy = S.busy === 'merge', am = p.auto_merge, blocked = p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
   const cur = am ? (({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' } as Record<string, string>)[am.merge_method!] || 'merge') : 'merge';
   return { draft: !!p.draft, err: errMsg('merge'), method: cur, busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errMsg('automerge') };
 }
-export const mergeActions = (b: Bundle) => { const m = mergeActProps(b); return m ? mergeActHtml(m) : ''; };
 
 
 export function closeDlg() {
@@ -209,25 +202,6 @@ export function addLocal(kind: string, r: ReviewComment | TimelineEvent, rootId?
   return true;
 }
 
-// Opening/closing the drawer only toggles a class — no page redraw, so nothing underneath moves.
-export function setBell(open: boolean) {
-  S.bell = open;
-  $('.note-panel')?.classList.toggle('open', open);
-  if (!open && S.notes.some((n) => !n.read)) {
-    S.notes.forEach((n) => (n.read = true)); saveNotes();
-    qa('.note-panel .note.new').forEach((el) => el.classList.remove('new'));
-    $('#bell .dot')?.remove();
-  }
-}
-
-// Click outside (or Esc) closes the notifications drawer; opening it marks everything read, as closing via the bell does.
-document.addEventListener('mousedown', (e) => {
-  if (!S.bell || (e.target as HTMLElement).closest<HTMLElement>('.note-panel, #bell')) return;
-  setBell(false);
-});
-
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) setBell(false); });
-
 export async function rerequestReview(e: Event, login: string) {
   const b = e.currentTarget as HTMLElement & { disabled?: boolean };
   e.stopPropagation(); b.disabled = true; b.classList.add('spin');
@@ -330,37 +304,3 @@ export function mountEditors() {
   });
 }
 
-export function bindWrite(scope?: HTMLElement) {
-  const { qa, $ } = scoped(scope);
-  qa('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => cmMenu(e, btn)));
-  mountEditors();
-  qa<HTMLElement>('[data-rerequest]').forEach((b) => b.addEventListener('click', (e) => rerequestReview(e, b.dataset.rerequest!)));
-  qa('[data-thread]').forEach((btn) => btn.addEventListener('click', (e) => threadAct(e, btn.dataset.thread!, btn.dataset.res!)));
-  qa('[data-sug]').forEach((btn) => btn.addEventListener('click', (e) => applySuggestion(e, btn.dataset.sug!)));
-  qa('[data-dmode]').forEach((b) => b.addEventListener('click', () => setDiffMode(b.dataset.dmode!)));
-  qa('[data-lc]').forEach((b) => b.addEventListener('click', lcOpen));
-  $('#lccancel')?.addEventListener('click', lcCancel);
-  $('#lcsuggest')?.addEventListener('click', lcSuggest);
-  $('#lcadd')?.addEventListener('click', lcAdd);
-  qa('[data-lcdel]').forEach((b) => b.addEventListener('click', () => lcDel(b.dataset.lcdel!)));
-  $('#finishrev')?.addEventListener('click', reviewDialog);
-  $('#cbar')?.addEventListener('click', toggleComposer);
-  $('#cbar')?.addEventListener('keydown', cbarKey);
-  $('#docomment')?.addEventListener('click', sendComment);
-  qa('[data-sendreply]').forEach((btn) => btn.addEventListener('click', () => sendReply(btn.dataset.sendreply!)));
-  qa('.react-add').forEach((btn) => btn.addEventListener('click', (e) => reactAdd(e, btn)));
-  qa('.rc-btn').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rck!, el.dataset.rcid!)));
-  qa('.react-add').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rk!, el.dataset.rid!)));
-  qa('.rc-btn').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); toggleReact(el.dataset.rck!, el.dataset.rcid!, el.dataset.rcc!); }));
-  $('#doclose')?.addEventListener('click', toggleClosed);
-  qa('[data-mb]').forEach((el) => el.addEventListener('click', (e) => toggleMb(e, el.dataset.mb!)));
-  $('#rerunck')?.addEventListener('click', rerunChecks);
-  $('#updbranch')?.addEventListener('click', updateBranch);
-  $('#doready')?.addEventListener('click', markReady);
-  $('#todraft')?.addEventListener('click', toDraft);
-  $('#doauto')?.addEventListener('click', enableAuto);
-  $('#noauto')?.addEventListener('click', disableAuto);
-  $('#editpr')?.addEventListener('click', editPrDialog);
-  $('#domerge')?.addEventListener('click', doMerge);
-  $('#review')?.addEventListener('click', reviewDialog);
-}

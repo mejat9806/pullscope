@@ -1,9 +1,8 @@
-import type { PalRow, RecentEntry, Tab } from '../types';
 import { rerender } from './actions';
-import { $, S, esc, qa } from './core';
+import { $, S, qa } from './core';
 import { flipSides } from './mergebox';
-import { openPr } from './nav';
 import { openNewPr } from './pages';
+import { openPalette, showHelp } from './palette';
 import { closeTab, openTab, reopenTab, stepTab, tabIdx } from './tabs';
 
 // ---- Keyboard shortcuts: j/k comments, r reply, [ ] unresolved threads, cmd+K quick open, ? help ----
@@ -28,46 +27,11 @@ export function kbStep(dir: number, pick = kbItems) {
 
 export const openThreads = () => [...qa<HTMLElement>('.main .thread')].filter((t) => !$('.thread-head .res', t) && t.offsetParent).map((t) => $<HTMLElement>('.tc', t)!).filter(Boolean);
 
-export function openPalette() {
-  if ($('.palette')) return;
-  const el = document.createElement('div'); el.className = 'dlg-bg palette';
-  el.innerHTML = '<div class="dlg pal"><input class="pal-in" placeholder="Jump to a pull request — owner/repo#123, a URL, or search recent…" autofocus><div class="pal-list"></div></div>';
-  document.body.appendChild(el);
-  const inp = $<HTMLInputElement>('input', el), list = $('.pal-list', el); let sel = 0, rows: PalRow[] = [];
-  const draw = () => {
-    const q = inp!.value.trim().toLowerCase();
-    rows = S.recent.filter((r) => !q || `${r.ref} ${r.title}`.toLowerCase().includes(q)).slice(0, 8).map((r) => ({ ref: r.ref, label: r.title, sub: r.ref }));
-    if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q)) rows.unshift({ ref: inp!.value.trim(), label: `Open ${inp!.value.trim()}`, sub: 'Go to this pull request' });
-    sel = Math.min(sel, Math.max(0, rows.length - 1));
-    list!.innerHTML = rows.map((r, i) => `<div class="pal-row${i === sel ? ' on' : ''}" data-i="${i}"><b>${esc(r.label)}</b><i>${esc(r.sub)}</i></div>`).join('') || '<div class="pal-none">No matches</div>';
-  };
-  const go = (r: { ref: string } | null) => { el.remove(); if (r) { S.nav = false; S.focus = ''; openPr(r.ref); } };
-  inp!.addEventListener('input', () => { sel = 0; draw(); });
-  inp!.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') el.remove();
-    else if (e.key === 'ArrowDown') { sel = Math.min(rows.length - 1, sel + 1); draw(); e.preventDefault(); }
-    else if (e.key === 'ArrowUp') { sel = Math.max(0, sel - 1); draw(); e.preventDefault(); }
-    else if (e.key === 'Enter') go(rows[sel]);
-  });
-  list!.addEventListener('mousedown', (e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('.pal-row'); if (r) go(rows[+r.dataset.i!]); });
-  el.addEventListener('mousedown', (e) => { if (e.target === el) el.remove(); });
-  draw(); inp!.focus();
-}
-
 export function setComposer(open: boolean, focus?: boolean) {
   const el = document.getElementById('composer'); if (!el) return false;
   S.cOpen = open; el.classList.toggle('collapsed', !open);
   if (open && focus) { let tries = 0; const t = setInterval(() => { const pm = $('.ProseMirror', el); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 25) clearInterval(t); }, 60); }
   return true;
-}
-
-export function showHelp() {
-  if ($('.palette')) return;
-  const el = document.createElement('div'); el.className = 'dlg-bg palette';
-  const k = (a: string, b: string) => `<div class="kb-r"><span>${a}</span><kbd>${b}</kbd></div>`;
-  el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k('Jump to any pull request', '⌘ K')}${k('Next / previous comment', 'j / k')}${k('Next / previous unresolved thread', '] / [')}${k('Reply to the selected comment', 'r')}${k('Write a comment (docked at the bottom)', 'c')}${k('New pull request', 'n')}${k('New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T')}${k('Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab')}${k('Open a PR in a new tab', '⌘-click')}${k('Turn Split view on / off', 's')}${k('Swap the two sides of Split view', 'f')}${k('Diff: unified ⇄ side-by-side', 'd')}${k('Show this help', '?')}${k('Close dialogs and menus', 'Esc')}</div>`;
-  document.body.appendChild(el); el.addEventListener('mousedown', () => el.remove());
-  const esc2 = (e: KeyboardEvent) => { if (e.key === 'Escape') { el.remove(); removeEventListener('keydown', esc2); } }; addEventListener('keydown', esc2);
 }
 
 document.addEventListener('mousedown', (e) => { if (S.tabMenu && !(e.target as HTMLElement).closest<HTMLElement>('.pt-menu, #tabadd')) { S.tabMenu = false; rerender(); } });

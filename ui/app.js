@@ -71,13 +71,6 @@
     d3.setAttribute("data-t", dark ? "dark" : "light");
   }
   var KEY_RECENT = "recent";
-  var qaAll = qa;
-  var scoped = (scope) => {
-    const inScope = (e2) => scope ? scope.contains(e2) : !e2.closest("#side, [data-live]");
-    const qa2 = (sel, r3 = document) => qaAll(sel, r3).filter(inScope);
-    const $3 = (sel, r3 = document) => qa2(sel, r3)[0] ?? null;
-    return { qa: qa2, $: $3 };
-  };
 
   // node_modules/preact/dist/preact.module.js
   var n;
@@ -336,6 +329,77 @@
     return n2.__v.__b - l3.__v.__b;
   }, H.__r = 0, f = Math.random().toString(8), c = "__d" + f, a = "__a" + f, s = /(PointerCapture)$|Capture$/i, h = 0, p = V(false), v = V(true), y = 0;
 
+  // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
+  var f2 = 0;
+  function u2(e2, t2, n2, o3, i3, u4) {
+    t2 || (t2 = {});
+    var a3, c3, p3 = t2;
+    if ("ref" in p3) for (c3 in p3 = {}, t2) "ref" == c3 ? a3 = t2[c3] : p3[c3] = t2[c3];
+    var l3 = { type: e2, props: p3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f2, __i: -1, __u: 0, __source: i3, __self: u4 };
+    if ("function" == typeof e2 && (a3 = e2.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
+    return l.vnode && l.vnode(l3), l3;
+  }
+
+  // src/components/ui.tsx
+  var I2 = (name, size, cls) => /* @__PURE__ */ u2(Icon, { n: name, s: size, c: cls });
+  var Av = (u4, s3 = 40) => /* @__PURE__ */ u2(Avatar, { u: u4, s: s3 });
+  var When = (t2, lead) => /* @__PURE__ */ u2(WhenText, { t: t2, lead });
+  var SP = " ";
+  var Icon = ({ n: n2, s: s3 = 16, c: c3 = "" }) => /* @__PURE__ */ u2("svg", { class: `octicon ${c3}`, viewBox: `0 0 ${s3} ${s3}`, width: s3, height: s3, "aria-hidden": "true", dangerouslySetInnerHTML: { __html: (window.OCTICONS || {})[n2 + (s3 === 24 ? "-24" : "")] || "" } });
+  var Avatar = ({ u: u4, s: s3 = 40 }) => /* @__PURE__ */ u2("img", { class: "av", src: `${u4?.avatar_url || ""}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}`, width: s3, height: s3, alt: `@${u4?.login || "ghost"}`, style: "border-radius:50%;display:block" });
+  var WhenText = ({ t: t2, lead }) => {
+    const w3 = whenParts(t2, lead);
+    return /* @__PURE__ */ u2("span", { title: w3.title, children: w3.text });
+  };
+
+  // src/components/Actions.tsx
+  var ErrLine = ({ m: m2 }) => m2 ? /* @__PURE__ */ u2("div", { class: "act-err", children: m2 }) : null;
+  var DraftBox = ({ k: k3, ph, rows }) => /* @__PURE__ */ u2("div", { class: "tt", "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
+  function Composer(p3) {
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u2("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
+      /* @__PURE__ */ u2("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
+        I2("comment"),
+        /* @__PURE__ */ u2("b", { children: "Add a comment" }),
+        /* @__PURE__ */ u2("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
+        /* @__PURE__ */ u2("kbd", { children: "C" }),
+        /* @__PURE__ */ u2("span", { class: "cbar-x", children: I2("chevron-down") })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u2("div", { class: "composer-body", children: [
+        /* @__PURE__ */ u2(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
+        /* @__PURE__ */ u2(ErrLine, { m: p3.err }),
+        "\n  ",
+        /* @__PURE__ */ u2("div", { class: "composer-f", children: [
+          /* @__PURE__ */ u2("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
+          /* @__PURE__ */ u2("span", { style: "flex:1" }),
+          "\n  ",
+          p3.merged ? "" : /* @__PURE__ */ u2("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: p3.closed ? "Reopen pull request" : "Close pull request" }),
+          "\n  ",
+          /* @__PURE__ */ u2("button", { class: "btn primary", id: "docomment", disabled: p3.busy, onClick: on3?.send, children: p3.busy ? "Sending\u2026" : "Comment" })
+        ] })
+      ] })
+    ] });
+  }
+  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
+  function MergeAct(p3) {
+    const { on: on3 } = p3;
+    if (p3.draft) return /* @__PURE__ */ u2("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u2("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
+      /* @__PURE__ */ u2(ErrLine, { m: p3.err })
+    ] });
+    return /* @__PURE__ */ u2("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u2("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u2("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
+      "\n  ",
+      p3.auto ? /* @__PURE__ */ u2("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u2("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
+      "\n  ",
+      /* @__PURE__ */ u2("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", onClick: on3?.draft, children: "Convert to draft" }),
+      /* @__PURE__ */ u2(ErrLine, { m: p3.err }),
+      /* @__PURE__ */ u2(ErrLine, { m: p3.errAuto })
+    ] });
+  }
+
   // node_modules/preact-render-to-string/dist/index.module.js
   var r2 = /[\s\n\\/='"\0<>]/;
   var o2 = /^(xlink|xmlns|xml)([A-Z])/;
@@ -363,16 +427,16 @@
     }
     return n2 !== t2 && (r3 += e2.slice(t2, n2)), r3;
   }
-  var u2 = {};
-  var f2 = /* @__PURE__ */ new Set(["animation-iteration-count", "border-image-outset", "border-image-slice", "border-image-width", "box-flex", "box-flex-group", "box-ordinal-group", "column-count", "fill-opacity", "flex", "flex-grow", "flex-negative", "flex-order", "flex-positive", "flex-shrink", "flood-opacity", "font-weight", "grid-column", "grid-row", "line-clamp", "line-height", "opacity", "order", "orphans", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-miterlimit", "stroke-opacity", "stroke-width", "tab-size", "widows", "z-index", "zoom"]);
+  var u3 = {};
+  var f3 = /* @__PURE__ */ new Set(["animation-iteration-count", "border-image-outset", "border-image-slice", "border-image-width", "box-flex", "box-flex-group", "box-ordinal-group", "column-count", "fill-opacity", "flex", "flex-grow", "flex-negative", "flex-order", "flex-positive", "flex-shrink", "flood-opacity", "font-weight", "grid-column", "grid-row", "line-clamp", "line-height", "opacity", "order", "orphans", "stop-opacity", "stroke-dasharray", "stroke-dashoffset", "stroke-miterlimit", "stroke-opacity", "stroke-width", "tab-size", "widows", "z-index", "zoom"]);
   var p2 = /[A-Z]/g;
   function h2(e2) {
     var t2 = "";
     for (var n2 in e2) {
       var r3 = e2[n2];
       if (null != r3 && "" !== r3) {
-        var o3 = "-" == n2[0] ? n2 : u2[n2] || (u2[n2] = n2.replace(p2, "-$&").toLowerCase()), i3 = ";";
-        "number" != typeof r3 || o3.startsWith("--") || f2.has(o3) || (i3 = "px;"), t2 = t2 + o3 + ":" + r3 + i3;
+        var o3 = "-" == n2[0] ? n2 : u3[n2] || (u3[n2] = n2.replace(p2, "-$&").toLowerCase()), i3 = ";";
+        "number" != typeof r3 || o3.startsWith("--") || f3.has(o3) || (i3 = "px;"), t2 = t2 + o3 + ":" + r3 + i3;
       }
     }
     return t2 || void 0;
@@ -576,90 +640,19 @@
     return out;
   };
 
-  // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
-  var f3 = 0;
-  function u3(e2, t2, n2, o3, i3, u4) {
-    t2 || (t2 = {});
-    var a3, c3, p3 = t2;
-    if ("ref" in p3) for (c3 in p3 = {}, t2) "ref" == c3 ? a3 = t2[c3] : p3[c3] = t2[c3];
-    var l3 = { type: e2, props: p3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f3, __i: -1, __u: 0, __source: i3, __self: u4 };
-    if ("function" == typeof e2 && (a3 = e2.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
-    return l.vnode && l.vnode(l3), l3;
-  }
-
-  // src/components/ui.tsx
-  var I2 = (name, size, cls) => /* @__PURE__ */ u3(Icon, { n: name, s: size, c: cls });
-  var Av = (u4, s3 = 40) => /* @__PURE__ */ u3(Avatar, { u: u4, s: s3 });
-  var When = (t2, lead) => /* @__PURE__ */ u3(WhenText, { t: t2, lead });
-  var SP = " ";
-  var Icon = ({ n: n2, s: s3 = 16, c: c3 = "" }) => /* @__PURE__ */ u3("svg", { class: `octicon ${c3}`, viewBox: `0 0 ${s3} ${s3}`, width: s3, height: s3, "aria-hidden": "true", dangerouslySetInnerHTML: { __html: (window.OCTICONS || {})[n2 + (s3 === 24 ? "-24" : "")] || "" } });
-  var Avatar = ({ u: u4, s: s3 = 40 }) => /* @__PURE__ */ u3("img", { class: "av", src: `${u4?.avatar_url || ""}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}`, width: s3, height: s3, alt: `@${u4?.login || "ghost"}`, style: "border-radius:50%;display:block" });
-  var WhenText = ({ t: t2, lead }) => {
-    const w3 = whenParts(t2, lead);
-    return /* @__PURE__ */ u3("span", { title: w3.title, children: w3.text });
-  };
-
-  // src/components/Actions.tsx
-  var ErrLine = ({ m: m2 }) => m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : null;
-  var DraftBox = ({ k: k3, ph, rows }) => /* @__PURE__ */ u3("div", { class: "tt", "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
-  function Composer(p3) {
-    const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
-      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", onClick: on3?.toggle, onKeyDown: on3?.key, children: [
-        I2("comment"),
-        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
-        /* @__PURE__ */ u3("kbd", { children: "C" }),
-        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
-        /* @__PURE__ */ u3(DraftBox, { k: "comment", ph: "Write a comment\u2026 (Markdown supported)", rows: 4 }),
-        /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
-        "\n  ",
-        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
-          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
-          /* @__PURE__ */ u3("span", { style: "flex:1" }),
-          "\n  ",
-          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: p3.closed ? "Reopen pull request" : "Close pull request" }),
-          "\n  ",
-          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, onClick: on3?.send, children: p3.busy ? "Sending\u2026" : "Comment" })
-        ] })
-      ] })
-    ] });
-  }
-  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
-  function MergeAct(p3) {
-    const { on: on3 } = p3;
-    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.err })
-    ] });
-    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, onClick: on3?.merge, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
-      "\n  ",
-      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, onClick: on3?.noauto, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", onClick: on3?.auto, children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
-      "\n  ",
-      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", onClick: on3?.draft, children: "Convert to draft" }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
-      /* @__PURE__ */ u3(ErrLine, { m: p3.errAuto })
-    ] });
-  }
-
   // src/components/Comments.tsx
   var NL = "\n  ";
   function Who({ p: p3, st }) {
     const plural2 = p3.commits === 1 ? "" : "s";
-    return st === "merged" ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("a", { class: "author", style: "text-decoration:underline;text-underline-offset:2px", href: p3.merged_by.html_url, children: p3.merged_by.login }),
+    return st === "merged" ? /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("a", { class: "author", style: "text-decoration:underline;text-underline-offset:2px", href: p3.merged_by.html_url, children: p3.merged_by.login }),
       " merged ",
       p3.commits,
       " commit",
       plural2,
       " into"
-    ] }) : /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("a", { class: "author", href: p3.user.html_url, children: p3.user.login }),
+    ] }) : /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("a", { class: "author", href: p3.user.html_url, children: p3.user.login }),
       " wants to merge ",
       p3.commits,
       " commit",
@@ -671,155 +664,155 @@
     const p3 = b2.pull, n2 = p3.number;
     const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
     const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "pr-title-area", children: [
-        /* @__PURE__ */ u3("h1", { class: "pr-title", children: [
-          /* @__PURE__ */ u3("span", { children: p3.title }),
-          /* @__PURE__ */ u3("span", { class: "num", children: [
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("div", { class: "pr-title-area", children: [
+        /* @__PURE__ */ u2("h1", { class: "pr-title", children: [
+          /* @__PURE__ */ u2("span", { children: p3.title }),
+          /* @__PURE__ */ u2("span", { class: "num", children: [
             "#",
             n2
           ] }),
-          p3.state === "open" && !p3.merged ? /* @__PURE__ */ u3("button", { class: "copy-btn", id: "editpr", onClick: on3?.edit, title: "Edit title and description", children: I2("pencil") }) : ""
+          p3.state === "open" && !p3.merged ? /* @__PURE__ */ u2("button", { class: "copy-btn", id: "editpr", onClick: on3?.edit, title: "Edit title and description", children: I2("pencil") }) : ""
         ] }),
         NL,
-        /* @__PURE__ */ u3("div", { class: "pr-meta", children: [
-          /* @__PURE__ */ u3("span", { class: `state-pill state-${st}`, children: [
+        /* @__PURE__ */ u2("div", { class: "pr-meta", children: [
+          /* @__PURE__ */ u2("span", { class: `state-pill state-${st}`, children: [
             I2(ic),
             SP,
             label
           ] }),
-          /* @__PURE__ */ u3("span", { children: /* @__PURE__ */ u3(Who, { p: p3, st }) }),
+          /* @__PURE__ */ u2("span", { children: /* @__PURE__ */ u2(Who, { p: p3, st }) }),
           SP,
-          /* @__PURE__ */ u3("span", { class: "branch", title: `${p3.base.repo.full_name}:${p3.base.ref}`, children: p3.base.label }),
+          /* @__PURE__ */ u2("span", { class: "branch", title: `${p3.base.repo.full_name}:${p3.base.ref}`, children: p3.base.label }),
           SP,
-          /* @__PURE__ */ u3("span", { children: "from" }),
+          /* @__PURE__ */ u2("span", { children: "from" }),
           SP,
-          /* @__PURE__ */ u3("span", { class: "branch", children: p3.head.label }),
-          /* @__PURE__ */ u3("button", { class: "copy-btn", id: "copybranch", onClick: on3?.copy, "aria-label": "Copy head branch name to clipboard", children: I2("copy") }),
-          /* @__PURE__ */ u3("span", { children: When(at) })
+          /* @__PURE__ */ u2("span", { class: "branch", children: p3.head.label }),
+          /* @__PURE__ */ u2("button", { class: "copy-btn", id: "copybranch", onClick: on3?.copy, "aria-label": "Copy head branch name to clipboard", children: I2("copy") }),
+          /* @__PURE__ */ u2("span", { children: When(at) })
         ] })
       ] }),
       NL,
-      /* @__PURE__ */ u3("div", { class: "pr-tabs", children: [
-        /* @__PURE__ */ u3("span", { class: "mini", title: p3.title, children: [
-          /* @__PURE__ */ u3("b", { children: [
+      /* @__PURE__ */ u2("div", { class: "pr-tabs", children: [
+        /* @__PURE__ */ u2("span", { class: "mini", title: p3.title, children: [
+          /* @__PURE__ */ u2("b", { children: [
             "#",
             n2
           ] }),
           SP,
           p3.title
         ] }),
-        /* @__PURE__ */ u3("nav", { children: tabs.map(([k3, i3, t2, c3]) => /* @__PURE__ */ u3("a", { "data-tab": k3, class: tab === k3 ? "sel" : "", onClick: () => on3?.tab(k3), children: [
+        /* @__PURE__ */ u2("nav", { children: tabs.map(([k3, i3, t2, c3]) => /* @__PURE__ */ u2("a", { "data-tab": k3, class: tab === k3 ? "sel" : "", onClick: () => on3?.tab(k3), children: [
           I2(i3),
           t2,
-          /* @__PURE__ */ u3("span", { class: "counter", children: c3 })
+          /* @__PURE__ */ u2("span", { class: "counter", children: c3 })
         ] })) }),
         NL,
-        /* @__PURE__ */ u3("div", { class: "tools", children: [
-          /* @__PURE__ */ u3("button", { class: "split-btn", id: "review", onClick: on3?.review, title: "Submit a review", children: [
+        /* @__PURE__ */ u2("div", { class: "tools", children: [
+          /* @__PURE__ */ u2("button", { class: "split-btn", id: "review", onClick: on3?.review, title: "Submit a review", children: [
             I2("eye"),
-            /* @__PURE__ */ u3("span", { children: "Review" })
+            /* @__PURE__ */ u2("span", { children: "Review" })
           ] }),
-          /* @__PURE__ */ u3("button", { class: `split-btn ${hideSide2 || split ? "" : "on"}`, id: "sidetoggle", onClick: on3?.side, title: "Show or hide the details panel", disabled: tab !== "conversation" || split, style: tab !== "conversation" ? "visibility:hidden" : "", children: [
+          /* @__PURE__ */ u2("button", { class: `split-btn ${hideSide2 || split ? "" : "on"}`, id: "sidetoggle", onClick: on3?.side, title: "Show or hide the details panel", disabled: tab !== "conversation" || split, style: tab !== "conversation" ? "visibility:hidden" : "", children: [
             I2("sidebar-expand"),
-            /* @__PURE__ */ u3("span", { children: "Details" })
+            /* @__PURE__ */ u2("span", { children: "Details" })
           ] }),
-          /* @__PURE__ */ u3("button", { class: `split-btn ${splitOk && split ? "on" : ""}`, id: "split", onClick: on3?.split, title: splitOk ? "Split view: commits beside conversation" : "Split view is available on the Conversation and Commits tabs", disabled: !splitOk, children: [
+          /* @__PURE__ */ u2("button", { class: `split-btn ${splitOk && split ? "on" : ""}`, id: "split", onClick: on3?.split, title: splitOk ? "Split view: commits beside conversation" : "Split view is available on the Conversation and Commits tabs", disabled: !splitOk, children: [
             I2("columns"),
-            /* @__PURE__ */ u3("span", { children: "Split view" })
+            /* @__PURE__ */ u2("span", { children: "Split view" })
           ] }),
-          /* @__PURE__ */ u3("div", { class: "diffstat", children: [
-            /* @__PURE__ */ u3("span", { class: "add", children: [
+          /* @__PURE__ */ u2("div", { class: "diffstat", children: [
+            /* @__PURE__ */ u2("span", { class: "add", children: [
               "+",
               p3.additions
             ] }),
-            /* @__PURE__ */ u3("span", { class: "del", children: [
+            /* @__PURE__ */ u2("span", { class: "del", children: [
               "-",
               p3.deletions
             ] }),
-            /* @__PURE__ */ u3("span", { class: "sq", children: sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) })
+            /* @__PURE__ */ u2("span", { class: "sq", children: sq.map((c3) => /* @__PURE__ */ u2("i", { class: c3 })) })
           ] })
         ] })
       ] })
     ] });
   }
   function FoldBtn({ k: k3, title, def, folded: folded2, onFold }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e2) => onFold(e2, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
+    return /* @__PURE__ */ u2("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e2) => onFold(e2, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
   }
   function ReactionsBar({ r: r3, kind, id, defs, on: on3 }) {
     const live = !!(kind && id);
-    const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u3("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", onClick: on3 && ((ev) => on3.toggle(ev, kind, id, k3)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: [
-      /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
-      /* @__PURE__ */ u3("span", { children: r3?.[k3] })
-    ] }) : /* @__PURE__ */ u3("span", { class: "reaction", children: [
-      /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
-      /* @__PURE__ */ u3("span", { children: r3?.[k3] })
+    const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u2("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", onClick: on3 && ((ev) => on3.toggle(ev, kind, id, k3)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: [
+      /* @__PURE__ */ u2("span", { class: "e", children: e2 }),
+      /* @__PURE__ */ u2("span", { children: r3?.[k3] })
+    ] }) : /* @__PURE__ */ u2("span", { class: "reaction", children: [
+      /* @__PURE__ */ u2("span", { class: "e", children: e2 }),
+      /* @__PURE__ */ u2("span", { children: r3?.[k3] })
     ] }));
-    const add = live ? /* @__PURE__ */ u3("span", { class: "react-wrap", children: /* @__PURE__ */ u3("button", { class: "react-add", "data-rk": kind, "data-rid": id, title: "Add reaction", onClick: on3 && ((ev) => on3.add(ev, ev.currentTarget)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: I2("smiley") }) }) : null;
-    return items.length || add ? /* @__PURE__ */ u3("div", { class: "reactions", children: [
+    const add = live ? /* @__PURE__ */ u2("span", { class: "react-wrap", children: /* @__PURE__ */ u2("button", { class: "react-add", "data-rk": kind, "data-rid": id, title: "Add reaction", onClick: on3 && ((ev) => on3.add(ev, ev.currentTarget)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: I2("smiley") }) }) : null;
+    return items.length || add ? /* @__PURE__ */ u2("div", { class: "reactions", children: [
       items,
       add
     ] }) : null;
   }
   function CommentBox({ c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
     const u4 = c3.user || c3.actor, k3 = "c:" + c3.id;
-    return /* @__PURE__ */ u3("div", { class: `tl-comment${folded2 ? " folded" : ""}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
-      /* @__PURE__ */ u3("div", { class: "avatar-col", children: /* @__PURE__ */ u3("a", { href: u4?.html_url, children: Av(u4, 40) }) }),
+    return /* @__PURE__ */ u2("div", { class: `tl-comment${folded2 ? " folded" : ""}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
+      /* @__PURE__ */ u2("div", { class: "avatar-col", children: /* @__PURE__ */ u2("a", { href: u4?.html_url, children: Av(u4, 40) }) }),
       NL,
-      /* @__PURE__ */ u3("div", { class: "cbox", children: [
-        /* @__PURE__ */ u3("div", { class: "chead", children: [
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3(FoldBtn, { k: k3, title: "Hide this comment", def: false, folded: folded2, onFold: on3?.fold }),
+      /* @__PURE__ */ u2("div", { class: "cbox", children: [
+        /* @__PURE__ */ u2("div", { class: "chead", children: [
+          /* @__PURE__ */ u2("div", { children: [
+            /* @__PURE__ */ u2(FoldBtn, { k: k3, title: "Hide this comment", def: false, folded: folded2, onFold: on3?.fold }),
             SP,
-            /* @__PURE__ */ u3("a", { class: "author u", href: u4?.html_url, children: /* @__PURE__ */ u3("span", { class: "author", style: "font-weight:600;color:var(--fgColor-default)", children: u4?.login || "ghost" }) }),
+            /* @__PURE__ */ u2("a", { class: "author u", href: u4?.html_url, children: /* @__PURE__ */ u2("span", { class: "author", style: "font-weight:600;color:var(--fgColor-default)", children: u4?.login || "ghost" }) }),
             " commented",
             SP,
-            /* @__PURE__ */ u3("a", { class: "ts", href: c3.html_url || "#", children: When(c3.created_at || c3.submitted_at) })
+            /* @__PURE__ */ u2("a", { class: "ts", href: c3.html_url || "#", children: When(c3.created_at || c3.submitted_at) })
           ] }),
           NL,
-          /* @__PURE__ */ u3("div", { class: "rt", children: [
-            assoc ? /* @__PURE__ */ u3("span", { class: "assoc", children: assoc }) : "",
-            /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": c3.id, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" })
+          /* @__PURE__ */ u2("div", { class: "rt", children: [
+            assoc ? /* @__PURE__ */ u2("span", { class: "assoc", children: assoc }) : "",
+            /* @__PURE__ */ u2("button", { class: "cm-btn", "data-cm": c3.id, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" })
           ] })
         ] }),
         NL,
-        /* @__PURE__ */ u3("div", { class: "cbody", children: bodyHtml ? /* @__PURE__ */ u3("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: bodyHtml } }) : /* @__PURE__ */ u3("span", { class: "empty", children: "No description provided." }) }),
-        /* @__PURE__ */ u3(ReactionsBar, { ...reactions, on: on3?.react })
+        /* @__PURE__ */ u2("div", { class: "cbody", children: bodyHtml ? /* @__PURE__ */ u2("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: bodyHtml } }) : /* @__PURE__ */ u2("span", { class: "empty", children: "No description provided." }) }),
+        /* @__PURE__ */ u2(ReactionsBar, { ...reactions, on: on3?.react })
       ] })
     ] });
   }
   function DiffHunkTable({ rows }) {
-    return /* @__PURE__ */ u3("table", { class: "diff", children: [
-      /* @__PURE__ */ u3("colgroup", { children: [
-        /* @__PURE__ */ u3("col", { style: "width:50px" }),
-        /* @__PURE__ */ u3("col", { style: "width:50px" }),
-        /* @__PURE__ */ u3("col", {})
+    return /* @__PURE__ */ u2("table", { class: "diff", children: [
+      /* @__PURE__ */ u2("colgroup", { children: [
+        /* @__PURE__ */ u2("col", { style: "width:50px" }),
+        /* @__PURE__ */ u2("col", { style: "width:50px" }),
+        /* @__PURE__ */ u2("col", {})
       ] }),
       rows.map((r3) => {
-        if (r3.kind === "hunk") return /* @__PURE__ */ u3("tr", { class: "hunk", children: [
-          /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
-          /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
-          /* @__PURE__ */ u3("td", { class: "code", children: r3.text })
+        if (r3.kind === "hunk") return /* @__PURE__ */ u2("tr", { class: "hunk", children: [
+          /* @__PURE__ */ u2("td", { class: "num", children: "\u2026" }),
+          /* @__PURE__ */ u2("td", { class: "num", children: "\u2026" }),
+          /* @__PURE__ */ u2("td", { class: "code", children: r3.text })
         ] });
-        if (r3.kind === "add") return /* @__PURE__ */ u3("tr", { class: "add", children: [
-          /* @__PURE__ */ u3("td", { class: "num" }),
-          /* @__PURE__ */ u3("td", { class: "num", children: r3.n }),
-          /* @__PURE__ */ u3("td", { class: "code", "data-marker": "+", children: r3.text })
+        if (r3.kind === "add") return /* @__PURE__ */ u2("tr", { class: "add", children: [
+          /* @__PURE__ */ u2("td", { class: "num" }),
+          /* @__PURE__ */ u2("td", { class: "num", children: r3.n }),
+          /* @__PURE__ */ u2("td", { class: "code", "data-marker": "+", children: r3.text })
         ] });
-        if (r3.kind === "del") return /* @__PURE__ */ u3("tr", { class: "del", children: [
-          /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
-          /* @__PURE__ */ u3("td", { class: "num" }),
-          /* @__PURE__ */ u3("td", { class: "code", "data-marker": "-", children: r3.text })
+        if (r3.kind === "del") return /* @__PURE__ */ u2("tr", { class: "del", children: [
+          /* @__PURE__ */ u2("td", { class: "num", children: r3.o }),
+          /* @__PURE__ */ u2("td", { class: "num" }),
+          /* @__PURE__ */ u2("td", { class: "code", "data-marker": "-", children: r3.text })
         ] });
-        if (r3.kind === "meta") return /* @__PURE__ */ u3("tr", { children: [
-          /* @__PURE__ */ u3("td", { class: "num" }),
-          /* @__PURE__ */ u3("td", { class: "num" }),
-          /* @__PURE__ */ u3("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
+        if (r3.kind === "meta") return /* @__PURE__ */ u2("tr", { children: [
+          /* @__PURE__ */ u2("td", { class: "num" }),
+          /* @__PURE__ */ u2("td", { class: "num" }),
+          /* @__PURE__ */ u2("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
         ] });
-        return /* @__PURE__ */ u3("tr", { children: [
-          /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
-          /* @__PURE__ */ u3("td", { class: "num", children: r3.n }),
-          /* @__PURE__ */ u3("td", { class: "code", "data-marker": " ", children: r3.text })
+        return /* @__PURE__ */ u2("tr", { children: [
+          /* @__PURE__ */ u2("td", { class: "num", children: r3.o }),
+          /* @__PURE__ */ u2("td", { class: "num", children: r3.n }),
+          /* @__PURE__ */ u2("td", { class: "code", "data-marker": " ", children: r3.text })
         ] });
       })
     ] });
@@ -827,15 +820,15 @@
 
   // src/components/Merge.tsx
   function MergedBox({ head: head2 }) {
-    return /* @__PURE__ */ u3("div", { class: "TL", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-break", style: "margin-left:0" }),
-      /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-        /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-merged", style: "background:var(--bgColor-done-emphasis)", children: I2("git-merge") }) }),
-        /* @__PURE__ */ u3("div", { class: "merge-card merged-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("h3", { children: "Pull request successfully merged and closed" }),
-          /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+    return /* @__PURE__ */ u2("div", { class: "TL", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-break", style: "margin-left:0" }),
+      /* @__PURE__ */ u2("div", { class: "merge-box", children: [
+        /* @__PURE__ */ u2("div", { class: "badge", children: /* @__PURE__ */ u2("span", { class: "state-merged", style: "background:var(--bgColor-done-emphasis)", children: I2("git-merge") }) }),
+        /* @__PURE__ */ u2("div", { class: "merge-card merged-card", children: /* @__PURE__ */ u2("div", { class: "row", children: /* @__PURE__ */ u2("div", { children: [
+          /* @__PURE__ */ u2("h3", { children: "Pull request successfully merged and closed" }),
+          /* @__PURE__ */ u2("p", { style: "font-size:14px;margin-top:4px", children: [
             "You're all set \u2014 the ",
-            /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
+            /* @__PURE__ */ u2("span", { class: "branch", children: head2 }),
             " branch can be safely deleted."
           ] })
         ] }) }) })
@@ -843,13 +836,13 @@
     ] });
   }
   function ClosedBox({ head: head2 }) {
-    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
-      /* @__PURE__ */ u3("div", { class: "merge-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("h3", { children: "Closed with unmerged commits" }),
-        /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+    return /* @__PURE__ */ u2("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u2("div", { class: "badge", children: /* @__PURE__ */ u2("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
+      /* @__PURE__ */ u2("div", { class: "merge-card", children: /* @__PURE__ */ u2("div", { class: "row", children: /* @__PURE__ */ u2("div", { children: [
+        /* @__PURE__ */ u2("h3", { children: "Closed with unmerged commits" }),
+        /* @__PURE__ */ u2("p", { style: "font-size:14px;margin-top:4px", children: [
           "This pull request is closed, but the ",
-          /* @__PURE__ */ u3("span", { class: "branch", children: head2 }),
+          /* @__PURE__ */ u2("span", { class: "branch", children: head2 }),
           " branch has unmerged commits."
         ] })
       ] }) }) })
@@ -857,51 +850,51 @@
   }
   var plural = (n2) => n2 === 1 ? "" : "s";
   function Sec({ k: k3, h: h3, rerunable, open: open2, children, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
-      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, onClick: on3 && ((e2) => on3.toggle(e2, k3)), children: [
-        /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
-        /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-          /* @__PURE__ */ u3("b", { children: h3[2] }),
-          /* @__PURE__ */ u3("i", { children: h3[3] || "" })
+    return /* @__PURE__ */ u2("div", { class: "mb-sec", children: [
+      /* @__PURE__ */ u2("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, onClick: on3 && ((e2) => on3.toggle(e2, k3)), children: [
+        /* @__PURE__ */ u2("span", { class: "mb-ic", children: I2(h3[1], 22) }),
+        /* @__PURE__ */ u2("span", { class: "mb-t", children: [
+          /* @__PURE__ */ u2("b", { children: h3[2] }),
+          /* @__PURE__ */ u2("i", { children: h3[3] || "" })
         ] }),
-        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", onClick: on3?.rerun, children: "Re-run failed" }) : "",
+        k3 === "ck" && rerunable ? /* @__PURE__ */ u2("span", { class: "btn small", id: "rerunck", role: "button", onClick: on3?.rerun, children: "Re-run failed" }) : "",
         I2(open2 ? "chevron-up" : "chevron-down", 16)
       ] }),
-      open2 && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
+      open2 && children ? /* @__PURE__ */ u2("div", { class: "mb-body", children }) : ""
     ] });
   }
   function CkGroupView({ g: g2, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, onClick: on3 && ((e2) => on3.toggle(e2, `g${g2.k}`)), children: [
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("button", { class: "mb-grp", "data-mb": `g${g2.k}`, onClick: on3 && ((e2) => on3.toggle(e2, `g${g2.k}`)), children: [
         g2.title,
         SP,
         I2(g2.open ? "chevron-up" : "chevron-down", 12)
       ] }),
-      g2.open ? g2.items.map((c3) => /* @__PURE__ */ u3("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
+      g2.open ? g2.items.map((c3) => /* @__PURE__ */ u2("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
         I2(c3.icon, 14),
-        /* @__PURE__ */ u3("b", { children: c3.name }),
-        c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
-        /* @__PURE__ */ u3("i", { children: c3.desc })
+        /* @__PURE__ */ u2("b", { children: c3.name }),
+        c3.req ? /* @__PURE__ */ u2("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
+        /* @__PURE__ */ u2("i", { children: c3.desc })
       ] })) : ""
     ] });
   }
   function MergeBox(p3) {
     const { rv, ck, on: on3 } = p3;
-    const rvBody = /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+    const rvBody = /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("div", { class: "mb-line", children: [
         I2("check", 14),
         SP,
         rv.ap,
         " approval",
         plural(rv.ap)
       ] }),
-      rv.cr ? /* @__PURE__ */ u3("div", { class: "mb-line bad", children: [
+      rv.cr ? /* @__PURE__ */ u2("div", { class: "mb-line bad", children: [
         I2("x-circle-fill", 14),
         SP,
         rv.cr,
         " requested changes"
       ] }) : "",
-      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+      /* @__PURE__ */ u2("div", { class: "mb-line", children: [
         I2("person", 14),
         SP,
         rv.pend,
@@ -910,64 +903,64 @@
         rv.pend ? `: ${rv.pendNames}` : ""
       ] })
     ] });
-    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
-      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { style: "background:var(--bgColor-success-emphasis)", children: I2("git-pull-request") }) }),
-      /* @__PURE__ */ u3("div", { class: "merge-card mb-card", children: [
-        p3.draft ? /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
-            /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("git-pull-request-draft", 22) }),
-            /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-              /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
-              /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
+    return /* @__PURE__ */ u2("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u2("div", { class: "badge", children: /* @__PURE__ */ u2("span", { style: "background:var(--bgColor-success-emphasis)", children: I2("git-pull-request") }) }),
+      /* @__PURE__ */ u2("div", { class: "merge-card mb-card", children: [
+        p3.draft ? /* @__PURE__ */ u2(S2, { children: [
+          /* @__PURE__ */ u2("div", { class: "mb-sec", children: /* @__PURE__ */ u2("div", { class: "mb-h", children: [
+            /* @__PURE__ */ u2("span", { class: "mb-ic", children: I2("git-pull-request-draft", 22) }),
+            /* @__PURE__ */ u2("span", { class: "mb-t", children: [
+              /* @__PURE__ */ u2("b", { children: "This pull request is still a work in progress" }),
+              /* @__PURE__ */ u2("i", { children: "Draft pull requests cannot be merged." })
             ] }),
-            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
+            /* @__PURE__ */ u2("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
           ] }) }),
-          /* @__PURE__ */ u3(ErrLine, { m: p3.errReady })
+          /* @__PURE__ */ u2(ErrLine, { m: p3.errReady })
         ] }) : "",
-        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, on: on3, children: rvBody }),
-        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, on: on3, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2, on: on3 })) }) : "",
-        p3.behind ? /* @__PURE__ */ u3("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
-          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("alert", 22) }),
-          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-            /* @__PURE__ */ u3("b", { children: "This branch is out-of-date with the base branch" }),
-            /* @__PURE__ */ u3("i", { children: [
+        /* @__PURE__ */ u2(Sec, { k: "rv", h: rv.h, open: rv.open, on: on3, children: rvBody }),
+        ck ? /* @__PURE__ */ u2(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, on: on3, children: ck.groups.map((g2) => /* @__PURE__ */ u2(CkGroupView, { g: g2, on: on3 })) }) : "",
+        p3.behind ? /* @__PURE__ */ u2("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u2("div", { class: "mb-h", children: [
+          /* @__PURE__ */ u2("span", { class: "mb-ic", children: I2("alert", 22) }),
+          /* @__PURE__ */ u2("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u2("b", { children: "This branch is out-of-date with the base branch" }),
+            /* @__PURE__ */ u2("i", { children: [
               "Merge the latest changes from ",
               p3.baseRef,
               " into this branch."
             ] })
           ] }),
-          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
+          /* @__PURE__ */ u2("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
         ] }) }) : "",
-        /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
-          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
-          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
-            /* @__PURE__ */ u3("b", { children: p3.clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved" }),
-            /* @__PURE__ */ u3("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
+        /* @__PURE__ */ u2("div", { class: "mb-sec", children: /* @__PURE__ */ u2("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
+          /* @__PURE__ */ u2("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
+          /* @__PURE__ */ u2("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u2("b", { children: p3.clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved" }),
+            /* @__PURE__ */ u2("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
           ] })
         ] }) }),
-        /* @__PURE__ */ u3(ErrLine, { m: p3.errUpdate })
+        /* @__PURE__ */ u2(ErrLine, { m: p3.errUpdate })
       ] })
     ] });
   }
   function ReviewerRow({ r: r3, on: on3 }) {
-    const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
+    const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
       I2(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")
     ] }) : I2(r3.st === "approved" ? "check" : r3.st === "changes_requested" ? "file-diff" : r3.st === "req" ? "dot-fill" : "comment");
-    return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
-      /* @__PURE__ */ u3("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
-      /* @__PURE__ */ u3("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
-      /* @__PURE__ */ u3("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
-      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, onClick: (e2) => on3.rerequest(e2, r3.u.login ?? ""), children: I2("sync") }) : ""
+    return /* @__PURE__ */ u2("div", { class: "reviewer", children: [
+      /* @__PURE__ */ u2("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
+      /* @__PURE__ */ u2("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
+      /* @__PURE__ */ u2("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
+      r3.canRe ? /* @__PURE__ */ u2("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, onClick: (e2) => on3.rerequest(e2, r3.u.login ?? ""), children: I2("sync") }) : ""
     ] });
   }
   function PrSide(p3) {
     const { on: on3 } = p3, rv = p3.reviewers, more = rv.length - 3;
-    const rvSection = rv.length ? /* @__PURE__ */ u3(S2, { children: [
-      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })),
-      more > 0 ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
-          /* @__PURE__ */ u3("span", { children: [
+    const rvSection = rv.length ? /* @__PURE__ */ u2(S2, { children: [
+      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u2(ReviewerRow, { r: r3, on: on3 })),
+      more > 0 ? /* @__PURE__ */ u2(S2, { children: [
+        /* @__PURE__ */ u2("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
+          /* @__PURE__ */ u2("span", { children: [
             "+",
             more,
             " more reviewer",
@@ -975,430 +968,453 @@
           ] }),
           I2(p3.showAll ? "chevron-up" : "chevron-down")
         ] }),
-        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })) : ""
+        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u2(ReviewerRow, { r: r3, on: on3 })) : ""
       ] }) : ""
-    ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
-    const fb = (k3, n2) => /* @__PURE__ */ u3(SideFold, { k: "sb:" + n2, folded: p3.folded[k3], onFold: on3.fold });
-    const head2 = (k3, t2) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+    ] }) : /* @__PURE__ */ u2("div", { class: "sb-none", children: "No reviews" });
+    const fb = (k3, n2) => /* @__PURE__ */ u2(SideFold, { k: "sb:" + n2, folded: p3.folded[k3], onFold: on3.fold });
+    const head2 = (k3, t2) => /* @__PURE__ */ u2("div", { class: "sb-head", children: [
       fb(k3, t2 === "people" ? "people" : t2),
-      /* @__PURE__ */ u3("span", { children: t2 }),
+      /* @__PURE__ */ u2("span", { children: t2 }),
       I2("gear", 16, "gear")
     ] });
     const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
-    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
-      /* @__PURE__ */ u3("div", { class: box("reviewers"), children: [
-        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+    return /* @__PURE__ */ u2("div", { class: "pr-side-inner", children: [
+      /* @__PURE__ */ u2("div", { class: box("reviewers"), children: [
+        /* @__PURE__ */ u2("div", { class: "sb-head", children: [
           fb("reviewers", "Reviewers"),
-          /* @__PURE__ */ u3("span", { children: "Reviewers" })
+          /* @__PURE__ */ u2("span", { children: "Reviewers" })
         ] }),
         rvSection
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("assignees"), children: [
+      /* @__PURE__ */ u2("div", { class: box("assignees"), children: [
         head2("assignees", "Assignees"),
-        p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
-          /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
-          /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
-        ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
+        p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u2("div", { class: "reviewer", children: [
+          /* @__PURE__ */ u2("a", { href: u4.html_url, children: Av(u4, 20) }),
+          /* @__PURE__ */ u2("a", { class: "nm", href: u4.html_url, children: u4.login })
+        ] })) : /* @__PURE__ */ u2("span", { class: "sb-none", children: "No one\u2014" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("labels"), children: [
+      /* @__PURE__ */ u2("div", { class: box("labels"), children: [
         head2("labels", "Labels"),
-        p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
+        p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u2("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u2("span", { class: "sb-none", children: "None yet" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("milestone"), children: [
+      /* @__PURE__ */ u2("div", { class: box("milestone"), children: [
         head2("milestone", "Milestone"),
-        p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
+        p3.milestone ? /* @__PURE__ */ u2("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u2("span", { class: "sb-none", children: "No milestone" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("people"), children: [
-        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+      /* @__PURE__ */ u2("div", { class: box("people"), children: [
+        /* @__PURE__ */ u2("div", { class: "sb-head", children: [
           fb("people", "people"),
-          /* @__PURE__ */ u3("span", { children: [
+          /* @__PURE__ */ u2("span", { children: [
             p3.peopleCount,
             " participant",
             plural(p3.peopleCount)
           ] })
         ] }),
-        /* @__PURE__ */ u3("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u3("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
+        /* @__PURE__ */ u2("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u2("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
       ] })
     ] });
   }
   function SideFold({ k: k3, folded: folded2, onFold }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e2) => {
+    return /* @__PURE__ */ u2("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e2) => {
       e2.stopPropagation();
       onFold(k3, false);
     }, children: I2(folded2 ? "chevron-right" : "chevron-down") });
   }
   function CommitsDialog(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", onMouseDown: on3 && ((e2) => {
+    return /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", onMouseDown: on3 && ((e2) => {
       if (e2.target.id === "dlgbg") on3.close();
-    }), children: /* @__PURE__ */ u3("div", { class: "dlg cp-dlg", children: [
-      /* @__PURE__ */ u3("div", { class: "cp-h", children: [
-        /* @__PURE__ */ u3("h2", { children: "Select commits to view" }),
-        /* @__PURE__ */ u3("button", { class: "icon-btn", id: "cpx", title: "Close", onClick: on3?.close, children: I2("x") })
+    }), children: /* @__PURE__ */ u2("div", { class: "dlg cp-dlg", children: [
+      /* @__PURE__ */ u2("div", { class: "cp-h", children: [
+        /* @__PURE__ */ u2("h2", { children: "Select commits to view" }),
+        /* @__PURE__ */ u2("button", { class: "icon-btn", id: "cpx", title: "Close", onClick: on3?.close, children: I2("x") })
       ] }),
-      /* @__PURE__ */ u3("button", { class: `cp-opt${p3.allOn ? " on" : ""}`, id: "cpall", onClick: on3?.all, children: [
-        /* @__PURE__ */ u3("b", { children: "All commits" }),
-        /* @__PURE__ */ u3("i", { children: [
+      /* @__PURE__ */ u2("button", { class: `cp-opt${p3.allOn ? " on" : ""}`, id: "cpall", onClick: on3?.all, children: [
+        /* @__PURE__ */ u2("b", { children: "All commits" }),
+        /* @__PURE__ */ u2("i", { children: [
           p3.count,
           " commit",
           plural(p3.count)
         ] })
       ] }),
-      p3.since ? /* @__PURE__ */ u3("button", { class: `cp-opt${p3.since.on ? " on" : ""}`, id: "cpsince", disabled: !p3.since.n, onClick: on3?.since, children: [
-        /* @__PURE__ */ u3("b", { children: "Changes since your last review" }),
-        /* @__PURE__ */ u3("i", { children: p3.since.n ? `${p3.since.n} commit${plural(p3.since.n)}` : "No new commits" })
+      p3.since ? /* @__PURE__ */ u2("button", { class: `cp-opt${p3.since.on ? " on" : ""}`, id: "cpsince", disabled: !p3.since.n, onClick: on3?.since, children: [
+        /* @__PURE__ */ u2("b", { children: "Changes since your last review" }),
+        /* @__PURE__ */ u2("i", { children: p3.since.n ? `${p3.since.n} commit${plural(p3.since.n)}` : "No new commits" })
       ] }) : "",
-      /* @__PURE__ */ u3("div", { class: "cp-sub", children: "Select a commit, or click a second one to view the range between them" }),
-      /* @__PURE__ */ u3("input", { class: "input cp-q", id: "cpq", placeholder: "Filter commits\u2026", value: p3.filter, onInput: on3?.filter }),
-      /* @__PURE__ */ u3("div", { class: "cp-list", id: "cplist", "data-q": p3.filter.toLowerCase(), children: p3.rows.map((r3) => /* @__PURE__ */ u3("label", { class: `cp-row${r3.on ? " on" : ""}`, "data-cp": r3.i, hidden: r3.hidden, onClick: on3 && ((e2) => on3.pick(e2, r3.i)), children: [
-        /* @__PURE__ */ u3("input", { type: "checkbox", checked: r3.on, tabindex: -1 }),
-        /* @__PURE__ */ u3("span", { class: "cp-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.title }),
-          /* @__PURE__ */ u3("i", { children: [
+      /* @__PURE__ */ u2("div", { class: "cp-sub", children: "Select a commit, or click a second one to view the range between them" }),
+      /* @__PURE__ */ u2("input", { class: "input cp-q", id: "cpq", placeholder: "Filter commits\u2026", value: p3.filter, onInput: on3?.filter }),
+      /* @__PURE__ */ u2("div", { class: "cp-list", id: "cplist", "data-q": p3.filter.toLowerCase(), children: p3.rows.map((r3) => /* @__PURE__ */ u2("label", { class: `cp-row${r3.on ? " on" : ""}`, "data-cp": r3.i, hidden: r3.hidden, onClick: on3 && ((e2) => on3.pick(e2, r3.i)), children: [
+        /* @__PURE__ */ u2("input", { type: "checkbox", checked: r3.on, tabindex: -1 }),
+        /* @__PURE__ */ u2("span", { class: "cp-t", children: [
+          /* @__PURE__ */ u2("b", { children: r3.title }),
+          /* @__PURE__ */ u2("i", { children: [
             r3.by,
             " committed ",
             r3.when
           ] })
         ] }),
-        /* @__PURE__ */ u3("code", { children: r3.sha })
+        /* @__PURE__ */ u2("code", { children: r3.sha })
       ] })).reverse() }),
-      /* @__PURE__ */ u3("div", { class: "btns", children: [
-        /* @__PURE__ */ u3("span", { class: "cp-sel", children: p3.selLabel }),
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: "btn", id: "cpcancel", onClick: on3?.close, children: "Cancel" }),
-        /* @__PURE__ */ u3("button", { class: "btn primary", id: "cpsave", disabled: !p3.hasPick, onClick: on3?.save, children: "Save" })
+      /* @__PURE__ */ u2("div", { class: "btns", children: [
+        /* @__PURE__ */ u2("span", { class: "cp-sel", children: p3.selLabel }),
+        /* @__PURE__ */ u2("span", { class: "sp" }),
+        /* @__PURE__ */ u2("button", { class: "btn", id: "cpcancel", onClick: on3?.close, children: "Cancel" }),
+        /* @__PURE__ */ u2("button", { class: "btn primary", id: "cpsave", disabled: !p3.hasPick, onClick: on3?.save, children: "Save" })
       ] })
     ] }) });
   }
   function FcBar(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: "fc-bar", children: [
-      /* @__PURE__ */ u3("button", { class: "btn small", id: "fcbtn", title: "Choose which commits to view", onClick: on3?.commits, children: [
+    return /* @__PURE__ */ u2("div", { class: "fc-bar", children: [
+      /* @__PURE__ */ u2("button", { class: "btn small", id: "fcbtn", title: "Choose which commits to view", onClick: on3?.commits, children: [
         I2("git-commit"),
         SP,
         p3.label,
-        p3.count !== null ? /* @__PURE__ */ u3(S2, { children: [
+        p3.count !== null ? /* @__PURE__ */ u2(S2, { children: [
           SP,
-          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count })
+          /* @__PURE__ */ u2("span", { class: "counter", children: p3.count })
         ] }) : "",
-        p3.code ? /* @__PURE__ */ u3(S2, { children: [
+        p3.code ? /* @__PURE__ */ u2(S2, { children: [
           SP,
-          /* @__PURE__ */ u3("code", { children: p3.code })
+          /* @__PURE__ */ u2("code", { children: p3.code })
         ] }) : "",
         SP,
         "\u25BE"
       ] }),
-      p3.nav ? /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
-        /* @__PURE__ */ u3("button", { "data-fstep": "-1", disabled: p3.nav.prevOff, onClick: on3 && (() => on3.step(-1)), children: "\u2039 Prev" }),
-        /* @__PURE__ */ u3("button", { "data-fstep": "1", disabled: p3.nav.nextOff, onClick: on3 && (() => on3.step(1)), children: "Next \u203A" })
+      p3.nav ? /* @__PURE__ */ u2("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u2("button", { "data-fstep": "-1", disabled: p3.nav.prevOff, onClick: on3 && (() => on3.step(-1)), children: "\u2039 Prev" }),
+        /* @__PURE__ */ u2("button", { "data-fstep": "1", disabled: p3.nav.nextOff, onClick: on3 && (() => on3.step(1)), children: "Next \u203A" })
       ] }) : "",
-      p3.hasRange ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("span", { class: "fc-t", children: p3.title }),
-        /* @__PURE__ */ u3("button", { class: "link-btn", id: "fcall", onClick: on3?.all, children: "Show all commits" })
+      p3.hasRange ? /* @__PURE__ */ u2(S2, { children: [
+        /* @__PURE__ */ u2("span", { class: "fc-t", children: p3.title }),
+        /* @__PURE__ */ u2("button", { class: "link-btn", id: "fcall", onClick: on3?.all, children: "Show all commits" })
       ] }) : ""
     ] });
   }
   var SORTS = [["path", "GitHub order"], ["pathz", "Path Z\u2013A"], ["most", "Most changed"], ["least", "Least changed"], ["comments", "Most comments"], ["status", "By status"]];
   function FilesBar(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: "files-bar", children: [
-      /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
-        /* @__PURE__ */ u3("button", { class: p3.mode === "unified" ? "on" : "", "data-dmode": "unified", onClick: on3 && (() => on3.mode("unified")), children: "Unified" }),
-        /* @__PURE__ */ u3("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", onClick: on3 && (() => on3.mode("split")), children: "Split" })
+    return /* @__PURE__ */ u2("div", { class: "files-bar", children: [
+      /* @__PURE__ */ u2("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u2("button", { class: p3.mode === "unified" ? "on" : "", "data-dmode": "unified", onClick: on3 && (() => on3.mode("unified")), children: "Unified" }),
+        /* @__PURE__ */ u2("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", onClick: on3 && (() => on3.mode("split")), children: "Split" })
       ] }),
-      /* @__PURE__ */ u3("select", { class: "input fsort", id: "fsort", title: "Sort files", onChange: on3?.sort, children: SORTS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.sort === v2, children: t2 })) }),
-      p3.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", onClick: on3?.finish, children: [
+      /* @__PURE__ */ u2("select", { class: "input fsort", id: "fsort", title: "Sort files", onChange: on3?.sort, children: SORTS.map(([v2, t2]) => /* @__PURE__ */ u2("option", { value: v2, selected: p3.sort === v2, children: t2 })) }),
+      p3.pending ? /* @__PURE__ */ u2("button", { class: "btn small primary", id: "finishrev", onClick: on3?.finish, children: [
         "Finish review \xB7 ",
         p3.pending,
         " comment",
         plural(p3.pending)
       ] }) : "",
-      /* @__PURE__ */ u3("button", { class: "link-btn", "data-foldall": p3.allFolded ? "open" : "close", "data-files": p3.names.join("\n"), onClick: on3 && (() => on3.foldAll(p3.allFolded, p3.names)), children: p3.allFolded ? "Expand all files" : "Collapse all files" })
+      /* @__PURE__ */ u2("button", { class: "link-btn", "data-foldall": p3.allFolded ? "open" : "close", "data-files": p3.names.join("\n"), onClick: on3 && (() => on3.foldAll(p3.allFolded, p3.names)), children: p3.allFolded ? "Expand all files" : "Collapse all files" })
     ] });
   }
   function FileBox(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `file${p3.folded ? " folded" : ""}`, children: [
-      /* @__PURE__ */ u3("div", { class: "file-head", "data-fold": `f:${p3.name}`, onClick: on3 && ((e2) => on3.fold(e2, `f:${p3.name}`, false)), children: [
-        /* @__PURE__ */ u3("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
-        /* @__PURE__ */ u3("span", { class: "stat", children: [
-          /* @__PURE__ */ u3("span", { class: "a", children: [
+    return /* @__PURE__ */ u2("div", { class: `file${p3.folded ? " folded" : ""}`, children: [
+      /* @__PURE__ */ u2("div", { class: "file-head", "data-fold": `f:${p3.name}`, onClick: on3 && ((e2) => on3.fold(e2, `f:${p3.name}`, false)), children: [
+        /* @__PURE__ */ u2("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
+        /* @__PURE__ */ u2("span", { class: "stat", children: [
+          /* @__PURE__ */ u2("span", { class: "a", children: [
             "+",
             p3.add
           ] }),
           SP,
-          /* @__PURE__ */ u3("span", { class: "d", children: [
+          /* @__PURE__ */ u2("span", { class: "d", children: [
             "\u2212",
             p3.del
           ] })
         ] }),
-        /* @__PURE__ */ u3("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) }),
-        /* @__PURE__ */ u3("span", { class: "path", children: p3.name })
+        /* @__PURE__ */ u2("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u2("i", { class: c3 })) }),
+        /* @__PURE__ */ u2("span", { class: "path", children: p3.name })
       ] }),
       p3.children
     ] });
   }
   function CommitsList({ rows }) {
-    return /* @__PURE__ */ u3("div", { style: "border:1px solid var(--borderColor-default);border-radius:6px", children: rows.length ? rows.map((r3) => /* @__PURE__ */ u3("div", { style: "padding:16px;border-bottom:1px solid var(--borderColor-muted)", children: r3 })) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No commits listed." }) });
+    return /* @__PURE__ */ u2("div", { style: "border:1px solid var(--borderColor-default);border-radius:6px", children: rows.length ? rows.map((r3) => /* @__PURE__ */ u2("div", { style: "padding:16px;border-bottom:1px solid var(--borderColor-muted)", children: r3 })) : /* @__PURE__ */ u2("div", { class: "diff-empty", children: "No commits listed." }) });
   }
   function CmItem({ c: c3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: `cm ${c3.on ? "on" : ""}`, "data-sha": c3.sha, onClick: on3 && (() => on3.pick(c3.sha)), children: [
-      /* @__PURE__ */ u3("span", { class: "cm-av", children: c3.author ? Av(c3.author, 24) : /* @__PURE__ */ u3("i", { children: c3.initial }) }),
-      /* @__PURE__ */ u3("span", { class: "cm-t", children: [
-        /* @__PURE__ */ u3("b", { children: c3.title }),
-        /* @__PURE__ */ u3("i", { children: c3.sub })
+    return /* @__PURE__ */ u2("div", { class: `cm ${c3.on ? "on" : ""}`, "data-sha": c3.sha, onClick: on3 && (() => on3.pick(c3.sha)), children: [
+      /* @__PURE__ */ u2("span", { class: "cm-av", children: c3.author ? Av(c3.author, 24) : /* @__PURE__ */ u2("i", { children: c3.initial }) }),
+      /* @__PURE__ */ u2("span", { class: "cm-t", children: [
+        /* @__PURE__ */ u2("b", { children: c3.title }),
+        /* @__PURE__ */ u2("i", { children: c3.sub })
       ] }),
-      c3.n ? /* @__PURE__ */ u3("span", { class: "cm-n", children: [
+      c3.n ? /* @__PURE__ */ u2("span", { class: "cm-n", children: [
         I2("comment"),
         c3.n
       ] }) : "",
-      /* @__PURE__ */ u3("code", { children: c3.sha.slice(0, 7) })
+      /* @__PURE__ */ u2("code", { children: c3.sha.slice(0, 7) })
     ] });
   }
   function Rail({ k: k3, label, ic, on: on3 }) {
-    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, onClick: on3 && (() => on3.hide(k3, false)), children: [
+    return /* @__PURE__ */ u2("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, onClick: on3 && (() => on3.hide(k3, false)), children: [
       I2(ic),
-      /* @__PURE__ */ u3("span", { children: label })
+      /* @__PURE__ */ u2("span", { children: label })
     ] });
   }
   function SplitView(p3) {
     const { on: on3 } = p3;
-    const left = p3.hl ? /* @__PURE__ */ u3(Rail, { k: "l", label: "Commits", ic: "git-commit", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-l", children: [
-      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldList ? " folded" : ""}`, children: [
-        /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+    const left = p3.hl ? /* @__PURE__ */ u2(Rail, { k: "l", label: "Commits", ic: "git-commit", on: on3 }) : /* @__PURE__ */ u2("section", { class: "pane pane-l", children: [
+      /* @__PURE__ */ u2("div", { class: `fold-sec${p3.foldList ? " folded" : ""}`, children: [
+        /* @__PURE__ */ u2("div", { class: "pane-h", children: [
           I2("git-commit"),
-          /* @__PURE__ */ u3("span", { children: "Commits" }),
-          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count }),
-          /* @__PURE__ */ u3("span", { class: "sp" }),
-          /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
-          /* @__PURE__ */ u3(FoldBtn, { k: "cm-list", title: "Collapse commit list", def: false, folded: p3.foldList, onFold: on3?.fold }),
-          /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "l", title: "Hide this panel", onClick: on3 && (() => on3.hide("l", true)), children: I2("x") })
+          /* @__PURE__ */ u2("span", { children: "Commits" }),
+          /* @__PURE__ */ u2("span", { class: "counter", children: p3.count }),
+          /* @__PURE__ */ u2("span", { class: "sp" }),
+          /* @__PURE__ */ u2("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
+          /* @__PURE__ */ u2(FoldBtn, { k: "cm-list", title: "Collapse commit list", def: false, folded: p3.foldList, onFold: on3?.fold }),
+          /* @__PURE__ */ u2("button", { class: "fold-btn", "data-hide": "l", title: "Hide this panel", onClick: on3 && (() => on3.hide("l", true)), children: I2("x") })
         ] }),
-        /* @__PURE__ */ u3("div", { class: "cm-list", children: [
-          /* @__PURE__ */ u3("div", { class: `cm all ${p3.allOn ? "on" : ""}`, "data-sha": "", onClick: on3 && (() => on3.pick("")), children: [
-            /* @__PURE__ */ u3("span", { class: "cm-av", children: /* @__PURE__ */ u3("i", { children: I2("diff") }) }),
-            /* @__PURE__ */ u3("span", { class: "cm-t", children: [
-              /* @__PURE__ */ u3("b", { children: "All changes" }),
-              /* @__PURE__ */ u3("i", { children: p3.allSub })
+        /* @__PURE__ */ u2("div", { class: "cm-list", children: [
+          /* @__PURE__ */ u2("div", { class: `cm all ${p3.allOn ? "on" : ""}`, "data-sha": "", onClick: on3 && (() => on3.pick("")), children: [
+            /* @__PURE__ */ u2("span", { class: "cm-av", children: /* @__PURE__ */ u2("i", { children: I2("diff") }) }),
+            /* @__PURE__ */ u2("span", { class: "cm-t", children: [
+              /* @__PURE__ */ u2("b", { children: "All changes" }),
+              /* @__PURE__ */ u2("i", { children: p3.allSub })
             ] })
           ] }),
-          p3.rows.map((c3) => /* @__PURE__ */ u3(CmItem, { c: c3, on: on3 }))
+          p3.rows.map((c3) => /* @__PURE__ */ u2(CmItem, { c: c3, on: on3 }))
         ] })
       ] }),
-      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldDiff ? " folded" : ""}`, children: [
-        /* @__PURE__ */ u3("div", { class: "pane-h sub", children: [
+      /* @__PURE__ */ u2("div", { class: `fold-sec${p3.foldDiff ? " folded" : ""}`, children: [
+        /* @__PURE__ */ u2("div", { class: "pane-h sub", children: [
           I2("file-diff"),
-          /* @__PURE__ */ u3("span", { children: p3.subTitle }),
-          /* @__PURE__ */ u3("span", { class: "sp" }),
-          /* @__PURE__ */ u3(FoldBtn, { k: "cm-diff", title: "Collapse changes", def: false, folded: p3.foldDiff, onFold: on3?.fold })
+          /* @__PURE__ */ u2("span", { children: p3.subTitle }),
+          /* @__PURE__ */ u2("span", { class: "sp" }),
+          /* @__PURE__ */ u2(FoldBtn, { k: "cm-diff", title: "Collapse changes", def: false, folded: p3.foldDiff, onFold: on3?.fold })
         ] }),
-        /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.diff })
+        /* @__PURE__ */ u2("div", { class: "pane-body", children: p3.diff })
       ] })
     ] });
-    const right = p3.hr ? /* @__PURE__ */ u3(Rail, { k: "r", label: "Conversation", ic: "comment-discussion", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-r", children: [
-      /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+    const right = p3.hr ? /* @__PURE__ */ u2(Rail, { k: "r", label: "Conversation", ic: "comment-discussion", on: on3 }) : /* @__PURE__ */ u2("section", { class: "pane pane-r", children: [
+      /* @__PURE__ */ u2("div", { class: "pane-h", children: [
         I2("comment-discussion"),
-        /* @__PURE__ */ u3("span", { children: "Conversation" }),
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
-        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", onClick: on3 && (() => on3.hide("r", true)), children: I2("x") })
+        /* @__PURE__ */ u2("span", { children: "Conversation" }),
+        /* @__PURE__ */ u2("span", { class: "sp" }),
+        /* @__PURE__ */ u2("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
+        /* @__PURE__ */ u2("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", onClick: on3 && (() => on3.hide("r", true)), children: I2("x") })
       ] }),
-      /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.right })
+      /* @__PURE__ */ u2("div", { class: "pane-body", children: p3.right })
     ] });
-    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
+    return /* @__PURE__ */ u2("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
       left,
-      p3.hl || p3.hr ? "" : /* @__PURE__ */ u3("div", { class: "gutter", id: "gutter", title: "Drag to resize", onMouseDown: on3?.gutter }),
+      p3.hl || p3.hr ? "" : /* @__PURE__ */ u2("div", { class: "gutter", id: "gutter", title: "Drag to resize", onMouseDown: on3?.gutter }),
       right
     ] });
   }
 
   // src/components/Dialogs.tsx
-  var Err = ({ m: m2 }) => /* @__PURE__ */ u3("div", { id: "reverr", children: m2 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m2 }) : "" });
+  var Err = ({ m: m2 }) => /* @__PURE__ */ u2("div", { id: "reverr", children: m2 ? /* @__PURE__ */ u2("div", { class: "act-err", children: m2 }) : "" });
   var REVS = [["COMMENT", "Comment", "Submit general feedback without explicit approval."], ["APPROVE", "Approve", "Submit feedback and approve merging these changes."], ["REQUEST_CHANGES", "Request changes", "Submit feedback that must be addressed before merging."]];
-  var ReviewDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
-    /* @__PURE__ */ u3(DraftBox, { k: "review", ph: p3.ph, rows: 5 }),
-    /* @__PURE__ */ u3("div", { class: "radios", children: REVS.map(([v2, t2, d3]) => /* @__PURE__ */ u3("label", { children: [
-      /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: v2, checked: p3.ev === v2, onChange: () => p3.onEv(v2) }),
+  var ReviewDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u2("h2", { children: "Finish your review" }),
+    /* @__PURE__ */ u2(DraftBox, { k: "review", ph: p3.ph, rows: 5 }),
+    /* @__PURE__ */ u2("div", { class: "radios", children: REVS.map(([v2, t2, d3]) => /* @__PURE__ */ u2("label", { children: [
+      /* @__PURE__ */ u2("input", { type: "radio", name: "rev", value: v2, checked: p3.ev === v2, onChange: () => p3.onEv(v2) }),
       " ",
-      /* @__PURE__ */ u3("b", { children: t2 }),
+      /* @__PURE__ */ u2("b", { children: t2 }),
       " ",
-      /* @__PURE__ */ u3("span", { children: d3 })
+      /* @__PURE__ */ u2("span", { children: d3 })
     ] })) }),
-    /* @__PURE__ */ u3(Err, { m: p3.err }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", onClick: p3.ok, children: "Submit review" })
+    /* @__PURE__ */ u2(Err, { m: p3.err }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "revcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "revsubmit", onClick: p3.ok, children: "Submit review" })
     ] })
   ] }) });
-  var EditPrDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: p3.title, onInput: (e2) => p3.onTitle(e2.target.value), style: "width:100%;box-sizing:border-box;height:34px" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-    /* @__PURE__ */ u3(DraftBox, { k: "prbody", ph: "Describe your changes", rows: 8 }),
-    /* @__PURE__ */ u3(Err, { m: p3.err }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", onClick: p3.ok, children: "Save" })
+  var EditPrDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u2("h2", { children: "Edit pull request" }),
+    /* @__PURE__ */ u2("label", { class: "np-l", children: "Title" }),
+    /* @__PURE__ */ u2("input", { class: "input", id: "eptitle", value: p3.title, onInput: (e2) => p3.onTitle(e2.target.value), style: "width:100%;box-sizing:border-box;height:34px" }),
+    /* @__PURE__ */ u2("label", { class: "np-l", children: "Description" }),
+    /* @__PURE__ */ u2(DraftBox, { k: "prbody", ph: "Describe your changes", rows: 8 }),
+    /* @__PURE__ */ u2(Err, { m: p3.err }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "epcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "epsave", onClick: p3.ok, children: "Save" })
     ] })
   ] }) });
-  var ConfirmDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: p3.title }),
-    /* @__PURE__ */ u3("p", { children: p3.text }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: `btn ${p3.danger ? "danger" : "primary"}`, id: "cfok", onClick: p3.ok, children: p3.label })
+  var ConfirmDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg", children: [
+    /* @__PURE__ */ u2("h2", { children: p3.title }),
+    /* @__PURE__ */ u2("p", { children: p3.text }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "cfcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: `btn ${p3.danger ? "danger" : "primary"}`, id: "cfok", onClick: p3.ok, children: p3.label })
     ] })
   ] }) });
-  var EditCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
-    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
-    /* @__PURE__ */ u3(DraftBox, { k: "editc", ph: "Edit your comment", rows: 6 }),
-    /* @__PURE__ */ u3(Err, { m: p3.err }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", onClick: p3.ok, children: "Save" })
+  var EditCommentDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u2("h2", { children: "Edit comment" }),
+    /* @__PURE__ */ u2(DraftBox, { k: "editc", ph: "Edit your comment", rows: 6 }),
+    /* @__PURE__ */ u2(Err, { m: p3.err }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "eccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "ecsave", onClick: p3.ok, children: "Save" })
     ] })
   ] }) });
-  var DeleteCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
-    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
-    /* @__PURE__ */ u3(Err, { m: p3.err }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", onClick: p3.ok, children: "Delete" })
+  var DeleteCommentDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg", children: [
+    /* @__PURE__ */ u2("h2", { children: "Delete this comment?" }),
+    /* @__PURE__ */ u2("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
+    /* @__PURE__ */ u2(Err, { m: p3.err }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "dccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn danger", id: "dcdo", onClick: p3.ok, children: "Delete" })
     ] })
   ] }) });
-  var HideCommentDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
-    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
-    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: p3.reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
-    /* @__PURE__ */ u3(Err, { m: p3.err }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", onClick: p3.ok, children: "Hide comment" })
+  var HideCommentDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg", children: [
+    /* @__PURE__ */ u2("h2", { children: "Hide this comment" }),
+    /* @__PURE__ */ u2("label", { class: "np-l", children: "Reason" }),
+    /* @__PURE__ */ u2("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: p3.reasons.map(([v2, l3]) => /* @__PURE__ */ u2("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
+    /* @__PURE__ */ u2(Err, { m: p3.err }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "hccancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "hcdo", onClick: p3.ok, children: "Hide comment" })
     ] })
   ] }) });
-  var TokenDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
-    /* @__PURE__ */ u3("h2", { children: "GitHub classic token" }),
-    /* @__PURE__ */ u3("p", { children: [
+  var TokenDialog = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u2("div", { class: "dlg", children: [
+    /* @__PURE__ */ u2("h2", { children: "GitHub classic token" }),
+    /* @__PURE__ */ u2("p", { children: [
       "Use a ",
-      /* @__PURE__ */ u3("b", { children: "classic" }),
+      /* @__PURE__ */ u2("b", { children: "classic" }),
       " personal access token with the ",
-      /* @__PURE__ */ u3("code", { children: "repo" }),
+      /* @__PURE__ */ u2("code", { children: "repo" }),
       " scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click ",
-      /* @__PURE__ */ u3("b", { children: "Configure SSO \u2192 Authorize" }),
+      /* @__PURE__ */ u2("b", { children: "Configure SSO \u2192 Authorize" }),
       ". Stored in your OS keychain. Leave empty and save to remove it."
     ] }),
-    /* @__PURE__ */ u3("div", { class: "oauth-row", children: [
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "oauthgo", onClick: p3.go, children: "Sign in with GitHub" }),
-      /* @__PURE__ */ u3("span", { children: "or paste a token below" })
+    /* @__PURE__ */ u2("div", { class: "oauth-row", children: [
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "oauthgo", onClick: p3.go, children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u2("span", { children: "or paste a token below" })
     ] }),
-    /* @__PURE__ */ u3("div", { id: "oauthbox", children: p3.code ? /* @__PURE__ */ u3("div", { class: "oauth-code", children: [
-      /* @__PURE__ */ u3("span", { children: "Enter this code on GitHub" }),
-      /* @__PURE__ */ u3("b", { children: p3.code }),
-      /* @__PURE__ */ u3("small", { children: "Waiting for approval\u2026" })
-    ] }) : p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "margin:8px 0", children: p3.err }) : "" }),
-    /* @__PURE__ */ u3("p", { children: /* @__PURE__ */ u3("a", { href: "https://github.com/settings/tokens/new?scopes=repo&description=Pullscope", children: "Create a classic token (repo scope preselected) \u2197" }) }),
-    /* @__PURE__ */ u3("input", { class: "input", id: "tokeninput", type: "password", placeholder: "ghp_\u2026", style: "width:100%;box-sizing:border-box" }),
-    /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "tokcancel", onClick: p3.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "toksave", onClick: p3.save, children: "Save" })
+    /* @__PURE__ */ u2("div", { id: "oauthbox", children: p3.code ? /* @__PURE__ */ u2("div", { class: "oauth-code", children: [
+      /* @__PURE__ */ u2("span", { children: "Enter this code on GitHub" }),
+      /* @__PURE__ */ u2("b", { children: p3.code }),
+      /* @__PURE__ */ u2("small", { children: "Waiting for approval\u2026" })
+    ] }) : p3.err ? /* @__PURE__ */ u2("div", { class: "err", style: "margin:8px 0", children: p3.err }) : "" }),
+    /* @__PURE__ */ u2("p", { children: /* @__PURE__ */ u2("a", { href: "https://github.com/settings/tokens/new?scopes=repo&description=Pullscope", children: "Create a classic token (repo scope preselected) \u2197" }) }),
+    /* @__PURE__ */ u2("input", { class: "input", id: "tokeninput", type: "password", placeholder: "ghp_\u2026", style: "width:100%;box-sizing:border-box" }),
+    /* @__PURE__ */ u2("div", { class: "btns", children: [
+      /* @__PURE__ */ u2("button", { class: "btn", id: "tokcancel", onClick: p3.close, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "toksave", onClick: p3.save, children: "Save" })
     ] })
   ] }) });
-  var CmPop = ({ x: x3, y: y2, hr, edit, hide: hide2, del, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
-    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
-    /* @__PURE__ */ u3("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
-    /* @__PURE__ */ u3("button", { "data-h": "quote", onClick: () => pick("quote"), children: "Quote reply" }),
-    /* @__PURE__ */ u3("button", { "data-h": "issue", onClick: () => pick("issue"), children: "Reference in new issue" }),
-    hr ? /* @__PURE__ */ u3("hr", {}) : "",
-    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", onClick: () => pick("edit"), children: "Edit" }) : "",
-    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", onClick: () => pick("hide"), children: "Hide" }) : "",
-    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", onClick: () => pick("del"), children: "Delete" }) : ""
+  var CmPop = ({ x: x3, y: y2, hr, edit, hide: hide2, del, pick }) => /* @__PURE__ */ u2("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
+    /* @__PURE__ */ u2("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
+    /* @__PURE__ */ u2("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
+    /* @__PURE__ */ u2("button", { "data-h": "quote", onClick: () => pick("quote"), children: "Quote reply" }),
+    /* @__PURE__ */ u2("button", { "data-h": "issue", onClick: () => pick("issue"), children: "Reference in new issue" }),
+    hr ? /* @__PURE__ */ u2("hr", {}) : "",
+    edit ? /* @__PURE__ */ u2("button", { "data-h": "edit", onClick: () => pick("edit"), children: "Edit" }) : "",
+    hide2 ? /* @__PURE__ */ u2("button", { "data-h": "hide", onClick: () => pick("hide"), children: "Hide" }) : "",
+    del ? /* @__PURE__ */ u2("button", { "data-h": "del", class: "danger", onClick: () => pick("del"), children: "Delete" }) : ""
   ] });
-  var ReactPop = ({ x: x3, y: y2, reacts, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop", style: `left:${x3}px;top:${y2}px`, children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, onClick: () => pick(k3), children: em })) });
-  var CtxPop = ({ x: x3, y: y2, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
-    /* @__PURE__ */ u3("button", { "data-h": "new", onClick: () => pick("new"), children: "Open in new tab" }),
-    /* @__PURE__ */ u3("button", { "data-h": "here", onClick: () => pick("here"), children: "Open" }),
-    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" })
+  var ReactPop = ({ x: x3, y: y2, reacts, pick }) => /* @__PURE__ */ u2("div", { class: "react-pop", style: `left:${x3}px;top:${y2}px`, children: reacts.map(([k3, em]) => /* @__PURE__ */ u2("button", { "data-c": k3, onClick: () => pick(k3), children: em })) });
+  var CtxPop = ({ x: x3, y: y2, pick }) => /* @__PURE__ */ u2("div", { class: "react-pop cm-pop", style: `left:${x3}px;top:${y2}px`, children: [
+    /* @__PURE__ */ u2("button", { "data-h": "new", onClick: () => pick("new"), children: "Open in new tab" }),
+    /* @__PURE__ */ u2("button", { "data-h": "here", onClick: () => pick("here"), children: "Open" }),
+    /* @__PURE__ */ u2("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" })
   ] });
+  var focusEl = (el) => {
+    el?.focus();
+  };
+  var Palette = (p3) => /* @__PURE__ */ u2("div", { class: "dlg-bg palette", onMouseDown: (e2) => {
+    if (e2.target === e2.currentTarget) p3.close();
+  }, children: /* @__PURE__ */ u2("div", { class: "dlg pal", children: [
+    /* @__PURE__ */ u2("input", { class: "pal-in", placeholder: "Jump to a pull request \u2014 owner/repo#123, a URL, or search recent\u2026", value: p3.q, ref: focusEl, onInput: (e2) => p3.onQ(e2.target.value), onKeyDown: p3.onKey }),
+    /* @__PURE__ */ u2("div", { class: "pal-list", onMouseDown: (e2) => {
+      const r3 = e2.target.closest(".pal-row");
+      if (r3) p3.pick(+r3.dataset.i);
+    }, children: p3.rows.length ? p3.rows.map((r3, i3) => /* @__PURE__ */ u2("div", { class: `pal-row${i3 === p3.sel ? " on" : ""}`, "data-i": i3, children: [
+      /* @__PURE__ */ u2("b", { children: r3.label }),
+      /* @__PURE__ */ u2("i", { children: r3.sub })
+    ] })) : /* @__PURE__ */ u2("div", { class: "pal-none", children: "No matches" }) })
+  ] }) });
+  var HELP = [["Jump to any pull request", "\u2318 K"], ["Next / previous comment", "j / k"], ["Next / previous unresolved thread", "] / ["], ["Reply to the selected comment", "r"], ["Write a comment (docked at the bottom)", "c"], ["New pull request", "n"], ["New tab / close tab / reopen closed", "\u2318T \xB7 \u2318W \xB7 \u2318\u21E7T"], ["Go to tab 1\u20139 / next tab", "\u23181\u20139 \xB7 \u2303Tab"], ["Open a PR in a new tab", "\u2318-click"], ["Turn Split view on / off", "s"], ["Swap the two sides of Split view", "f"], ["Diff: unified \u21C4 side-by-side", "d"], ["Show this help", "?"], ["Close dialogs and menus", "Esc"]];
+  var HelpDialog = ({ close }) => /* @__PURE__ */ u2("div", { class: "dlg-bg palette", onMouseDown: close, children: /* @__PURE__ */ u2("div", { class: "dlg pal", children: [
+    /* @__PURE__ */ u2("h2", { children: "Keyboard shortcuts" }),
+    HELP.map(([a3, b2]) => /* @__PURE__ */ u2("div", { class: "kb-r", children: [
+      /* @__PURE__ */ u2("span", { children: a3 }),
+      /* @__PURE__ */ u2("kbd", { children: b2 })
+    ] }))
+  ] }) });
 
   // src/components/Timeline.tsx
   function CommitRow({ first, sha, author, url, verification, trailing }) {
     const unv = verification && !verification.verified;
-    return /* @__PURE__ */ u3("div", { class: "commit-row", children: [
-      author ? /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
-      /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3("a", { href: url || "#", children: first }) }),
+    return /* @__PURE__ */ u2("div", { class: "commit-row", children: [
+      author ? /* @__PURE__ */ u2("span", { class: "TLI-avatar", style: "margin-right:8px", children: Av(author, 20) }) : "",
+      /* @__PURE__ */ u2("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u2("a", { href: url || "#", children: first }) }),
       trailing ? Raw(trailing) : "",
-      /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
-      /* @__PURE__ */ u3("span", { style: "flex:1" }),
-      verification ? /* @__PURE__ */ u3("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
-      /* @__PURE__ */ u3("a", { class: "sha", href: url || "#", children: String(sha).slice(0, 7) })
+      /* @__PURE__ */ u2("span", { class: "cm-ic", children: I2("comment") }),
+      /* @__PURE__ */ u2("span", { style: "flex:1" }),
+      verification ? /* @__PURE__ */ u2("span", { class: `label-pill ${unv ? "warn" : "ok"}`, children: unv ? "Unverified" : "Verified" }) : "",
+      /* @__PURE__ */ u2("a", { class: "sha", href: url || "#", children: String(sha).slice(0, 7) })
     ] });
   }
   function RangeBar({ range, from, to, desc, on: on3 }) {
     const opts = [["all", "Any time"], ["1h", "Last hour"], ["24h", "Last 24 hours"], ["7d", "Last 7 days"], ["30d", "Last 30 days"], ["custom", "Custom range\u2026"]];
-    return /* @__PURE__ */ u3("div", { class: "date-bar", children: [
-      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+    return /* @__PURE__ */ u2("div", { class: "date-bar", children: [
+      /* @__PURE__ */ u2("span", { class: "who-l", children: [
         I2("clock"),
         "When"
       ] }),
-      /* @__PURE__ */ u3("select", { class: "sel", id: "crange", title: "Only show activity from this period", onChange: on3?.range, children: opts.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: range === v2, children: l3 })) }),
-      range === "custom" ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From", onChange: on3?.from }),
-        /* @__PURE__ */ u3("span", { class: "who-l", children: "to" }),
-        /* @__PURE__ */ u3("input", { type: "date", class: "input", id: "cto", value: to, title: "To", onChange: on3?.to })
+      /* @__PURE__ */ u2("select", { class: "sel", id: "crange", title: "Only show activity from this period", onChange: on3?.range, children: opts.map(([v2, l3]) => /* @__PURE__ */ u2("option", { value: v2, selected: range === v2, children: l3 })) }),
+      range === "custom" ? /* @__PURE__ */ u2(S2, { children: [
+        /* @__PURE__ */ u2("input", { type: "date", class: "input", id: "cfrom", value: from, title: "From", onChange: on3?.from }),
+        /* @__PURE__ */ u2("span", { class: "who-l", children: "to" }),
+        /* @__PURE__ */ u2("input", { type: "date", class: "input", id: "cto", value: to, title: "To", onChange: on3?.to })
       ] }) : "",
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", onClick: on3?.sort, children: [
+      /* @__PURE__ */ u2("span", { class: "sp" }),
+      /* @__PURE__ */ u2("button", { class: "who-chip", id: "csort", title: "Flip the order of the timeline", onClick: on3?.sort, children: [
         I2(desc ? "chevron-down" : "chevron-up"),
-        /* @__PURE__ */ u3("span", { children: desc ? "Newest first" : "Oldest first" })
+        /* @__PURE__ */ u2("span", { children: desc ? "Newest first" : "Oldest first" })
       ] })
     ] });
   }
   function WhoBar({ everyone, people, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "who-bar", children: [
-      /* @__PURE__ */ u3("span", { class: "who-l", children: [
+    return /* @__PURE__ */ u2("div", { class: "who-bar", children: [
+      /* @__PURE__ */ u2("span", { class: "who-l", children: [
         I2("person"),
         "Show"
       ] }),
-      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", onClick: on3?.whoClear, children: "Everyone" }),
-      people.map(({ u: u4, n: n2, on: sel }) => /* @__PURE__ */ u3("button", { class: `who-chip ${sel ? "on" : ""}`, "data-who": u4.login, onClick: on3 && (() => on3.who(u4.login)), title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
+      /* @__PURE__ */ u2("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", onClick: on3?.whoClear, children: "Everyone" }),
+      people.map(({ u: u4, n: n2, on: sel }) => /* @__PURE__ */ u2("button", { class: `who-chip ${sel ? "on" : ""}`, "data-who": u4.login, onClick: on3 && (() => on3.who(u4.login)), title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
         Av(u4, 18),
-        /* @__PURE__ */ u3("span", { children: u4.login }),
-        /* @__PURE__ */ u3("i", { children: n2 })
+        /* @__PURE__ */ u2("span", { children: u4.login }),
+        /* @__PURE__ */ u2("i", { children: n2 })
       ] }))
     ] });
   }
   function Bars({ who, range, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      who && /* @__PURE__ */ u3(WhoBar, { ...who, on: on3 }),
-      /* @__PURE__ */ u3(RangeBar, { ...range, on: on3 })
+    return /* @__PURE__ */ u2(S2, { children: [
+      who && /* @__PURE__ */ u2(WhoBar, { ...who, on: on3 }),
+      /* @__PURE__ */ u2(RangeBar, { ...range, on: on3 })
     ] });
   }
   function FoldBar({ onClick }) {
-    return /* @__PURE__ */ u3("div", { class: "fold-bar", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", onClick, children: [
+    return /* @__PURE__ */ u2("div", { class: "fold-bar", children: /* @__PURE__ */ u2("button", { class: "btn small", id: "foldallconv", title: "Collapse or expand every comment, review and thread", onClick, children: [
       I2("chevron-down"),
       SP,
-      /* @__PURE__ */ u3("span", { children: "Collapse all conversations" })
+      /* @__PURE__ */ u2("span", { children: "Collapse all conversations" })
     ] }) });
   }
-  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at).text });
-  var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
+  var Time = ({ at }) => /* @__PURE__ */ u2("a", { class: "time", children: whenParts(at).text });
+  var actor = (u4) => u4 ? /* @__PURE__ */ u2("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u2("span", { class: "actor", children: "ghost" });
   function CommitRun({ n: n2, first, last, onTab }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("a", { "data-tab": "commits", class: "run", onClick: onTab && (() => onTab("commits")), children: [
-        /* @__PURE__ */ u3("b", { children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: /* @__PURE__ */ u2("div", { class: "row", children: /* @__PURE__ */ u2("a", { "data-tab": "commits", class: "run", onClick: onTab && (() => onTab("commits")), children: [
+        /* @__PURE__ */ u2("b", { children: [
           n2,
           " commits"
         ] }),
         SP,
-        /* @__PURE__ */ u3("span", { class: "mono", children: [
+        /* @__PURE__ */ u2("span", { class: "mono", children: [
           first,
           " \u2026 ",
           last
@@ -1407,83 +1423,83 @@
       ] }) }) })
     ] });
   }
-  function Committed({ row }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("git-commit") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: row })
+  function Committed({ row: row2 }) {
+    return /* @__PURE__ */ u2("div", { class: "TLI", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge", children: I2("git-commit") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: row2 })
     ] });
   }
   var Linked = ({ msg, url }) => {
     const m2 = msg.match(/^([\s\S]*?)#(\d+)([\s\S]*)$/);
-    return m2 ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("a", { href: url, children: m2[1] }),
-      /* @__PURE__ */ u3("a", { href: "#", style: "color:var(--fgColor-accent)", children: [
+    return m2 ? /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("a", { href: url, children: m2[1] }),
+      /* @__PURE__ */ u2("a", { href: "#", style: "color:var(--fgColor-accent)", children: [
         "#",
         m2[2]
       ] }),
-      /* @__PURE__ */ u3("a", { href: "#", children: m2[3] })
-    ] }) : /* @__PURE__ */ u3("a", { href: url, children: msg });
+      /* @__PURE__ */ u2("a", { href: "#", children: m2[3] })
+    ] }) : /* @__PURE__ */ u2("a", { href: url, children: msg });
   };
   function Referenced({ actor: a3, at, commit: ci, msg }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body stack", children: [
-        /* @__PURE__ */ u3("div", { class: "row", style: "min-height:32px", children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body stack", children: [
+        /* @__PURE__ */ u2("div", { class: "row", style: "min-height:32px", children: [
           actor(a3),
           SP,
-          /* @__PURE__ */ u3("span", { children: "added a commit that referenced this pull request" }),
+          /* @__PURE__ */ u2("span", { children: "added a commit that referenced this pull request" }),
           SP,
-          /* @__PURE__ */ u3(Time, { at })
+          /* @__PURE__ */ u2(Time, { at })
         ] }),
-        ci ? /* @__PURE__ */ u3("div", { class: "line2", children: /* @__PURE__ */ u3("div", { class: "commit-row", children: [
-          /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
-          /* @__PURE__ */ u3("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u3(Linked, { msg, url: ci.html_url }) }),
-          /* @__PURE__ */ u3("span", { class: "mono", style: "background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px", children: "\u2026" }),
-          /* @__PURE__ */ u3("span", { class: "cm-ic", children: I2("comment") }),
-          /* @__PURE__ */ u3("span", { style: "flex:1" }),
-          /* @__PURE__ */ u3("a", { class: "sha", href: ci.html_url, children: ci.sha.slice(0, 7) })
+        ci ? /* @__PURE__ */ u2("div", { class: "line2", children: /* @__PURE__ */ u2("div", { class: "commit-row", children: [
+          /* @__PURE__ */ u2("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
+          /* @__PURE__ */ u2("span", { class: "msg", style: "flex:0 1 auto", children: /* @__PURE__ */ u2(Linked, { msg, url: ci.html_url }) }),
+          /* @__PURE__ */ u2("span", { class: "mono", style: "background:var(--bgColor-neutral-muted);border-radius:6px;padding:0 6px;margin-left:12px;font-size:12px;line-height:16px", children: "\u2026" }),
+          /* @__PURE__ */ u2("span", { class: "cm-ic", children: I2("comment") }),
+          /* @__PURE__ */ u2("span", { style: "flex:1" }),
+          /* @__PURE__ */ u2("a", { class: "sha", href: ci.html_url, children: ci.sha.slice(0, 7) })
         ] }) }) : ""
       ] })
     ] });
   }
   function MergedRow({ actor: a3, commit, base, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI mergedrow", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge done", children: I2("git-merge") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI mergedrow", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge done", children: I2("git-merge") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: /* @__PURE__ */ u2("div", { class: "row", children: [
         actor(a3),
         SP,
-        /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u2("span", { children: [
           "merged commit ",
-          /* @__PURE__ */ u3("b", { class: "mono", style: "color:var(--fgColor-default);font-size:12px", children: commit }),
+          /* @__PURE__ */ u2("b", { class: "mono", style: "color:var(--fgColor-default);font-size:12px", children: commit }),
           " into ",
-          /* @__PURE__ */ u3("span", { class: "branch", children: base })
+          /* @__PURE__ */ u2("span", { class: "branch", children: base })
         ] }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u2(Time, { at })
       ] }) })
     ] });
   }
   function CrossRef(p3) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
-        /* @__PURE__ */ u3("div", { class: "row", children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge", children: I2("cross-reference") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: [
+        /* @__PURE__ */ u2("div", { class: "row", children: [
           actor(p3.actor),
           SP,
-          /* @__PURE__ */ u3("span", { children: [
+          /* @__PURE__ */ u2("span", { children: [
             "mentioned this ",
             p3.isPr ? "pull request" : "issue"
           ] }),
           SP,
-          /* @__PURE__ */ u3(Time, { at: p3.at })
+          /* @__PURE__ */ u2(Time, { at: p3.at })
         ] }),
         "\n        ",
-        /* @__PURE__ */ u3("div", { class: "ref-card", children: [
-          /* @__PURE__ */ u3("span", { style: `color:var(--fgColor-${p3.open ? "success" : "done"});margin-top:2px`, children: I2(p3.icon) }),
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("a", { class: "t", href: p3.url, style: "color:var(--fgColor-default)", children: p3.title }),
-            /* @__PURE__ */ u3("span", { class: "r", children: [
+        /* @__PURE__ */ u2("div", { class: "ref-card", children: [
+          /* @__PURE__ */ u2("span", { style: `color:var(--fgColor-${p3.open ? "success" : "done"});margin-top:2px`, children: I2(p3.icon) }),
+          /* @__PURE__ */ u2("div", { children: [
+            /* @__PURE__ */ u2("a", { class: "t", href: p3.url, style: "color:var(--fgColor-default)", children: p3.title }),
+            /* @__PURE__ */ u2("span", { class: "r", children: [
               p3.repo,
               "#",
               p3.number
@@ -1494,65 +1510,65 @@
     ] });
   }
   function LabelRow({ actor: a3, verb, color, name, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
-      /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI condensed", children: [
+      /* @__PURE__ */ u2("div", { class: "TLI-badge", children: I2("tag") }),
+      /* @__PURE__ */ u2("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: [
         actor(a3),
         SP,
-        /* @__PURE__ */ u3("span", { children: verb }),
+        /* @__PURE__ */ u2("span", { children: verb }),
         SP,
-        /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${color};color:#fff;margin:0`, children: name }),
+        /* @__PURE__ */ u2("span", { class: "pill-label", style: `background:#${color};color:#fff;margin:0`, children: name }),
         SP,
-        /* @__PURE__ */ u3("span", { children: "label" }),
+        /* @__PURE__ */ u2("span", { children: "label" }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u2(Time, { at })
       ] })
     ] });
   }
   function Simple({ actor: a3, ic, text, kind, at }) {
-    return /* @__PURE__ */ u3("div", { class: "TLI", children: [
-      /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: /* @__PURE__ */ u3("div", { class: "row", children: [
+    return /* @__PURE__ */ u2("div", { class: "TLI", children: [
+      /* @__PURE__ */ u2("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-avatar", children: Av(a3, 20) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: /* @__PURE__ */ u2("div", { class: "row", children: [
         actor(a3),
         SP,
-        /* @__PURE__ */ u3("span", { children: text }),
+        /* @__PURE__ */ u2("span", { children: text }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u2(Time, { at })
       ] }) })
     ] });
   }
   function Checks({ head: head2, summary, headIcon, rows }) {
-    return /* @__PURE__ */ u3("div", { class: "checks", children: [
-      /* @__PURE__ */ u3("div", { class: `ck-head ${head2[0]}`, children: [
+    return /* @__PURE__ */ u2("div", { class: "checks", children: [
+      /* @__PURE__ */ u2("div", { class: `ck-head ${head2[0]}`, children: [
         I2(headIcon, 20),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("b", { children: head2[1] }),
-          /* @__PURE__ */ u3("span", { children: summary })
+        /* @__PURE__ */ u2("div", { children: [
+          /* @__PURE__ */ u2("b", { children: head2[1] }),
+          /* @__PURE__ */ u2("span", { children: summary })
         ] })
       ] }),
-      rows.map((c3) => /* @__PURE__ */ u3("a", { class: `ck-row ${c3.st}`, href: c3.url ? c3.url : void 0, children: [
-        /* @__PURE__ */ u3("span", { class: "ck-i", children: I2(c3.icon) }),
-        /* @__PURE__ */ u3("span", { class: "ck-n", children: [
-          /* @__PURE__ */ u3("b", { children: c3.name }),
-          c3.req ? /* @__PURE__ */ u3("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
-          /* @__PURE__ */ u3("i", { children: c3.desc })
+      rows.map((c3) => /* @__PURE__ */ u2("a", { class: `ck-row ${c3.st}`, href: c3.url ? c3.url : void 0, children: [
+        /* @__PURE__ */ u2("span", { class: "ck-i", children: I2(c3.icon) }),
+        /* @__PURE__ */ u2("span", { class: "ck-n", children: [
+          /* @__PURE__ */ u2("b", { children: c3.name }),
+          c3.req ? /* @__PURE__ */ u2("span", { class: "ck-req", title: "Required by branch protection", children: "Required" }) : "",
+          /* @__PURE__ */ u2("i", { children: c3.desc })
         ] }),
-        /* @__PURE__ */ u3("span", { class: "ck-s", children: c3.status }),
-        /* @__PURE__ */ u3("span", { class: "ck-d", children: c3.dur })
+        /* @__PURE__ */ u2("span", { class: "ck-s", children: c3.status }),
+        /* @__PURE__ */ u2("span", { class: "ck-d", children: c3.dur })
       ] }))
     ] });
   }
   function Attention({ items, unres, showUnres, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "attn", children: [
-      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, onClick: on3 && (it.id === "nextun" ? on3.next : it.dataTab ? () => on3.tab(it.dataTab) : void 0), children: [
+    return /* @__PURE__ */ u2("div", { class: "attn", children: [
+      items.map((it) => /* @__PURE__ */ u2("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, onClick: on3 && (it.id === "nextun" ? on3.next : it.dataTab ? () => on3.tab(it.dataTab) : void 0), children: [
         I2(it.ic),
-        /* @__PURE__ */ u3("span", { children: it.text })
+        /* @__PURE__ */ u2("span", { children: it.text })
       ] })),
-      showUnres ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", onClick: on3?.unres, children: [
+      showUnres ? /* @__PURE__ */ u2(S2, { children: [
+        /* @__PURE__ */ u2("span", { class: "sp" }),
+        /* @__PURE__ */ u2("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", onClick: on3?.unres, children: [
           I2("comment"),
           "Unresolved only"
         ] })
@@ -1766,10 +1782,6 @@
       }
     }
   }
-  function notePanel() {
-    const rows = S.notes.map((n2) => `<a class="note ${n2.read ? "" : "new"}" data-open="${esc(n2.ref)}" data-target="${esc(n2.target || "")}"><b>${esc(n2.title)}</b><span>${esc(n2.text)}</span><i>${esc(n2.ref)} \xB7 ${when(n2.at).replace(/<\/?span[^>]*>/g, "")}</i></a>`).join("") || '<div class="note-empty">No notifications yet. New comments, commits and reviews on PRs you opened will show up here.</div>';
-    return `<div class="note-panel${S.bell ? " open" : ""}"><div class="note-h"><b>Notifications</b><span><button id="noteall">View all</button> <button id="notecheck">Check now</button> <button id="noteclear">Clear all</button></span></div>${rows}</div>`;
-  }
 
   // src/app/comments.ts
   function stateOf(p3) {
@@ -1864,104 +1876,104 @@
 
   // src/components/Diff.tsx
   function Sug({ s: s3, on: on3 }) {
-    return s3.kind === "note" ? /* @__PURE__ */ u3("div", { class: "sug-row", children: /* @__PURE__ */ u3("span", { class: "sug-note", children: s3.text }) }) : /* @__PURE__ */ u3("div", { class: "sug-row", children: [
-      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-sug": s3.id, disabled: s3.disabled, onClick: on3 && ((e2) => on3.sug(e2, String(s3.id))), children: "Apply suggestion" }),
-      /* @__PURE__ */ u3("span", { class: "sug-note", children: [
+    return s3.kind === "note" ? /* @__PURE__ */ u2("div", { class: "sug-row", children: /* @__PURE__ */ u2("span", { class: "sug-note", children: s3.text }) }) : /* @__PURE__ */ u2("div", { class: "sug-row", children: [
+      /* @__PURE__ */ u2("button", { class: "btn small primary", "data-sug": s3.id, disabled: s3.disabled, onClick: on3 && ((e2) => on3.sug(e2, String(s3.id))), children: "Apply suggestion" }),
+      /* @__PURE__ */ u2("span", { class: "sug-note", children: [
         "Commits to ",
-        /* @__PURE__ */ u3("code", { children: s3.ref }),
+        /* @__PURE__ */ u2("code", { children: s3.ref }),
         s3.mine ? "" : " (fork \u2014 needs push access)"
       ] })
     ] });
   }
   function Tc(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: "tc", id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
-      /* @__PURE__ */ u3("a", { href: p3.user?.html_url || "#", children: Av(p3.user, 24) }),
-      /* @__PURE__ */ u3("div", { style: "flex:1;min-width:0", children: [
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("span", { class: "who", children: p3.login }),
+    return /* @__PURE__ */ u2("div", { class: "tc", id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
+      /* @__PURE__ */ u2("a", { href: p3.user?.html_url || "#", children: Av(p3.user, 24) }),
+      /* @__PURE__ */ u2("div", { style: "flex:1;min-width:0", children: [
+        /* @__PURE__ */ u2("div", { children: [
+          /* @__PURE__ */ u2("span", { class: "who", children: p3.login }),
           SP,
-          /* @__PURE__ */ u3("span", { children: When(p3.at) }),
-          p3.withMenu ? /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": p3.id, "data-root": p3.root, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" }) : ""
+          /* @__PURE__ */ u2("span", { children: When(p3.at) }),
+          p3.withMenu ? /* @__PURE__ */ u2("button", { class: "cm-btn", "data-cm": p3.id, "data-root": p3.root, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" }) : ""
         ] }),
-        /* @__PURE__ */ u3("div", { class: "markdown-body", style: "margin-top:8px", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }),
-        p3.sug ? /* @__PURE__ */ u3(Sug, { s: p3.sug, on: on3 }) : "",
-        /* @__PURE__ */ u3(ReactionsBar, { ...p3.reactions, on: on3?.react })
+        /* @__PURE__ */ u2("div", { class: "markdown-body", style: "margin-top:8px", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }),
+        p3.sug ? /* @__PURE__ */ u2(Sug, { s: p3.sug, on: on3 }) : "",
+        /* @__PURE__ */ u2(ReactionsBar, { ...p3.reactions, on: on3?.react })
       ] })
     ] });
   }
   function ThreadRow(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("tr", { class: "lc-row th-row", children: /* @__PURE__ */ u3("td", { colspan: p3.cols, children: /* @__PURE__ */ u3("div", { class: `thread inl${p3.folded ? " folded" : ""}`, children: [
-      /* @__PURE__ */ u3("div", { class: "thread-head", children: [
-        /* @__PURE__ */ u3(FoldBtn, { k: p3.k, title: "Hide this thread", def: p3.def, folded: p3.folded, onFold: on3?.fold }),
-        /* @__PURE__ */ u3("span", { class: "th-t", children: [
+    return /* @__PURE__ */ u2("tr", { class: "lc-row th-row", children: /* @__PURE__ */ u2("td", { colspan: p3.cols, children: /* @__PURE__ */ u2("div", { class: `thread inl${p3.folded ? " folded" : ""}`, children: [
+      /* @__PURE__ */ u2("div", { class: "thread-head", children: [
+        /* @__PURE__ */ u2(FoldBtn, { k: p3.k, title: "Hide this thread", def: p3.def, folded: p3.folded, onFold: on3?.fold }),
+        /* @__PURE__ */ u2("span", { class: "th-t", children: [
           "Comment on line ",
-          /* @__PURE__ */ u3("b", { children: [
+          /* @__PURE__ */ u2("b", { children: [
             p3.side,
             p3.line
           ] })
         ] }),
-        p3.outdated ? /* @__PURE__ */ u3("span", { class: "res out", children: "Outdated" }) : "",
-        p3.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : ""
+        p3.outdated ? /* @__PURE__ */ u2("span", { class: "res out", children: "Outdated" }) : "",
+        p3.resolved ? /* @__PURE__ */ u2("span", { class: "res", children: "Resolved" }) : ""
       ] }),
-      p3.cards.map((c3) => /* @__PURE__ */ u3(Tc, { ...c3, on: on3 })),
-      p3.reply ? /* @__PURE__ */ u3(ReplyBox, { ...p3.reply, on: on3 }) : "",
-      p3.act ? /* @__PURE__ */ u3("div", { class: "th-foot", children: /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": p3.act.tid, "data-res": p3.act.res ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, p3.act.tid, p3.act.res ? "unresolve" : "resolve")), children: p3.act.res ? "Unresolve conversation" : "Resolve conversation" }) }) : ""
+      p3.cards.map((c3) => /* @__PURE__ */ u2(Tc, { ...c3, on: on3 })),
+      p3.reply ? /* @__PURE__ */ u2(ReplyBox, { ...p3.reply, on: on3 }) : "",
+      p3.act ? /* @__PURE__ */ u2("div", { class: "th-foot", children: /* @__PURE__ */ u2("button", { class: "thread-act", "data-thread": p3.act.tid, "data-res": p3.act.res ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, p3.act.tid, p3.act.res ? "unresolve" : "resolve")), children: p3.act.res ? "Unresolve conversation" : "Resolve conversation" }) }) : ""
     ] }) }) });
   }
   function ReplyBox({ rid, ph, err, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "reply", children: [
-      /* @__PURE__ */ u3(DraftBox, { k: `reply-${rid}`, ph, rows: 2 }),
-      /* @__PURE__ */ u3(ErrLine, { m: err }),
-      /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, onClick: on3 && (() => on3.reply(String(rid))), children: "Reply" })
+    return /* @__PURE__ */ u2("div", { class: "reply", children: [
+      /* @__PURE__ */ u2(DraftBox, { k: `reply-${rid}`, ph, rows: 2 }),
+      /* @__PURE__ */ u2(ErrLine, { m: err }),
+      /* @__PURE__ */ u2("button", { class: "btn small", "data-sendreply": rid, onClick: on3 && (() => on3.reply(String(rid))), children: "Reply" })
     ] });
   }
-  var LcCards = ({ cards, on: on3 }) => /* @__PURE__ */ u3(S2, { children: cards.map((c3) => /* @__PURE__ */ u3("div", { class: "lc-card", children: [
-    /* @__PURE__ */ u3("span", { class: "lc-tag", children: "Pending" }),
-    /* @__PURE__ */ u3("div", { class: "lc-body", dangerouslySetInnerHTML: { __html: c3.body } }),
-    /* @__PURE__ */ u3("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", onClick: on3 && (() => on3.del(String(c3.id))), children: I2("x") })
+  var LcCards = ({ cards, on: on3 }) => /* @__PURE__ */ u2(S2, { children: cards.map((c3) => /* @__PURE__ */ u2("div", { class: "lc-card", children: [
+    /* @__PURE__ */ u2("span", { class: "lc-tag", children: "Pending" }),
+    /* @__PURE__ */ u2("div", { class: "lc-body", dangerouslySetInnerHTML: { __html: c3.body } }),
+    /* @__PURE__ */ u2("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", onClick: on3 && (() => on3.del(String(c3.id))), children: I2("x") })
   ] })) });
-  var LcEdit = ({ code, on: on3 }) => /* @__PURE__ */ u3("div", { class: "lc-edit", children: [
-    /* @__PURE__ */ u3(DraftBox, { k: "lc", ph: "Leave a comment on this line", rows: 3 }),
-    /* @__PURE__ */ u3("div", { class: "lc-btns", children: [
-      code !== null ? /* @__PURE__ */ u3("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", onClick: on3?.suggest, children: "\xB1 Suggest change" }) : "",
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small", id: "lccancel", onClick: on3?.cancel, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", onClick: on3?.add, children: "Add to review" })
+  var LcEdit = ({ code, on: on3 }) => /* @__PURE__ */ u2("div", { class: "lc-edit", children: [
+    /* @__PURE__ */ u2(DraftBox, { k: "lc", ph: "Leave a comment on this line", rows: 3 }),
+    /* @__PURE__ */ u2("div", { class: "lc-btns", children: [
+      code !== null ? /* @__PURE__ */ u2("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", onClick: on3?.suggest, children: "\xB1 Suggest change" }) : "",
+      /* @__PURE__ */ u2("span", { class: "sp" }),
+      /* @__PURE__ */ u2("button", { class: "btn small", id: "lccancel", onClick: on3?.cancel, children: "Cancel" }),
+      /* @__PURE__ */ u2("button", { class: "btn small primary", id: "lcadd", onClick: on3?.add, children: "Add to review" })
     ] })
   ] });
-  var Actor = ({ u: u4 }) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
+  var Actor = ({ u: u4 }) => u4 ? /* @__PURE__ */ u2("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u2("span", { class: "actor", children: "ghost" });
   function ReviewBlock(p3) {
     const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `TLI rev${p3.folded ? " folded" : ""}`, children: [
-      /* @__PURE__ */ u3("div", { class: `TLI-badge ${p3.kind}`, children: I2(p3.ic) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(p3.user, 20) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
-        /* @__PURE__ */ u3("div", { class: "row", children: [
-          /* @__PURE__ */ u3(FoldBtn, { k: p3.k, title: "Collapse / expand this review", def: p3.allRes, folded: p3.folded, onFold: on3?.fold }),
-          /* @__PURE__ */ u3(Actor, { u: p3.user }),
+    return /* @__PURE__ */ u2("div", { class: `TLI rev${p3.folded ? " folded" : ""}`, children: [
+      /* @__PURE__ */ u2("div", { class: `TLI-badge ${p3.kind}`, children: I2(p3.ic) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-avatar", children: Av(p3.user, 20) }),
+      /* @__PURE__ */ u2("div", { class: "TLI-body", children: [
+        /* @__PURE__ */ u2("div", { class: "row", children: [
+          /* @__PURE__ */ u2(FoldBtn, { k: p3.k, title: "Collapse / expand this review", def: p3.allRes, folded: p3.folded, onFold: on3?.fold }),
+          /* @__PURE__ */ u2(Actor, { u: p3.user }),
           " ",
-          /* @__PURE__ */ u3("span", { children: p3.verb }),
+          /* @__PURE__ */ u2("span", { children: p3.verb }),
           " ",
-          /* @__PURE__ */ u3("a", { class: "time", href: p3.url, children: p3.at }),
-          p3.sum ? /* @__PURE__ */ u3("span", { class: `rev-sum${p3.sum.ok ? " ok" : ""}`, children: p3.sum.allRes ? /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u2("a", { class: "time", href: p3.url, children: p3.at }),
+          p3.sum ? /* @__PURE__ */ u2("span", { class: `rev-sum${p3.sum.ok ? " ok" : ""}`, children: p3.sum.allRes ? /* @__PURE__ */ u2(S2, { children: [
             I2("check"),
             " All resolved"
           ] }) : p3.sum.text }) : ""
         ] }),
         "\n  ",
-        p3.bodyHtml ? /* @__PURE__ */ u3("div", { class: "cbox nocaret", style: "margin-top:8px;color:var(--fgColor-default)", children: /* @__PURE__ */ u3("div", { class: "cbody", children: /* @__PURE__ */ u3("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }) }) }) : "",
-        p3.threads.length ? /* @__PURE__ */ u3("div", { children: p3.threads.map((t2) => /* @__PURE__ */ u3("div", { class: `thread${t2.folded ? " folded" : ""}`, children: [
-          /* @__PURE__ */ u3("div", { class: "thread-head", children: [
-            /* @__PURE__ */ u3(FoldBtn, { k: t2.k, title: "Hide this thread", def: t2.def, folded: t2.folded, onFold: on3?.fold }),
+        p3.bodyHtml ? /* @__PURE__ */ u2("div", { class: "cbox nocaret", style: "margin-top:8px;color:var(--fgColor-default)", children: /* @__PURE__ */ u2("div", { class: "cbody", children: /* @__PURE__ */ u2("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }) }) }) : "",
+        p3.threads.length ? /* @__PURE__ */ u2("div", { children: p3.threads.map((t2) => /* @__PURE__ */ u2("div", { class: `thread${t2.folded ? " folded" : ""}`, children: [
+          /* @__PURE__ */ u2("div", { class: "thread-head", children: [
+            /* @__PURE__ */ u2(FoldBtn, { k: t2.k, title: "Hide this thread", def: t2.def, folded: t2.folded, onFold: on3?.fold }),
             t2.path,
-            t2.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : "",
-            t2.tid ? /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": t2.tid, "data-res": t2.resolved ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, t2.tid, t2.resolved ? "unresolve" : "resolve")), children: t2.resolved ? "Unresolve" : "Resolve conversation" }) : ""
+            t2.resolved ? /* @__PURE__ */ u2("span", { class: "res", children: "Resolved" }) : "",
+            t2.tid ? /* @__PURE__ */ u2("button", { class: "thread-act", "data-thread": t2.tid, "data-res": t2.resolved ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, t2.tid, t2.resolved ? "unresolve" : "resolve")), children: t2.resolved ? "Unresolve" : "Resolve conversation" }) : ""
           ] }),
-          /* @__PURE__ */ u3("div", { class: "diffhunk", children: /* @__PURE__ */ u3(DiffHunkTable, { rows: t2.hunk }) }),
-          t2.cards.map((c3) => /* @__PURE__ */ u3(Tc, { ...c3, on: on3 })),
-          /* @__PURE__ */ u3(ReplyBox, { ...t2.reply, on: on3 })
+          /* @__PURE__ */ u2("div", { class: "diffhunk", children: /* @__PURE__ */ u2(DiffHunkTable, { rows: t2.hunk }) }),
+          t2.cards.map((c3) => /* @__PURE__ */ u2(Tc, { ...c3, on: on3 })),
+          /* @__PURE__ */ u2(ReplyBox, { ...t2.reply, on: on3 })
         ] })) }) : ""
       ] })
     ] });
@@ -2013,16 +2025,16 @@
     return roots.map((r3) => {
       const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all.filter((c3) => c3.in_reply_to_id === r3.id)];
       const p3 = { cols, k: "t:" + r3.id, def: isRes, folded: isFolded("t:" + r3.id, isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply: S.hasToken ? { rid: r3.id, ph: "Write a reply", err: errMsg("reply-" + r3.id) } : null, act: tid && S.hasToken ? { tid, res: isRes } : null };
-      return /* @__PURE__ */ u3(ThreadRow, { ...p3, on: on3.conv });
+      return /* @__PURE__ */ u2(ThreadRow, { ...p3, on: on3.conv });
     });
   }
   function lineExtras(path, line, side, cols, canComment, on3, text) {
     const k3 = lineKey(path, line, side), th = lineThreads(path, line, side, cols, on3), mine = pendList().filter((c3) => c3.path === path && c3.line === line && c3.side === side);
     const open2 = canComment && S.lcOpen === k3;
     if (!mine.length && !open2) return th;
-    return [...th, /* @__PURE__ */ u3("tr", { class: "lc-row", children: /* @__PURE__ */ u3("td", { colspan: cols, children: /* @__PURE__ */ u3("div", { class: "lc", children: [
-      mine.length ? /* @__PURE__ */ u3(LcCards, { cards: mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) })), on: on3.lc }) : "",
-      open2 ? /* @__PURE__ */ u3(LcEdit, { code: side === "RIGHT" && text !== void 0 ? text : null, on: on3.lc }) : ""
+    return [...th, /* @__PURE__ */ u2("tr", { class: "lc-row", children: /* @__PURE__ */ u2("td", { colspan: cols, children: /* @__PURE__ */ u2("div", { class: "lc", children: [
+      mine.length ? /* @__PURE__ */ u2(LcCards, { cards: mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) })), on: on3.lc }) : "",
+      open2 ? /* @__PURE__ */ u2(LcEdit, { code: side === "RIGHT" && text !== void 0 ? text : null, on: on3.lc }) : ""
     ] }) }) })];
   }
   var diffCache = /* @__PURE__ */ new Map();
@@ -2036,18 +2048,18 @@
     if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
     return node;
   }
-  var Code = ({ text, path, cls = "", marker }) => /* @__PURE__ */ u3("td", { class: `code${cls}`, "data-marker": marker, dangerouslySetInnerHTML: { __html: codeHtml(text, path) } });
+  var Code = ({ text, path, cls = "", marker }) => /* @__PURE__ */ u2("td", { class: `code${cls}`, "data-marker": marker, dangerouslySetInnerHTML: { __html: codeHtml(text, path) } });
   function diffTableBuild(patch, path, canComment, on3) {
-    const rows = parsePatch(patch), plus = (line, side) => canComment ? /* @__PURE__ */ u3("button", { class: "lc-plus", "data-lc": lineKey(path, line, side), title: "Add a comment on this line", onClick: on3.plus, children: "+" }) : null;
+    const rows = parsePatch(patch), plus = (line, side) => canComment ? /* @__PURE__ */ u2("button", { class: "lc-plus", "data-lc": lineKey(path, line, side), title: "Add a comment on this line", onClick: on3.plus, children: "+" }) : null;
     const out = [];
     if (S.diffMode === "split") {
       let i3 = 0;
       while (i3 < rows.length) {
         const r3 = rows[i3];
         if (r3.t === "hunk") {
-          out.push(/* @__PURE__ */ u3("tr", { class: "hunk", children: [
-            /* @__PURE__ */ u3("td", { class: "num" }),
-            /* @__PURE__ */ u3("td", { class: "code", colspan: 3, children: r3.text })
+          out.push(/* @__PURE__ */ u2("tr", { class: "hunk", children: [
+            /* @__PURE__ */ u2("td", { class: "num" }),
+            /* @__PURE__ */ u2("td", { class: "code", colspan: 3, children: r3.text })
           ] }));
           i3++;
           continue;
@@ -2057,14 +2069,14 @@
           continue;
         }
         if (r3.t === "ctx") {
-          out.push(/* @__PURE__ */ u3("tr", { children: [
-            /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
-            /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " }),
-            /* @__PURE__ */ u3("td", { class: "num", children: [
+          out.push(/* @__PURE__ */ u2("tr", { children: [
+            /* @__PURE__ */ u2("td", { class: "num", children: r3.o }),
+            /* @__PURE__ */ u2(Code, { text: r3.text, path, marker: " " }),
+            /* @__PURE__ */ u2("td", { class: "num", children: [
               r3.n,
               plus(r3.n, "RIGHT")
             ] }),
-            /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " })
+            /* @__PURE__ */ u2(Code, { text: r3.text, path, marker: " " })
           ] }), ...lineExtras(path, r3.n, "RIGHT", 4, canComment, on3, r3.text));
           i3++;
           continue;
@@ -2074,73 +2086,73 @@
         while (rows[i3] && rows[i3].t === "add") adds.push(rows[i3++]);
         for (let k3 = 0; k3 < Math.max(dels.length, adds.length); k3++) {
           const d3 = dels[k3], a3 = adds[k3];
-          out.push(/* @__PURE__ */ u3("tr", { children: [
-            /* @__PURE__ */ u3("td", { class: `num${d3 ? " del" : " empty"}`, children: d3 ? /* @__PURE__ */ u3(S2, { children: [
+          out.push(/* @__PURE__ */ u2("tr", { children: [
+            /* @__PURE__ */ u2("td", { class: `num${d3 ? " del" : " empty"}`, children: d3 ? /* @__PURE__ */ u2(S2, { children: [
               d3.o,
               plus(d3.o, "LEFT")
             ] }) : "" }),
-            d3 ? /* @__PURE__ */ u3(Code, { text: d3.text, path, cls: " del", marker: "-" }) : /* @__PURE__ */ u3("td", { class: "code empty" }),
-            /* @__PURE__ */ u3("td", { class: `num${a3 ? " add" : " empty"}`, children: a3 ? /* @__PURE__ */ u3(S2, { children: [
+            d3 ? /* @__PURE__ */ u2(Code, { text: d3.text, path, cls: " del", marker: "-" }) : /* @__PURE__ */ u2("td", { class: "code empty" }),
+            /* @__PURE__ */ u2("td", { class: `num${a3 ? " add" : " empty"}`, children: a3 ? /* @__PURE__ */ u2(S2, { children: [
               a3.n,
               plus(a3.n, "RIGHT")
             ] }) : "" }),
-            a3 ? /* @__PURE__ */ u3(Code, { text: a3.text, path, cls: " add", marker: "+" }) : /* @__PURE__ */ u3("td", { class: "code empty" })
+            a3 ? /* @__PURE__ */ u2(Code, { text: a3.text, path, cls: " add", marker: "+" }) : /* @__PURE__ */ u2("td", { class: "code empty" })
           ] }), ...d3 ? lineExtras(path, d3.o, "LEFT", 4, canComment, on3) : [], ...a3 ? lineExtras(path, a3.n, "RIGHT", 4, canComment, on3, a3.text) : []);
         }
       }
-      return /* @__PURE__ */ u3("table", { class: "diff sbs", children: [
-        /* @__PURE__ */ u3("colgroup", { children: [
-          /* @__PURE__ */ u3("col", { style: "width:64px" }),
-          /* @__PURE__ */ u3("col", {}),
-          /* @__PURE__ */ u3("col", { style: "width:64px" }),
-          /* @__PURE__ */ u3("col", {})
+      return /* @__PURE__ */ u2("table", { class: "diff sbs", children: [
+        /* @__PURE__ */ u2("colgroup", { children: [
+          /* @__PURE__ */ u2("col", { style: "width:64px" }),
+          /* @__PURE__ */ u2("col", {}),
+          /* @__PURE__ */ u2("col", { style: "width:64px" }),
+          /* @__PURE__ */ u2("col", {})
         ] }),
-        /* @__PURE__ */ u3("tbody", { children: out })
+        /* @__PURE__ */ u2("tbody", { children: out })
       ] });
     }
     for (const r3 of rows) {
-      if (r3.t === "hunk") out.push(/* @__PURE__ */ u3("tr", { class: "hunk", children: [
-        /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
-        /* @__PURE__ */ u3("td", { class: "num", children: "\u2026" }),
-        /* @__PURE__ */ u3("td", { class: "code", children: r3.text })
+      if (r3.t === "hunk") out.push(/* @__PURE__ */ u2("tr", { class: "hunk", children: [
+        /* @__PURE__ */ u2("td", { class: "num", children: "\u2026" }),
+        /* @__PURE__ */ u2("td", { class: "num", children: "\u2026" }),
+        /* @__PURE__ */ u2("td", { class: "code", children: r3.text })
       ] }));
-      else if (r3.t === "note") out.push(/* @__PURE__ */ u3("tr", { children: [
-        /* @__PURE__ */ u3("td", { class: "num" }),
-        /* @__PURE__ */ u3("td", { class: "num" }),
-        /* @__PURE__ */ u3("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
+      else if (r3.t === "note") out.push(/* @__PURE__ */ u2("tr", { children: [
+        /* @__PURE__ */ u2("td", { class: "num" }),
+        /* @__PURE__ */ u2("td", { class: "num" }),
+        /* @__PURE__ */ u2("td", { class: "code", style: "color:var(--fgColor-muted)", children: r3.text })
       ] }));
-      else if (r3.t === "add") out.push(/* @__PURE__ */ u3("tr", { class: "add", children: [
-        /* @__PURE__ */ u3("td", { class: "num" }),
-        /* @__PURE__ */ u3("td", { class: "num", children: [
+      else if (r3.t === "add") out.push(/* @__PURE__ */ u2("tr", { class: "add", children: [
+        /* @__PURE__ */ u2("td", { class: "num" }),
+        /* @__PURE__ */ u2("td", { class: "num", children: [
           r3.n,
           plus(r3.n, "RIGHT")
         ] }),
-        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: "+" })
+        /* @__PURE__ */ u2(Code, { text: r3.text, path, marker: "+" })
       ] }), ...lineExtras(path, r3.n, "RIGHT", 3, canComment, on3, r3.text));
-      else if (r3.t === "del") out.push(/* @__PURE__ */ u3("tr", { class: "del", children: [
-        /* @__PURE__ */ u3("td", { class: "num", children: [
+      else if (r3.t === "del") out.push(/* @__PURE__ */ u2("tr", { class: "del", children: [
+        /* @__PURE__ */ u2("td", { class: "num", children: [
           r3.o,
           plus(r3.o, "LEFT")
         ] }),
-        /* @__PURE__ */ u3("td", { class: "num" }),
-        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: "-" })
+        /* @__PURE__ */ u2("td", { class: "num" }),
+        /* @__PURE__ */ u2(Code, { text: r3.text, path, marker: "-" })
       ] }), ...lineExtras(path, r3.o, "LEFT", 3, canComment, on3));
-      else out.push(/* @__PURE__ */ u3("tr", { children: [
-        /* @__PURE__ */ u3("td", { class: "num", children: r3.o }),
-        /* @__PURE__ */ u3("td", { class: "num", children: [
+      else out.push(/* @__PURE__ */ u2("tr", { children: [
+        /* @__PURE__ */ u2("td", { class: "num", children: r3.o }),
+        /* @__PURE__ */ u2("td", { class: "num", children: [
           r3.n,
           plus(r3.n, "RIGHT")
         ] }),
-        /* @__PURE__ */ u3(Code, { text: r3.text, path, marker: " " })
+        /* @__PURE__ */ u2(Code, { text: r3.text, path, marker: " " })
       ] }), ...lineExtras(path, r3.n, "RIGHT", 3, canComment, on3, r3.text));
     }
-    return /* @__PURE__ */ u3("table", { class: "diff", children: [
-      /* @__PURE__ */ u3("colgroup", { children: [
-        /* @__PURE__ */ u3("col", { style: "width:64px" }),
-        /* @__PURE__ */ u3("col", { style: "width:64px" }),
-        /* @__PURE__ */ u3("col", {})
+    return /* @__PURE__ */ u2("table", { class: "diff", children: [
+      /* @__PURE__ */ u2("colgroup", { children: [
+        /* @__PURE__ */ u2("col", { style: "width:64px" }),
+        /* @__PURE__ */ u2("col", { style: "width:64px" }),
+        /* @__PURE__ */ u2("col", {})
       ] }),
-      /* @__PURE__ */ u3("tbody", { children: out })
+      /* @__PURE__ */ u2("tbody", { children: out })
     ] });
   }
   var sugOf = (c3) => {
@@ -2304,9 +2316,9 @@
           simpleRow(e2, "eye", `requested a review from ${e2.requested_reviewer?.login || e2.requested_team?.name || ""}`);
           break;
         case "renamed":
-          simpleRow(e2, "pencil", /* @__PURE__ */ u3(S2, { children: [
+          simpleRow(e2, "pencil", /* @__PURE__ */ u2(S2, { children: [
             "changed the title ",
-            /* @__PURE__ */ u3("s", { children: e2.rename?.from }),
+            /* @__PURE__ */ u2("s", { children: e2.rename?.from }),
             " ",
             e2.rename?.to
           ] }));
@@ -2347,7 +2359,7 @@
   var CK = { pass: ["check-circle-fill", "Passed"], fail: ["x-circle-fill", "Failed"], pending: ["dot-fill", "In progress"], skip: ["circle-slash", "Skipped"] };
   function checksView(b2) {
     const list = (b2.checks || []).map((c3) => ({ ...c3, st: checkState(c3) }));
-    if (!list.length) return /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No checks reported for the latest commit." });
+    if (!list.length) return /* @__PURE__ */ u2("div", { class: "diff-empty", children: "No checks reported for the latest commit." });
     const n2 = (s3) => list.filter((c3) => c3.st === s3).length;
     const rank = { fail: 0, pending: 1, pass: 2, skip: 3 };
     list.sort((x3, y2) => rank[x3.st] - rank[y2.st] || String(x3.name).localeCompare(String(y2.name)));
@@ -2359,7 +2371,7 @@
       return t2 >= 60 ? `${Math.floor(t2 / 60)}m ${t2 % 60}s` : `${t2}s`;
     };
     const rows = list.map((c3) => ({ name: c3.name, st: c3.st, url: c3.url, desc: c3.description || (c3.app ? c3.app : ""), req: (S.bundle?.required_checks || []).includes(c3.name), status: c3.st === "fail" && c3.conclusion && c3.conclusion !== "failure" ? c3.conclusion.replace(/_/g, " ") : CK[c3.st][1], dur: dur(c3), icon: CK[c3.st][0] }));
-    return /* @__PURE__ */ u3(Checks, { head: [head2[0], head2[1]], headIcon: CK[head2[0]][0], summary: [n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 "), rows });
+    return /* @__PURE__ */ u2(Checks, { head: [head2[0], head2[1]], headIcon: CK[head2[0]][0], summary: [n2("fail") && `${n2("fail")} failing`, n2("pending") && `${n2("pending")} in progress`, n2("pass") && `${n2("pass")} passed`, n2("skip") && `${n2("skip")} skipped`].filter(Boolean).join(" \xB7 "), rows });
   }
   function unresolvedRoots(b2) {
     const res = new Set(b2.resolved_ids || []);
@@ -2416,39 +2428,39 @@
   function Row({ r: r3, on: on3 }) {
     switch (r3.t) {
       case "referenced":
-        return /* @__PURE__ */ u3(Referenced, { ...r3.p });
+        return /* @__PURE__ */ u2(Referenced, { ...r3.p });
       case "comment":
-        return /* @__PURE__ */ u3(CommentBox, { ...r3.p, on: on3?.conv });
+        return /* @__PURE__ */ u2(CommentBox, { ...r3.p, on: on3?.conv });
       case "review":
-        return /* @__PURE__ */ u3(ReviewBlock, { ...r3.p, on: on3?.conv });
+        return /* @__PURE__ */ u2(ReviewBlock, { ...r3.p, on: on3?.conv });
       case "run":
-        return /* @__PURE__ */ u3(CommitRun, { n: r3.n, first: r3.first, last: r3.last, onTab: on3?.tab });
+        return /* @__PURE__ */ u2(CommitRun, { n: r3.n, first: r3.first, last: r3.last, onTab: on3?.tab });
       case "committed":
-        return /* @__PURE__ */ u3(Committed, { row: /* @__PURE__ */ u3(CommitRow, { ...r3.row }) });
+        return /* @__PURE__ */ u2(Committed, { row: /* @__PURE__ */ u2(CommitRow, { ...r3.row }) });
       case "merged":
-        return /* @__PURE__ */ u3(MergedRow, { actor: r3.actor, commit: r3.commit, base: r3.base, at: r3.at });
+        return /* @__PURE__ */ u2(MergedRow, { actor: r3.actor, commit: r3.commit, base: r3.base, at: r3.at });
       case "brk":
-        return /* @__PURE__ */ u3("div", { class: "TLI-break" });
+        return /* @__PURE__ */ u2("div", { class: "TLI-break" });
       case "cross":
-        return /* @__PURE__ */ u3(CrossRef, { ...r3.p });
+        return /* @__PURE__ */ u2(CrossRef, { ...r3.p });
       case "label":
-        return /* @__PURE__ */ u3(LabelRow, { actor: r3.actor, verb: r3.verb, color: r3.color, name: r3.name, at: r3.at });
+        return /* @__PURE__ */ u2(LabelRow, { actor: r3.actor, verb: r3.verb, color: r3.color, name: r3.name, at: r3.at });
       case "simple":
-        return /* @__PURE__ */ u3(Simple, { ...r3.p });
+        return /* @__PURE__ */ u2(Simple, { ...r3.p });
     }
   }
   function Timeline({ m: m2, on: on3 }) {
-    const box = m2.merge && (m2.merge.kind === "merged" ? /* @__PURE__ */ u3(MergedBox, { head: m2.merge.head }) : m2.merge.kind === "closed" ? /* @__PURE__ */ u3(ClosedBox, { head: m2.merge.head }) : /* @__PURE__ */ u3(MergeBox, { ...m2.merge.p, on: on3?.merge }));
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Bars, { who: m2.who, range: m2.range, on: on3?.bars }),
-      /* @__PURE__ */ u3(FoldBar, { onClick: on3?.foldAll }),
-      /* @__PURE__ */ u3("div", { class: "TL", children: [
-        m2.rows.map((r3) => /* @__PURE__ */ u3(Row, { r: r3, on: on3 })),
-        m2.empty ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: m2.empty }) : ""
+    const box = m2.merge && (m2.merge.kind === "merged" ? /* @__PURE__ */ u2(MergedBox, { head: m2.merge.head }) : m2.merge.kind === "closed" ? /* @__PURE__ */ u2(ClosedBox, { head: m2.merge.head }) : /* @__PURE__ */ u2(MergeBox, { ...m2.merge.p, on: on3?.merge }));
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Bars, { who: m2.who, range: m2.range, on: on3?.bars }),
+      /* @__PURE__ */ u2(FoldBar, { onClick: on3?.foldAll }),
+      /* @__PURE__ */ u2("div", { class: "TL", children: [
+        m2.rows.map((r3) => /* @__PURE__ */ u2(Row, { r: r3, on: on3 })),
+        m2.empty ? /* @__PURE__ */ u2("div", { class: "diff-empty", children: m2.empty }) : ""
       ] }),
       box,
-      m2.act ? /* @__PURE__ */ u3(MergeAct, { ...m2.act, on: on3?.act }) : "",
-      /* @__PURE__ */ u3(Composer, { ...m2.composer, on: on3?.composer })
+      m2.act ? /* @__PURE__ */ u2(MergeAct, { ...m2.act, on: on3?.act }) : "",
+      /* @__PURE__ */ u2(Composer, { ...m2.composer, on: on3?.composer })
     ] });
   }
 
@@ -2673,20 +2685,20 @@
   function filesView(b2) {
     const cs = commitList(b2), r3 = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = !!r3 && r3.a === r3.b;
     const sh = (i3) => cs[i3].sha.slice(0, 7);
-    const bar = /* @__PURE__ */ u3(FcBar, { label: !r3 ? "All commits" : single ? "Commit" : `${r3.b - r3.a + 1} commits`, count: !r3 ? cs.length : null, code: !r3 ? null : single ? sh(r3.a) : `${sh(r3.a)}\u2026${sh(r3.b)}`, nav: single ? { prevOff: r3.a <= 0, nextOff: r3.a >= cs.length - 1 } : null, title: r3 && single ? String(cs[r3.a].message).split("\n")[0] : "", hasRange: !!r3, on: filesOn });
-    if (!r3) return /* @__PURE__ */ u3(S2, { children: [
+    const bar = /* @__PURE__ */ u2(FcBar, { label: !r3 ? "All commits" : single ? "Commit" : `${r3.b - r3.a + 1} commits`, count: !r3 ? cs.length : null, code: !r3 ? null : single ? sh(r3.a) : `${sh(r3.a)}\u2026${sh(r3.b)}`, nav: single ? { prevOff: r3.a <= 0, nextOff: r3.a >= cs.length - 1 } : null, title: r3 && single ? String(cs[r3.a].message).split("\n")[0] : "", hasRange: !!r3, on: filesOn });
+    if (!r3) return /* @__PURE__ */ u2(S2, { children: [
       bar,
       filesList(b2.files, true)
     ] });
     const d3 = frDiff(b2);
-    return /* @__PURE__ */ u3(S2, { children: [
+    return /* @__PURE__ */ u2(S2, { children: [
       bar,
-      d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Loading\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: d3 }) : filesList(d3)
+      d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u2("div", { class: "diff-empty", children: "Loading\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u2("div", { class: "diff-empty err", children: d3 }) : filesList(d3)
     ] });
   }
   var b0open = () => !!S.bundle && !S.bundle.pull.merged && S.bundle.pull.state === "open";
   function filesList(files, canComment = false) {
-    if (!files.length) return /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No files changed." });
+    if (!files.length) return /* @__PURE__ */ u2("div", { class: "diff-empty", children: "No files changed." });
     const pid = S.bundle?.pull?.id;
     const hasC = (f4) => (S.bundle?.review_comments || []).some((c3) => c3.path === f4.filename) || pendList().some((p3) => p3.path === f4.filename);
     if (S.autoFoldFor !== pid) {
@@ -2705,18 +2717,18 @@
     const srtFn = so[srt];
     if (srtFn) files = [...files].sort(srtFn);
     const all = files.every((f4) => S.fold["f:" + f4.filename]);
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename), on: filesOn }),
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename), on: filesOn }),
       files.map((f4) => {
         const t2 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t2 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t2 * 5));
         const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
-        return /* @__PURE__ */ u3(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, on: filesOn, children: !shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
+        return /* @__PURE__ */ u2(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, on: filesOn, children: !shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u2("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
       })
     ] });
   }
   function commitsView(b2) {
     const c3 = b2.timeline.filter((e2) => e2.event === "committed");
-    return /* @__PURE__ */ u3(CommitsList, { rows: c3.map((e2) => /* @__PURE__ */ u3(CommitRow, { first: String(e2.message || "").split("\n")[0], sha: e2.sha, author: e2.author?.avatar_url ? e2.author : null, url: e2.html_url, verification: e2.verification, trailing: "" })) });
+    return /* @__PURE__ */ u2(CommitsList, { rows: c3.map((e2) => /* @__PURE__ */ u2(CommitRow, { first: String(e2.message || "").split("\n")[0], sha: e2.sha, author: e2.author?.avatar_url ? e2.author : null, url: e2.html_url, verification: e2.verification, trailing: "" })) });
   }
   function commitList(b2) {
     if (b2.commits && b2.commits.length) return b2.commits.map((c3) => ({ sha: c3.sha, message: c3.commit.message, author: c3.author, name: c3.commit.author?.name, date: c3.commit.author?.date, url: c3.html_url, parent: c3.parents?.[0]?.sha }));
@@ -2760,9 +2772,9 @@
     if (!sha) diff = filesList(b2.files, true);
     else {
       const d3 = S.cdiff[sha];
-      diff = d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Loading commit\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: d3 }) : filesList(d3);
+      diff = d3 === void 0 || d3 === "loading" ? /* @__PURE__ */ u2("div", { class: "diff-empty", children: "Loading commit\u2026" }) : typeof d3 === "string" ? /* @__PURE__ */ u2("div", { class: "diff-empty err", children: d3 }) : filesList(d3);
     }
-    return /* @__PURE__ */ u3(
+    return /* @__PURE__ */ u2(
       SplitView,
       {
         hl: !!S.hide.l,
@@ -2777,9 +2789,9 @@
         foldList: isFolded("cm-list"),
         foldDiff: isFolded("cm-diff"),
         diff,
-        right: /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
-          /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
+        right: /* @__PURE__ */ u2(S2, { children: [
+          /* @__PURE__ */ u2(Attention, { ...attentionProps(b2), on: attOn }),
+          /* @__PURE__ */ u2(Timeline, { m: timelineModel(b2), on: tlOn })
         ] }),
         on: splitOn
       }
@@ -2863,7 +2875,7 @@
   // src/app/dialogs.tsx
   var paintDlg = () => {
     const h3 = $("#dlg");
-    if (h3) R(/* @__PURE__ */ u3(Dialogs, {}), h3);
+    if (h3) R(/* @__PURE__ */ u2(Dialogs, {}), h3);
   };
   var cpOn = {
     close: () => closeDlg(),
@@ -2894,36 +2906,36 @@
     };
     switch (d3.k) {
       case "commits":
-        return /* @__PURE__ */ u3(CommitsDialog, { ...commitsDialogProps(), on: cpOn });
+        return /* @__PURE__ */ u2(CommitsDialog, { ...commitsDialogProps(), on: cpOn });
       case "token":
-        return /* @__PURE__ */ u3(TokenDialog, { code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
+        return /* @__PURE__ */ u2(TokenDialog, { code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
       case "review": {
         const n2 = pendList().length;
-        return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, onEv: (v2) => {
+        return /* @__PURE__ */ u2(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, onEv: (v2) => {
           d3.ev = v2;
           paintDlg();
         }, err: errMsg("review"), close, ok });
       }
       case "editpr":
-        return /* @__PURE__ */ u3(EditPrDialog, { title: d3.title, onTitle: (v2) => {
+        return /* @__PURE__ */ u2(EditPrDialog, { title: d3.title, onTitle: (v2) => {
           d3.title = v2;
         }, err: errMsg("editpr"), close, ok });
       case "confirm":
-        return /* @__PURE__ */ u3(ConfirmDialog, { title: d3.title, text: d3.text, label: d3.label, danger: d3.danger, close, ok });
+        return /* @__PURE__ */ u2(ConfirmDialog, { title: d3.title, text: d3.text, label: d3.label, danger: d3.danger, close, ok });
       case "editc":
-        return /* @__PURE__ */ u3(EditCommentDialog, { err: errMsg("editc"), close, ok });
+        return /* @__PURE__ */ u2(EditCommentDialog, { err: errMsg("editc"), close, ok });
       case "delc":
-        return /* @__PURE__ */ u3(DeleteCommentDialog, { err: errMsg("delc"), close, ok });
+        return /* @__PURE__ */ u2(DeleteCommentDialog, { err: errMsg("delc"), close, ok });
       case "hidec":
-        return /* @__PURE__ */ u3(HideCommentDialog, { reasons: d3.reasons, err: errMsg("hidec"), close, ok });
+        return /* @__PURE__ */ u2(HideCommentDialog, { reasons: d3.reasons, err: errMsg("hidec"), close, ok });
     }
   }
   function Pops() {
     const p3 = S.pop;
     if (!p3) return null;
-    if (p3.k === "cm") return /* @__PURE__ */ u3(CmPop, { ...p3 });
-    if (p3.k === "ctx") return /* @__PURE__ */ u3(CtxPop, { ...p3 });
-    return /* @__PURE__ */ u3(ReactPop, { x: p3.x, y: p3.y, reacts: REACTS, pick: p3.pick });
+    if (p3.k === "cm") return /* @__PURE__ */ u2(CmPop, { ...p3 });
+    if (p3.k === "ctx") return /* @__PURE__ */ u2(CtxPop, { ...p3 });
+    return /* @__PURE__ */ u2(ReactPop, { x: p3.x, y: p3.y, reacts: REACTS, pick: p3.pick });
   }
   var popHost = null;
   var paintPop = () => {
@@ -2933,7 +2945,7 @@
       popHost.style.display = "contents";
       document.body.appendChild(popHost);
     }
-    R(/* @__PURE__ */ u3(Pops, {}), popHost);
+    R(/* @__PURE__ */ u2(Pops, {}), popHost);
   };
   function openPop(p3) {
     S.pop = p3;
@@ -2945,471 +2957,6 @@
     paintPop();
   }
   document.addEventListener("click", closePop);
-
-  // src/components/Sidebar.tsx
-  var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function SideTabs({ active, hasRepo, on: on3 }) {
-    const cls = (t2) => active === t2 ? "on" : "";
-    return /* @__PURE__ */ u3("div", { class: "sb-tabs", children: [
-      /* @__PURE__ */ u3("button", { "data-side": "repos", class: cls("repos"), onClick: () => on3.side("repos"), children: "Repos" }),
-      hasRepo && /* @__PURE__ */ u3("button", { "data-side": "prs", class: cls("prs"), onClick: () => on3.side("prs"), children: "PRs" }),
-      /* @__PURE__ */ u3("button", { "data-side": "recent", class: cls("recent"), onClick: () => on3.side("recent"), children: "Recent" })
-    ] });
-  }
-  function RcItem({ r: r3, on: on3 }) {
-    return /* @__PURE__ */ u3("a", { class: `rc ${r3.on ? "on" : ""}`, "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
-      /* @__PURE__ */ u3("span", { class: "rc-t", children: [
-        /* @__PURE__ */ u3("b", { children: r3.title }),
-        /* @__PURE__ */ u3("i", { children: r3.sub })
-      ] })
-    ] });
-  }
-  function RecentList({ recent, curRef: curRef2, on: on3 }) {
-    if (!recent.length) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Pull requests you open appear here." });
-    return /* @__PURE__ */ u3(S2, { children: recent.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${r3.ref === curRef2 ? "on" : ""}`, "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
-      /* @__PURE__ */ u3("span", { class: "rc-t", children: [
-        /* @__PURE__ */ u3("b", { children: r3.title }),
-        /* @__PURE__ */ u3("i", { children: r3.ref })
-      ] }),
-      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
-    ] })) });
-  }
-  function RepoList({ repos, repo, filter, on: on3 }) {
-    const f4 = filter.toLowerCase(), shown = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter, onInput: on3.repoFilter }),
-      shown.length ? shown.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: /* @__PURE__ */ u3(Icon, { n: r3.private ? "lock" : "repo" }) }),
-        /* @__PURE__ */ u3("span", { class: "rc-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.full_name.split("/")[1] }),
-          /* @__PURE__ */ u3("i", { children: r3.full_name.split("/")[0] })
-        ] })
-      ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "No matches." })
-    ] });
-  }
-  function Sel({ id, opts, v: v2, onChange }) {
-    return /* @__PURE__ */ u3("select", { class: "input sb-sel", id, onChange, children: opts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === v2, children: t2 })) });
-  }
-  function SideHead({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "sb-repo", children: [
-        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-side": "repos", title: "All repositories", onClick: () => on3.side("repos"), children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
-        /* @__PURE__ */ u3("b", { title: p3.repo, children: p3.repo })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-sps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.sps(s3), children: cap(s3) })) }),
-      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "prfilter", placeholder: "Filter by title, #, author, label\u2026", value: p3.filter, onInput: on3.pf }),
-      /* @__PURE__ */ u3("div", { class: "sb-ctl", children: [
-        /* @__PURE__ */ u3("label", { children: [
-          "Sort",
-          /* @__PURE__ */ u3(Sel, { id: "prsort", opts: p3.sorts, v: p3.sort, onChange: on3.psort })
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Group",
-          /* @__PURE__ */ u3(Sel, { id: "prgroup", opts: p3.groups, v: p3.group, onChange: on3.pgroup })
-        ] })
-      ] })
-    ] });
-  }
-  function PrGroups({ groups, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: groups.map((g2) => /* @__PURE__ */ u3("div", { class: `pg${g2.folded}`, children: [
-      /* @__PURE__ */ u3("div", { class: "pg-h", "data-fold": g2.key, onClick: (e2) => on3.fold(e2, g2.key), children: [
-        /* @__PURE__ */ u3(Icon, { n: g2.closed ? "chevron-right" : "chevron-down" }),
-        /* @__PURE__ */ u3("span", { children: g2.name }),
-        /* @__PURE__ */ u3("i", { children: g2.rows.length })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "pg-b", children: g2.rows.map((r3) => /* @__PURE__ */ u3(RcItem, { r: r3, on: on3 })) })
-    ] })) });
-  }
-  function Sidebar({ sideTab, hasRepo, hasToken, on: on3, children }) {
-    return /* @__PURE__ */ u3("aside", { class: "sidebar", children: [
-      /* @__PURE__ */ u3(SideTabs, { active: sideTab, hasRepo, on: on3 }),
-      /* @__PURE__ */ u3("div", { class: "sb-list", children }),
-      /* @__PURE__ */ u3("div", { class: "sb-foot", children: hasToken ? "Signed in with token" : "Anonymous \xB7 60 requests/hour" })
-    ] });
-  }
-
-  // src/components/Home.tsx
-  var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Banners({ items, on: on3 }) {
-    return /* @__PURE__ */ u3(S2, { children: items.map((p3) => /* @__PURE__ */ u3("div", { class: "push-banner", children: [
-      I2("git-branch"),
-      /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("b", { children: p3.branch }),
-        " had recent pushes ",
-        p3.ago,
-        p3.showRepo ? /* @__PURE__ */ u3(S2, { children: [
-          " ",
-          /* @__PURE__ */ u3("i", { children: [
-            "\xB7 ",
-            p3.repo
-          ] })
-        ] }) : ""
-      ] }),
-      /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
-      /* @__PURE__ */ u3("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
-    ] })) });
-  }
-  function Card({ r: r3, on: on3 }) {
-    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
-      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
-      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-        /* @__PURE__ */ u3("b", { children: r3.name }),
-        /* @__PURE__ */ u3("i", { children: [
-          r3.owner,
-          r3.archived ? " \xB7 archived" : "",
-          r3.issues ? ` \xB7 ${r3.issues} open` : ""
-        ] }),
-        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
-      ] })
-    ] });
-  }
-  function Opt({ v: v2, cur, t: t2 }) {
-    return /* @__PURE__ */ u3("option", { value: v2, selected: cur === v2, children: t2 });
-  }
-  function Body({ b: b2, on: on3 }) {
-    if (b2.kind === "addtoken") return /* @__PURE__ */ u3("div", { class: "diff-empty", children: [
-      "Add an access token to list all your repositories and their pull requests.",
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
-    ] });
-    if (b2.kind === "error") return /* @__PURE__ */ u3("div", { class: "diff-empty err", children: b2.text });
-    if (b2.kind === "spinner") return /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
-    if (b2.kind === "recent") {
-      return /* @__PURE__ */ u3(S2, { children: [
-        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
-          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.state === x3 ? "on" : "", "data-rstate": x3, onClick: () => on3.rstate(x3), children: cap2(x3) })) })
-        ] }) : "",
-        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
-          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
-            /* @__PURE__ */ u3("b", { children: r3.title }),
-            /* @__PURE__ */ u3("i", { children: r3.ref })
-          ] }),
-          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: I2("x") })
-        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
-      ] });
-    }
-    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
-        g2.owner,
-        /* @__PURE__ */ u3("span", { children: g2.cards.length })
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) })
-    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3, on: on3 })) });
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
-        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
-        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.vis === x3 ? "on" : "", "data-hvis": x3, onClick: () => on3.vis(x3), children: cap2(x3) })) }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
-          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
-          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
-          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
-          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
-        ] }),
-        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
-          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
-          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
-        ] })
-      ] }),
-      grid
-    ] });
-  }
-  function Home({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
-        I2("home"),
-        SP,
-        p3.owner || "Home"
-      ] }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
-        "Open a pull request: type ",
-        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
-        " or paste a URL in the bar above."
-      ] }),
-      p3.banners.length ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }) }) : "",
-      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
-        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
-          I2("repo"),
-          " Repositories",
-          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
-        ] }),
-        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
-          I2("clock"),
-          " Recent",
-          /* @__PURE__ */ u3("span", { children: p3.recentCount })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3(Body, { b: p3.body, on: on3 })
-    ] });
-  }
-
-  // src/components/PrList.tsx
-  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Opts({ arr, v: v2, all }) {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("option", { value: "", children: all }),
-      arr.map((x3) => /* @__PURE__ */ u3("option", { value: x3, selected: x3 === v2, children: x3 }))
-    ] });
-  }
-  function FilterBar({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "prl-filters", children: [
-      /* @__PURE__ */ u3("span", { class: "pf-search", children: [
-        I2("search"),
-        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false, onInput: on3.filter })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", onChange: on3.author, children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", onChange: on3.label, children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", onChange: on3.status, children: [
-        /* @__PURE__ */ u3("option", { value: "", children: "Status: any" }),
-        p3.statuses.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.status, children: t2 }))
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", onChange: on3.sort, children: p3.sorts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
-        "Sort: ",
-        t2
-      ] })) }),
-      "\n  ",
-      /* @__PURE__ */ u3("span", { class: "pf-count", children: [
-        p3.n,
-        " of ",
-        p3.total
-      ] }),
-      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
-    ] });
-  }
-  function PrListPage({ p: p3, on: on3 }) {
-    const body = p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
-      /* @__PURE__ */ u3("span", { class: "prl-main", children: [
-        /* @__PURE__ */ u3("b", { children: r3.title }),
-        r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
-        /* @__PURE__ */ u3("i", { children: r3.meta })
-      ] }),
-      /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
-    ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty });
-    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
-      /* @__PURE__ */ u3("div", { class: "repoline", style: "padding-bottom:16px" }),
-      /* @__PURE__ */ u3(Banners, { items: p3.banners, on: on3 }),
-      /* @__PURE__ */ u3("div", { class: "prl", children: [
-        /* @__PURE__ */ u3("div", { class: "prl-head", children: [
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("span", { class: "repo-ic", children: I2("repo", 16) }),
-            SP,
-            /* @__PURE__ */ u3("b", { children: p3.repo })
-          ] }),
-          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.ps(s3), children: cap3(s3) })) })
-        ] }),
-        p3.filterBar ? /* @__PURE__ */ u3(FilterBar, { p: p3.filterBar, on: on3 }) : null,
-        body
-      ] })
-    ] });
-  }
-  function Crumbs({ repo, trail, extra, extraNode, on: on3 }) {
-    const homeCur = !repo && !trail.length;
-    const parts = [homeCur ? /* @__PURE__ */ u3("span", { class: "crumb cur home", children: [
-      I2("home", 14),
-      /* @__PURE__ */ u3("span", { children: "Home" })
-    ] }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-home": "1", onClick: on3 && on3.home, title: "Home", children: [
-      I2("home", 14),
-      /* @__PURE__ */ u3("span", { children: "Home" })
-    ] })];
-    if (repo) {
-      const [owner, name] = repo.split("/");
-      parts.push(/* @__PURE__ */ u3("span", { class: "crumb-grp", children: [
-        /* @__PURE__ */ u3("a", { class: "crumb", "data-owner": owner, onClick: on3 && (() => on3.owner(owner)), title: `Repositories of ${owner}`, children: owner }),
-        /* @__PURE__ */ u3("span", { class: "crumb-slash", children: "/" }),
-        /* @__PURE__ */ u3("a", { class: "crumb strong", "data-repo": repo, onClick: on3 && (() => on3.repo(repo)), title: `All pull requests in ${repo}`, children: name })
-      ] }));
-    }
-    trail.forEach((t2, i3) => parts.push(i3 === trail.length - 1 ? /* @__PURE__ */ u3("span", { class: "crumb cur", children: t2.t }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-repo": t2.repo || void 0, onClick: on3 && t2.repo ? (() => on3.repo(t2.repo)) : void 0, children: t2.t })));
-    return /* @__PURE__ */ u3("nav", { class: "repoline crumbs", "aria-label": "Breadcrumb", children: [
-      parts.map((x3, i3) => /* @__PURE__ */ u3(S2, { children: [
-        i3 ? /* @__PURE__ */ u3("span", { class: "crumb-sep", children: I2("chevron-right", 12) }) : "",
-        x3
-      ] })),
-      extra ? Raw(extra) : null,
-      extraNode
-    ] });
-  }
-
-  // src/app/prlist.ts
-  var PSORT = { updated: "Recently updated", created: "Newest", oldest: "Oldest", number: "Number", title: "Title A\u2013Z", author: "Author" };
-  var PGROUP = { none: "No grouping", status: "Status", author: "Author", label: "Label", base: "Base branch" };
-  var prStatus = (p3) => p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : p3.draft ? "draft" : "open";
-  var PICON = { open: "git-pull-request", draft: "git-pull-request-draft", merged: "git-merge", closed: "git-pull-request-closed" };
-  function prFiltered() {
-    const f4 = S.pf.toLowerCase();
-    const list = (S.prs || []).filter((p3) => (!f4 || `#${p3.number} ${p3.title} ${p3.user.login} ${p3.head?.ref || ""} ${(p3.labels || []).map((l3) => l3.name).join(" ")}`.toLowerCase().includes(f4)) && (!S.pAuthor || p3.user.login === S.pAuthor) && (!S.pLabel || (p3.labels || []).some((l3) => l3.name === S.pLabel)) && (!S.pStatus || prStatus(p3) === S.pStatus));
-    const cmps = { updated: (a3, b2) => b2.updated_at.localeCompare(a3.updated_at), created: (a3, b2) => b2.created_at.localeCompare(a3.created_at), oldest: (a3, b2) => a3.created_at.localeCompare(b2.created_at), number: (a3, b2) => b2.number - a3.number, title: (a3, b2) => a3.title.localeCompare(b2.title), author: (a3, b2) => a3.user.login.localeCompare(b2.user.login) || b2.number - a3.number };
-    return list.sort(cmps[S.psort]);
-  }
-  function prFilterBar() {
-    if (!S.prs) return null;
-    const authors = [...new Set(S.prs.map((p3) => p3.user.login))].sort((a3, b2) => a3.localeCompare(b2));
-    const labels = [...new Set(S.prs.flatMap((p3) => (p3.labels || []).map((l3) => l3.name)))].sort((a3, b2) => a3.localeCompare(b2));
-    return {
-      filter: S.pf,
-      authors,
-      labels,
-      author: S.pAuthor,
-      label: S.pLabel,
-      status: S.pStatus ?? "",
-      statuses: Object.entries({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }),
-      sort: S.psort,
-      sorts: Object.entries(PSORT),
-      n: prFiltered().length,
-      total: S.prs.length,
-      active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus)
-    };
-  }
-  function prListProps() {
-    const rows = S.error || !S.prs ? null : prFiltered().map((p3) => {
-      const st = p3.merged_at ? ["merged", "git-merge"] : p3.state === "closed" ? ["closed", "git-pull-request-closed"] : p3.draft ? ["draft", "git-pull-request-draft"] : ["open", "git-pull-request"];
-      return { ref: `${S.repo}#${p3.number}`, st: st[0], icon: st[1], title: p3.title, labels: p3.labels || [], meta: `#${p3.number} ${p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : "opened"} ${when(p3.merged_at || p3.closed_at || p3.created_at).replace(/<\/?span[^>]*>/g, "")} by ${p3.user.login}`, avatar: p3.user.avatar_url ?? "" };
-    });
-    return { repo: S.repo, state: S.prState, banners: pushBannerItems(S.repo), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : "", loading: !S.error && !S.prs, empty: S.prs?.length ? "No pull requests match the filters." : "No pull requests." };
-  }
-
-  // src/app/side.tsx
-  var typed = (e2, key, id) => {
-    const t2 = e2.target;
-    S[key] = t2.value;
-    const p3 = t2.selectionStart;
-    render();
-    const n2 = $("#" + id);
-    n2.focus();
-    n2.setSelectionRange(p3, p3);
-  };
-  var on = {
-    side: (tab) => {
-      S.sideTab = tab;
-      render();
-    },
-    sps: (state) => {
-      S.prState = state;
-      loadPrs();
-    },
-    pf: (e2) => typed(e2, "pf", "prfilter"),
-    psort: (e2) => {
-      S.psort = e2.target.value;
-      localStorage.setItem("psort", S.psort);
-      render();
-    },
-    pgroup: (e2) => {
-      S.pgroup = e2.target.value;
-      localStorage.setItem("pgroup", S.pgroup);
-      render();
-    },
-    repoFilter: (e2) => typed(e2, "repoFilter", "repofilter"),
-    repo: (name) => openRepo(name),
-    addToken: tokenDialog,
-    open: openClick,
-    aux: openAux,
-    ctx: openCtx,
-    rm: rmRecent,
-    // Folding only flips state: the sidebar repaints itself and any copy of the block in the page is updated in place.
-    fold: (e2, k3) => {
-      e2.stopPropagation();
-      const now = !isFolded(k3), els = qa("[data-fold]").filter((x3) => x3.dataset.fold === k3 && !x3.closest("#side"));
-      S.fold[k3] = now;
-      localStorage.setItem("fold", JSON.stringify(S.fold));
-      els.forEach((x3) => {
-        const box = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
-        if (box) box.classList.toggle("folded", now);
-        const svg = $("svg", x3);
-        if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
-      });
-      repaintSide();
-    }
-  };
-  function PrRows() {
-    const cur = S.bundle && S.view === "pr" ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
-    const f4 = S.pf.toLowerCase();
-    const head2 = { repo: S.repo, state: S.prState, filter: S.pf, sort: S.psort, group: S.pgroup, sorts: Object.entries(PSORT), groups: Object.entries(PGROUP) };
-    const header = /* @__PURE__ */ u3(SideHead, { p: head2, on });
-    if (!S.prs) return /* @__PURE__ */ u3(S2, { children: [
-      header,
-      /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading pull requests\u2026" })
-    ] });
-    const list = S.prs.filter((p3) => !f4 || `#${p3.number} ${p3.title} ${p3.user.login} ${p3.head?.ref || ""} ${(p3.labels || []).map((l3) => l3.name).join(" ")}`.toLowerCase().includes(f4));
-    const sorts = { updated: (a3, b2) => b2.updated_at.localeCompare(a3.updated_at), created: (a3, b2) => b2.created_at.localeCompare(a3.created_at), oldest: (a3, b2) => a3.created_at.localeCompare(b2.created_at), number: (a3, b2) => b2.number - a3.number, title: (a3, b2) => a3.title.localeCompare(b2.title), author: (a3, b2) => a3.user.login.localeCompare(b2.user.login) || b2.number - a3.number };
-    list.sort(sorts[S.psort]);
-    const row = (p3) => {
-      const st = prStatus(p3), ref = `${S.repo}#${p3.number}`;
-      return { ref, on: ref === cur, st, icon: PICON[st], title: p3.title, sub: `#${p3.number} \xB7 ${p3.user.login} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}` };
-    };
-    if (!list.length) return /* @__PURE__ */ u3(S2, { children: [
-      header,
-      /* @__PURE__ */ u3("div", { class: "sb-empty", children: S.pf ? "No matches." : "No pull requests." })
-    ] });
-    if (S.pgroup === "none") return /* @__PURE__ */ u3(S2, { children: [
-      header,
-      /* @__PURE__ */ u3("div", { class: "sb-count", children: [
-        list.length,
-        " pull request",
-        list.length === 1 ? "" : "s"
-      ] }),
-      list.map((p3) => /* @__PURE__ */ u3(RcItem, { r: row(p3), on }))
-    ] });
-    const groups = /* @__PURE__ */ new Map(), put = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
-    list.forEach((p3) => {
-      if (S.pgroup === "status") put({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }[prStatus(p3)], p3);
-      else if (S.pgroup === "author") put(p3.user.login, p3);
-      else if (S.pgroup === "base") put(p3.base?.ref || "\u2014", p3);
-      else if ((p3.labels || []).length) p3.labels.forEach((l3) => put(l3.name, p3));
-      else put("No label", p3);
-    });
-    const order = S.pgroup === "status" ? ["Open", "Draft", "Merged", "Closed"] : [...groups.keys()].sort((a3, b2) => +(a3 === "No label") - +(b2 === "No label") || a3.localeCompare(b2));
-    return /* @__PURE__ */ u3(S2, { children: [
-      header,
-      /* @__PURE__ */ u3(PrGroups, { on, groups: order.filter((k3) => groups.has(k3)).map((k3) => {
-        const key = "pg:" + S.pgroup + ":" + k3;
-        return { key, folded: folded(key), closed: isFolded(key), name: k3, rows: groups.get(k3).map(row) };
-      }) })
-    ] });
-  }
-  function List() {
-    if (S.sideTab === "prs" && S.repo) return /* @__PURE__ */ u3(PrRows, {});
-    if (S.sideTab === "recent") return /* @__PURE__ */ u3(RecentList, { recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "", on });
-    if (!S.hasToken) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: [
-      "Add an access token to list all your repositories and their pull requests.",
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("br", {}),
-      /* @__PURE__ */ u3("button", { class: "sb-btn", id: "addtoken", onClick: on.addToken, children: "Add token" })
-    ] });
-    if (S.reposErr) return /* @__PURE__ */ u3("div", { class: "sb-empty err", children: S.reposErr });
-    if (!S.repos) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading repositories\u2026" });
-    return /* @__PURE__ */ u3(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on });
-  }
-  function Side() {
-    return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on, children: /* @__PURE__ */ u3(List, {}) });
-  }
-  var paintSide = (host) => R(/* @__PURE__ */ u3(Side, {}), host);
-  var repaintSide = () => {
-    const h3 = $("#side");
-    if (h3) paintSide(h3);
-  };
-
-  // src/app/render.ts
-  var go = (n2) => {
-    const t2 = S.hi + n2;
-    if (t2 < 0 || t2 >= S.hist.length) return;
-    S.hi = t2;
-    S.hist[t2].startsWith("repo:") ? openRepo(S.hist[t2].slice(5), { nav: true }) : openPr(S.hist[t2], { nav: true });
-  };
 
   // src/app/bind.ts
   S.alive = /* @__PURE__ */ new Map();
@@ -3521,14 +3068,6 @@
     render();
     S.keepScroll = false;
   }
-  var wired = /* @__PURE__ */ new WeakMap();
-  function bindIslands() {
-    qa(".island").forEach((el) => {
-      if (wired.get(el) === el.firstChild) return;
-      wired.set(el, el.firstChild);
-      bind(el);
-    });
-  }
   function syncFoldAll() {
     const els = [...qa(".TL [data-fold]")], l3 = document.querySelector("#foldallconv span");
     if (l3 && els.length) l3.textContent = els.every((x3) => isFolded(x3.dataset.fold, x3.dataset.def === "1")) ? "Expand all conversations" : "Collapse all conversations";
@@ -3546,1048 +3085,120 @@
     }
     rerender();
   }
-  function bind(scope) {
-    const { qa: qa2, $: $3 } = scoped(scope);
-    bindWrite(scope);
-    $3("#fcbtn")?.addEventListener("click", openCommits);
-    $3("#fcall")?.addEventListener("click", () => setFr(null));
-    qa2("[data-fstep]").forEach((el) => el.addEventListener("click", () => {
-      const cs = commitList(S.bundle), i3 = (S.fr?.a ?? 0) + Number(el.dataset.fstep);
-      if (cs[i3]) setFr({ a: i3, b: i3 });
-    }));
-    $3("#fsort")?.addEventListener("change", (e2) => {
-      S.fileSort = e2.target.value;
-      rerender();
-    });
-    qa2("[data-repo]").forEach((el) => el.addEventListener("click", () => openRepo(el.dataset.repo)));
-    qa2("[data-home]").forEach((el) => el.addEventListener("click", () => {
-      S.view = "home";
-      S.homeOwner = "";
-      S.nav = false;
-      render();
-    }));
-    qa2("[data-owner]").forEach((el) => el.addEventListener("click", () => {
-      S.view = "home";
-      S.homeOwner = el.dataset.owner;
-      S.homeTab = "repos";
-      S.nav = false;
-      render();
-      if (S.hasToken && !S.repos) loadRepos();
-    }));
-    qa2("[data-open]").forEach((el) => {
-      el.addEventListener("click", (e2) => openClick(el, e2));
-      el.addEventListener("auxclick", (e2) => openAux(el, e2));
-      el.addEventListener("contextmenu", (e2) => openCtx(el, e2));
-    });
-    qa2("[data-rm]").forEach((el) => el.addEventListener("click", (e2) => rmRecent(e2, el.dataset.rm)));
-    qa2("[data-tab]:not(.ptab)").forEach((a3) => a3.addEventListener("click", () => {
-      S.tab = a3.dataset.tab;
-      render();
-      $3(".main").scrollTop = 0;
-    }));
-    qa2("[data-compare]").forEach((b2) => b2.addEventListener("click", () => {
-      const [repo, br] = b2.dataset.compare.split("@");
-      openNewPr(repo, br);
-    }));
-    qa2("[data-pdismiss]").forEach((b2) => b2.addEventListener("click", () => {
-      pushDis[b2.dataset.pdismiss] = 1;
-      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
-      rerender();
-    }));
-    $3("#noteall")?.addEventListener("click", () => {
-      S.bell = false;
-      S.view = "notes";
-      S.nav = false;
-      render();
-    });
-    qa2("[data-nf]").forEach((b2) => b2.addEventListener("click", () => {
-      S.nf = b2.dataset.nf;
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }));
-    qa2("[data-nread]").forEach((b2) => b2.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      const n2 = S.notes.find((x3) => String(x3.id) === b2.dataset.nread);
-      if (n2) {
-        n2.read = !n2.read;
-        saveNotes();
-        S.keepScroll = true;
-        render();
-        S.keepScroll = false;
-      }
-    }));
-    qa2("[data-ndel]").forEach((b2) => b2.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      S.notes = S.notes.filter((x3) => String(x3.id) !== b2.dataset.ndel);
-      saveNotes();
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    }));
-    $3("#notecheck")?.addEventListener("click", () => pollNotes());
-    $3("#noteclear")?.addEventListener("click", () => {
-      S.notes = [];
-      localStorage.setItem("notes", "[]");
-      S.keepScroll = true;
-      render();
-      S.keepScroll = false;
-    });
-    qa2(".note-panel [data-open]").forEach((el) => el.addEventListener("click", () => {
-      S.bell = false;
-      S.notes.forEach((n2) => n2.read = true);
-      localStorage.setItem("notes", JSON.stringify(S.notes));
-    }));
-    const keep4 = (fn) => {
-      S.keepScroll = true;
-      fn();
-      render();
-      S.keepScroll = false;
+  document.addEventListener("mousedown", (e2) => {
+    if (!e2.target.closest?.("#sbgrip")) return;
+    e2.preventDefault();
+    const sh = $(".shell"), x0 = e2.clientX, w0 = S.sbw;
+    const mv = (ev) => {
+      S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
+      sh.style.setProperty("--sbw", S.sbw + "px");
     };
-    syncFoldAll();
-    $3("#foldallconv")?.addEventListener("click", foldAllConv);
-    qa2("[data-fold]").forEach((el) => el.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      if (e2.target.closest("a")) return;
-      const k3 = el.dataset.fold, now = !isFolded(k3, el.dataset.def === "1");
-      S.fold[k3] = now;
-      localStorage.setItem("fold", JSON.stringify(S.fold));
-      qa2("[data-fold]").forEach((x3) => {
-        if (x3.dataset.fold !== k3) return;
-        const box2 = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
-        if (box2) box2.classList.toggle("folded", now);
-        const svg = $3("svg", x3);
-        if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
-      });
-      repaintSide();
-      if (!now && k3.startsWith("f:")) {
-        const fb = el.closest(".file");
-        if (fb && !$3("table.diff, .diff-empty", fb)) {
-          rerender();
-          return;
-        }
-      }
-      if (now) return;
-      const box = el.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane"), main = $3(".main");
-      if (!box || !main || !main.contains(box)) return;
-      const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
-      if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
-    }));
-    qa2("[data-foldall]").forEach((el) => el.addEventListener("click", () => keep4(() => {
-      el.dataset.files.split("\n").forEach((n2) => {
-        S.fold["f:" + n2] = el.dataset.foldall === "close";
-      });
-      localStorage.setItem("fold", JSON.stringify(S.fold));
-    })));
-    qa2("[data-hide]").forEach((el) => el.addEventListener("click", () => keep4(() => {
-      S.hide[el.dataset.hide] = true;
-      localStorage.setItem("hide", JSON.stringify(S.hide));
-    })));
-    qa2("[data-show]").forEach((el) => el.addEventListener("click", () => keep4(() => {
-      S.hide[el.dataset.show] = false;
-      localStorage.setItem("hide", JSON.stringify(S.hide));
-    })));
-    qa2("[data-who]").forEach((el) => el.addEventListener("click", () => keep4(() => {
-      const w3 = el.dataset.who;
-      S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
-    })));
-    qa2("[data-whoclear]").forEach((el) => el.addEventListener("click", () => keep4(() => {
-      S.who = [];
-    })));
-    $3("#scrim")?.addEventListener("click", () => keep4(() => {
-      S.nav = false;
-    }));
-    $3("#nextun")?.addEventListener("click", jumpUnresolved);
-    $3("#crange")?.addEventListener("change", (e2) => keep4(() => {
-      S.range = e2.target.value;
-      if (S.range === "custom" && !S.rFrom && !S.rTo) {
-        const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-        S.rTo = d3(Date.now());
-        S.rFrom = d3(Date.now() - 7 * 864e5);
-      }
-    }));
-    $3("#cfrom")?.addEventListener("change", (e2) => keep4(() => {
-      S.rFrom = e2.target.value;
-    }));
-    $3("#cto")?.addEventListener("change", (e2) => keep4(() => {
-      S.rTo = e2.target.value;
-    }));
-    $3("#csort")?.addEventListener("click", () => keep4(() => {
-      S.sort = S.sort === "desc" ? "asc" : "desc";
-      localStorage.setItem("csort", S.sort);
-    }));
-    $3("#unres")?.addEventListener("click", () => keep4(() => {
-      S.unres = !S.unres;
-    }));
-    if (!scope) {
-      (S.ios || []).forEach((o3) => o3.disconnect());
-      S.ios = [];
-    }
-    if (!scope) {
-      const mn = $3(".main");
-      if (mn && S.view === "pr") {
-        let raf = 0;
-        mn.addEventListener("scroll", () => {
-          if (S.restoring || raf) return;
-          raf = requestAnimationFrame(() => {
-            raf = 0;
-            const t2 = S.tabs[tabIdx()];
-            if (t2) {
-              t2.scroll = mn.scrollTop;
-              t2.tab = S.tab;
-            }
-          });
-        }, { passive: true });
-      }
-    }
-    if (!scope) bindSticky();
-    $3("#sidetoggle")?.addEventListener("click", () => keep4(() => {
-      S.hide.side = !S.hide.side;
-      localStorage.setItem("hide", JSON.stringify(S.hide));
-    }));
-    qa2("[data-flip]").forEach((b2) => b2.addEventListener("click", flipSides));
-    $3("#split")?.addEventListener("click", () => keep4(() => {
-      S.split = !S.split;
-      localStorage.setItem("split", S.split ? "1" : "0");
-    }));
-    qa2("[data-sha]").forEach((el) => el.addEventListener("click", () => selectCommit(el.dataset.sha)));
-    $3("#sbgrip")?.addEventListener("mousedown", (e2) => {
-      e2.preventDefault();
-      const sh = $3(".shell"), x0 = e2.clientX, w0 = S.sbw;
-      const mv = (ev) => {
-        S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
-        sh.style.setProperty("--sbw", S.sbw + "px");
-      };
-      const up = () => {
-        removeEventListener("mousemove", mv);
-        removeEventListener("mouseup", up);
-        document.body.classList.remove("dragging");
-        localStorage.setItem("sbw", String(Math.round(S.sbw)));
-      };
-      document.body.classList.add("dragging");
-      addEventListener("mousemove", mv);
-      addEventListener("mouseup", up);
-    });
-    $3("#sbgrip")?.addEventListener("dblclick", () => {
+    const up = () => {
+      removeEventListener("mousemove", mv);
+      removeEventListener("mouseup", up);
+      document.body.classList.remove("dragging");
+      localStorage.setItem("sbw", String(Math.round(S.sbw)));
+    };
+    document.body.classList.add("dragging");
+    addEventListener("mousemove", mv);
+    addEventListener("mouseup", up);
+  });
+  document.addEventListener("dblclick", (e2) => {
+    if (e2.target.closest?.("#sbgrip")) {
       S.sbw = 260;
       localStorage.setItem("sbw", "260");
       S.keepScroll = true;
       render();
       S.keepScroll = false;
-    });
-    $3("#gutter")?.addEventListener("mousedown", (e2) => {
-      e2.preventDefault();
-      const sp = $3(".split"), r3 = sp.getBoundingClientRect();
-      const mv = (ev) => {
-        S.lw = Math.max(25, Math.min(75, (S.flip ? r3.right - ev.clientX : ev.clientX - r3.left) / r3.width * 100));
-        sp.style.setProperty("--lw", S.lw + "%");
-      };
-      const up = () => {
-        removeEventListener("mousemove", mv);
-        removeEventListener("mouseup", up);
-        document.body.classList.remove("dragging");
-        localStorage.setItem("lw", String(Math.round(S.lw)));
-      };
-      document.body.classList.add("dragging");
-      addEventListener("mousemove", mv);
-      addEventListener("mouseup", up);
-    });
-    $3("#rvtoggle")?.addEventListener("click", () => {
-      S.showAllReviewers = !S.showAllReviewers;
+    }
+  });
+  document.addEventListener("click", (e2) => {
+    if (e2.target.closest?.("#scrim")) {
+      S.nav = false;
       S.keepScroll = true;
       render();
       S.keepScroll = false;
-    });
-    $3("#copybranch")?.addEventListener("click", () => navigator.clipboard?.writeText(S.bundle.pull.head.ref));
-    if (!scope) qa2("a[href]").forEach((a3) => a3.addEventListener("click", (e2) => {
-      e2.preventDefault();
-      const h3 = a3.getAttribute("href");
-      if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h3)) openPr(h3);
-      else if (/^https?:\/\//.test(h3)) openExternal(h3);
-    }));
-  }
-  document.addEventListener("keydown", (e2) => {
-    if (!(e2.metaKey || e2.ctrlKey)) {
-      if (e2.key === "Escape" && S.dlg) closeDlg();
-      return;
-    }
-    if (e2.key === "l") {
-      e2.preventDefault();
-      focusAddr();
-    } else if (e2.key === "r") {
-      e2.preventDefault();
-      reload();
-    } else if (e2.key === "[") {
-      e2.preventDefault();
-      go(-1);
-    } else if (e2.key === "]") {
-      e2.preventDefault();
-      go(1);
-    } else if (e2.key === ",") {
-      e2.preventDefault();
-      tokenDialog();
     }
   });
-
-  // src/app/bindwrite.ts
-  function homeProps() {
-    const tab = S.homeTab || "repos", owner = S.homeOwner || "";
-    let body;
-    if (tab === "recent") {
-      const q3 = (S.recentFilter || "").toLowerCase(), st = S.recentState || "all";
-      const list = S.recent.filter((r3) => (st === "all" || r3.state === st) && (!q3 || (r3.title + " " + r3.ref).toLowerCase().includes(q3)));
-      body = { kind: "recent", filter: S.recentFilter || "", state: st, hasAny: S.recent.length > 0, cards: list.map((r3) => ({ ref: r3.ref, state: r3.state, icon: r3.icon, title: r3.title })), emptyText: S.recent.length ? "No matching pull requests." : "Pull requests you open appear here." };
-    } else if (!S.hasToken) body = { kind: "addtoken" };
-    else if (S.reposErr) body = { kind: "error", text: String(S.reposErr) };
-    else if (!S.repos) body = { kind: "spinner" };
-    else {
-      const f4 = (S.repoFilter || "").toLowerCase();
-      const vis = S.hmVis || "all", srt = S.hmSort || "pushed", grp = S.hmGroup || "none";
-      let list = S.repos.filter((r3) => (!owner || r3.full_name.startsWith(owner + "/")) && r3.full_name.toLowerCase().includes(f4) && (vis === "all" || vis === "private" === !!r3.private));
-      const nm = (r3) => r3.full_name.split("/")[1], pushed = (r3) => Date.parse(r3.pushed_at || "0") || 0;
-      const sorters = { name: (a3, b2) => nm(a3).localeCompare(nm(b2)), namez: (a3, b2) => nm(b2).localeCompare(nm(a3)), issues: (a3, b2) => (b2.open_issues_count || 0) - (a3.open_issues_count || 0) || nm(a3).localeCompare(nm(b2)), oldest: (a3, b2) => pushed(a3) - pushed(b2), owner: (a3, b2) => a3.full_name.localeCompare(b2.full_name), ownerz: (a3, b2) => b2.full_name.split("/")[0].localeCompare(a3.full_name.split("/")[0]) || nm(a3).localeCompare(nm(b2)) };
-      const sorter = sorters[srt];
-      if (sorter) list = [...list].sort(sorter);
-      const card = (r3) => ({ full: r3.full_name, name: r3.full_name.split("/")[1], owner: r3.full_name.split("/")[0], priv: !!r3.private, archived: !!r3.archived, issues: r3.open_issues_count || 0, desc: r3.description || "" });
-      let groups = null;
-      if (grp === "owner") {
-        const by = /* @__PURE__ */ new Map();
-        list.forEach((r3) => {
-          const o3 = r3.full_name.split("/")[0];
-          if (!by.has(o3)) by.set(o3, []);
-          by.get(o3).push(r3);
-        });
-        groups = [...by].map(([o3, rs]) => ({ owner: o3, cards: rs.map(card) }));
+  var scrollRaf = 0;
+  document.addEventListener("scroll", (e2) => {
+    const mn = e2.target;
+    if (!mn.classList?.contains("main") || S.view !== "pr" || S.restoring || scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      const t2 = S.tabs[tabIdx()];
+      if (t2) {
+        t2.scroll = mn.scrollTop;
+        t2.tab = S.tab;
       }
-      body = { kind: "repos", filter: S.repoFilter || "", vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
-    }
-    return { owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBannerItems(), err: S.error ? String(S.error) : "", body };
-  }
+    });
+  }, { capture: true, passive: true });
 
-  // src/app/home.tsx
-  var crumbs = {
-    home: () => {
-      S.view = "home";
-      S.homeOwner = "";
-      S.nav = false;
-      render();
-    },
-    owner: (o3) => {
-      S.view = "home";
-      S.homeOwner = o3;
-      S.homeTab = "repos";
-      S.nav = false;
-      render();
-      if (S.hasToken && !S.repos) loadRepos();
-    },
-    repo: (r3) => openRepo(r3)
-  };
-  var on2 = {
-    tab: (t2) => {
-      S.homeTab = t2;
-      render();
-    },
-    vis: (v2) => {
-      S.hmVis = v2;
-      render();
-    },
-    sort: (e2) => {
-      S.hmSort = e2.target.value;
-      render();
-    },
-    group: (e2) => {
-      S.hmGroup = e2.target.value;
-      render();
-    },
-    repoFilter: (e2) => {
-      S.repoFilter = e2.target.value;
-      render();
-    },
-    recentFilter: (e2) => {
-      S.recentFilter = e2.target.value;
-      render();
-    },
-    rstate: (s3) => {
-      S.recentState = s3;
-      render();
-    },
-    repo: (full) => openRepo(full),
-    open: openClick,
-    aux: openAux,
-    ctx: openCtx,
-    rm: rmRecent,
-    addToken: tokenDialog,
-    compare: (repo, br) => openNewPr(repo, br),
-    dismiss: (key) => {
-      pushDis[key] = 1;
-      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
-      rerender();
-    }
-  };
-  function HomeView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: S.homeOwner ? [{ t: S.homeOwner }] : [], extra: "", on: crumbs }),
-      /* @__PURE__ */ u3(Home, { p: homeProps(), on: on2 })
-    ] });
-  }
-
-  // src/components/Pages.tsx
-  function NotesPage({ f: f4, rows, unread, total, on: on3 }) {
-    const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
-    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: [
-        /* @__PURE__ */ u3("h1", { children: [
-          I2("bell"),
-          SP,
-          "Notifications"
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-tools", children: [
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", onClick: on3.readAll, disabled: !unread, children: "Mark all as read" }),
-          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", onClick: on3.clear, disabled: !total, children: "Clear all" })
-        ] })
-      ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, onClick: () => on3.filter(k3), children: [
-        l3,
-        /* @__PURE__ */ u3("span", { children: c3 })
-      ] })) }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u3("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
-        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), title: n2.read ? "Mark as unread" : "Mark as read" }),
-        "\n    ",
-        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-          /* @__PURE__ */ u3("b", { children: n2.title }),
-          /* @__PURE__ */ u3("span", { children: n2.text }),
-          /* @__PURE__ */ u3("i", { children: [
-            n2.ref,
-            " \xB7 ",
-            n2.when
-          ] })
-        ] }),
-        "\n    ",
-        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), children: n2.read ? "Mark unread" : "Mark read" }),
-        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, onClick: (e2) => on3.del(e2, n2.id), title: "Delete", children: I2("x") })
-      ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
-    ] });
-  }
-  function NpMeta({ p: p3, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
-      p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: r3.name }),
-        /* @__PURE__ */ u3("div", { class: "np-chips", children: [
-          r3.chips.map((x3) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x3, onClick: () => on3.del(r3.k, x3), title: "Remove", children: [
-            x3,
-            " \xD7"
-          ] })),
-          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, value: "", onChange: (e2) => on3.add(r3.k, e2), children: [
-            /* @__PURE__ */ u3("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
-            r3.free.map((x3) => /* @__PURE__ */ u3("option", { children: x3 }))
-          ] }) : ""
-        ] })
-      ] })),
-      "\n    ",
-      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: "Milestone" }),
-        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", onChange: on3.mile, children: [
-          /* @__PURE__ */ u3("option", { value: "", children: "None" }),
-          p3.milestones.map((x3) => /* @__PURE__ */ u3("option", { value: x3.number, selected: x3.on, children: x3.title }))
-        ] })
-      ] }),
-      "\n    ",
-      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
-        /* @__PURE__ */ u3("label", { class: "np-l", children: [
-          "Linked issues ",
-          /* @__PURE__ */ u3("i", { children: "closed when this merges" })
-        ] }),
-        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues, onInput: on3.issues })
+  // src/components/NotePanel.tsx
+  var NotePanel = ({ open: open2, rows, on: on3 }) => /* @__PURE__ */ u2("div", { class: `note-panel${open2 ? " open" : ""}`, children: [
+    /* @__PURE__ */ u2("div", { class: "note-h", children: [
+      /* @__PURE__ */ u2("b", { children: "Notifications" }),
+      /* @__PURE__ */ u2("span", { children: [
+        /* @__PURE__ */ u2("button", { id: "noteall", onClick: on3.all, children: "View all" }),
+        " ",
+        /* @__PURE__ */ u2("button", { id: "notecheck", onClick: on3.check, children: "Check now" }),
+        " ",
+        /* @__PURE__ */ u2("button", { id: "noteclear", onClick: on3.clear, children: "Clear all" })
       ] })
-    ] });
-  }
-  function NewPr({ p: p3, on: on3 }) {
-    const c3 = p3.cmp;
-    const cmp = c3.kind === "loading" ? /* @__PURE__ */ u3("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u3("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u3("span", { class: "np-note ok", children: [
-      I2("git-commit"),
-      SP,
-      c3.ahead,
-      " commit",
-      c3.ahead === 1 ? "" : "s",
-      " \xB7 ",
-      c3.files,
-      " file",
-      c3.files === 1 ? "" : "s",
-      " changed",
-      c3.behind ? ` \xB7 ${c3.behind} behind ${p3.base}` : ""
-    ] }) : /* @__PURE__ */ u3("span", { class: "np-note err", children: "These branches are identical \u2014 there is nothing to compare." });
-    const t2 = p3.tpls;
-    return /* @__PURE__ */ u3("div", { class: "notes-page np-new", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
-        I2("git-pull-request"),
-        SP,
-        "New pull request"
-      ] }) }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: "np-card", children: [
-        /* @__PURE__ */ u3("div", { class: "np-main-col", children: [
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Repository" }),
-            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", onClick: on3.repo, children: [
-              /* @__PURE__ */ u3("span", { children: p3.repo || "Choose a repository" }),
-              I2("chevron-down", 14)
-            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo, onChange: on3.repoIn }),
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-branches", children: [
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("label", { class: "np-l", children: [
-                  "Base ",
-                  /* @__PURE__ */ u3("i", { children: "merge into" })
-                ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", onClick: on3.base, disabled: !p3.hasBranches, children: [
-                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
-                  I2("chevron-down", 14)
-                ] })
-              ] }),
-              "\n      ",
-              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", onClick: on3.swap, title: "Swap base and head", children: "\u21C4" }),
-              "\n      ",
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("label", { class: "np-l", children: [
-                  "Head ",
-                  /* @__PURE__ */ u3("i", { children: "changes from" })
-                ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", onClick: on3.head, disabled: !p3.hasBranches, children: [
-                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
-                  I2("chevron-down", 14)
-                ] })
-              ] })
-            ] }),
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-cmp", children: p3.same ? /* @__PURE__ */ u3("span", { class: "np-note err", children: "Base and head are the same branch." }) : cmp })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title, onInput: on3.title })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-            t2 && t2.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", onChange: on3.tpl, children: [
-              /* @__PURE__ */ u3("option", { value: "", children: "No template" }),
-              t2.map((x3, i3) => /* @__PURE__ */ u3("option", { value: i3, selected: x3.body === p3.tplText, children: [
-                "Template: ",
-                x3.name
-              ] }))
-            ] }) : "",
-            /* @__PURE__ */ u3("div", { class: "tt", "data-draft": "newpr", "data-ph": "Describe your changes \u2014 type / for blocks", style: "--rows:8" })
-          ] }),
-          "\n    ",
-          /* @__PURE__ */ u3("div", { class: "np-box", children: [
-            /* @__PURE__ */ u3("label", { class: "np-check", children: [
-              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft, onChange: on3.draft }),
-              " Create as draft ",
-              /* @__PURE__ */ u3("span", { children: "(not ready for review yet)" })
-            ] }),
-            "\n    ",
-            p3.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: p3.err }) : "",
-            "\n    ",
-            /* @__PURE__ */ u3("div", { class: "np-btns", children: [
-              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
-              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", onClick: on3.create, disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
-            ] })
-          ] }),
-          "\n  "
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-side-col", children: p3.meta ? /* @__PURE__ */ u3(NpMeta, { p: p3.meta, on: on3 }) : "" })
-      ] })
-    ] }, p3.seq);
-  }
-  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
-    const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
-      /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
-      /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
-      /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
-      /* @__PURE__ */ u3("h2", { children: [
-        s3.title,
-        /* @__PURE__ */ u3("span", { children: s3.rows.length })
-      ] }),
-      /* @__PURE__ */ u3("p", { children: s3.sub }),
-      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
-        /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
-        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.title }),
-          /* @__PURE__ */ u3("i", { children: r3.sub })
-        ] }),
-        r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
-        r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
-          I2("comment"),
-          SP,
-          r3.comments
-        ] }) : ""
-      ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: "Nothing here. Nice." })
-    ] }));
-    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
-      /* @__PURE__ */ u3("div", { class: "np-head", children: [
-        /* @__PURE__ */ u3("h1", { children: [
-          I2("checklist"),
-          SP,
-          "Inbox"
-        ] }),
-        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
-      ] }),
-      body
-    ] });
-  }
-  var skeletonHtml = () => html(/* @__PURE__ */ u3("div", { class: "skel", "aria-busy": "true", children: [
-    /* @__PURE__ */ u3("div", { class: "sk sk-crumb" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-title" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-pill" }),
-    /* @__PURE__ */ u3("div", { class: "sk sk-line w60" }),
-    /* @__PURE__ */ u3("div", { class: "sk-tabs", children: [
-      /* @__PURE__ */ u3("i", { class: "sk" }),
-      /* @__PURE__ */ u3("i", { class: "sk" }),
-      /* @__PURE__ */ u3("i", { class: "sk" })
     ] }),
-    [0, 1, 2].map((i3) => /* @__PURE__ */ u3("div", { class: "sk-row", style: `--i:${i3}`, children: [
-      /* @__PURE__ */ u3("div", { class: "sk sk-av" }),
-      /* @__PURE__ */ u3("div", { class: "sk-card", children: [
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w40" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
-        /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+    rows.length ? rows.map((n2) => /* @__PURE__ */ u2("a", { class: `note ${n2.read ? "" : "new"}`, "data-open": n2.ref, "data-target": n2.target, onClick: on3.open, onAuxClick: on3.aux, onContextMenu: on3.ctx, children: [
+      /* @__PURE__ */ u2("b", { children: n2.title }),
+      /* @__PURE__ */ u2("span", { children: n2.text }),
+      /* @__PURE__ */ u2("i", { children: [
+        n2.ref,
+        " \xB7 ",
+        n2.when
       ] })
-    ] }))
-  ] }));
-  function PrLayout({ header, body, side, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
-      header,
-      /* @__PURE__ */ u3("div", { class: "pr-layout", children: [
-        /* @__PURE__ */ u3("main", { class: "pr-main", children: body }),
-        side.kind === "rail" ? /* @__PURE__ */ u3("button", { class: "pane-rail side-rail", "data-show": "side", onClick: on3.show, title: "Show details", children: [
-          I2("columns"),
-          /* @__PURE__ */ u3("span", { children: "Details" })
-        ] }) : side.kind === "aside" ? /* @__PURE__ */ u3("aside", { class: "pr-side", children: [
-          /* @__PURE__ */ u3("div", { class: "side-top", children: [
-            /* @__PURE__ */ u3("span", { children: "Details" }),
-            /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "side", onClick: side.on.hide, title: "Hide this panel", children: I2("x") })
-          ] }),
-          side.inner
-        ] }) : ""
-      ] })
-    ] });
-  }
-  var SplitLayout = ({ header, split }) => /* @__PURE__ */ u3("div", { class: "pr-page is-split", children: [
-    header,
-    split
+    ] })) : /* @__PURE__ */ u2("div", { class: "note-empty", children: "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." })
   ] });
-  var gateHtmlStr = (alertIc, err) => html(/* @__PURE__ */ u3("div", { class: "gate", children: /* @__PURE__ */ u3("div", { class: "gate-card", children: [
-    /* @__PURE__ */ u3("img", { src: "logo.png", alt: "", width: 72, height: 72 }),
-    /* @__PURE__ */ u3("h1", { children: "Sign in to Pullscope" }),
-    "\n  ",
-    /* @__PURE__ */ u3("p", { class: "gate-err", children: [
-      Raw(alertIc),
-      SP,
-      "No GitHub sign-in or token was found."
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("p", { children: "Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing." }),
-    "\n  ",
-    err ? /* @__PURE__ */ u3("p", { class: "gate-err", children: err }) : "",
-    "\n  ",
-    /* @__PURE__ */ u3("div", { class: "btns", style: "justify-content:center", children: [
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "gatego", children: "Sign in with GitHub" }),
-      /* @__PURE__ */ u3("button", { class: "btn", id: "gatetok", children: "Use a token instead" })
-    ] }),
-    "\n  ",
-    /* @__PURE__ */ u3("small", { children: [
-      "Tip: running ",
-      /* @__PURE__ */ u3("code", { children: "gh auth login" }),
-      " in a terminal also works."
-    ] })
-  ] }) }));
-
-  // src/app/fun.ts
-  var enterTimer;
-  function enterAnim() {
-    qa(".tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area").forEach((el, i3) => {
-      el.style.setProperty("--i", String(Math.min(i3, 14)));
-      el.classList.add("enter-in");
-    });
-    clearTimeout(enterTimer);
-    enterTimer = setTimeout(() => qa(".enter-in").forEach((el) => el.classList.remove("enter-in")), 1800);
-  }
-  document.addEventListener("pointerdown", (e2) => {
-    const b2 = e2.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
-    if (!b2 || b2.disabled) return;
-    const r3 = b2.getBoundingClientRect(), d3 = Math.max(r3.width, r3.height) * 2, rip = document.createElement("span");
-    rip.className = "ripple";
-    rip.style.cssText = `width:${d3}px;height:${d3}px;left:${e2.clientX - r3.left - d3 / 2}px;top:${e2.clientY - r3.top - d3 / 2}px`;
-    if (getComputedStyle(b2).position === "static") b2.style.position = "relative";
-    b2.style.overflow = "hidden";
-    b2.appendChild(rip);
-    setTimeout(() => rip.remove(), 650);
-    if (b2.matches(".reaction, .react-add")) burst(e2.clientX, e2.clientY, b2.textContent.trim().slice(0, 2) || "\u2728", 6);
-  });
-  function burst(x3, y2, ch, n2) {
-    for (let i3 = 0; i3 < n2; i3++) {
-      const p3 = document.createElement("span");
-      p3.className = "burst";
-      p3.textContent = ch;
-      const a3 = Math.PI * 2 * i3 / n2 + Math.random() * 0.6, v2 = 40 + Math.random() * 50;
-      p3.style.cssText = `left:${x3}px;top:${y2}px;--dx:${Math.cos(a3) * v2}px;--dy:${Math.sin(a3) * v2 - 30}px`;
-      document.body.appendChild(p3);
-      setTimeout(() => p3.remove(), 900);
-    }
-  }
-  function confetti() {
-    const c3 = document.createElement("canvas");
-    c3.className = "confetti";
-    c3.width = innerWidth;
-    c3.height = innerHeight;
-    document.body.appendChild(c3);
-    const g2 = c3.getContext("2d"), cols = ["#0969da", "#1f883d", "#8250df", "#f2cc60", "#cf222e", "#ff8fb1"];
-    const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.6, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 14, r: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[Math.random() * cols.length | 0] }));
-    let t2 = 0;
-    (function f4() {
-      g2.clearRect(0, 0, c3.width, c3.height);
-      t2++;
-      ps.forEach((p3) => {
-        p3.vy += 0.35;
-        p3.vx *= 0.99;
-        p3.x += p3.vx;
-        p3.y += p3.vy;
-        p3.a += p3.va;
-        g2.save();
-        g2.translate(p3.x, p3.y);
-        g2.rotate(p3.a);
-        g2.fillStyle = p3.c;
-        g2.globalAlpha = Math.max(0, 1 - t2 / 130);
-        g2.fillRect(-p3.r, -p3.r / 2, p3.r * 2, p3.r);
-        g2.restore();
-      });
-      if (t2 < 130) requestAnimationFrame(f4);
-      else c3.remove();
-    })();
-  }
-
-  // src/app/views.tsx
-  var open = { open: openClick, aux: openAux, ctx: openCtx };
-  var typedPf = (e2) => {
-    S.pf = e2.target.value;
-    render();
-  };
-  var prl = {
-    ...open,
-    ps: (s3) => {
-      S.prState = s3;
-      openRepo(S.repo, { nav: true });
-    },
-    compare: (repo, br) => openNewPr(repo, br),
-    dismiss: (key) => {
-      pushDis[key] = 1;
-      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
-      rerender();
-    },
-    filter: typedPf,
-    author: (e2) => {
-      S.pAuthor = e2.target.value;
-      render();
-    },
-    label: (e2) => {
-      S.pLabel = e2.target.value;
-      render();
-    },
-    status: (e2) => {
-      S.pStatus = e2.target.value;
-      render();
-    },
-    sort: (e2) => {
-      S.psort = e2.target.value;
-      localStorage.setItem("psort", S.psort);
-      render();
-    },
-    clear: () => {
-      S.pf = S.pAuthor = S.pLabel = S.pStatus = "";
-      render();
-    }
-  };
-  function RepoView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: S.repo, trail: [{ t: "Pull requests" }], extra: "", on: crumbs }),
-      /* @__PURE__ */ u3(PrListPage, { p: prListProps(), on: prl })
-    ] });
-  }
-  var keep2 = (fn) => {
-    S.keepScroll = true;
-    fn();
-    render();
-    S.keepScroll = false;
-  };
-  var notes = {
-    ...open,
-    check: () => pollNotes(),
-    readAll: () => keep2(() => {
-      S.notes.forEach((n2) => n2.read = true);
-      saveNotes();
-    }),
-    clear: () => keep2(() => {
-      S.notes = [];
-      saveNotes();
-    }),
-    filter: (f4) => keep2(() => {
-      S.nf = f4;
-    }),
-    read: (e2, id) => {
-      e2.stopPropagation();
-      const n2 = S.notes.find((x3) => String(x3.id) === String(id));
-      if (n2) keep2(() => {
-        n2.read = !n2.read;
-        saveNotes();
-      });
-    },
-    del: (e2, id) => {
-      e2.stopPropagation();
-      keep2(() => {
-        S.notes = S.notes.filter((x3) => String(x3.id) !== String(id));
-        saveNotes();
-      });
-    }
-  };
-  function NotesView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Notifications" }], extra: "", on: crumbs }),
-      /* @__PURE__ */ u3(NotesPage, { ...notesProps(), on: notes })
-    ] });
-  }
-  var inbox = { ...open, refresh: () => loadInbox(true) };
-  function InboxView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Inbox" }], extra: "", on: crumbs }),
-      /* @__PURE__ */ u3(InboxPage, { p: inboxProps(), on: inbox })
-    ] });
-  }
-  var np = () => S.np;
-  var npSet = (f4) => {
-    f4();
-    np().key = `${np().repo}|${np().base}|${np().head}`;
-  };
-  var val = (e2) => e2.target.value;
-  var newpr = {
-    cancel: () => {
-      S.view = S.bundle ? "pr" : "home";
-      delete S.draft.newpr;
-      render();
-    },
-    repo: (e2) => bpOpen(e2.currentTarget, "repo", (v2) => {
-      npSet(() => {
-        np().repo = v2;
-        np().base = "";
-        np().head = "";
-        np().cmp = null;
-        np().titleTouched = false;
-        np().title = "";
-      });
-      render();
-      npLoadBranches(np().repo);
-    }, true),
-    repoIn: (e2) => {
-      npSet(() => {
-        np().repo = val(e2).trim();
-        np().base = "";
-        np().head = "";
-      });
-      npLoadBranches(np().repo);
-    },
-    base: (e2) => bpOpen(e2.currentTarget, "base", (v2) => {
-      npSet(() => {
-        np().base = v2;
-      });
-      npCompare();
-    }),
-    head: (e2) => bpOpen(e2.currentTarget, "head", (v2) => {
-      npSet(() => {
-        np().head = v2;
-        np().titleTouched = false;
-      });
-      npCompare();
-    }),
-    swap: () => {
-      npSet(() => {
-        [np().base, np().head] = [np().head, np().base];
-      });
-      npCompare();
-    },
-    tpl: (e2) => {
-      const n2 = np(), sel = e2.target, t2 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = sel.value === "" ? "" : t2[+sel.value].body;
-      if (cur && cur !== n2.tplText.trim() && !confirm("Replace what you have written with this template?")) {
-        sel.value = String(t2.findIndex((x3) => x3.body === n2.tplText));
-        if (sel.value === "-1") sel.value = "";
-        return;
-      }
-      S.draft.newpr = n2.tplText = next;
-      saveDrafts();
-      bumpNp();
-      rerender();
-    },
-    title: (e2) => {
-      np().title = val(e2);
-      np().titleTouched = true;
-      render();
-    },
-    draft: (e2) => {
-      np().draft = e2.target.checked;
-      render();
-    },
-    add: (k3, e2) => {
-      if (val(e2)) {
-        np()[k3].push(val(e2));
-        render();
-      }
-    },
-    del: (k3, v2) => {
-      np()[k3] = np()[k3].filter((x3) => x3 !== v2);
-      render();
-    },
-    mile: (e2) => {
-      np().milestone = val(e2);
-    },
-    issues: (e2) => {
-      np().issues = val(e2);
-    },
-    create: async (e2) => {
-      const n2 = np(), btn = e2.currentTarget;
-      setBusy(btn, true);
-      n2.err = "";
-      try {
-        const nums = [...new Set(n2.issues.match(/\d+/g) || [])];
-        const body = ((S.draft.newpr || "").trim() + (nums.length ? `
-
-${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
-        const extra = { reviewers: n2.reviewers, assignees: n2.assignees, labels: n2.labels, milestone: n2.milestone ? Number(n2.milestone) : null };
-        const r3 = await tauri.invoke("create_pr", { repo: n2.repo, base: n2.base, head: n2.head, title: n2.title, body, draft: n2.draft, extra });
-        const warn = r3.warnings?.length ? `Created, but ${r3.warnings.join(" \xB7 ")}` : "";
-        delete S.draft.newpr;
-        saveDrafts();
-        S.np = null;
-        confetti();
-        await openPr(`${n2.repo}#${r3.number}`, { nav: true });
-        if (warn) {
-          S.actErr = { k: "comment", m: warn };
-          rerender();
-        }
-      } catch (err) {
-        setBusy(btn, false);
-        n2.err = String(err).replace(/^Error: /, "");
-        rerender();
-      }
-    }
-  };
-  function NewPrView() {
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: np().repo, trail: [{ t: "New pull request" }], extra: "", on: crumbs }),
-      /* @__PURE__ */ u3(NewPr, { p: newPrProps(), on: newpr })
-    ] });
-  }
-
-  // src/app/pr.tsx
-  var hide = (k3, v2) => keep(() => {
-    S.hide[k3] = v2;
-    localStorage.setItem("hide", JSON.stringify(S.hide));
-  });
-  var head = {
-    tab: openTab2,
-    edit: editPrDialog,
-    copy: () => {
-      navigator.clipboard?.writeText(S.bundle.pull.head.ref);
-    },
-    review: reviewDialog,
-    side: () => keep(() => {
-      S.hide.side = !S.hide.side;
-      localStorage.setItem("hide", JSON.stringify(S.hide));
-    }),
-    split: () => keep(() => {
-      S.split = !S.split;
-      localStorage.setItem("split", S.split ? "1" : "0");
-    })
-  };
-  var sideOn = {
-    fold: (k3, def) => {
-      S.fold[k3] = !isFolded(k3, def);
-      localStorage.setItem("fold", JSON.stringify(S.fold));
-      rerender();
-    },
-    rvtoggle: () => {
-      S.showAllReviewers = !S.showAllReviewers;
-      rerender();
-    },
-    rerequest: rerequestReview
-  };
-  function Header() {
-    const p3 = S.bundle.pull, r3 = p3.base.repo;
-    const extra = /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("a", { class: "crumb gh", href: r3.html_url, "data-ext": "", title: "Open on GitHub", children: I2("link-external", 12) }),
-      S.refreshing ? /* @__PURE__ */ u3("span", { class: "stale", children: "Refreshing\u2026" }) : ""
-    ] });
-    return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Crumbs, { repo: r3.full_name, trail: [{ t: "Pull requests", repo: r3.full_name }, { t: `#${p3.number}` }], extra: "", extraNode: extra, on: crumbs }),
-      /* @__PURE__ */ u3(PrHeader, { ...prHeaderProps(S.bundle), on: head })
-    ] });
-  }
-  function PrView() {
-    const b2 = S.bundle;
-    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: splitView(b2) });
-    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : null;
-    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
-    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u3("div", { class: "rail", children: /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: attOn }),
-      /* @__PURE__ */ u3(Timeline, { m: timelineModel(b2), on: tlOn })
-    ] }) : body, side, on: { show: () => hide("side", false) } });
-  }
 
   // src/components/TabStrip.tsx
   function TabStrip({ tabs, cur, recents, menu, closedFirst, on: on3 }) {
-    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
-      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, onClick: (e2) => {
+    return /* @__PURE__ */ u2("div", { class: "ptabs", children: [
+      tabs.map((t2, i3) => /* @__PURE__ */ u2("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, onClick: (e2) => {
         if (e2.target.closest(".pt-x")) return;
         on3.open(i3);
       }, onAuxClick: (e2) => on3.aux(e2, i3), onMouseDown: (e2) => on3.down(e2, i3), title: t2.ref + " \xB7 " + t2.title, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: /* @__PURE__ */ u3(Icon, { n: t2.icon }) }),
-        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
-          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
+        /* @__PURE__ */ u2("span", { class: `rc-i ${t2.state}`, children: /* @__PURE__ */ u2(Icon, { n: t2.icon }) }),
+        /* @__PURE__ */ u2("span", { class: "pt-t", children: [
+          /* @__PURE__ */ u2("i", { children: t2.ref.split("/").pop() }),
           " ",
           t2.title
         ] }),
-        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, onClick: (e2) => on3.close(e2, i3), "aria-label": "Close tab", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
+        t2.dot && /* @__PURE__ */ u2("span", { class: "pt-dot" }),
+        /* @__PURE__ */ u2("button", { class: "pt-x", "data-tabx": i3, onClick: (e2) => on3.close(e2, i3), "aria-label": "Close tab", children: /* @__PURE__ */ u2(Icon, { n: "x" }) })
       ] })),
-      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", onClick: on3.add, title: "New tab (\u2318T)", "aria-label": "New tab", children: [
-        /* @__PURE__ */ u3(Icon, { n: "plus" }),
-        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
+      /* @__PURE__ */ u2("button", { class: "pt-add", id: "tabadd", onClick: on3.add, title: "New tab (\u2318T)", "aria-label": "New tab", children: [
+        /* @__PURE__ */ u2(Icon, { n: "plus" }),
+        tabs.length < 2 && /* @__PURE__ */ u2("span", { children: "New tab" })
       ] }),
-      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", ref: on3.menu, children: [
-        /* @__PURE__ */ u3("a", { "data-tabhome": "", onClick: on3.home, children: [
-          /* @__PURE__ */ u3(Icon, { n: "home" }),
+      menu && /* @__PURE__ */ u2("div", { class: "pt-menu", ref: on3.menu, children: [
+        /* @__PURE__ */ u2("a", { "data-tabhome": "", onClick: on3.home, children: [
+          /* @__PURE__ */ u2(Icon, { n: "home" }),
           " Home"
         ] }),
-        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
-        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, onClick: () => on3.fresh(r3.ref), children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
-          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
-            /* @__PURE__ */ u3("i", { children: r3.ref }),
+        recents.length > 0 && /* @__PURE__ */ u2("h6", { children: "Recent" }),
+        recents.map((r3) => /* @__PURE__ */ u2("a", { "data-tabnew": r3.ref, onClick: () => on3.fresh(r3.ref), children: [
+          /* @__PURE__ */ u2("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u2(Icon, { n: r3.icon }) }),
+          /* @__PURE__ */ u2("span", { class: "pt-mt", children: [
+            /* @__PURE__ */ u2("i", { children: r3.ref }),
             " ",
             r3.title
           ] })
         ] })),
-        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3("h6", { children: "Closed" }),
-          /* @__PURE__ */ u3("a", { "data-tabreopen": "", onClick: on3.reopen, children: [
-            /* @__PURE__ */ u3(Icon, { n: "clock" }),
+        closedFirst !== null && /* @__PURE__ */ u2(S2, { children: [
+          /* @__PURE__ */ u2("h6", { children: "Closed" }),
+          /* @__PURE__ */ u2("a", { "data-tabreopen": "", onClick: on3.reopen, children: [
+            /* @__PURE__ */ u2(Icon, { n: "clock" }),
             " Reopen ",
             closedFirst,
             " ",
-            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
+            /* @__PURE__ */ u2("kbd", { children: "\u2318\u21E7T" })
           ] })
         ] })
       ] })
@@ -4598,57 +3209,65 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   var NL2 = "\n  ";
   function Toolbar(p3) {
     const label = p3.profile ? p3.profile.name || p3.profile.login : "";
-    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
+    return /* @__PURE__ */ u2("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
       NL2,
-      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", onClick: p3.on.back, disabled: !p3.canBack, title: "Back (\u2318[)", children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", onClick: p3.on.fwd, disabled: !p3.canFwd, title: "Forward (\u2318])", children: /* @__PURE__ */ u3(Icon, { n: "chevron-right" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", onClick: p3.on.reload, disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: /* @__PURE__ */ u3(Icon, { n: "sync" }) })
+      /* @__PURE__ */ u2("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u2(Icon, { n: "three-bars" }) }),
+      /* @__PURE__ */ u2("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "back", onClick: p3.on.back, disabled: !p3.canBack, title: "Back (\u2318[)", children: /* @__PURE__ */ u2(Icon, { n: "chevron-left" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "fwd", onClick: p3.on.fwd, disabled: !p3.canFwd, title: "Forward (\u2318])", children: /* @__PURE__ */ u2(Icon, { n: "chevron-right" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "reload", onClick: p3.on.reload, disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: /* @__PURE__ */ u2(Icon, { n: "sync" }) })
       ] }),
       NL2,
-      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
-        /* @__PURE__ */ u3(Icon, { n: "search" }),
-        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+      /* @__PURE__ */ u2("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
+        /* @__PURE__ */ u2(Icon, { n: "search" }),
+        /* @__PURE__ */ u2("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
       ] }),
-      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
-        /* @__PURE__ */ u3(Icon, { n: "sync" }),
+      p3.update && /* @__PURE__ */ u2("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
+        /* @__PURE__ */ u2(Icon, { n: "sync" }),
         " ",
         p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
       ] }),
       NL2,
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", onClick: p3.on.retry, "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: /* @__PURE__ */ u3(Icon, { n: "alert" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", onClick: p3.on.external, disabled: !p3.hasBundle, title: "Open on github.com", children: /* @__PURE__ */ u3(Icon, { n: "link-external" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", onClick: p3.on.newPr, title: "New pull request", children: /* @__PURE__ */ u3(Icon, { n: "plus" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", onClick: p3.on.inbox, title: "Inbox: PRs that need you", children: /* @__PURE__ */ u3(Icon, { n: "checklist" }) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", onClick: p3.on.bell, title: "Notifications", children: [
-          /* @__PURE__ */ u3(Icon, { n: "bell" }),
-          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
+      /* @__PURE__ */ u2("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u2("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", onClick: p3.on.retry, "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: /* @__PURE__ */ u2(Icon, { n: "alert" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "external", onClick: p3.on.external, disabled: !p3.hasBundle, title: "Open on github.com", children: /* @__PURE__ */ u2(Icon, { n: "link-external" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "newprbtn", onClick: p3.on.newPr, title: "New pull request", children: /* @__PURE__ */ u2(Icon, { n: "plus" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn", id: "inboxbtn", onClick: p3.on.inbox, title: "Inbox: PRs that need you", children: /* @__PURE__ */ u2(Icon, { n: "checklist" }) }),
+        /* @__PURE__ */ u2("button", { class: "tb-btn bell", id: "bell", onClick: p3.on.bell, title: "Notifications", children: [
+          /* @__PURE__ */ u2(Icon, { n: "bell" }),
+          p3.unread > 0 && /* @__PURE__ */ u2("i", { class: "dot", children: p3.unread })
         ] }),
-        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", onClick: p3.on.mode, role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
-          /* @__PURE__ */ u3("i", { class: "st" }),
-          /* @__PURE__ */ u3("i", { class: "st s2" }),
-          /* @__PURE__ */ u3("i", { class: "st s3" }),
-          /* @__PURE__ */ u3("i", { class: "cl" }),
-          /* @__PURE__ */ u3("i", { class: "cl c2" }),
-          /* @__PURE__ */ u3("span", { class: "knob", children: [
-            /* @__PURE__ */ u3("b", { class: "cr" }),
-            /* @__PURE__ */ u3("b", { class: "cr c2" }),
-            /* @__PURE__ */ u3("b", { class: "cr c3" })
+        /* @__PURE__ */ u2("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", onClick: p3.on.mode, role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
+          /* @__PURE__ */ u2("i", { class: "st" }),
+          /* @__PURE__ */ u2("i", { class: "st s2" }),
+          /* @__PURE__ */ u2("i", { class: "st s3" }),
+          /* @__PURE__ */ u2("i", { class: "cl" }),
+          /* @__PURE__ */ u2("i", { class: "cl c2" }),
+          /* @__PURE__ */ u2("span", { class: "knob", children: [
+            /* @__PURE__ */ u2("b", { class: "cr" }),
+            /* @__PURE__ */ u2("b", { class: "cr c2" }),
+            /* @__PURE__ */ u2("b", { class: "cr c3" })
           ] })
         ] }),
-        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
-          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
-          /* @__PURE__ */ u3("span", { children: label }),
-          /* @__PURE__ */ u3(Icon, { n: "chevron-down", s: 12 })
-        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u3(Icon, { n: "key" }) })
+        p3.hasToken && p3.profile ? /* @__PURE__ */ u2("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
+          /* @__PURE__ */ u2("img", { src: p3.avatar, alt: "" }),
+          /* @__PURE__ */ u2("span", { children: label }),
+          /* @__PURE__ */ u2(Icon, { n: "chevron-down", s: 12 })
+        ] }) : /* @__PURE__ */ u2("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u2(Icon, { n: "key" }) })
       ] })
     ] });
   }
 
+  // src/app/render.ts
+  var go = (n2) => {
+    const t2 = S.hi + n2;
+    if (t2 < 0 || t2 >= S.hist.length) return;
+    S.hi = t2;
+    S.hist[t2].startsWith("repo:") ? openRepo(S.hist[t2].slice(5), { nav: true }) : openPr(S.hist[t2], { nav: true });
+  };
+
   // src/app/top.tsx
-  var keep3 = (fn) => {
+  var keep2 = (fn) => {
     S.keepScroll = true;
     fn();
     render();
@@ -4723,7 +3342,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         $(".shell")?.classList.toggle("nav-hidden", S.hide.nav);
         return;
       }
-      keep3(() => {
+      keep2(() => {
         S.nav = !S.nav;
       });
     },
@@ -4853,9 +3472,9 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   };
   function Top() {
     const b2 = S.bundle, pr = S.profile, open2 = new Set(S.tabs.map((t2) => t2.ref));
-    return /* @__PURE__ */ u3(S2, { children: [
-      S.refreshing && /* @__PURE__ */ u3("div", { class: "refreshing-bar" }),
-      /* @__PURE__ */ u3(
+    return /* @__PURE__ */ u2(S2, { children: [
+      S.refreshing && /* @__PURE__ */ u2("div", { class: "refreshing-bar" }),
+      /* @__PURE__ */ u2(
         Toolbar,
         {
           prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
@@ -4872,11 +3491,1239 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           on: tb
         }
       ),
-      /* @__PURE__ */ u3(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open2.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
+      /* @__PURE__ */ u2(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open2.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
     ] });
   }
-  var paintTop = (host) => R(/* @__PURE__ */ u3(Top, {}), host);
+  var paintTop = (host) => R(/* @__PURE__ */ u2(Top, {}), host);
   var clearTop = (host) => R(null, host);
+
+  // src/app/notes.tsx
+  function paintNotes() {
+    const h3 = $("#notehost");
+    if (!h3) return;
+    R(/* @__PURE__ */ u2(NotePanel, { open: S.bell, rows: S.notes.map((n2) => ({ id: n2.id, ref: n2.ref, target: n2.target || "", read: !!n2.read, title: n2.title, text: n2.text, when: whenParts(n2.at).text })), on: noteOn }), h3);
+  }
+  function setBell(open2) {
+    S.bell = open2;
+    if (!open2 && S.notes.some((n2) => !n2.read)) {
+      S.notes.forEach((n2) => {
+        n2.read = true;
+      });
+      saveNotes();
+      const top = $("#top");
+      if (top) paintTop(top);
+    }
+    paintNotes();
+  }
+  var keepRender = () => {
+    S.keepScroll = true;
+    render();
+    S.keepScroll = false;
+  };
+  var row = (e2) => e2.currentTarget;
+  function noteAll() {
+    S.bell = false;
+    S.view = "notes";
+    S.nav = false;
+    render();
+  }
+  function noteClear() {
+    S.notes = [];
+    localStorage.setItem("notes", "[]");
+    keepRender();
+  }
+  function noteOpen(e2) {
+    openClick(row(e2), e2);
+    S.bell = false;
+    S.notes.forEach((n2) => {
+      n2.read = true;
+    });
+    saveNotes();
+  }
+  var noteOn = { all: noteAll, check: () => {
+    pollNotes();
+  }, clear: noteClear, open: noteOpen, aux: (e2) => openAux(row(e2), e2), ctx: (e2) => openCtx(row(e2), e2) };
+  document.addEventListener("mousedown", (e2) => {
+    if (!S.bell || e2.target.closest(".note-panel, #bell")) return;
+    setBell(false);
+  });
+  document.addEventListener("keydown", (e2) => {
+    if (e2.key === "Escape" && S.bell) setBell(false);
+  });
+
+  // src/components/Sidebar.tsx
+  var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function SideTabs({ active, hasRepo, on: on3 }) {
+    const cls = (t2) => active === t2 ? "on" : "";
+    return /* @__PURE__ */ u2("div", { class: "sb-tabs", children: [
+      /* @__PURE__ */ u2("button", { "data-side": "repos", class: cls("repos"), onClick: () => on3.side("repos"), children: "Repos" }),
+      hasRepo && /* @__PURE__ */ u2("button", { "data-side": "prs", class: cls("prs"), onClick: () => on3.side("prs"), children: "PRs" }),
+      /* @__PURE__ */ u2("button", { "data-side": "recent", class: cls("recent"), onClick: () => on3.side("recent"), children: "Recent" })
+    ] });
+  }
+  function RcItem({ r: r3, on: on3 }) {
+    return /* @__PURE__ */ u2("a", { class: `rc ${r3.on ? "on" : ""}`, "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+      /* @__PURE__ */ u2("span", { class: `rc-i ${r3.st}`, children: /* @__PURE__ */ u2(Icon, { n: r3.icon }) }),
+      /* @__PURE__ */ u2("span", { class: "rc-t", children: [
+        /* @__PURE__ */ u2("b", { children: r3.title }),
+        /* @__PURE__ */ u2("i", { children: r3.sub })
+      ] })
+    ] });
+  }
+  function RecentList({ recent, curRef: curRef2, on: on3 }) {
+    if (!recent.length) return /* @__PURE__ */ u2("div", { class: "sb-empty", children: "Pull requests you open appear here." });
+    return /* @__PURE__ */ u2(S2, { children: recent.map((r3) => /* @__PURE__ */ u2("a", { class: `rc ${r3.ref === curRef2 ? "on" : ""}`, "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+      /* @__PURE__ */ u2("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u2(Icon, { n: r3.icon }) }),
+      /* @__PURE__ */ u2("span", { class: "rc-t", children: [
+        /* @__PURE__ */ u2("b", { children: r3.title }),
+        /* @__PURE__ */ u2("i", { children: r3.ref })
+      ] }),
+      /* @__PURE__ */ u2("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: /* @__PURE__ */ u2(Icon, { n: "x" }) })
+    ] })) });
+  }
+  function RepoList({ repos, repo, filter, on: on3 }) {
+    const f4 = filter.toLowerCase(), shown = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter, onInput: on3.repoFilter }),
+      shown.length ? shown.map((r3) => /* @__PURE__ */ u2("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
+        /* @__PURE__ */ u2("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: /* @__PURE__ */ u2(Icon, { n: r3.private ? "lock" : "repo" }) }),
+        /* @__PURE__ */ u2("span", { class: "rc-t", children: [
+          /* @__PURE__ */ u2("b", { children: r3.full_name.split("/")[1] }),
+          /* @__PURE__ */ u2("i", { children: r3.full_name.split("/")[0] })
+        ] })
+      ] })) : /* @__PURE__ */ u2("div", { class: "sb-empty", children: "No matches." })
+    ] });
+  }
+  function Sel({ id, opts, v: v2, onChange }) {
+    return /* @__PURE__ */ u2("select", { class: "input sb-sel", id, onChange, children: opts.map(([k3, t2]) => /* @__PURE__ */ u2("option", { value: k3, selected: k3 === v2, children: t2 })) });
+  }
+  function SideHead({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("div", { class: "sb-repo", children: [
+        /* @__PURE__ */ u2("button", { class: "fold-btn", "data-side": "repos", title: "All repositories", onClick: () => on3.side("repos"), children: /* @__PURE__ */ u2(Icon, { n: "chevron-left" }) }),
+        /* @__PURE__ */ u2("b", { title: p3.repo, children: p3.repo })
+      ] }),
+      /* @__PURE__ */ u2("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u2("button", { "data-sps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.sps(s3), children: cap(s3) })) }),
+      /* @__PURE__ */ u2("input", { class: "input sb-filter", id: "prfilter", placeholder: "Filter by title, #, author, label\u2026", value: p3.filter, onInput: on3.pf }),
+      /* @__PURE__ */ u2("div", { class: "sb-ctl", children: [
+        /* @__PURE__ */ u2("label", { children: [
+          "Sort",
+          /* @__PURE__ */ u2(Sel, { id: "prsort", opts: p3.sorts, v: p3.sort, onChange: on3.psort })
+        ] }),
+        /* @__PURE__ */ u2("label", { children: [
+          "Group",
+          /* @__PURE__ */ u2(Sel, { id: "prgroup", opts: p3.groups, v: p3.group, onChange: on3.pgroup })
+        ] })
+      ] })
+    ] });
+  }
+  function PrGroups({ groups, on: on3 }) {
+    return /* @__PURE__ */ u2(S2, { children: groups.map((g2) => /* @__PURE__ */ u2("div", { class: `pg${g2.folded}`, children: [
+      /* @__PURE__ */ u2("div", { class: "pg-h", "data-fold": g2.key, onClick: (e2) => on3.fold(e2, g2.key), children: [
+        /* @__PURE__ */ u2(Icon, { n: g2.closed ? "chevron-right" : "chevron-down" }),
+        /* @__PURE__ */ u2("span", { children: g2.name }),
+        /* @__PURE__ */ u2("i", { children: g2.rows.length })
+      ] }),
+      /* @__PURE__ */ u2("div", { class: "pg-b", children: g2.rows.map((r3) => /* @__PURE__ */ u2(RcItem, { r: r3, on: on3 })) })
+    ] })) });
+  }
+  function Sidebar({ sideTab, hasRepo, hasToken, on: on3, children }) {
+    return /* @__PURE__ */ u2("aside", { class: "sidebar", children: [
+      /* @__PURE__ */ u2(SideTabs, { active: sideTab, hasRepo, on: on3 }),
+      /* @__PURE__ */ u2("div", { class: "sb-list", children }),
+      /* @__PURE__ */ u2("div", { class: "sb-foot", children: hasToken ? "Signed in with token" : "Anonymous \xB7 60 requests/hour" })
+    ] });
+  }
+
+  // src/components/Home.tsx
+  var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Banners({ items, on: on3 }) {
+    return /* @__PURE__ */ u2(S2, { children: items.map((p3) => /* @__PURE__ */ u2("div", { class: "push-banner", children: [
+      I2("git-branch"),
+      /* @__PURE__ */ u2("span", { children: [
+        /* @__PURE__ */ u2("b", { children: p3.branch }),
+        " had recent pushes ",
+        p3.ago,
+        p3.showRepo ? /* @__PURE__ */ u2(S2, { children: [
+          " ",
+          /* @__PURE__ */ u2("i", { children: [
+            "\xB7 ",
+            p3.repo
+          ] })
+        ] }) : ""
+      ] }),
+      /* @__PURE__ */ u2("span", { class: "sp" }),
+      /* @__PURE__ */ u2("button", { class: "btn small primary", "data-compare": `${p3.repo}@${p3.branch}`, onClick: () => on3.compare(p3.repo, p3.branch), children: "Compare & pull request" }),
+      /* @__PURE__ */ u2("button", { class: "push-x", "data-pdismiss": p3.key, onClick: () => on3.dismiss(p3.key), title: "Dismiss", children: I2("x") })
+    ] })) });
+  }
+  function Card({ r: r3, on: on3 }) {
+    return /* @__PURE__ */ u2("a", { class: "hm-card", "data-repo": r3.full, onClick: () => on3.repo(r3.full), children: [
+      /* @__PURE__ */ u2("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
+      /* @__PURE__ */ u2("span", { class: "hm-t", children: [
+        /* @__PURE__ */ u2("b", { children: r3.name }),
+        /* @__PURE__ */ u2("i", { children: [
+          r3.owner,
+          r3.archived ? " \xB7 archived" : "",
+          r3.issues ? ` \xB7 ${r3.issues} open` : ""
+        ] }),
+        r3.desc ? /* @__PURE__ */ u2("em", { children: r3.desc }) : ""
+      ] })
+    ] });
+  }
+  function Opt({ v: v2, cur, t: t2 }) {
+    return /* @__PURE__ */ u2("option", { value: v2, selected: cur === v2, children: t2 });
+  }
+  function Body({ b: b2, on: on3 }) {
+    if (b2.kind === "addtoken") return /* @__PURE__ */ u2("div", { class: "diff-empty", children: [
+      "Add an access token to list all your repositories and their pull requests.",
+      /* @__PURE__ */ u2("br", {}),
+      /* @__PURE__ */ u2("br", {}),
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
+    ] });
+    if (b2.kind === "error") return /* @__PURE__ */ u2("div", { class: "diff-empty err", children: b2.text });
+    if (b2.kind === "spinner") return /* @__PURE__ */ u2("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" });
+    if (b2.kind === "recent") {
+      return /* @__PURE__ */ u2(S2, { children: [
+        b2.hasAny ? /* @__PURE__ */ u2("div", { class: "hm-fbar", children: [
+          /* @__PURE__ */ u2("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter, onInput: on3.recentFilter }),
+          /* @__PURE__ */ u2("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x3) => /* @__PURE__ */ u2("button", { class: b2.state === x3 ? "on" : "", "data-rstate": x3, onClick: () => on3.rstate(x3), children: cap2(x3) })) })
+        ] }) : "",
+        b2.cards.length ? /* @__PURE__ */ u2("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u2("a", { class: "hm-card", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+          /* @__PURE__ */ u2("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
+          /* @__PURE__ */ u2("span", { class: "hm-t", children: [
+            /* @__PURE__ */ u2("b", { children: r3.title }),
+            /* @__PURE__ */ u2("i", { children: r3.ref })
+          ] }),
+          /* @__PURE__ */ u2("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e2) => on3.rm(e2, r3.ref), title: "Remove", children: I2("x") })
+        ] })) }) : /* @__PURE__ */ u2("div", { class: "diff-empty", children: b2.emptyText })
+      ] });
+    }
+    const grid = b2.none ? /* @__PURE__ */ u2("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u2(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("h3", { class: "hm-grp", children: [
+        g2.owner,
+        /* @__PURE__ */ u2("span", { children: g2.cards.length })
+      ] }),
+      /* @__PURE__ */ u2("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u2(Card, { r: r3, on: on3 })) })
+    ] })) }) : /* @__PURE__ */ u2("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u2(Card, { r: r3, on: on3 })) });
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("div", { class: "hm-fbar", children: [
+        /* @__PURE__ */ u2("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter, onInput: on3.repoFilter }),
+        /* @__PURE__ */ u2("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x3) => /* @__PURE__ */ u2("button", { class: b2.vis === x3 ? "on" : "", "data-hvis": x3, onClick: () => on3.vis(x3), children: cap2(x3) })) }),
+        /* @__PURE__ */ u2("select", { class: "input", id: "hmsort", title: "Sort", onChange: on3.sort, children: [
+          /* @__PURE__ */ u2(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
+          /* @__PURE__ */ u2(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
+          /* @__PURE__ */ u2(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
+          /* @__PURE__ */ u2(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
+          /* @__PURE__ */ u2(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
+          /* @__PURE__ */ u2(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
+          /* @__PURE__ */ u2(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
+        ] }),
+        /* @__PURE__ */ u2("select", { class: "input", id: "hmgroup", title: "Group", onChange: on3.group, children: [
+          /* @__PURE__ */ u2(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
+          /* @__PURE__ */ u2(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
+        ] })
+      ] }),
+      grid
+    ] });
+  }
+  function Home({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u2("div", { class: "notes-page hm-page", children: [
+      /* @__PURE__ */ u2("div", { class: "np-head", children: /* @__PURE__ */ u2("h1", { children: [
+        I2("home"),
+        SP,
+        p3.owner || "Home"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u2("p", { class: "hm-hint", children: [
+        "Open a pull request: type ",
+        /* @__PURE__ */ u2("code", { children: "owner/repo#123" }),
+        " or paste a URL in the bar above."
+      ] }),
+      p3.banners.length ? /* @__PURE__ */ u2("div", { class: "push-wrap", children: /* @__PURE__ */ u2(Banners, { items: p3.banners, on: on3 }) }) : "",
+      p3.err ? /* @__PURE__ */ u2("div", { class: "err", children: p3.err }) : "",
+      /* @__PURE__ */ u2("div", { class: "np-tabs", children: [
+        /* @__PURE__ */ u2("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", onClick: () => on3.tab("repos"), children: [
+          I2("repo"),
+          " Repositories",
+          p3.repoCount !== null ? /* @__PURE__ */ u2("span", { children: p3.repoCount }) : ""
+        ] }),
+        /* @__PURE__ */ u2("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", onClick: () => on3.tab("recent"), children: [
+          I2("clock"),
+          " Recent",
+          /* @__PURE__ */ u2("span", { children: p3.recentCount })
+        ] })
+      ] }),
+      /* @__PURE__ */ u2(Body, { b: p3.body, on: on3 })
+    ] });
+  }
+
+  // src/components/PrList.tsx
+  var cap3 = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Opts({ arr, v: v2, all }) {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("option", { value: "", children: all }),
+      arr.map((x3) => /* @__PURE__ */ u2("option", { value: x3, selected: x3 === v2, children: x3 }))
+    ] });
+  }
+  function FilterBar({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u2("div", { class: "prl-filters", children: [
+      /* @__PURE__ */ u2("span", { class: "pf-search", children: [
+        I2("search"),
+        /* @__PURE__ */ u2("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false, onInput: on3.filter })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u2("select", { class: "input", id: "pfauthor", onChange: on3.author, children: /* @__PURE__ */ u2(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u2("select", { class: "input", id: "pflabel", onChange: on3.label, children: /* @__PURE__ */ u2(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u2("select", { class: "input", id: "pfstatus", onChange: on3.status, children: [
+        /* @__PURE__ */ u2("option", { value: "", children: "Status: any" }),
+        p3.statuses.map(([k3, t2]) => /* @__PURE__ */ u2("option", { value: k3, selected: k3 === p3.status, children: t2 }))
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u2("select", { class: "input", id: "pfsort", onChange: on3.sort, children: p3.sorts.map(([k3, t2]) => /* @__PURE__ */ u2("option", { value: k3, selected: k3 === p3.sort, children: [
+        "Sort: ",
+        t2
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u2("span", { class: "pf-count", children: [
+        p3.n,
+        " of ",
+        p3.total
+      ] }),
+      p3.active ? /* @__PURE__ */ u2("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
+    ] });
+  }
+  function PrListPage({ p: p3, on: on3 }) {
+    const body = p3.err ? /* @__PURE__ */ u2("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u2("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u2(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u2("a", { class: "prl-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+      /* @__PURE__ */ u2("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
+      /* @__PURE__ */ u2("span", { class: "prl-main", children: [
+        /* @__PURE__ */ u2("b", { children: r3.title }),
+        r3.labels.map((l3) => /* @__PURE__ */ u2("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
+        /* @__PURE__ */ u2("i", { children: r3.meta })
+      ] }),
+      /* @__PURE__ */ u2("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
+    ] })) }) : /* @__PURE__ */ u2("div", { class: "diff-empty", children: p3.empty });
+    return /* @__PURE__ */ u2("div", { class: "pr-page", children: [
+      /* @__PURE__ */ u2("div", { class: "repoline", style: "padding-bottom:16px" }),
+      /* @__PURE__ */ u2(Banners, { items: p3.banners, on: on3 }),
+      /* @__PURE__ */ u2("div", { class: "prl", children: [
+        /* @__PURE__ */ u2("div", { class: "prl-head", children: [
+          /* @__PURE__ */ u2("div", { children: [
+            /* @__PURE__ */ u2("span", { class: "repo-ic", children: I2("repo", 16) }),
+            SP,
+            /* @__PURE__ */ u2("b", { children: p3.repo })
+          ] }),
+          /* @__PURE__ */ u2("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u2("button", { "data-ps": s3, class: p3.state === s3 ? "on" : "", onClick: () => on3.ps(s3), children: cap3(s3) })) })
+        ] }),
+        p3.filterBar ? /* @__PURE__ */ u2(FilterBar, { p: p3.filterBar, on: on3 }) : null,
+        body
+      ] })
+    ] });
+  }
+  function Crumbs({ repo, trail, extra, extraNode, on: on3 }) {
+    const homeCur = !repo && !trail.length;
+    const parts = [homeCur ? /* @__PURE__ */ u2("span", { class: "crumb cur home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u2("span", { children: "Home" })
+    ] }) : /* @__PURE__ */ u2("a", { class: "crumb", "data-home": "1", onClick: on3 && on3.home, title: "Home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u2("span", { children: "Home" })
+    ] })];
+    if (repo) {
+      const [owner, name] = repo.split("/");
+      parts.push(/* @__PURE__ */ u2("span", { class: "crumb-grp", children: [
+        /* @__PURE__ */ u2("a", { class: "crumb", "data-owner": owner, onClick: on3 && (() => on3.owner(owner)), title: `Repositories of ${owner}`, children: owner }),
+        /* @__PURE__ */ u2("span", { class: "crumb-slash", children: "/" }),
+        /* @__PURE__ */ u2("a", { class: "crumb strong", "data-repo": repo, onClick: on3 && (() => on3.repo(repo)), title: `All pull requests in ${repo}`, children: name })
+      ] }));
+    }
+    trail.forEach((t2, i3) => parts.push(i3 === trail.length - 1 ? /* @__PURE__ */ u2("span", { class: "crumb cur", children: t2.t }) : /* @__PURE__ */ u2("a", { class: "crumb", "data-repo": t2.repo || void 0, onClick: on3 && t2.repo ? (() => on3.repo(t2.repo)) : void 0, children: t2.t })));
+    return /* @__PURE__ */ u2("nav", { class: "repoline crumbs", "aria-label": "Breadcrumb", children: [
+      parts.map((x3, i3) => /* @__PURE__ */ u2(S2, { children: [
+        i3 ? /* @__PURE__ */ u2("span", { class: "crumb-sep", children: I2("chevron-right", 12) }) : "",
+        x3
+      ] })),
+      extra ? Raw(extra) : null,
+      extraNode
+    ] });
+  }
+
+  // src/app/prlist.ts
+  var PSORT = { updated: "Recently updated", created: "Newest", oldest: "Oldest", number: "Number", title: "Title A\u2013Z", author: "Author" };
+  var PGROUP = { none: "No grouping", status: "Status", author: "Author", label: "Label", base: "Base branch" };
+  var prStatus = (p3) => p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : p3.draft ? "draft" : "open";
+  var PICON = { open: "git-pull-request", draft: "git-pull-request-draft", merged: "git-merge", closed: "git-pull-request-closed" };
+  function prFiltered() {
+    const f4 = S.pf.toLowerCase();
+    const list = (S.prs || []).filter((p3) => (!f4 || `#${p3.number} ${p3.title} ${p3.user.login} ${p3.head?.ref || ""} ${(p3.labels || []).map((l3) => l3.name).join(" ")}`.toLowerCase().includes(f4)) && (!S.pAuthor || p3.user.login === S.pAuthor) && (!S.pLabel || (p3.labels || []).some((l3) => l3.name === S.pLabel)) && (!S.pStatus || prStatus(p3) === S.pStatus));
+    const cmps = { updated: (a3, b2) => b2.updated_at.localeCompare(a3.updated_at), created: (a3, b2) => b2.created_at.localeCompare(a3.created_at), oldest: (a3, b2) => a3.created_at.localeCompare(b2.created_at), number: (a3, b2) => b2.number - a3.number, title: (a3, b2) => a3.title.localeCompare(b2.title), author: (a3, b2) => a3.user.login.localeCompare(b2.user.login) || b2.number - a3.number };
+    return list.sort(cmps[S.psort]);
+  }
+  function prFilterBar() {
+    if (!S.prs) return null;
+    const authors = [...new Set(S.prs.map((p3) => p3.user.login))].sort((a3, b2) => a3.localeCompare(b2));
+    const labels = [...new Set(S.prs.flatMap((p3) => (p3.labels || []).map((l3) => l3.name)))].sort((a3, b2) => a3.localeCompare(b2));
+    return {
+      filter: S.pf,
+      authors,
+      labels,
+      author: S.pAuthor,
+      label: S.pLabel,
+      status: S.pStatus ?? "",
+      statuses: Object.entries({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }),
+      sort: S.psort,
+      sorts: Object.entries(PSORT),
+      n: prFiltered().length,
+      total: S.prs.length,
+      active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus)
+    };
+  }
+  function prListProps() {
+    const rows = S.error || !S.prs ? null : prFiltered().map((p3) => {
+      const st = p3.merged_at ? ["merged", "git-merge"] : p3.state === "closed" ? ["closed", "git-pull-request-closed"] : p3.draft ? ["draft", "git-pull-request-draft"] : ["open", "git-pull-request"];
+      return { ref: `${S.repo}#${p3.number}`, st: st[0], icon: st[1], title: p3.title, labels: p3.labels || [], meta: `#${p3.number} ${p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : "opened"} ${when(p3.merged_at || p3.closed_at || p3.created_at).replace(/<\/?span[^>]*>/g, "")} by ${p3.user.login}`, avatar: p3.user.avatar_url ?? "" };
+    });
+    return { repo: S.repo, state: S.prState, banners: pushBannerItems(S.repo), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : "", loading: !S.error && !S.prs, empty: S.prs?.length ? "No pull requests match the filters." : "No pull requests." };
+  }
+
+  // src/app/side.tsx
+  var typed = (e2, key, id) => {
+    const t2 = e2.target;
+    S[key] = t2.value;
+    const p3 = t2.selectionStart;
+    render();
+    const n2 = $("#" + id);
+    n2.focus();
+    n2.setSelectionRange(p3, p3);
+  };
+  var on = {
+    side: (tab) => {
+      S.sideTab = tab;
+      render();
+    },
+    sps: (state) => {
+      S.prState = state;
+      loadPrs();
+    },
+    pf: (e2) => typed(e2, "pf", "prfilter"),
+    psort: (e2) => {
+      S.psort = e2.target.value;
+      localStorage.setItem("psort", S.psort);
+      render();
+    },
+    pgroup: (e2) => {
+      S.pgroup = e2.target.value;
+      localStorage.setItem("pgroup", S.pgroup);
+      render();
+    },
+    repoFilter: (e2) => typed(e2, "repoFilter", "repofilter"),
+    repo: (name) => openRepo(name),
+    addToken: tokenDialog,
+    open: openClick,
+    aux: openAux,
+    ctx: openCtx,
+    rm: rmRecent,
+    // Folding only flips state: the sidebar repaints itself and any copy of the block in the page is updated in place.
+    fold: (e2, k3) => {
+      e2.stopPropagation();
+      const now = !isFolded(k3), els = qa("[data-fold]").filter((x3) => x3.dataset.fold === k3 && !x3.closest("#side"));
+      S.fold[k3] = now;
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+      els.forEach((x3) => {
+        const box = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
+        if (box) box.classList.toggle("folded", now);
+        const svg = $("svg", x3);
+        if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
+      });
+      repaintSide();
+    }
+  };
+  function PrRows() {
+    const cur = S.bundle && S.view === "pr" ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
+    const f4 = S.pf.toLowerCase();
+    const head2 = { repo: S.repo, state: S.prState, filter: S.pf, sort: S.psort, group: S.pgroup, sorts: Object.entries(PSORT), groups: Object.entries(PGROUP) };
+    const header = /* @__PURE__ */ u2(SideHead, { p: head2, on });
+    if (!S.prs) return /* @__PURE__ */ u2(S2, { children: [
+      header,
+      /* @__PURE__ */ u2("div", { class: "sb-empty", children: "Loading pull requests\u2026" })
+    ] });
+    const list = S.prs.filter((p3) => !f4 || `#${p3.number} ${p3.title} ${p3.user.login} ${p3.head?.ref || ""} ${(p3.labels || []).map((l3) => l3.name).join(" ")}`.toLowerCase().includes(f4));
+    const sorts = { updated: (a3, b2) => b2.updated_at.localeCompare(a3.updated_at), created: (a3, b2) => b2.created_at.localeCompare(a3.created_at), oldest: (a3, b2) => a3.created_at.localeCompare(b2.created_at), number: (a3, b2) => b2.number - a3.number, title: (a3, b2) => a3.title.localeCompare(b2.title), author: (a3, b2) => a3.user.login.localeCompare(b2.user.login) || b2.number - a3.number };
+    list.sort(sorts[S.psort]);
+    const row2 = (p3) => {
+      const st = prStatus(p3), ref = `${S.repo}#${p3.number}`;
+      return { ref, on: ref === cur, st, icon: PICON[st], title: p3.title, sub: `#${p3.number} \xB7 ${p3.user.login} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}` };
+    };
+    if (!list.length) return /* @__PURE__ */ u2(S2, { children: [
+      header,
+      /* @__PURE__ */ u2("div", { class: "sb-empty", children: S.pf ? "No matches." : "No pull requests." })
+    ] });
+    if (S.pgroup === "none") return /* @__PURE__ */ u2(S2, { children: [
+      header,
+      /* @__PURE__ */ u2("div", { class: "sb-count", children: [
+        list.length,
+        " pull request",
+        list.length === 1 ? "" : "s"
+      ] }),
+      list.map((p3) => /* @__PURE__ */ u2(RcItem, { r: row2(p3), on }))
+    ] });
+    const groups = /* @__PURE__ */ new Map(), put = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
+    list.forEach((p3) => {
+      if (S.pgroup === "status") put({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }[prStatus(p3)], p3);
+      else if (S.pgroup === "author") put(p3.user.login, p3);
+      else if (S.pgroup === "base") put(p3.base?.ref || "\u2014", p3);
+      else if ((p3.labels || []).length) p3.labels.forEach((l3) => put(l3.name, p3));
+      else put("No label", p3);
+    });
+    const order = S.pgroup === "status" ? ["Open", "Draft", "Merged", "Closed"] : [...groups.keys()].sort((a3, b2) => +(a3 === "No label") - +(b2 === "No label") || a3.localeCompare(b2));
+    return /* @__PURE__ */ u2(S2, { children: [
+      header,
+      /* @__PURE__ */ u2(PrGroups, { on, groups: order.filter((k3) => groups.has(k3)).map((k3) => {
+        const key = "pg:" + S.pgroup + ":" + k3;
+        return { key, folded: folded(key), closed: isFolded(key), name: k3, rows: groups.get(k3).map(row2) };
+      }) })
+    ] });
+  }
+  function List() {
+    if (S.sideTab === "prs" && S.repo) return /* @__PURE__ */ u2(PrRows, {});
+    if (S.sideTab === "recent") return /* @__PURE__ */ u2(RecentList, { recent: S.recent, curRef: S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "", on });
+    if (!S.hasToken) return /* @__PURE__ */ u2("div", { class: "sb-empty", children: [
+      "Add an access token to list all your repositories and their pull requests.",
+      /* @__PURE__ */ u2("br", {}),
+      /* @__PURE__ */ u2("br", {}),
+      /* @__PURE__ */ u2("button", { class: "sb-btn", id: "addtoken", onClick: on.addToken, children: "Add token" })
+    ] });
+    if (S.reposErr) return /* @__PURE__ */ u2("div", { class: "sb-empty err", children: S.reposErr });
+    if (!S.repos) return /* @__PURE__ */ u2("div", { class: "sb-empty", children: "Loading repositories\u2026" });
+    return /* @__PURE__ */ u2(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on });
+  }
+  function Side() {
+    return /* @__PURE__ */ u2(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on, children: /* @__PURE__ */ u2(List, {}) });
+  }
+  var paintSide = (host) => R(/* @__PURE__ */ u2(Side, {}), host);
+  var repaintSide = () => {
+    const h3 = $("#side");
+    if (h3) paintSide(h3);
+  };
+
+  // src/app/bindwrite.ts
+  function homeProps() {
+    const tab = S.homeTab || "repos", owner = S.homeOwner || "";
+    let body;
+    if (tab === "recent") {
+      const q3 = (S.recentFilter || "").toLowerCase(), st = S.recentState || "all";
+      const list = S.recent.filter((r3) => (st === "all" || r3.state === st) && (!q3 || (r3.title + " " + r3.ref).toLowerCase().includes(q3)));
+      body = { kind: "recent", filter: S.recentFilter || "", state: st, hasAny: S.recent.length > 0, cards: list.map((r3) => ({ ref: r3.ref, state: r3.state, icon: r3.icon, title: r3.title })), emptyText: S.recent.length ? "No matching pull requests." : "Pull requests you open appear here." };
+    } else if (!S.hasToken) body = { kind: "addtoken" };
+    else if (S.reposErr) body = { kind: "error", text: String(S.reposErr) };
+    else if (!S.repos) body = { kind: "spinner" };
+    else {
+      const f4 = (S.repoFilter || "").toLowerCase();
+      const vis = S.hmVis || "all", srt = S.hmSort || "pushed", grp = S.hmGroup || "none";
+      let list = S.repos.filter((r3) => (!owner || r3.full_name.startsWith(owner + "/")) && r3.full_name.toLowerCase().includes(f4) && (vis === "all" || vis === "private" === !!r3.private));
+      const nm = (r3) => r3.full_name.split("/")[1], pushed = (r3) => Date.parse(r3.pushed_at || "0") || 0;
+      const sorters = { name: (a3, b2) => nm(a3).localeCompare(nm(b2)), namez: (a3, b2) => nm(b2).localeCompare(nm(a3)), issues: (a3, b2) => (b2.open_issues_count || 0) - (a3.open_issues_count || 0) || nm(a3).localeCompare(nm(b2)), oldest: (a3, b2) => pushed(a3) - pushed(b2), owner: (a3, b2) => a3.full_name.localeCompare(b2.full_name), ownerz: (a3, b2) => b2.full_name.split("/")[0].localeCompare(a3.full_name.split("/")[0]) || nm(a3).localeCompare(nm(b2)) };
+      const sorter = sorters[srt];
+      if (sorter) list = [...list].sort(sorter);
+      const card = (r3) => ({ full: r3.full_name, name: r3.full_name.split("/")[1], owner: r3.full_name.split("/")[0], priv: !!r3.private, archived: !!r3.archived, issues: r3.open_issues_count || 0, desc: r3.description || "" });
+      let groups = null;
+      if (grp === "owner") {
+        const by = /* @__PURE__ */ new Map();
+        list.forEach((r3) => {
+          const o3 = r3.full_name.split("/")[0];
+          if (!by.has(o3)) by.set(o3, []);
+          by.get(o3).push(r3);
+        });
+        groups = [...by].map(([o3, rs]) => ({ owner: o3, cards: rs.map(card) }));
+      }
+      body = { kind: "repos", filter: S.repoFilter || "", vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
+    }
+    return { owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBannerItems(), err: S.error ? String(S.error) : "", body };
+  }
+
+  // src/app/home.tsx
+  var crumbs = {
+    home: () => {
+      S.view = "home";
+      S.homeOwner = "";
+      S.nav = false;
+      render();
+    },
+    owner: (o3) => {
+      S.view = "home";
+      S.homeOwner = o3;
+      S.homeTab = "repos";
+      S.nav = false;
+      render();
+      if (S.hasToken && !S.repos) loadRepos();
+    },
+    repo: (r3) => openRepo(r3)
+  };
+  var on2 = {
+    tab: (t2) => {
+      S.homeTab = t2;
+      render();
+    },
+    vis: (v2) => {
+      S.hmVis = v2;
+      render();
+    },
+    sort: (e2) => {
+      S.hmSort = e2.target.value;
+      render();
+    },
+    group: (e2) => {
+      S.hmGroup = e2.target.value;
+      render();
+    },
+    repoFilter: (e2) => {
+      S.repoFilter = e2.target.value;
+      render();
+    },
+    recentFilter: (e2) => {
+      S.recentFilter = e2.target.value;
+      render();
+    },
+    rstate: (s3) => {
+      S.recentState = s3;
+      render();
+    },
+    repo: (full) => openRepo(full),
+    open: openClick,
+    aux: openAux,
+    ctx: openCtx,
+    rm: rmRecent,
+    addToken: tokenDialog,
+    compare: (repo, br) => openNewPr(repo, br),
+    dismiss: (key) => {
+      pushDis[key] = 1;
+      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
+      rerender();
+    }
+  };
+  function HomeView() {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: "", trail: S.homeOwner ? [{ t: S.homeOwner }] : [], extra: "", on: crumbs }),
+      /* @__PURE__ */ u2(Home, { p: homeProps(), on: on2 })
+    ] });
+  }
+
+  // src/components/Pages.tsx
+  function NotesPage({ f: f4, rows, unread, total, on: on3 }) {
+    const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
+    return /* @__PURE__ */ u2("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u2("div", { class: "np-head", children: [
+        /* @__PURE__ */ u2("h1", { children: [
+          I2("bell"),
+          SP,
+          "Notifications"
+        ] }),
+        /* @__PURE__ */ u2("div", { class: "np-tools", children: [
+          /* @__PURE__ */ u2("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
+          /* @__PURE__ */ u2("button", { class: "btn small", id: "npreadall", onClick: on3.readAll, disabled: !unread, children: "Mark all as read" }),
+          /* @__PURE__ */ u2("button", { class: "btn small ghost", id: "npclear", onClick: on3.clear, disabled: !total, children: "Clear all" })
+        ] })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u2("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u2("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, onClick: () => on3.filter(k3), children: [
+        l3,
+        /* @__PURE__ */ u2("span", { children: c3 })
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u2("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u2("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
+        /* @__PURE__ */ u2("button", { class: "np-dot", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), title: n2.read ? "Mark as unread" : "Mark as read" }),
+        "\n    ",
+        /* @__PURE__ */ u2("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+          /* @__PURE__ */ u2("b", { children: n2.title }),
+          /* @__PURE__ */ u2("span", { children: n2.text }),
+          /* @__PURE__ */ u2("i", { children: [
+            n2.ref,
+            " \xB7 ",
+            n2.when
+          ] })
+        ] }),
+        "\n    ",
+        /* @__PURE__ */ u2("button", { class: "np-act", "data-nread": n2.id, onClick: (e2) => on3.read(e2, n2.id), children: n2.read ? "Mark unread" : "Mark read" }),
+        /* @__PURE__ */ u2("button", { class: "np-act del", "data-ndel": n2.id, onClick: (e2) => on3.del(e2, n2.id), title: "Delete", children: I2("x") })
+      ] })) : /* @__PURE__ */ u2("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
+    ] });
+  }
+  function NpMeta({ p: p3, on: on3 }) {
+    return /* @__PURE__ */ u2("div", { class: "np-box np-metas", id: "npmeta", children: [
+      p3.rows.map((r3) => /* @__PURE__ */ u2("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u2("label", { class: "np-l", children: r3.name }),
+        /* @__PURE__ */ u2("div", { class: "np-chips", children: [
+          r3.chips.map((x3) => /* @__PURE__ */ u2("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x3, onClick: () => on3.del(r3.k, x3), title: "Remove", children: [
+            x3,
+            " \xD7"
+          ] })),
+          r3.free.length ? /* @__PURE__ */ u2("select", { class: "sel np-add", "data-npadd": r3.k, value: "", onChange: (e2) => on3.add(r3.k, e2), children: [
+            /* @__PURE__ */ u2("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
+            r3.free.map((x3) => /* @__PURE__ */ u2("option", { children: x3 }))
+          ] }) : ""
+        ] })
+      ] })),
+      "\n    ",
+      /* @__PURE__ */ u2("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u2("label", { class: "np-l", children: "Milestone" }),
+        /* @__PURE__ */ u2("select", { class: "sel", id: "npmile", onChange: on3.mile, children: [
+          /* @__PURE__ */ u2("option", { value: "", children: "None" }),
+          p3.milestones.map((x3) => /* @__PURE__ */ u2("option", { value: x3.number, selected: x3.on, children: x3.title }))
+        ] })
+      ] }),
+      "\n    ",
+      /* @__PURE__ */ u2("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u2("label", { class: "np-l", children: [
+          "Linked issues ",
+          /* @__PURE__ */ u2("i", { children: "closed when this merges" })
+        ] }),
+        /* @__PURE__ */ u2("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues, onInput: on3.issues })
+      ] })
+    ] });
+  }
+  function NewPr({ p: p3, on: on3 }) {
+    const c3 = p3.cmp;
+    const cmp = c3.kind === "loading" ? /* @__PURE__ */ u2("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u2("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u2("span", { class: "np-note ok", children: [
+      I2("git-commit"),
+      SP,
+      c3.ahead,
+      " commit",
+      c3.ahead === 1 ? "" : "s",
+      " \xB7 ",
+      c3.files,
+      " file",
+      c3.files === 1 ? "" : "s",
+      " changed",
+      c3.behind ? ` \xB7 ${c3.behind} behind ${p3.base}` : ""
+    ] }) : /* @__PURE__ */ u2("span", { class: "np-note err", children: "These branches are identical \u2014 there is nothing to compare." });
+    const t2 = p3.tpls;
+    return /* @__PURE__ */ u2("div", { class: "notes-page np-new", children: [
+      /* @__PURE__ */ u2("div", { class: "np-head", children: /* @__PURE__ */ u2("h1", { children: [
+        I2("git-pull-request"),
+        SP,
+        "New pull request"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u2("div", { class: "np-card", children: [
+        /* @__PURE__ */ u2("div", { class: "np-main-col", children: [
+          "\n    ",
+          /* @__PURE__ */ u2("div", { class: "np-box", children: [
+            /* @__PURE__ */ u2("label", { class: "np-l", children: "Repository" }),
+            p3.hasRepos ? /* @__PURE__ */ u2("button", { type: "button", class: "sel bp-btn", id: "nprepo", onClick: on3.repo, children: [
+              /* @__PURE__ */ u2("span", { children: p3.repo || "Choose a repository" }),
+              I2("chevron-down", 14)
+            ] }) : /* @__PURE__ */ u2("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo, onChange: on3.repoIn }),
+            "\n    ",
+            /* @__PURE__ */ u2("div", { class: "np-branches", children: [
+              /* @__PURE__ */ u2("div", { children: [
+                /* @__PURE__ */ u2("label", { class: "np-l", children: [
+                  "Base ",
+                  /* @__PURE__ */ u2("i", { children: "merge into" })
+                ] }),
+                /* @__PURE__ */ u2("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", onClick: on3.base, disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u2("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] }),
+              "\n      ",
+              /* @__PURE__ */ u2("button", { class: "tb-btn", id: "npswap", onClick: on3.swap, title: "Swap base and head", children: "\u21C4" }),
+              "\n      ",
+              /* @__PURE__ */ u2("div", { children: [
+                /* @__PURE__ */ u2("label", { class: "np-l", children: [
+                  "Head ",
+                  /* @__PURE__ */ u2("i", { children: "changes from" })
+                ] }),
+                /* @__PURE__ */ u2("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", onClick: on3.head, disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u2("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] })
+            ] }),
+            "\n    ",
+            /* @__PURE__ */ u2("div", { class: "np-cmp", children: p3.same ? /* @__PURE__ */ u2("span", { class: "np-note err", children: "Base and head are the same branch." }) : cmp })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u2("div", { class: "np-box", children: [
+            /* @__PURE__ */ u2("label", { class: "np-l", children: "Title" }),
+            /* @__PURE__ */ u2("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title, onInput: on3.title })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u2("div", { class: "np-box", children: [
+            /* @__PURE__ */ u2("label", { class: "np-l", children: "Description" }),
+            t2 && t2.length > 1 ? /* @__PURE__ */ u2("select", { class: "sel np-tpl", id: "nptpl", onChange: on3.tpl, children: [
+              /* @__PURE__ */ u2("option", { value: "", children: "No template" }),
+              t2.map((x3, i3) => /* @__PURE__ */ u2("option", { value: i3, selected: x3.body === p3.tplText, children: [
+                "Template: ",
+                x3.name
+              ] }))
+            ] }) : "",
+            /* @__PURE__ */ u2("div", { class: "tt", "data-draft": "newpr", "data-ph": "Describe your changes \u2014 type / for blocks", style: "--rows:8" })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u2("div", { class: "np-box", children: [
+            /* @__PURE__ */ u2("label", { class: "np-check", children: [
+              /* @__PURE__ */ u2("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft, onChange: on3.draft }),
+              " Create as draft ",
+              /* @__PURE__ */ u2("span", { children: "(not ready for review yet)" })
+            ] }),
+            "\n    ",
+            p3.err ? /* @__PURE__ */ u2("div", { class: "act-err", children: p3.err }) : "",
+            "\n    ",
+            /* @__PURE__ */ u2("div", { class: "np-btns", children: [
+              /* @__PURE__ */ u2("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
+              /* @__PURE__ */ u2("button", { class: "btn primary", id: "npcreate", onClick: on3.create, disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
+            ] })
+          ] }),
+          "\n  "
+        ] }),
+        /* @__PURE__ */ u2("div", { class: "np-side-col", children: p3.meta ? /* @__PURE__ */ u2(NpMeta, { p: p3.meta, on: on3 }) : "" })
+      ] })
+    ] }, p3.seq);
+  }
+  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
+    const body = err ? /* @__PURE__ */ u2("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u2("div", { class: "skel", children: [
+      /* @__PURE__ */ u2("div", { class: "sk sk-line" }),
+      /* @__PURE__ */ u2("div", { class: "sk sk-line w80" }),
+      /* @__PURE__ */ u2("div", { class: "sk sk-line w60" })
+    ] }) : secs.map((s3) => /* @__PURE__ */ u2("section", { class: "ib-sec", children: [
+      /* @__PURE__ */ u2("h2", { children: [
+        s3.title,
+        /* @__PURE__ */ u2("span", { children: s3.rows.length })
+      ] }),
+      /* @__PURE__ */ u2("p", { children: s3.sub }),
+      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u2("a", { class: "ib-row", "data-open": r3.ref, onClick: (e2) => on3.open(e2.currentTarget, e2), onAuxClick: (e2) => on3.aux(e2.currentTarget, e2), onContextMenu: (e2) => on3.ctx(e2.currentTarget, e2), children: [
+        /* @__PURE__ */ u2("img", { src: r3.avatar, alt: "" }),
+        /* @__PURE__ */ u2("span", { class: "ib-t", children: [
+          /* @__PURE__ */ u2("b", { children: r3.title }),
+          /* @__PURE__ */ u2("i", { children: r3.sub })
+        ] }),
+        r3.fresh ? /* @__PURE__ */ u2("span", { class: "ib-new", children: "New activity" }) : "",
+        r3.comments ? /* @__PURE__ */ u2("span", { class: "ib-c", children: [
+          I2("comment"),
+          SP,
+          r3.comments
+        ] }) : ""
+      ] })) : /* @__PURE__ */ u2("div", { class: "ib-none", children: "Nothing here. Nice." })
+    ] }));
+    return /* @__PURE__ */ u2("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u2("div", { class: "np-head", children: [
+        /* @__PURE__ */ u2("h1", { children: [
+          I2("checklist"),
+          SP,
+          "Inbox"
+        ] }),
+        /* @__PURE__ */ u2("div", { class: "np-tools", children: /* @__PURE__ */ u2("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+      ] }),
+      body
+    ] });
+  }
+  var skeletonHtml = () => html(/* @__PURE__ */ u2("div", { class: "skel", "aria-busy": "true", children: [
+    /* @__PURE__ */ u2("div", { class: "sk sk-crumb" }),
+    /* @__PURE__ */ u2("div", { class: "sk sk-title" }),
+    /* @__PURE__ */ u2("div", { class: "sk sk-pill" }),
+    /* @__PURE__ */ u2("div", { class: "sk sk-line w60" }),
+    /* @__PURE__ */ u2("div", { class: "sk-tabs", children: [
+      /* @__PURE__ */ u2("i", { class: "sk" }),
+      /* @__PURE__ */ u2("i", { class: "sk" }),
+      /* @__PURE__ */ u2("i", { class: "sk" })
+    ] }),
+    [0, 1, 2].map((i3) => /* @__PURE__ */ u2("div", { class: "sk-row", style: `--i:${i3}`, children: [
+      /* @__PURE__ */ u2("div", { class: "sk sk-av" }),
+      /* @__PURE__ */ u2("div", { class: "sk-card", children: [
+        /* @__PURE__ */ u2("div", { class: "sk sk-line w40" }),
+        /* @__PURE__ */ u2("div", { class: "sk sk-line" }),
+        /* @__PURE__ */ u2("div", { class: "sk sk-line w80" }),
+        /* @__PURE__ */ u2("div", { class: "sk sk-line w60" })
+      ] })
+    ] }))
+  ] }));
+  function PrLayout({ header, body, side, on: on3 }) {
+    return /* @__PURE__ */ u2("div", { class: "pr-page", children: [
+      header,
+      /* @__PURE__ */ u2("div", { class: "pr-layout", children: [
+        /* @__PURE__ */ u2("main", { class: "pr-main", children: body }),
+        side.kind === "rail" ? /* @__PURE__ */ u2("button", { class: "pane-rail side-rail", "data-show": "side", onClick: on3.show, title: "Show details", children: [
+          I2("columns"),
+          /* @__PURE__ */ u2("span", { children: "Details" })
+        ] }) : side.kind === "aside" ? /* @__PURE__ */ u2("aside", { class: "pr-side", children: [
+          /* @__PURE__ */ u2("div", { class: "side-top", children: [
+            /* @__PURE__ */ u2("span", { children: "Details" }),
+            /* @__PURE__ */ u2("button", { class: "fold-btn", "data-hide": "side", onClick: side.on.hide, title: "Hide this panel", children: I2("x") })
+          ] }),
+          side.inner
+        ] }) : ""
+      ] })
+    ] });
+  }
+  var SplitLayout = ({ header, split }) => /* @__PURE__ */ u2("div", { class: "pr-page is-split", children: [
+    header,
+    split
+  ] });
+  var gateHtmlStr = (alertIc, err) => html(/* @__PURE__ */ u2("div", { class: "gate", children: /* @__PURE__ */ u2("div", { class: "gate-card", children: [
+    /* @__PURE__ */ u2("img", { src: "logo.png", alt: "", width: 72, height: 72 }),
+    /* @__PURE__ */ u2("h1", { children: "Sign in to Pullscope" }),
+    "\n  ",
+    /* @__PURE__ */ u2("p", { class: "gate-err", children: [
+      Raw(alertIc),
+      SP,
+      "No GitHub sign-in or token was found."
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u2("p", { children: "Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing." }),
+    "\n  ",
+    err ? /* @__PURE__ */ u2("p", { class: "gate-err", children: err }) : "",
+    "\n  ",
+    /* @__PURE__ */ u2("div", { class: "btns", style: "justify-content:center", children: [
+      /* @__PURE__ */ u2("button", { class: "btn primary", id: "gatego", children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u2("button", { class: "btn", id: "gatetok", children: "Use a token instead" })
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u2("small", { children: [
+      "Tip: running ",
+      /* @__PURE__ */ u2("code", { children: "gh auth login" }),
+      " in a terminal also works."
+    ] })
+  ] }) }));
+
+  // src/app/fun.ts
+  var enterTimer;
+  function enterAnim() {
+    qa(".tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area").forEach((el, i3) => {
+      el.style.setProperty("--i", String(Math.min(i3, 14)));
+      el.classList.add("enter-in");
+    });
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => qa(".enter-in").forEach((el) => el.classList.remove("enter-in")), 1800);
+  }
+  document.addEventListener("pointerdown", (e2) => {
+    const b2 = e2.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
+    if (!b2 || b2.disabled) return;
+    const r3 = b2.getBoundingClientRect(), d3 = Math.max(r3.width, r3.height) * 2, rip = document.createElement("span");
+    rip.className = "ripple";
+    rip.style.cssText = `width:${d3}px;height:${d3}px;left:${e2.clientX - r3.left - d3 / 2}px;top:${e2.clientY - r3.top - d3 / 2}px`;
+    if (getComputedStyle(b2).position === "static") b2.style.position = "relative";
+    b2.style.overflow = "hidden";
+    b2.appendChild(rip);
+    setTimeout(() => rip.remove(), 650);
+    if (b2.matches(".reaction, .react-add")) burst(e2.clientX, e2.clientY, b2.textContent.trim().slice(0, 2) || "\u2728", 6);
+  });
+  function burst(x3, y2, ch, n2) {
+    for (let i3 = 0; i3 < n2; i3++) {
+      const p3 = document.createElement("span");
+      p3.className = "burst";
+      p3.textContent = ch;
+      const a3 = Math.PI * 2 * i3 / n2 + Math.random() * 0.6, v2 = 40 + Math.random() * 50;
+      p3.style.cssText = `left:${x3}px;top:${y2}px;--dx:${Math.cos(a3) * v2}px;--dy:${Math.sin(a3) * v2 - 30}px`;
+      document.body.appendChild(p3);
+      setTimeout(() => p3.remove(), 900);
+    }
+  }
+  function confetti() {
+    const c3 = document.createElement("canvas");
+    c3.className = "confetti";
+    c3.width = innerWidth;
+    c3.height = innerHeight;
+    document.body.appendChild(c3);
+    const g2 = c3.getContext("2d"), cols = ["#0969da", "#1f883d", "#8250df", "#f2cc60", "#cf222e", "#ff8fb1"];
+    const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.6, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 14, r: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[Math.random() * cols.length | 0] }));
+    let t2 = 0;
+    (function f4() {
+      g2.clearRect(0, 0, c3.width, c3.height);
+      t2++;
+      ps.forEach((p3) => {
+        p3.vy += 0.35;
+        p3.vx *= 0.99;
+        p3.x += p3.vx;
+        p3.y += p3.vy;
+        p3.a += p3.va;
+        g2.save();
+        g2.translate(p3.x, p3.y);
+        g2.rotate(p3.a);
+        g2.fillStyle = p3.c;
+        g2.globalAlpha = Math.max(0, 1 - t2 / 130);
+        g2.fillRect(-p3.r, -p3.r / 2, p3.r * 2, p3.r);
+        g2.restore();
+      });
+      if (t2 < 130) requestAnimationFrame(f4);
+      else c3.remove();
+    })();
+  }
+
+  // src/app/views.tsx
+  var open = { open: openClick, aux: openAux, ctx: openCtx };
+  var typedPf = (e2) => {
+    S.pf = e2.target.value;
+    render();
+  };
+  var prl = {
+    ...open,
+    ps: (s3) => {
+      S.prState = s3;
+      openRepo(S.repo, { nav: true });
+    },
+    compare: (repo, br) => openNewPr(repo, br),
+    dismiss: (key) => {
+      pushDis[key] = 1;
+      localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
+      rerender();
+    },
+    filter: typedPf,
+    author: (e2) => {
+      S.pAuthor = e2.target.value;
+      render();
+    },
+    label: (e2) => {
+      S.pLabel = e2.target.value;
+      render();
+    },
+    status: (e2) => {
+      S.pStatus = e2.target.value;
+      render();
+    },
+    sort: (e2) => {
+      S.psort = e2.target.value;
+      localStorage.setItem("psort", S.psort);
+      render();
+    },
+    clear: () => {
+      S.pf = S.pAuthor = S.pLabel = S.pStatus = "";
+      render();
+    }
+  };
+  function RepoView() {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: S.repo, trail: [{ t: "Pull requests" }], extra: "", on: crumbs }),
+      /* @__PURE__ */ u2(PrListPage, { p: prListProps(), on: prl })
+    ] });
+  }
+  var keep3 = (fn) => {
+    S.keepScroll = true;
+    fn();
+    render();
+    S.keepScroll = false;
+  };
+  var notes = {
+    ...open,
+    check: () => pollNotes(),
+    readAll: () => keep3(() => {
+      S.notes.forEach((n2) => n2.read = true);
+      saveNotes();
+    }),
+    clear: () => keep3(() => {
+      S.notes = [];
+      saveNotes();
+    }),
+    filter: (f4) => keep3(() => {
+      S.nf = f4;
+    }),
+    read: (e2, id) => {
+      e2.stopPropagation();
+      const n2 = S.notes.find((x3) => String(x3.id) === String(id));
+      if (n2) keep3(() => {
+        n2.read = !n2.read;
+        saveNotes();
+      });
+    },
+    del: (e2, id) => {
+      e2.stopPropagation();
+      keep3(() => {
+        S.notes = S.notes.filter((x3) => String(x3.id) !== String(id));
+        saveNotes();
+      });
+    }
+  };
+  function NotesView() {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: "", trail: [{ t: "Notifications" }], extra: "", on: crumbs }),
+      /* @__PURE__ */ u2(NotesPage, { ...notesProps(), on: notes })
+    ] });
+  }
+  var inbox = { ...open, refresh: () => loadInbox(true) };
+  function InboxView() {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: "", trail: [{ t: "Inbox" }], extra: "", on: crumbs }),
+      /* @__PURE__ */ u2(InboxPage, { p: inboxProps(), on: inbox })
+    ] });
+  }
+  var np = () => S.np;
+  var npSet = (f4) => {
+    f4();
+    np().key = `${np().repo}|${np().base}|${np().head}`;
+  };
+  var val = (e2) => e2.target.value;
+  var newpr = {
+    cancel: () => {
+      S.view = S.bundle ? "pr" : "home";
+      delete S.draft.newpr;
+      render();
+    },
+    repo: (e2) => bpOpen(e2.currentTarget, "repo", (v2) => {
+      npSet(() => {
+        np().repo = v2;
+        np().base = "";
+        np().head = "";
+        np().cmp = null;
+        np().titleTouched = false;
+        np().title = "";
+      });
+      render();
+      npLoadBranches(np().repo);
+    }, true),
+    repoIn: (e2) => {
+      npSet(() => {
+        np().repo = val(e2).trim();
+        np().base = "";
+        np().head = "";
+      });
+      npLoadBranches(np().repo);
+    },
+    base: (e2) => bpOpen(e2.currentTarget, "base", (v2) => {
+      npSet(() => {
+        np().base = v2;
+      });
+      npCompare();
+    }),
+    head: (e2) => bpOpen(e2.currentTarget, "head", (v2) => {
+      npSet(() => {
+        np().head = v2;
+        np().titleTouched = false;
+      });
+      npCompare();
+    }),
+    swap: () => {
+      npSet(() => {
+        [np().base, np().head] = [np().head, np().base];
+      });
+      npCompare();
+    },
+    tpl: (e2) => {
+      const n2 = np(), sel = e2.target, t2 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = sel.value === "" ? "" : t2[+sel.value].body;
+      if (cur && cur !== n2.tplText.trim() && !confirm("Replace what you have written with this template?")) {
+        sel.value = String(t2.findIndex((x3) => x3.body === n2.tplText));
+        if (sel.value === "-1") sel.value = "";
+        return;
+      }
+      S.draft.newpr = n2.tplText = next;
+      saveDrafts();
+      bumpNp();
+      rerender();
+    },
+    title: (e2) => {
+      np().title = val(e2);
+      np().titleTouched = true;
+      render();
+    },
+    draft: (e2) => {
+      np().draft = e2.target.checked;
+      render();
+    },
+    add: (k3, e2) => {
+      if (val(e2)) {
+        np()[k3].push(val(e2));
+        render();
+      }
+    },
+    del: (k3, v2) => {
+      np()[k3] = np()[k3].filter((x3) => x3 !== v2);
+      render();
+    },
+    mile: (e2) => {
+      np().milestone = val(e2);
+    },
+    issues: (e2) => {
+      np().issues = val(e2);
+    },
+    create: async (e2) => {
+      const n2 = np(), btn = e2.currentTarget;
+      setBusy(btn, true);
+      n2.err = "";
+      try {
+        const nums = [...new Set(n2.issues.match(/\d+/g) || [])];
+        const body = ((S.draft.newpr || "").trim() + (nums.length ? `
+
+${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
+        const extra = { reviewers: n2.reviewers, assignees: n2.assignees, labels: n2.labels, milestone: n2.milestone ? Number(n2.milestone) : null };
+        const r3 = await tauri.invoke("create_pr", { repo: n2.repo, base: n2.base, head: n2.head, title: n2.title, body, draft: n2.draft, extra });
+        const warn = r3.warnings?.length ? `Created, but ${r3.warnings.join(" \xB7 ")}` : "";
+        delete S.draft.newpr;
+        saveDrafts();
+        S.np = null;
+        confetti();
+        await openPr(`${n2.repo}#${r3.number}`, { nav: true });
+        if (warn) {
+          S.actErr = { k: "comment", m: warn };
+          rerender();
+        }
+      } catch (err) {
+        setBusy(btn, false);
+        n2.err = String(err).replace(/^Error: /, "");
+        rerender();
+      }
+    }
+  };
+  function NewPrView() {
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: np().repo, trail: [{ t: "New pull request" }], extra: "", on: crumbs }),
+      /* @__PURE__ */ u2(NewPr, { p: newPrProps(), on: newpr })
+    ] });
+  }
+
+  // src/app/pr.tsx
+  var hide = (k3, v2) => keep(() => {
+    S.hide[k3] = v2;
+    localStorage.setItem("hide", JSON.stringify(S.hide));
+  });
+  var head = {
+    tab: openTab2,
+    edit: editPrDialog,
+    copy: () => {
+      navigator.clipboard?.writeText(S.bundle.pull.head.ref);
+    },
+    review: reviewDialog,
+    side: () => keep(() => {
+      S.hide.side = !S.hide.side;
+      localStorage.setItem("hide", JSON.stringify(S.hide));
+    }),
+    split: () => keep(() => {
+      S.split = !S.split;
+      localStorage.setItem("split", S.split ? "1" : "0");
+    })
+  };
+  var sideOn = {
+    fold: (k3, def) => {
+      S.fold[k3] = !isFolded(k3, def);
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+      rerender();
+    },
+    rvtoggle: () => {
+      S.showAllReviewers = !S.showAllReviewers;
+      rerender();
+    },
+    rerequest: rerequestReview
+  };
+  function Header() {
+    const p3 = S.bundle.pull, r3 = p3.base.repo;
+    const extra = /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2("a", { class: "crumb gh", href: r3.html_url, "data-ext": "", title: "Open on GitHub", children: I2("link-external", 12) }),
+      S.refreshing ? /* @__PURE__ */ u2("span", { class: "stale", children: "Refreshing\u2026" }) : ""
+    ] });
+    return /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Crumbs, { repo: r3.full_name, trail: [{ t: "Pull requests", repo: r3.full_name }, { t: `#${p3.number}` }], extra: "", extraNode: extra, on: crumbs }),
+      /* @__PURE__ */ u2(PrHeader, { ...prHeaderProps(S.bundle), on: head })
+    ] });
+  }
+  function PrView() {
+    const b2 = S.bundle;
+    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u2(SplitLayout, { header: /* @__PURE__ */ u2(Header, {}), split: splitView(b2) });
+    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : null;
+    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u2(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
+    return /* @__PURE__ */ u2(PrLayout, { header: /* @__PURE__ */ u2(Header, {}), body: S.tab === "timeline" ? /* @__PURE__ */ u2("div", { class: "rail", children: /* @__PURE__ */ u2(Timeline, { m: timelineModel(b2), on: tlOn }) }) : S.tab === "conversation" ? /* @__PURE__ */ u2(S2, { children: [
+      /* @__PURE__ */ u2(Attention, { ...attentionProps(b2), on: attOn }),
+      /* @__PURE__ */ u2(Timeline, { m: timelineModel(b2), on: tlOn })
+    ] }) : body, side, on: { show: () => hide("side", false) } });
+  }
 
   // src/app/pages.tsx
   var saveNotes = () => localStorage.setItem("notes", JSON.stringify(S.notes));
@@ -4917,8 +4764,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     const m2 = n2.meta?.[n2.repo];
     if (!m2) return null;
     const ppl = m2.people.map((x3) => x3.login), me = S.me || "";
-    const row = (k3, name, list) => ({ k: k3, name, chips: n2[k3].slice(), free: list.filter((x3) => !n2[k3].includes(x3)) });
-    return { rows: [row("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me)), row("assignees", "Assignees", ppl), row("labels", "Labels", m2.labels.map((x3) => x3.name))], milestones: m2.milestones.map((x3) => ({ number: x3.number, title: x3.title, on: String(n2.milestone) === String(x3.number) })), issues: n2.issues };
+    const row2 = (k3, name, list) => ({ k: k3, name, chips: n2[k3].slice(), free: list.filter((x3) => !n2[k3].includes(x3)) });
+    return { rows: [row2("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me)), row2("assignees", "Assignees", ppl), row2("labels", "Labels", m2.labels.map((x3) => x3.name))], milestones: m2.milestones.map((x3) => ({ number: x3.number, title: x3.title, on: String(n2.milestone) === String(x3.number) })), issues: n2.issues };
   }
   async function npLoadMeta(repo) {
     const n2 = S.np;
@@ -5020,11 +4867,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   }
   function inboxProps() {
     const I3 = S.inbox || { loading: true }, d3 = I3.data;
-    const row = (p3) => {
+    const row2 = (p3) => {
       const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at;
       return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
-    const sec = (title, sub, list) => ({ title, sub, rows: list.map(row) });
+    const sec = (title, sub, list) => ({ title, sub, rows: list.map(row2) });
     return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   function page() {
@@ -5041,12 +4888,12 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   }
   var liveView = () => {
     if (S.loading || S.mainStub) return null;
-    if (S.view === "inbox") return /* @__PURE__ */ u3(InboxView, {});
-    if (S.view === "notes") return /* @__PURE__ */ u3(NotesView, {});
-    if (S.view === "repo") return /* @__PURE__ */ u3(RepoView, {});
-    if (S.view === "newpr") return S.np ? /* @__PURE__ */ u3(NewPrView, {}) : null;
-    if (S.view === "pr" && S.bundle) return /* @__PURE__ */ u3(PrView, {});
-    return (S.view === "home" || !S.bundle) && S.view !== "newpr" ? /* @__PURE__ */ u3(HomeView, {}) : null;
+    if (S.view === "inbox") return /* @__PURE__ */ u2(InboxView, {});
+    if (S.view === "notes") return /* @__PURE__ */ u2(NotesView, {});
+    if (S.view === "repo") return /* @__PURE__ */ u2(RepoView, {});
+    if (S.view === "newpr") return S.np ? /* @__PURE__ */ u2(NewPrView, {}) : null;
+    if (S.view === "pr" && S.bundle) return /* @__PURE__ */ u2(PrView, {});
+    return (S.view === "home" || !S.bundle) && S.view !== "newpr" ? /* @__PURE__ */ u2(HomeView, {}) : null;
   };
   var linkHosts = /* @__PURE__ */ new WeakSet();
   var followLink = (e2) => {
@@ -5066,7 +4913,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
     R(live, host);
     mountEditors();
-    bindIslands();
     syncFoldAll();
     bindSticky();
   }
@@ -5089,7 +4935,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
     paintTop(top);
     const side = $("#side"), live = liveView();
-    const html2 = `<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? "" : page()}</div></div></div><div id="dlg" style="display:contents"></div>${notePanel()}`;
+    const html2 = `<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? "" : page()}</div></div></div><div id="dlg" style="display:contents"></div><div id="notehost" style="display:contents"></div>`;
     const scroll = $(".main")?.scrollTop || 0;
     const viewKey = () => `${S.bundle?.pull?.id ?? ""}|${S.tab}|${$("#page > *")?.className ?? ""}`, before = viewKey();
     const same = () => viewKey() === before;
@@ -5114,6 +4960,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       const pg = $("#page");
       if (live && pg) paintPage(pg, live);
       paintDlg();
+      paintNotes();
       return;
     }
     (S.eds || []).forEach((e2) => e2.destroy());
@@ -5123,6 +4970,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     paintSide($("#side"));
     if (live) paintPage($("#page"), live);
     paintDlg();
+    paintNotes();
     qa(".sb-list").forEach((e2) => {
       const m2 = inner.find(([k3]) => k3 === e2.parentElement.className + e2.className);
       if (m2) e2.scrollTop = m2[1];
@@ -5138,7 +4986,9 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         if (m2) e2.scrollTop = m2[1];
       });
     }
-    bind();
+    (S.ios || []).forEach((o3) => o3.disconnect());
+    S.ios = [];
+    bindSticky();
     if (S.fadeMain) {
       S.fadeMain = false;
       $(".main")?.classList.add("tab-in");
@@ -5393,11 +5243,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     draw();
     q3.focus();
   }
-  function focusAddr() {
-    const i3 = $("#addrinput");
-    i3?.focus();
-    i3?.select();
-  }
   var avUrl = (u4, n2) => `${u4}${u4.includes("?") ? "&" : "?"}s=${n2}`;
   function loadProfile() {
     if (!tauri) return;
@@ -5436,6 +5281,78 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
 
+  // src/app/palette.tsx
+  var palHost = () => {
+    let h3 = document.getElementById("pal");
+    if (!h3) {
+      h3 = document.createElement("div");
+      h3.id = "pal";
+      h3.style.display = "contents";
+      document.body.appendChild(h3);
+    }
+    return h3;
+  };
+  var rowsFor = (raw) => {
+    const q3 = raw.trim().toLowerCase();
+    const rows = S.recent.filter((r3) => !q3 || `${r3.ref} ${r3.title}`.toLowerCase().includes(q3)).slice(0, 8).map((r3) => ({ ref: r3.ref, label: r3.title, sub: r3.ref }));
+    if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q3)) rows.unshift({ ref: raw.trim(), label: `Open ${raw.trim()}`, sub: "Go to this pull request" });
+    return rows;
+  };
+  function closePal() {
+    S.pal = null;
+    paintPal();
+  }
+  function go2(r3) {
+    closePal();
+    if (r3) {
+      S.nav = false;
+      S.focus = "";
+      openPr(r3.ref);
+    }
+  }
+  function paintPal() {
+    const p3 = S.pal;
+    if (!p3) {
+      R(null, palHost());
+      return;
+    }
+    if (p3.k === "help") {
+      R(/* @__PURE__ */ u2(HelpDialog, { close: closePal }), palHost());
+      return;
+    }
+    const rows = rowsFor(p3.q), sel = Math.min(p3.sel, Math.max(0, rows.length - 1));
+    const onKey = (e2) => {
+      if (e2.key === "Escape") closePal();
+      else if (e2.key === "ArrowDown") {
+        p3.sel = Math.min(rows.length - 1, sel + 1);
+        paintPal();
+        e2.preventDefault();
+      } else if (e2.key === "ArrowUp") {
+        p3.sel = Math.max(0, sel - 1);
+        paintPal();
+        e2.preventDefault();
+      } else if (e2.key === "Enter") go2(rows[sel]);
+    };
+    R(/* @__PURE__ */ u2(Palette, { q: p3.q, rows, sel, onQ: (v2) => {
+      p3.q = v2;
+      p3.sel = 0;
+      paintPal();
+    }, onKey, pick: (i3) => go2(rows[i3]), close: closePal }), palHost());
+  }
+  function openPalette() {
+    if (S.pal) return;
+    S.pal = { k: "pal", q: "", sel: 0 };
+    paintPal();
+  }
+  function showHelp() {
+    if (S.pal) return;
+    S.pal = { k: "help" };
+    paintPal();
+  }
+  addEventListener("keydown", (e2) => {
+    if (e2.key === "Escape" && S.pal?.k === "help") closePal();
+  });
+
   // src/app/keyboard.ts
   var typing = (t2) => t2 && (t2.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t2.isContentEditable);
   var kbItems = () => [...qa(".main .tl-comment, .main .tc")].filter((e2) => e2.offsetParent);
@@ -5455,55 +5372,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     kbGo(items[Math.min(items.length - 1, Math.max(0, i3 + dir))]);
   }
   var openThreads = () => [...qa(".main .thread")].filter((t2) => !$(".thread-head .res", t2) && t2.offsetParent).map((t2) => $(".tc", t2)).filter(Boolean);
-  function openPalette() {
-    if ($(".palette")) return;
-    const el = document.createElement("div");
-    el.className = "dlg-bg palette";
-    el.innerHTML = '<div class="dlg pal"><input class="pal-in" placeholder="Jump to a pull request \u2014 owner/repo#123, a URL, or search recent\u2026" autofocus><div class="pal-list"></div></div>';
-    document.body.appendChild(el);
-    const inp = $("input", el), list = $(".pal-list", el);
-    let sel = 0, rows = [];
-    const draw = () => {
-      const q3 = inp.value.trim().toLowerCase();
-      rows = S.recent.filter((r3) => !q3 || `${r3.ref} ${r3.title}`.toLowerCase().includes(q3)).slice(0, 8).map((r3) => ({ ref: r3.ref, label: r3.title, sub: r3.ref }));
-      if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q3)) rows.unshift({ ref: inp.value.trim(), label: `Open ${inp.value.trim()}`, sub: "Go to this pull request" });
-      sel = Math.min(sel, Math.max(0, rows.length - 1));
-      list.innerHTML = rows.map((r3, i3) => `<div class="pal-row${i3 === sel ? " on" : ""}" data-i="${i3}"><b>${esc(r3.label)}</b><i>${esc(r3.sub)}</i></div>`).join("") || '<div class="pal-none">No matches</div>';
-    };
-    const go2 = (r3) => {
-      el.remove();
-      if (r3) {
-        S.nav = false;
-        S.focus = "";
-        openPr(r3.ref);
-      }
-    };
-    inp.addEventListener("input", () => {
-      sel = 0;
-      draw();
-    });
-    inp.addEventListener("keydown", (e2) => {
-      if (e2.key === "Escape") el.remove();
-      else if (e2.key === "ArrowDown") {
-        sel = Math.min(rows.length - 1, sel + 1);
-        draw();
-        e2.preventDefault();
-      } else if (e2.key === "ArrowUp") {
-        sel = Math.max(0, sel - 1);
-        draw();
-        e2.preventDefault();
-      } else if (e2.key === "Enter") go2(rows[sel]);
-    });
-    list.addEventListener("mousedown", (e2) => {
-      const r3 = e2.target.closest(".pal-row");
-      if (r3) go2(rows[+r3.dataset.i]);
-    });
-    el.addEventListener("mousedown", (e2) => {
-      if (e2.target === el) el.remove();
-    });
-    draw();
-    inp.focus();
-  }
   function setComposer(open2, focus) {
     const el = document.getElementById("composer");
     if (!el) return false;
@@ -5520,22 +5388,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       }, 60);
     }
     return true;
-  }
-  function showHelp() {
-    if ($(".palette")) return;
-    const el = document.createElement("div");
-    el.className = "dlg-bg palette";
-    const k3 = (a3, b2) => `<div class="kb-r"><span>${a3}</span><kbd>${b2}</kbd></div>`;
-    el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k3("Jump to any pull request", "\u2318 K")}${k3("Next / previous comment", "j / k")}${k3("Next / previous unresolved thread", "] / [")}${k3("Reply to the selected comment", "r")}${k3("Write a comment (docked at the bottom)", "c")}${k3("New pull request", "n")}${k3("New tab / close tab / reopen closed", "\u2318T \xB7 \u2318W \xB7 \u2318\u21E7T")}${k3("Go to tab 1\u20139 / next tab", "\u23181\u20139 \xB7 \u2303Tab")}${k3("Open a PR in a new tab", "\u2318-click")}${k3("Turn Split view on / off", "s")}${k3("Swap the two sides of Split view", "f")}${k3("Diff: unified \u21C4 side-by-side", "d")}${k3("Show this help", "?")}${k3("Close dialogs and menus", "Esc")}</div>`;
-    document.body.appendChild(el);
-    el.addEventListener("mousedown", () => el.remove());
-    const esc2 = (e2) => {
-      if (e2.key === "Escape") {
-        el.remove();
-        removeEventListener("keydown", esc2);
-      }
-    };
-    addEventListener("keydown", esc2);
   }
   document.addEventListener("mousedown", (e2) => {
     if (S.tabMenu && !e2.target.closest(".pt-menu, #tabadd")) {
@@ -5914,23 +5766,6 @@ ${q3}
     }
     return true;
   }
-  function setBell(open2) {
-    S.bell = open2;
-    $(".note-panel")?.classList.toggle("open", open2);
-    if (!open2 && S.notes.some((n2) => !n2.read)) {
-      S.notes.forEach((n2) => n2.read = true);
-      saveNotes();
-      qa(".note-panel .note.new").forEach((el) => el.classList.remove("new"));
-      $("#bell .dot")?.remove();
-    }
-  }
-  document.addEventListener("mousedown", (e2) => {
-    if (!S.bell || e2.target.closest(".note-panel, #bell")) return;
-    setBell(false);
-  });
-  document.addEventListener("keydown", (e2) => {
-    if (e2.key === "Escape" && S.bell) setBell(false);
-  });
   async function rerequestReview(e2, login) {
     const b2 = e2.currentTarget;
     e2.stopPropagation();
@@ -6150,43 +5985,6 @@ ${ev.currentTarget.dataset.code}
       }, { rootMargin: "300px" });
       io.observe(host);
     });
-  }
-  function bindWrite(scope) {
-    const { qa: qa2, $: $3 } = scoped(scope);
-    qa2(".cm-btn").forEach((btn) => btn.addEventListener("click", (e2) => cmMenu(e2, btn)));
-    mountEditors();
-    qa2("[data-rerequest]").forEach((b2) => b2.addEventListener("click", (e2) => rerequestReview(e2, b2.dataset.rerequest)));
-    qa2("[data-thread]").forEach((btn) => btn.addEventListener("click", (e2) => threadAct(e2, btn.dataset.thread, btn.dataset.res)));
-    qa2("[data-sug]").forEach((btn) => btn.addEventListener("click", (e2) => applySuggestion(e2, btn.dataset.sug)));
-    qa2("[data-dmode]").forEach((b2) => b2.addEventListener("click", () => setDiffMode(b2.dataset.dmode)));
-    qa2("[data-lc]").forEach((b2) => b2.addEventListener("click", lcOpen));
-    $3("#lccancel")?.addEventListener("click", lcCancel);
-    $3("#lcsuggest")?.addEventListener("click", lcSuggest);
-    $3("#lcadd")?.addEventListener("click", lcAdd);
-    qa2("[data-lcdel]").forEach((b2) => b2.addEventListener("click", () => lcDel(b2.dataset.lcdel)));
-    $3("#finishrev")?.addEventListener("click", reviewDialog);
-    $3("#cbar")?.addEventListener("click", toggleComposer);
-    $3("#cbar")?.addEventListener("keydown", cbarKey);
-    $3("#docomment")?.addEventListener("click", sendComment);
-    qa2("[data-sendreply]").forEach((btn) => btn.addEventListener("click", () => sendReply(btn.dataset.sendreply)));
-    qa2(".react-add").forEach((btn) => btn.addEventListener("click", (e2) => reactAdd(e2, btn)));
-    qa2(".rc-btn").forEach((el) => el.addEventListener("mouseenter", () => getMine(el.dataset.rck, el.dataset.rcid)));
-    qa2(".react-add").forEach((el) => el.addEventListener("mouseenter", () => getMine(el.dataset.rk, el.dataset.rid)));
-    qa2(".rc-btn").forEach((el) => el.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      toggleReact(el.dataset.rck, el.dataset.rcid, el.dataset.rcc);
-    }));
-    $3("#doclose")?.addEventListener("click", toggleClosed);
-    qa2("[data-mb]").forEach((el) => el.addEventListener("click", (e2) => toggleMb(e2, el.dataset.mb)));
-    $3("#rerunck")?.addEventListener("click", rerunChecks);
-    $3("#updbranch")?.addEventListener("click", updateBranch);
-    $3("#doready")?.addEventListener("click", markReady);
-    $3("#todraft")?.addEventListener("click", toDraft);
-    $3("#doauto")?.addEventListener("click", enableAuto);
-    $3("#noauto")?.addEventListener("click", disableAuto);
-    $3("#editpr")?.addEventListener("click", editPrDialog);
-    $3("#domerge")?.addEventListener("click", doMerge);
-    $3("#review")?.addEventListener("click", reviewDialog);
   }
 
   // src/app/nav.ts
