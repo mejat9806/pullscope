@@ -72,13 +72,9 @@ export function syncFoldAll() { const els = [...qaAll('.TL [data-fold]')], l = d
 export function foldAllConv() {
   const els = [...qaAll('.TL [data-fold]')]; if (!els.length) return;
   const now = els.some((x) => !isFolded(x.dataset.fold!, x.dataset.def === '1'));
-  els.forEach((x) => {
-    S.fold[x.dataset.fold!] = now;
-    const box = x.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
-    const svg = $('svg', x); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
-  });
+  els.forEach((x) => { S.fold[x.dataset.fold!] = now; });
   try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ }
-  $('#foldallconv span')!.textContent = now ? 'Expand all conversations' : 'Collapse all conversations';
+  rerender();
 }
 
 export function bind(scope?: HTMLElement) {

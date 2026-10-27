@@ -1,9 +1,10 @@
 import type { Bundle, PendingComment, ReviewComment, TimelineEvent } from '../types';
-import { draftBox, errLine } from './actions';
-import { diffHunkTable, foldBtn, folded, isFolded, reactionsHtml } from './comments';
-import { S, avatar, esc, icon, load, user, when } from './core';
+import { draftBox, errMsg } from './actions';
+import { foldBtn, folded, hunkRows, isFolded, reactionProps } from './comments';
+import { S, esc, load, whenParts } from './core';
 import { b0open } from './mergebox';
-import { lcCardsHtml, lcEditHtml, replyBoxHtml, reviewBlockHtml, sugBtnHtml, sugNoteHtml, tcHtml, threadRowHtml } from '../components/Diff';
+import { lcCardsHtml, lcEditHtml, replyBoxHtml, reviewBlockHtml, tcHtml, threadRowHtml } from '../components/Diff';
+import type { ReviewBlockProps, SugProps, TcProps } from '../components/Diff';
 
 // ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
 S.diffMode = localStorage.getItem('diffmode') || 'unified';
@@ -44,11 +45,11 @@ export function lineThreads(path: string, line: number, side: 'LEFT' | 'RIGHT', 
   const all = threadsFor(path); if (!all.length) return '';
   const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return '';
   const res = new Set(S.bundle!.resolved_ids || []);
-  const b = S.bundle, card = (c: ReviewComment, rootId: number) => tcHtml({ user: c.user, login: c.user?.login || 'ghost', at: c.created_at, id: c.id, root: rootId, withMenu: !!S.hasToken, body: c.body_html || esc(c.body || ''), reactions: reactionsHtml(c.reactions, 'review_comment', c.id), sug: '', anchorId: false });
+  const b = S.bundle, card = (c: ReviewComment, rootId: number) => tcHtml({ user: c.user, login: c.user?.login || 'ghost', at: c.created_at, id: c.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c.body_html || esc(c.body || ''), reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: null, anchorId: false });
   return roots.map((r) => {
     const isRes = res.has(r.id), tid = (b!.thread_ids || {})[r.id], list = [r, ...all.filter((c) => c.in_reply_to_id === r.id)];
     const act = tid && S.hasToken ? { tid, res: isRes } : null;
-    const reply = S.hasToken ? replyBoxHtml(draftBox('reply-' + r.id, 'Write a reply', 2), errLine('reply-' + r.id), r.id) : '';
+    const reply = S.hasToken ? replyBoxHtml({ rid: r.id, ph: 'Write a reply', err: errMsg('reply-' + r.id) }) : '';
     return threadRowHtml({ cols, folded: folded('t:' + r.id, isRes), foldBtn: foldBtn('t:' + r.id, 'Hide this thread', isRes), side: side === 'LEFT' ? 'L' : 'R', line, outdated: r.line == null, resolved: isRes, cards: list.map((c) => card(c, r.id)), reply, act });
   }).join('');
 }
@@ -117,15 +118,15 @@ export function chunkTables(out: string[], cls: string, cols: string, size = Inf
 // ```suggestion blocks in a review comment can be applied as a commit on the PR branch
 export const sugOf = (c: { body?: string | null }) => { const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/); return m ? m[1] : null; };
 
-export function suggestBtn(c: ReviewComment, b: Bundle, list: ReviewComment[]) {
-  const t = sugOf(c); if (t !== null && S.applied?.has(String(c.id))) return sugNoteHtml('Applying suggestion…');
-  if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return '';
+export function suggestProps(c: ReviewComment, b: Bundle, list: ReviewComment[]): SugProps | null {
+  const t = sugOf(c); if (t !== null && S.applied?.has(String(c.id))) return { kind: 'note', text: 'Applying suggestion…' };
+  if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return null;
   const p = b.pull, mine = p.head.repo && !p.head.repo.fork || (p.head.repo && p.head.repo.full_name === p.base.repo.full_name);
-  if (!c.line) return sugNoteHtml('Outdated suggestion — the lines have changed.');
-  return sugBtnHtml(c.id, !p.head.repo, p.head.ref, !!mine);
+  if (!c.line) return { kind: 'note', text: 'Outdated suggestion — the lines have changed.' };
+  return { kind: 'btn', id: c.id, disabled: !p.head.repo, ref: p.head.ref, mine: !!mine };
 }
 
-export function reviewBlock(e: TimelineEvent, b: Bundle) {
+export function reviewBlockProps(e: TimelineEvent, b: Bundle): ReviewBlockProps | null {
   const resolved = new Set(b.resolved_ids || []), isRes = (list: ReviewComment[]) => list.some((c) => resolved.has(c.id));
   const stateMap: Record<string, string[]> = { approved: ['check', 'success', 'approved these changes'], changes_requested: ['file-diff', 'danger', 'requested changes'], commented: ['eye', '', 'reviewed'], dismissed: ['x', '', 'dismissed a review'] };
   const [ic, kind, verb] = stateMap[e.state!.toLowerCase()] || ['eye', '', 'reviewed'];
@@ -136,13 +137,14 @@ export function reviewBlock(e: TimelineEvent, b: Bundle) {
   cs.forEach((c) => (byPath[`${c.path}\u0000${c.original_position ?? c.position}`] ||= []).push(c));
   const all = Object.values(byPath).map((l) => l.sort((x, y) => (x.in_reply_to_id ? 1 : 0) - (y.in_reply_to_id ? 1 : 0) || x.id - y.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
   const lists = S.unres ? all.filter((l) => !isRes(l)) : all;
-  if (S.unres && !lists.length) return '';
+  if (S.unres && !lists.length) return null;
   const threads = lists.map((list) => ({
-    folded: folded('t:' + list[0].id, isRes(list)), foldBtn: foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list)), path: list[0].path, resolved: isRes(list), tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
-    hunk: diffHunkTable(list[0].diff_hunk || ''),
-    cards: list.map((c) => tcHtml({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, body: c.body_html || '', reactions: reactionsHtml(c.reactions, 'review_comment', c.id), sug: suggestBtn(c, b, list), anchorId: true })),
-    reply: replyBoxHtml(draftBox('reply-' + list[0].id, 'Reply…', 2), errLine('reply-' + list[0].id), list[0].id),
+    folded: isFolded('t:' + list[0].id, isRes(list)), k: 't:' + list[0].id, def: isRes(list), path: list[0].path, resolved: isRes(list), tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
+    hunk: hunkRows(list[0].diff_hunk || ''),
+    cards: list.map((c): TcProps => ({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, bodyHtml: c.body_html || '', reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: suggestProps(c, b, list), anchorId: true })),
+    reply: { rid: list[0].id, ph: 'Reply…', err: errMsg('reply-' + list[0].id) },
   }));
   const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}` } : null;
-  return reviewBlockHtml({ folded: folded(rk, allRes), kind, ic, avatar: avatar(e.user, 20), foldBtn: foldBtn(rk, 'Collapse / expand this review', allRes), who: user(e.user), verb, url: e.html_url ?? '', at: when(e.submitted_at!).replace(/<\/?span[^>]*>/g, ''), sum, bodyHtml: hasBody ? e.body_html! : '', threads });
+  return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e.user, verb, url: e.html_url ?? '', at: whenParts(e.submitted_at!).text, sum, bodyHtml: hasBody ? e.body_html! : '', threads, allRes };
 }
+export const reviewBlock = (e: TimelineEvent, b: Bundle) => { const p = reviewBlockProps(e, b); return p ? reviewBlockHtml(p) : ''; };

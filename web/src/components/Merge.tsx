@@ -2,7 +2,7 @@ import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
 import { html, Raw } from './html';
 import { ErrLine } from './Actions';
-import { Av, I, SP, When } from './ui';
+import { Av, I, SP } from './ui';
 
 export function MergedBox({ head }: { head: string }) {
   return <div class="TL"><div class="TLI-break" style="margin-left:0"></div><div class="merge-box"><div class="badge"><span class="state-merged" style="background:var(--bgColor-done-emphasis)">{I('git-merge')}</span></div><div class="merge-card merged-card"><div class="row"><div><h3>Pull request successfully merged and closed</h3><p style="font-size:14px;margin-top:4px">You're all set — the <span class="branch">{head}</span> branch can be safely deleted.</p></div></div></div></div></div>;

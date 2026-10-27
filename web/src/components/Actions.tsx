@@ -1,5 +1,5 @@
 import { html, Raw } from './html';
-import { I, SP } from './ui';
+import { I } from './ui';
 
 export const draftBoxHtml = (key: string, ph: string, rows: number) => html(<div class="tt" data-draft={key} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>);
 export const errLineHtml = (m: string) => html(<div class="act-err">{m}</div>);

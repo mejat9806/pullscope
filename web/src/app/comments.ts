@@ -1,5 +1,5 @@
 import { commentBoxHtml, diffHunkTableHtml, foldBtnHtml, reactionsBarHtml } from '../components/Comments';
-import type { HunkRow, PrHeaderProps } from '../components/Comments';
+import type { CommentBoxProps, HunkRow, PrHeaderProps, ReactionsProps } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import { act, prRef } from './actions';
 import { ASSOC, REACTS, S, tauri } from './core';
@@ -29,9 +29,8 @@ export const folded = (k: string, def = false) => (isFolded(k, def) ? ' folded' 
 export const foldBtn = (k: string, title = 'Collapse / expand', def = false) => foldBtnHtml({ k, title, def, folded: isFolded(k, def) });
 
 
-export function reactionsHtml(r: Reactions | undefined, kind: string, id: number) {
-  return reactionsBarHtml({ r: r || {}, kind, id, defs: REACTS.map(([k, e]) => ({ k, e })) });
-}
+export const reactionProps = (r: Reactions | undefined, kind: string, id: number): ReactionsProps => ({ r: r || {}, kind, id, defs: REACTS.map(([k, e]) => ({ k, e })) });
+export const reactionsHtml = (r: Reactions | undefined, kind: string, id: number) => reactionsBarHtml(reactionProps(r, kind, id));
 
 
 export const liveTasks = (h: string) => S.hasToken ? h.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => m.replace(/\sdisabled(="[^"]*")?/g, '')) : h;
@@ -61,13 +60,13 @@ document.addEventListener('click', async (e) => {
   tauri?.invoke('invalidate_pr', { url: key }).catch(() => {});
 });
 
-export function commentBox(c: CommentLike, { isPr = false } = {}) {
-  const body = c.body_html && c.body_html.trim() ? `<div class="markdown-body">${liveTasks(c.body_html)}</div>` : '<span class="empty">No description provided.</span>';
-  return commentBoxHtml({ c, isPr, assoc: ASSOC[c.author_association ?? ''], body, folded: folded('c:' + c.id), foldHtml: foldBtn('c:' + c.id, 'Hide this comment'), reactions: reactionsHtml(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!) });
+export function commentBoxProps(c: CommentLike, { isPr = false, flush = false } = {}): CommentBoxProps {
+  return { c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
 }
+export const commentBox = (c: CommentLike, o: { isPr?: boolean; flush?: boolean } = {}) => commentBoxHtml(commentBoxProps(c, o));
 
 
-export function diffHunkTable(hunk: string) {
+export function hunkRows(hunk: string) {
   const rows: HunkRow[] = []; let o = 0, n = 0;
   for (const line of hunk.split('\n')) {
     if (line.startsWith('@@')) { const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/); if (m) { o = +m[1]; n = +m[2]; } rows.push({ kind: 'hunk', text: line }); continue; }
@@ -77,5 +76,6 @@ export function diffHunkTable(hunk: string) {
     else if (t === '\\') rows.push({ kind: 'meta', text: line });
     else rows.push({ kind: 'ctx', o: o++, n: n++, text: txt });
   }
-  return diffHunkTableHtml(rows);
+  return rows;
 }
+export const diffHunkTable = (hunk: string) => diffHunkTableHtml(hunkRows(hunk));

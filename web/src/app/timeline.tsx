@@ -7,11 +7,15 @@ import { ClosedBox, MergeBox, MergedBox } from '../components/Merge';
 import type { MergeBoxHandlers } from '../components/Merge';
 import { html } from '../components/html';
 import { Island } from '../components/ui';
+import { CommentBox } from '../components/Comments';
+import { ReviewBlock } from '../components/Diff';
 import type { Bundle, Check, CommentLike, Person, TimelineEvent, Verification } from '../types';
 import { composerProps, mergeActProps } from './actions';
-import { commentBox } from './comments';
-import { S, avatar, esc, icon, user, when } from './core';
-import { reviewBlock } from './diff';
+import { commentBoxProps } from './comments';
+import type { CommentBoxProps, ConvHandlers } from '../components/Comments';
+import { S, esc } from './core';
+import { reviewBlockProps } from './diff';
+import type { ReviewBlockProps } from '../components/Diff';
 import { mergeModel } from './mergebox';
 import type { MergeModel } from './mergebox';
 import { render } from './pages';
@@ -32,6 +36,8 @@ export function rangeBounds() {
 // Rows hold prebuilt HTML for comment boxes and reviews (still string views); everything else is data for live components.
 export type TlRow =
   | { t: 'html'; h: string }
+  | { t: 'comment'; p: CommentBoxProps }
+  | { t: 'review'; p: ReviewBlockProps }
   | { t: 'run'; n: number; first: string; last: string }
   | { t: 'committed'; row: CommitRowProps }
   | { t: 'merged'; actor: Person | null | undefined; commit: string; base: string; at: string }
@@ -55,7 +61,7 @@ export function timelineModel(b: Bundle): TlModel {
   const [rLo, rHi] = rangeBounds(), rangeOn = S.range !== 'all';
   const inRange = (t: string) => { const x = t ? Date.parse(t) : NaN; return isNaN(x) || (x >= rLo && x <= rHi); };
   const keep = !rangeOn ? byKind : byKind.filter((e) => inRange(evTime(e)) || (e.event === 'reviewed' && b.review_comments.some((c) => c.pull_request_review_id === e.id && inRange(c.created_at)) ) || (e.event === 'reviewed' && b.review_comments.some((c) => inRange(c.created_at) && b.review_comments.some((r) => r.id === c.in_reply_to_id && r.pull_request_review_id === e.id))));
-  if (!S.unres && (!on || who.includes(p.user.login))) htm(commentBox({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
+  if (!S.unres && (!on || who.includes(p.user.login))) out.push({ t: 'comment', p: commentBoxProps({ ...p, created_at: p.created_at, html_url: p.html_url, reactions: p.reactions }, { isPr: true, flush: true }) });
   // Long runs of commits collapse into one row (the Commits tab lists them), so comments stay reachable.
   const evs = [];
   for (let i = 0; i < keep.length;) {
@@ -67,9 +73,9 @@ export function timelineModel(b: Bundle): TlModel {
   const simpleRow = (e: TimelineEvent, ic: string, text: ComponentChildren, kind = '') => out.push({ t: 'simple', p: { actor: e.actor, ic, text, kind, at: e.created_at! } });
   for (const e of evs) {
     switch (e.event) {
-      case 'commented': htm(commentBox(e as CommentLike)); break;
+      case 'commented': out.push({ t: 'comment', p: commentBoxProps(e as CommentLike) }); break;
       case 'commit-run': out.push({ t: 'run', n: e.n!, first: e.first!.sha!.slice(0, 7), last: e.last!.sha!.slice(0, 7) }); break;
-      case 'reviewed': htm(reviewBlock(e, b)); break;
+      case 'reviewed': { const rp = reviewBlockProps(e, b); if (rp) out.push({ t: 'review', p: rp }); break; }
       case 'committed': out.push({ t: 'committed', row: { first: String(e.message || '').split('\n')[0], sha: e.sha!, author: info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null), url: e.html_url!, verification: e.verification, trailing: '' } }); break;
       case 'referenced': {
         const ci = info[e.commit_id!];
@@ -169,11 +175,13 @@ export function jumpUnresolved() {
 
 
 
-export interface TlHandlers { bars: BarHandlers; foldAll: () => void; tab: (k: string) => void; merge: MergeBoxHandlers; act: MergeActHandlers; composer: ComposerHandlers }
+export interface TlHandlers { conv: ConvHandlers; bars: BarHandlers; foldAll: () => void; tab: (k: string) => void; merge: MergeBoxHandlers; act: MergeActHandlers; composer: ComposerHandlers }
 
 function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
   switch (r.t) {
     case 'html': return <Island html={r.h} />;
+    case 'comment': return <CommentBox {...r.p} on={on?.conv} />;
+    case 'review': return <ReviewBlock {...r.p} on={on?.conv} />;
     case 'run': return <CommitRun n={r.n} first={r.first} last={r.last} onTab={on?.tab} />;
     case 'committed': return <Committed row={<CommitRow {...r.row} />} />;
     case 'merged': return <MergedRow actor={r.actor} commit={r.commit} base={r.base} at={r.at} />;

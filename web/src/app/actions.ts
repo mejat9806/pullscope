@@ -2,7 +2,7 @@ import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
 import { cmPopHtml, composerHtml, confirmDlgHtml, deleteCommentDialogHtml, draftBoxHtml, editCommentDialogHtml, editPrDialogHtml, errLineHtml, hideCommentDialogHtml, mergeActHtml, reactPopHtml, reviewDialogHtml } from '../components/Actions';
-import { $, REACTS, S, esc, icon, load, tauri, qa, scoped } from './core';
+import { $, REACTS, S, esc, load, tauri, qa, scoped } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { confetti } from './fun';
@@ -262,6 +262,53 @@ export function doMerge() {
   confirmDlg('Merge this pull request?', `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`, 'Merge', false, async () => { const r = await act('merge', { method: m }, 'merge'); if (r !== undefined) await refreshPr(); });
 }
 
+// Comment, reaction, thread and suggestion handlers: shared by the live conversation and by the imperatively bound copies (diff lines, split view).
+export function cmMenu(e: Event, btn: HTMLElement) {
+  e.stopPropagation(); $('.react-pop')?.remove();
+  const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
+  const bb = S.bundle, cc = String(bb!.pull.id) === String(btn.dataset.cm) ? bb!.pull : [...bb!.timeline, ...bb!.review_comments].find((x) => String(x.id) === String(btn.dataset.cm));
+  const isPr = cc === bb!.pull, own = !!S.me && ((cc as CommentLike | null)?.user || (cc as CommentLike | null)?.actor)?.login === S.me;
+  pop.innerHTML = cmPopHtml(own || (!isPr && S.hasToken), own, !isPr && S.hasToken, own && !isPr);
+  const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
+  pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (h) { pop.remove(); cmAction(+btn.dataset.cm!, btn.dataset.root as unknown as HTMLElement, h); } };
+  document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
+}
+export function reactAdd(e: Event, btn: HTMLElement) {
+  e.stopPropagation(); $('.react-pop')?.remove();
+  const pop = document.createElement('div'); pop.className = 'react-pop';
+  pop.innerHTML = reactPopHtml(REACTS as [string, string][]);
+  const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
+  document.body.appendChild(pop);
+  pop.addEventListener('click', (ev) => { const c = (ev.target as HTMLElement).closest<HTMLElement>('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk!, btn.dataset.rid!, c); });
+  setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
+}
+export function reactToggle(e: Event, kind: string, id: number | string, c: string) { e.stopPropagation(); toggleReact(kind, id, c); }
+export async function threadAct(e: Event, node: string, how: string) {
+  e.stopPropagation();
+  // Optimistic: flip the thread locally right away, sync with GitHub in the background, undo on failure.
+  const b = S.bundle, root = Object.keys(b!.thread_ids || {}).find((k) => b!.thread_ids[k] === node);
+  const ids = [Number(root), ...b!.review_comments.filter((c) => String(c.in_reply_to_id) === String(root)).map((c) => c.id)].filter(Boolean);
+  const prev = [...(b!.resolved_ids || [])], res = how === 'resolve';
+  b!.resolved_ids = res ? [...new Set([...prev, ...ids])] : prev.filter((x) => !ids.includes(x));
+  rerender();
+  const r = await act(how, { body: node }, 'thread', true);
+  if (r === undefined) { b!.resolved_ids = prev; rerender(); alert(S.actErr?.m || 'Could not update the thread.'); return; }
+  refreshPr();
+}
+export function applySuggestion(e: Event, id: string) {
+  e.stopPropagation(); const b = S.bundle, c = b!.review_comments.find((x) => String(x.id) === id); if (!c) return;
+  confirmDlg('Apply suggestion?', `This commits the change to ${c.path} on ${b!.pull.head.ref}.`, 'Commit suggestion', false, async () => {
+    (S.applied ||= new Set()).add(String(c.id)); rerender();
+    const r = await act('suggest', { extra: { head_repo: b!.pull.head.repo.full_name, branch: b!.pull.head.ref, path: c.path, line: c.line, start_line: c.start_line || null, text: sugOf(c) } }, 'sug', true);
+    if (r === undefined) { S.applied!.delete(String(c.id)); rerender(); alert(S.actErr?.m || 'Could not apply the suggestion.'); return; }
+    refreshPr().finally(() => { S.applied!.delete(String(c.id)); });
+  });
+}
+export async function sendReply(id: string) {
+  const r = await act('reply', { id: +id, body: S.draft['reply-' + id] || '' }, 'reply-' + id); if (r === undefined) return;
+  delete S.draft['reply-' + id]; if (!addLocal('reply', r, +id)) await refreshPr(r.id);
+}
+
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
 const mounted = new WeakSet<Element>();
@@ -282,39 +329,11 @@ export function mountEditors() {
 
 export function bindWrite(scope?: HTMLElement) {
   const { qa, $ } = scoped(scope);
-  qa('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
-    e.stopPropagation(); $('.react-pop')?.remove();
-    const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
-    const bb = S.bundle, cc = String(bb!.pull.id) === String(btn.dataset.cm) ? bb!.pull : [...bb!.timeline, ...bb!.review_comments].find((x) => String(x.id) === String(btn.dataset.cm));
-    const isPr = cc === bb!.pull, own = !!S.me && ((cc as CommentLike | null)?.user || (cc as CommentLike | null)?.actor)?.login === S.me;
-    pop.innerHTML = cmPopHtml(own || (!isPr && S.hasToken), own, !isPr && S.hasToken, own && !isPr);
-    const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
-    pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (h) { pop.remove(); cmAction(+btn.dataset.cm!, btn.dataset.root as unknown as HTMLElement, h); } };
-    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
-  }));
+  qa('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => cmMenu(e, btn)));
   mountEditors();
   qa<HTMLElement>('[data-rerequest]').forEach((b) => b.addEventListener('click', (e) => rerequestReview(e, b.dataset.rerequest!)));
-  qa('[data-thread]').forEach((btn) => btn.addEventListener('click', async (e) => {
-    e.stopPropagation();
-    // Optimistic: flip the thread locally right away, sync with GitHub in the background, undo on failure.
-    const b = S.bundle, node = btn.dataset.thread, root = Object.keys(b!.thread_ids || {}).find((k) => b!.thread_ids[k] === node);
-    const ids = [Number(root), ...b!.review_comments.filter((c) => String(c.in_reply_to_id) === String(root)).map((c) => c.id)].filter(Boolean);
-    const prev = [...(b!.resolved_ids || [])], res = btn.dataset.res === 'resolve';
-    b!.resolved_ids = res ? [...new Set([...prev, ...ids])] : prev.filter((x) => !ids.includes(x));
-    rerender();
-    const r = await act(btn.dataset.res!, { body: node }, 'thread', true);
-    if (r === undefined) { b!.resolved_ids = prev; rerender(); alert(S.actErr?.m || 'Could not update the thread.'); return; }
-    refreshPr();
-  }));
-  qa('[data-sug]').forEach((btn) => btn.addEventListener('click', async (e) => {
-    e.stopPropagation(); const b = S.bundle, c = b!.review_comments.find((x) => String(x.id) === btn.dataset.sug); if (!c) return;
-    confirmDlg('Apply suggestion?', `This commits the change to ${c.path} on ${b!.pull.head.ref}.`, 'Commit suggestion', false, async () => {
-      (S.applied ||= new Set()).add(String(c.id)); rerender();
-      const r = await act('suggest', { extra: { head_repo: b!.pull.head.repo.full_name, branch: b!.pull.head.ref, path: c.path, line: c.line, start_line: c.start_line || null, text: sugOf(c) } }, 'sug', true);
-      if (r === undefined) { S.applied!.delete(String(c.id)); rerender(); alert(S.actErr?.m || 'Could not apply the suggestion.'); return; }
-      refreshPr().finally(() => { S.applied!.delete(String(c.id)); });
-    });
-  }));
+  qa('[data-thread]').forEach((btn) => btn.addEventListener('click', (e) => threadAct(e, btn.dataset.thread!, btn.dataset.res!)));
+  qa('[data-sug]').forEach((btn) => btn.addEventListener('click', (e) => applySuggestion(e, btn.dataset.sug!)));
   qa('[data-dmode]').forEach((b) => b.addEventListener('click', () => { S.diffMode = b.dataset.dmode; localStorage.setItem('diffmode', S.diffMode!); S.keepScroll = true; render(); S.keepScroll = false; }));
   qa('[data-lc]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.lcOpen = b.dataset.lc; S.keepScroll = true; render(); S.keepScroll = false; setTimeout(() => S.eds?.at(-1)?.focus?.(), 200); }));
   $('#lccancel')?.addEventListener('click', () => { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false; });
@@ -332,19 +351,8 @@ export function bindWrite(scope?: HTMLElement) {
   $('#cbar')?.addEventListener('click', toggleComposer);
   $('#cbar')?.addEventListener('keydown', cbarKey);
   $('#docomment')?.addEventListener('click', sendComment);
-  qa('[data-sendreply]').forEach((btn) => btn.addEventListener('click', async () => {
-    const id = btn.dataset.sendreply, r = await act('reply', { id: +id!, body: S.draft['reply-' + id] || '' }, 'reply-' + id); if (r === undefined) return;
-    delete S.draft['reply-' + id]; if (!addLocal('reply', r, +id!)) await refreshPr(r.id);
-  }));
-  qa('.react-add').forEach((btn) => btn.addEventListener('click', (e) => {
-    e.stopPropagation(); $('.react-pop')?.remove();
-    const pop = document.createElement('div'); pop.className = 'react-pop';
-    pop.innerHTML = reactPopHtml(REACTS as [string, string][]);
-    const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
-    document.body.appendChild(pop);
-    pop.addEventListener('click', (ev) => { const c = (ev.target as HTMLElement).closest<HTMLElement>('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk!, btn.dataset.rid!, c); });
-    setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }), 0);
-  }));
+  qa('[data-sendreply]').forEach((btn) => btn.addEventListener('click', () => sendReply(btn.dataset.sendreply!)));
+  qa('.react-add').forEach((btn) => btn.addEventListener('click', (e) => reactAdd(e, btn)));
   qa('.rc-btn').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rck!, el.dataset.rcid!)));
   qa('.react-add').forEach((el) => el.addEventListener('mouseenter', () => getMine(el.dataset.rk!, el.dataset.rid!)));
   qa('.rc-btn').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); toggleReact(el.dataset.rck!, el.dataset.rcid!, el.dataset.rcc!); }));

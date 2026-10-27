@@ -8,8 +8,9 @@ import type { PrSideHandlers } from '../components/Merge';
 import { Attention } from '../components/Timeline';
 import type { TlHandlers } from './timeline';
 import { I, Island } from '../components/ui';
-import { cbarKey, disableAuto, doMerge, editPrDialog, enableAuto, markReady, rerequestReview, rerender, rerunChecks, reviewDialog, sendComment, toDraft, toggleClosed, toggleComposer, toggleMb, updateBranch } from './actions';
+import { applySuggestion, cbarKey, cmMenu, getMine, sendReply, threadAct, disableAuto, doMerge, editPrDialog, enableAuto, markReady, rerequestReview, reactAdd, reactToggle, rerender, rerunChecks, reviewDialog, sendComment, toDraft, toggleClosed, toggleComposer, toggleMb, updateBranch } from './actions';
 import { foldAllConv } from './bind';
+import { foldToggle } from './fold';
 import { S, esc, icon } from './core';
 import { isFolded, prHeaderProps } from './comments';
 import { crumbs } from './home';
@@ -36,6 +37,7 @@ const sideOn: PrSideHandlers = {
 };
 
 const tlOn: TlHandlers = {
+  conv: { fold: foldToggle, menu: cmMenu, react: { toggle: reactToggle, add: reactAdd, hover: (kind, id) => { getMine(kind, id); } }, thread: threadAct, sug: applySuggestion, reply: sendReply },
   bars: {
     who: (w) => keep(() => { S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; }),
     whoClear: () => keep(() => { S.who = []; }),

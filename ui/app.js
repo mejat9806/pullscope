@@ -27,7 +27,6 @@
     const w3 = whenParts(iso, lead);
     return `<span title="${w3.title}">${w3.text}</span>`;
   }
-  var user = (u4) => u4 ? `<a class="actor" href="${esc(u4.html_url)}">${esc(u4.login)}</a>` : '<span class="actor">ghost</span>';
   var avatar = (u4, s3 = 40) => `<img class="av" src="${esc(u4?.avatar_url || "")}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}" width="${s3}" height="${s3}" alt="@${esc(u4?.login || "ghost")}" style="border-radius:50%;display:block">`;
   var ASSOC = { CONTRIBUTOR: "Contributor", MEMBER: "Member", OWNER: "Owner", COLLABORATOR: "Collaborator", FIRST_TIME_CONTRIBUTOR: "First-time contributor", FIRST_TIMER: "First-timer", MANNEQUIN: "Mannequin" };
   var REACTS = [["+1", "\u{1F44D}"], ["-1", "\u{1F44E}"], ["laugh", "\u{1F604}"], ["hooray", "\u{1F389}"], ["confused", "\u{1F615}"], ["heart", "\u2764\uFE0F"], ["rocket", "\u{1F680}"], ["eyes", "\u{1F440}"]];
@@ -698,35 +697,34 @@
       ] })
     ] });
   }
-  function FoldBtn({ k: k3, title, def, folded: folded2 }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, children: I2(folded2 ? "chevron-right" : "chevron-down") });
+  function FoldBtn({ k: k3, title, def, folded: folded2, onFold }) {
+    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e2) => onFold(e2, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
   }
   var foldBtnHtml = (p3) => html(/* @__PURE__ */ u3(FoldBtn, { ...p3 }));
-  function ReactionsBar({ r: r3, kind, id, defs }) {
+  function ReactionsBar({ r: r3, kind, id, defs, on: on3 }) {
     const live = !!(kind && id);
-    const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u3("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", children: [
+    const items = defs.filter(({ k: k3 }) => (r3?.[k3] ?? 0) > 0).map(({ k: k3, e: e2 }) => live ? /* @__PURE__ */ u3("span", { class: "reaction rc-btn", "data-rck": kind, "data-rcid": id, "data-rcc": k3, title: "Click to add or remove your reaction", onClick: on3 && ((ev) => on3.toggle(ev, kind, id, k3)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: [
       /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
       /* @__PURE__ */ u3("span", { children: r3?.[k3] })
     ] }) : /* @__PURE__ */ u3("span", { class: "reaction", children: [
       /* @__PURE__ */ u3("span", { class: "e", children: e2 }),
       /* @__PURE__ */ u3("span", { children: r3?.[k3] })
     ] }));
-    const add = live ? /* @__PURE__ */ u3("span", { class: "react-wrap", children: /* @__PURE__ */ u3("button", { class: "react-add", "data-rk": kind, "data-rid": id, title: "Add reaction", children: I2("smiley") }) }) : null;
+    const add = live ? /* @__PURE__ */ u3("span", { class: "react-wrap", children: /* @__PURE__ */ u3("button", { class: "react-add", "data-rk": kind, "data-rid": id, title: "Add reaction", onClick: on3 && ((ev) => on3.add(ev, ev.currentTarget)), onMouseEnter: on3 && (() => on3.hover(kind, id)), children: I2("smiley") }) }) : null;
     return items.length || add ? /* @__PURE__ */ u3("div", { class: "reactions", children: [
       items,
       add
     ] }) : null;
   }
-  var reactionsBarHtml = (p3) => html(/* @__PURE__ */ u3(ReactionsBar, { ...p3 }));
-  function CommentBox({ c: c3, assoc, body, folded: folded2, foldHtml, reactions }) {
-    const u4 = c3.user || c3.actor;
-    return /* @__PURE__ */ u3("div", { class: `tl-comment${folded2}`, id: `c-${c3.id ?? ""}`, children: [
+  function CommentBox({ c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
+    const u4 = c3.user || c3.actor, k3 = "c:" + c3.id;
+    return /* @__PURE__ */ u3("div", { class: `tl-comment${folded2 ? " folded" : ""}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
       /* @__PURE__ */ u3("div", { class: "avatar-col", children: /* @__PURE__ */ u3("a", { href: u4?.html_url, children: Av(u4, 40) }) }),
       NL,
       /* @__PURE__ */ u3("div", { class: "cbox", children: [
         /* @__PURE__ */ u3("div", { class: "chead", children: [
           /* @__PURE__ */ u3("div", { children: [
-            Raw(foldHtml),
+            /* @__PURE__ */ u3(FoldBtn, { k: k3, title: "Hide this comment", def: false, folded: folded2, onFold: on3?.fold }),
             SP,
             /* @__PURE__ */ u3("a", { class: "author u", href: u4?.html_url, children: /* @__PURE__ */ u3("span", { class: "author", style: "font-weight:600;color:var(--fgColor-default)", children: u4?.login || "ghost" }) }),
             " commented",
@@ -736,16 +734,15 @@
           NL,
           /* @__PURE__ */ u3("div", { class: "rt", children: [
             assoc ? /* @__PURE__ */ u3("span", { class: "assoc", children: assoc }) : "",
-            /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": c3.id, title: "Comment actions", children: "\u22EF" })
+            /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": c3.id, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" })
           ] })
         ] }),
         NL,
-        /* @__PURE__ */ u3("div", { class: "cbody", children: Raw(body) }),
-        Raw(reactions)
+        /* @__PURE__ */ u3("div", { class: "cbody", children: bodyHtml ? /* @__PURE__ */ u3("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: bodyHtml } }) : /* @__PURE__ */ u3("span", { class: "empty", children: "No description provided." }) }),
+        /* @__PURE__ */ u3(ReactionsBar, { ...reactions, on: on3?.react })
       ] })
     ] });
   }
-  var commentBoxHtml = (p3) => html(/* @__PURE__ */ u3(CommentBox, { ...p3 }));
   function DiffHunkTable({ rows }) {
     return /* @__PURE__ */ u3("table", { class: "diff", children: [
       /* @__PURE__ */ u3("colgroup", { children: [
@@ -782,7 +779,6 @@
       })
     ] });
   }
-  var diffHunkTableHtml = (rows) => html(/* @__PURE__ */ u3(DiffHunkTable, { rows }));
 
   // src/app/tabs.ts
   var KEY_TABS = "tabs";
@@ -795,7 +791,7 @@
   var curRef = () => S.view === "pr" && S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
   var saveTabs = () => {
     try {
-      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon6, tab, dot, scroll }) => ({ ref, title, state, icon: icon6, tab, dot, scroll })) }));
+      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon2, tab, dot, scroll }) => ({ ref, title, state, icon: icon2, tab, dot, scroll })) }));
     } catch {
     }
   };
@@ -1020,9 +1016,7 @@
   var isFolded = (k3, def = false) => k3 in S.fold ? S.fold[k3] : def;
   var folded = (k3, def = false) => isFolded(k3, def) ? " folded" : "";
   var foldBtn = (k3, title = "Collapse / expand", def = false) => foldBtnHtml({ k: k3, title, def, folded: isFolded(k3, def) });
-  function reactionsHtml(r3, kind, id) {
-    return reactionsBarHtml({ r: r3 || {}, kind, id, defs: REACTS.map(([k3, e2]) => ({ k: k3, e: e2 })) });
-  }
+  var reactionProps = (r3, kind, id) => ({ r: r3 || {}, kind, id, defs: REACTS.map(([k3, e2]) => ({ k: k3, e: e2 })) });
   var liveTasks = (h3) => S.hasToken ? h3.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m2) => m2.replace(/\sdisabled(="[^"]*")?/g, "")) : h3;
   function toggleTask(body, n2) {
     let i3 = -1, fence = false;
@@ -1064,11 +1058,10 @@
     tauri?.invoke("invalidate_pr", { url: key }).catch(() => {
     });
   });
-  function commentBox(c3, { isPr = false } = {}) {
-    const body = c3.body_html && c3.body_html.trim() ? `<div class="markdown-body">${liveTasks(c3.body_html)}</div>` : '<span class="empty">No description provided.</span>';
-    return commentBoxHtml({ c: c3, isPr, assoc: ASSOC[c3.author_association ?? ""], body, folded: folded("c:" + c3.id), foldHtml: foldBtn("c:" + c3.id, "Hide this comment"), reactions: reactionsHtml(c3.reactions, isPr ? "pr" : "issue_comment", c3.id) });
+  function commentBoxProps(c3, { isPr = false, flush = false } = {}) {
+    return { c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
   }
-  function diffHunkTable(hunk) {
+  function hunkRows(hunk) {
     const rows = [];
     let o3 = 0, n2 = 0;
     for (const line of hunk.split("\n")) {
@@ -1087,7 +1080,7 @@
       else if (t2 === "\\") rows.push({ kind: "meta", text: line });
       else rows.push({ kind: "ctx", o: o3++, n: n2++, text: txt });
     }
-    return diffHunkTableHtml(rows);
+    return rows;
   }
 
   // src/components/Actions.tsx
@@ -1626,7 +1619,18 @@
   var splitViewHtml = (p3) => html(/* @__PURE__ */ u3(SplitView, { ...p3 }));
 
   // src/components/Diff.tsx
+  function Sug({ s: s3, on: on3 }) {
+    return s3.kind === "note" ? /* @__PURE__ */ u3("div", { class: "sug-row", children: /* @__PURE__ */ u3("span", { class: "sug-note", children: s3.text }) }) : /* @__PURE__ */ u3("div", { class: "sug-row", children: [
+      /* @__PURE__ */ u3("button", { class: "btn small primary", "data-sug": s3.id, disabled: s3.disabled, onClick: on3 && ((e2) => on3.sug(e2, String(s3.id))), children: "Apply suggestion" }),
+      /* @__PURE__ */ u3("span", { class: "sug-note", children: [
+        "Commits to ",
+        /* @__PURE__ */ u3("code", { children: s3.ref }),
+        s3.mine ? "" : " (fork \u2014 needs push access)"
+      ] })
+    ] });
+  }
   function Tc(p3) {
+    const { on: on3 } = p3;
     return /* @__PURE__ */ u3("div", { class: "tc", id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
       /* @__PURE__ */ u3("a", { href: p3.user?.html_url || "#", children: Av(p3.user, 24) }),
       /* @__PURE__ */ u3("div", { style: "flex:1;min-width:0", children: [
@@ -1634,11 +1638,11 @@
           /* @__PURE__ */ u3("span", { class: "who", children: p3.login }),
           SP,
           /* @__PURE__ */ u3("span", { children: When(p3.at) }),
-          p3.withMenu ? /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": p3.id, "data-root": p3.root, title: "Comment actions", children: "\u22EF" }) : ""
+          p3.withMenu ? /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": p3.id, "data-root": p3.root, title: "Comment actions", onClick: on3 && ((e2) => on3.menu(e2, e2.currentTarget)), children: "\u22EF" }) : ""
         ] }),
-        /* @__PURE__ */ u3("div", { class: "markdown-body", style: "margin-top:8px", children: Raw(p3.body) }),
-        Raw(p3.sug),
-        Raw(p3.reactions)
+        /* @__PURE__ */ u3("div", { class: "markdown-body", style: "margin-top:8px", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }),
+        p3.sug ? /* @__PURE__ */ u3(Sug, { s: p3.sug, on: on3 }) : "",
+        /* @__PURE__ */ u3(ReactionsBar, { ...p3.reactions, on: on3?.react })
       ] })
     ] });
   }
@@ -1663,11 +1667,14 @@
     ] }) }) });
   }
   var threadRowHtml = (p3) => html(/* @__PURE__ */ u3(ThreadRow, { ...p3 }));
-  var replyBoxHtml = (draftBox2, err, rid) => html(/* @__PURE__ */ u3("div", { class: "reply", children: [
-    Raw(draftBox2),
-    Raw(err),
-    /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, children: "Reply" })
-  ] }));
+  function ReplyBox({ rid, ph, err, on: on3 }) {
+    return /* @__PURE__ */ u3("div", { class: "reply", children: [
+      /* @__PURE__ */ u3(DraftBox, { k: `reply-${rid}`, ph, rows: 2 }),
+      /* @__PURE__ */ u3(ErrLine, { m: err }),
+      /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, onClick: on3 && (() => on3.reply(String(rid))), children: "Reply" })
+    ] });
+  }
+  var replyBoxHtml = (p3) => html(/* @__PURE__ */ u3(ReplyBox, { ...p3 }));
   var lcCardsHtml = (cards) => html(/* @__PURE__ */ u3(S2, { children: cards.map((c3) => /* @__PURE__ */ u3("div", { class: "lc-card", children: [
     /* @__PURE__ */ u3("span", { class: "lc-tag", children: "Pending" }),
     /* @__PURE__ */ u3("div", { class: "lc-body", children: Raw(c3.body) }),
@@ -1682,23 +1689,16 @@
       /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", children: "Add to review" })
     ] })
   ] }));
-  var sugNoteHtml = (t2) => html(/* @__PURE__ */ u3("div", { class: "sug-row", children: /* @__PURE__ */ u3("span", { class: "sug-note", children: t2 }) }));
-  var sugBtnHtml = (id, disabled, ref, mine) => html(/* @__PURE__ */ u3("div", { class: "sug-row", children: [
-    /* @__PURE__ */ u3("button", { class: "btn small primary", "data-sug": id, disabled, children: "Apply suggestion" }),
-    /* @__PURE__ */ u3("span", { class: "sug-note", children: [
-      "Commits to ",
-      /* @__PURE__ */ u3("code", { children: ref }),
-      mine ? "" : " (fork \u2014 needs push access)"
-    ] })
-  ] }));
+  var Actor = ({ u: u4 }) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
   function ReviewBlock(p3) {
-    return /* @__PURE__ */ u3("div", { class: `TLI rev${p3.folded}`, children: [
+    const { on: on3 } = p3;
+    return /* @__PURE__ */ u3("div", { class: `TLI rev${p3.folded ? " folded" : ""}`, children: [
       /* @__PURE__ */ u3("div", { class: `TLI-badge ${p3.kind}`, children: I2(p3.ic) }),
-      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Raw(p3.avatar) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(p3.user, 20) }),
       /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
         /* @__PURE__ */ u3("div", { class: "row", children: [
-          Raw(p3.foldBtn),
-          Raw(p3.who),
+          /* @__PURE__ */ u3(FoldBtn, { k: p3.k, title: "Collapse / expand this review", def: p3.allRes, folded: p3.folded, onFold: on3?.fold }),
+          /* @__PURE__ */ u3(Actor, { u: p3.user }),
           " ",
           /* @__PURE__ */ u3("span", { children: p3.verb }),
           " ",
@@ -1709,22 +1709,21 @@
           ] }) : p3.sum.text }) : ""
         ] }),
         "\n  ",
-        p3.bodyHtml ? /* @__PURE__ */ u3("div", { class: "cbox nocaret", style: "margin-top:8px;color:var(--fgColor-default)", children: /* @__PURE__ */ u3("div", { class: "cbody", children: /* @__PURE__ */ u3("div", { class: "markdown-body", children: Raw(p3.bodyHtml) }) }) }) : "",
-        p3.threads.length ? /* @__PURE__ */ u3("div", { children: p3.threads.map((t2) => /* @__PURE__ */ u3("div", { class: `thread${t2.folded}`, children: [
+        p3.bodyHtml ? /* @__PURE__ */ u3("div", { class: "cbox nocaret", style: "margin-top:8px;color:var(--fgColor-default)", children: /* @__PURE__ */ u3("div", { class: "cbody", children: /* @__PURE__ */ u3("div", { class: "markdown-body", dangerouslySetInnerHTML: { __html: p3.bodyHtml } }) }) }) : "",
+        p3.threads.length ? /* @__PURE__ */ u3("div", { children: p3.threads.map((t2) => /* @__PURE__ */ u3("div", { class: `thread${t2.folded ? " folded" : ""}`, children: [
           /* @__PURE__ */ u3("div", { class: "thread-head", children: [
-            Raw(t2.foldBtn),
+            /* @__PURE__ */ u3(FoldBtn, { k: t2.k, title: "Hide this thread", def: t2.def, folded: t2.folded, onFold: on3?.fold }),
             t2.path,
             t2.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : "",
-            t2.tid ? /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": t2.tid, "data-res": t2.resolved ? "unresolve" : "resolve", children: t2.resolved ? "Unresolve" : "Resolve conversation" }) : ""
+            t2.tid ? /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": t2.tid, "data-res": t2.resolved ? "unresolve" : "resolve", onClick: on3 && ((e2) => on3.thread(e2, t2.tid, t2.resolved ? "unresolve" : "resolve")), children: t2.resolved ? "Unresolve" : "Resolve conversation" }) : ""
           ] }),
-          /* @__PURE__ */ u3("div", { class: "diffhunk", children: Raw(t2.hunk) }),
-          t2.cards.map((c3) => Raw(c3)),
-          Raw(t2.reply)
+          /* @__PURE__ */ u3("div", { class: "diffhunk", children: /* @__PURE__ */ u3(DiffHunkTable, { rows: t2.hunk }) }),
+          t2.cards.map((c3) => /* @__PURE__ */ u3(Tc, { ...c3, on: on3 })),
+          /* @__PURE__ */ u3(ReplyBox, { ...t2.reply, on: on3 })
         ] })) }) : ""
       ] })
     ] });
   }
-  var reviewBlockHtml = (p3) => html(/* @__PURE__ */ u3(ReviewBlock, { ...p3 }));
 
   // src/app/diff.ts
   S.diffMode = localStorage.getItem("diffmode") || "unified";
@@ -1768,11 +1767,11 @@
     const roots = all.filter((c3) => !c3.in_reply_to_id && (c3.line ?? c3.original_line) === line && (c3.side || "RIGHT") === side);
     if (!roots.length) return "";
     const res = new Set(S.bundle.resolved_ids || []);
-    const b2 = S.bundle, card = (c3, rootId) => tcHtml({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, body: c3.body_html || esc(c3.body || ""), reactions: reactionsHtml(c3.reactions, "review_comment", c3.id), sug: "", anchorId: false });
+    const b2 = S.bundle, card = (c3, rootId) => tcHtml({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c3.body_html || esc(c3.body || ""), reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: null, anchorId: false });
     return roots.map((r3) => {
       const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all.filter((c3) => c3.in_reply_to_id === r3.id)];
       const act3 = tid && S.hasToken ? { tid, res: isRes } : null;
-      const reply = S.hasToken ? replyBoxHtml(draftBox("reply-" + r3.id, "Write a reply", 2), errLine("reply-" + r3.id), r3.id) : "";
+      const reply = S.hasToken ? replyBoxHtml({ rid: r3.id, ph: "Write a reply", err: errMsg("reply-" + r3.id) }) : "";
       return threadRowHtml({ cols, folded: folded("t:" + r3.id, isRes), foldBtn: foldBtn("t:" + r3.id, "Hide this thread", isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply, act: act3 });
     }).join("");
   }
@@ -1846,15 +1845,15 @@
     const m2 = (c3.body || "").match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/);
     return m2 ? m2[1] : null;
   };
-  function suggestBtn(c3, b2, list) {
+  function suggestProps(c3, b2, list) {
     const t2 = sugOf(c3);
-    if (t2 !== null && S.applied?.has(String(c3.id))) return sugNoteHtml("Applying suggestion\u2026");
-    if (t2 === null || !b0open() || list.some((x3) => (b2.resolved_ids || []).includes(x3.id))) return "";
+    if (t2 !== null && S.applied?.has(String(c3.id))) return { kind: "note", text: "Applying suggestion\u2026" };
+    if (t2 === null || !b0open() || list.some((x3) => (b2.resolved_ids || []).includes(x3.id))) return null;
     const p3 = b2.pull, mine = p3.head.repo && !p3.head.repo.fork || p3.head.repo && p3.head.repo.full_name === p3.base.repo.full_name;
-    if (!c3.line) return sugNoteHtml("Outdated suggestion \u2014 the lines have changed.");
-    return sugBtnHtml(c3.id, !p3.head.repo, p3.head.ref, !!mine);
+    if (!c3.line) return { kind: "note", text: "Outdated suggestion \u2014 the lines have changed." };
+    return { kind: "btn", id: c3.id, disabled: !p3.head.repo, ref: p3.head.ref, mine: !!mine };
   }
-  function reviewBlock(e2, b2) {
+  function reviewBlockProps(e2, b2) {
     const resolved = new Set(b2.resolved_ids || []), isRes = (list) => list.some((c3) => resolved.has(c3.id));
     const stateMap = { approved: ["check", "success", "approved these changes"], changes_requested: ["file-diff", "danger", "requested changes"], commented: ["eye", "", "reviewed"], dismissed: ["x", "", "dismissed a review"] };
     const [ic, kind, verb] = stateMap[e2.state.toLowerCase()] || ["eye", "", "reviewed"];
@@ -1865,19 +1864,20 @@
     cs.forEach((c3) => (byPath[`${c3.path}\0${c3.original_position ?? c3.position}`] ||= []).push(c3));
     const all = Object.values(byPath).map((l3) => l3.sort((x3, y2) => (x3.in_reply_to_id ? 1 : 0) - (y2.in_reply_to_id ? 1 : 0) || x3.id - y2.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = "r:" + e2.id;
     const lists = S.unres ? all.filter((l3) => !isRes(l3)) : all;
-    if (S.unres && !lists.length) return "";
+    if (S.unres && !lists.length) return null;
     const threads = lists.map((list) => ({
-      folded: folded("t:" + list[0].id, isRes(list)),
-      foldBtn: foldBtn("t:" + list[0].id, "Hide this thread", isRes(list)),
+      folded: isFolded("t:" + list[0].id, isRes(list)),
+      k: "t:" + list[0].id,
+      def: isRes(list),
       path: list[0].path,
       resolved: isRes(list),
       tid: (b2.thread_ids || {})[list[0].id] ? b2.thread_ids[list[0].id] : null,
-      hunk: diffHunkTable(list[0].diff_hunk || ""),
-      cards: list.map((c3) => tcHtml({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, body: c3.body_html || "", reactions: reactionsHtml(c3.reactions, "review_comment", c3.id), sug: suggestBtn(c3, b2, list), anchorId: true })),
-      reply: replyBoxHtml(draftBox("reply-" + list[0].id, "Reply\u2026", 2), errLine("reply-" + list[0].id), list[0].id)
+      hunk: hunkRows(list[0].diff_hunk || ""),
+      cards: list.map((c3) => ({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, bodyHtml: c3.body_html || "", reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: suggestProps(c3, b2, list), anchorId: true })),
+      reply: { rid: list[0].id, ph: "Reply\u2026", err: errMsg("reply-" + list[0].id) }
     }));
     const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}` } : null;
-    return reviewBlockHtml({ folded: folded(rk, allRes), kind, ic, avatar: avatar(e2.user, 20), foldBtn: foldBtn(rk, "Collapse / expand this review", allRes), who: user(e2.user), verb, url: e2.html_url ?? "", at: when(e2.submitted_at).replace(/<\/?span[^>]*>/g, ""), sum, bodyHtml: hasBody ? e2.body_html : "", threads });
+    return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e2.user, verb, url: e2.html_url ?? "", at: whenParts(e2.submitted_at).text, sum, bodyHtml: hasBody ? e2.body_html : "", threads, allRes };
   }
 
   // src/components/Timeline.tsx
@@ -2151,7 +2151,7 @@
       return isNaN(x3) || x3 >= rLo && x3 <= rHi;
     };
     const keep4 = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
-    if (!S.unres && (!on3 || who.includes(p3.user.login))) htm(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
+    if (!S.unres && (!on3 || who.includes(p3.user.login))) out.push({ t: "comment", p: commentBoxProps({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true, flush: true }) });
     const evs = [];
     for (let i3 = 0; i3 < keep4.length; ) {
       let j3 = i3;
@@ -2170,14 +2170,16 @@
     for (const e2 of evs) {
       switch (e2.event) {
         case "commented":
-          htm(commentBox(e2));
+          out.push({ t: "comment", p: commentBoxProps(e2) });
           break;
         case "commit-run":
           out.push({ t: "run", n: e2.n, first: e2.first.sha.slice(0, 7), last: e2.last.sha.slice(0, 7) });
           break;
-        case "reviewed":
-          htm(reviewBlock(e2, b2));
+        case "reviewed": {
+          const rp = reviewBlockProps(e2, b2);
+          if (rp) out.push({ t: "review", p: rp });
           break;
+        }
         case "committed":
           out.push({ t: "committed", row: { first: String(e2.message || "").split("\n")[0], sha: e2.sha, author: info[e2.sha]?.author || (e2.author?.avatar_url ? e2.author : null), url: e2.html_url, verification: e2.verification, trailing: "" } });
           break;
@@ -2330,6 +2332,10 @@
     switch (r3.t) {
       case "html":
         return /* @__PURE__ */ u3(Island, { html: r3.h });
+      case "comment":
+        return /* @__PURE__ */ u3(CommentBox, { ...r3.p, on: on3?.conv });
+      case "review":
+        return /* @__PURE__ */ u3(ReviewBlock, { ...r3.p, on: on3?.conv });
       case "run":
         return /* @__PURE__ */ u3(CommitRun, { n: r3.n, first: r3.first, last: r3.last, onTab: on3?.tab });
       case "committed":
@@ -3178,16 +3184,12 @@
     const now = els.some((x3) => !isFolded(x3.dataset.fold, x3.dataset.def === "1"));
     els.forEach((x3) => {
       S.fold[x3.dataset.fold] = now;
-      const box = x3.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane");
-      if (box) box.classList.toggle("folded", now);
-      const svg = $("svg", x3);
-      if (svg) svg.outerHTML = icon(now ? "chevron-right" : "chevron-down");
     });
     try {
       localStorage.setItem("fold", JSON.stringify(S.fold));
     } catch {
     }
-    $("#foldallconv span").textContent = now ? "Expand all conversations" : "Collapse all conversations";
+    rerender();
   }
   function bind(scope) {
     const { qa: qa2, $: $3 } = scoped(scope);
@@ -4247,6 +4249,21 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] });
   }
 
+  // src/app/fold.ts
+  function foldToggle(e2, k3, def) {
+    e2.stopPropagation();
+    if (e2.target.closest("a")) return;
+    const el = e2.currentTarget, now = !isFolded(k3, def);
+    S.fold[k3] = now;
+    localStorage.setItem("fold", JSON.stringify(S.fold));
+    rerender();
+    if (now) return;
+    const box = el.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane"), main = $(".main");
+    if (!box || !main || !main.contains(box)) return;
+    const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
+    if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
+  }
+
   // src/app/pr.tsx
   var keep2 = (fn) => {
     S.keepScroll = true;
@@ -4291,6 +4308,9 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     rerequest: rerequestReview
   };
   var tlOn = {
+    conv: { fold: foldToggle, menu: cmMenu, react: { toggle: reactToggle, add: reactAdd, hover: (kind, id) => {
+      getMine(kind, id);
+    } }, thread: threadAct, sug: applySuggestion, reply: sendReply },
     bars: {
       who: (w3) => keep2(() => {
         S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
@@ -5841,6 +5861,90 @@ ${q3}
       if (r3 !== void 0) await refreshPr();
     });
   }
+  function cmMenu(e2, btn) {
+    e2.stopPropagation();
+    $(".react-pop")?.remove();
+    const pop = document.createElement("div");
+    pop.className = "react-pop cm-pop";
+    const bb = S.bundle, cc = String(bb.pull.id) === String(btn.dataset.cm) ? bb.pull : [...bb.timeline, ...bb.review_comments].find((x3) => String(x3.id) === String(btn.dataset.cm));
+    const isPr = cc === bb.pull, own = !!S.me && (cc?.user || cc?.actor)?.login === S.me;
+    pop.innerHTML = cmPopHtml(own || !isPr && S.hasToken, own, !isPr && S.hasToken, own && !isPr);
+    const r3 = btn.getBoundingClientRect();
+    pop.style.left = Math.min(r3.left - 100, innerWidth - 180) + "px";
+    pop.style.top = r3.bottom + 4 + "px";
+    pop.onclick = (ev) => {
+      const h3 = ev.target.dataset.h;
+      if (h3) {
+        pop.remove();
+        cmAction(+btn.dataset.cm, btn.dataset.root, h3);
+      }
+    };
+    document.body.appendChild(pop);
+    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
+  }
+  function reactAdd(e2, btn) {
+    e2.stopPropagation();
+    $(".react-pop")?.remove();
+    const pop = document.createElement("div");
+    pop.className = "react-pop";
+    pop.innerHTML = reactPopHtml(REACTS);
+    const r3 = btn.getBoundingClientRect();
+    pop.style.left = Math.min(r3.left, innerWidth - 300) + "px";
+    pop.style.top = Math.min(r3.bottom + 4, innerHeight - 60) + "px";
+    document.body.appendChild(pop);
+    pop.addEventListener("click", (ev) => {
+      const c3 = ev.target.closest("[data-c]")?.dataset.c;
+      if (!c3) return;
+      pop.remove();
+      toggleReact(btn.dataset.rk, btn.dataset.rid, c3);
+    });
+    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }), 0);
+  }
+  function reactToggle(e2, kind, id, c3) {
+    e2.stopPropagation();
+    toggleReact(kind, id, c3);
+  }
+  async function threadAct(e2, node, how) {
+    e2.stopPropagation();
+    const b2 = S.bundle, root = Object.keys(b2.thread_ids || {}).find((k3) => b2.thread_ids[k3] === node);
+    const ids = [Number(root), ...b2.review_comments.filter((c3) => String(c3.in_reply_to_id) === String(root)).map((c3) => c3.id)].filter(Boolean);
+    const prev = [...b2.resolved_ids || []], res = how === "resolve";
+    b2.resolved_ids = res ? [.../* @__PURE__ */ new Set([...prev, ...ids])] : prev.filter((x3) => !ids.includes(x3));
+    rerender();
+    const r3 = await act(how, { body: node }, "thread", true);
+    if (r3 === void 0) {
+      b2.resolved_ids = prev;
+      rerender();
+      alert(S.actErr?.m || "Could not update the thread.");
+      return;
+    }
+    refreshPr();
+  }
+  function applySuggestion(e2, id) {
+    e2.stopPropagation();
+    const b2 = S.bundle, c3 = b2.review_comments.find((x3) => String(x3.id) === id);
+    if (!c3) return;
+    confirmDlg("Apply suggestion?", `This commits the change to ${c3.path} on ${b2.pull.head.ref}.`, "Commit suggestion", false, async () => {
+      (S.applied ||= /* @__PURE__ */ new Set()).add(String(c3.id));
+      rerender();
+      const r3 = await act("suggest", { extra: { head_repo: b2.pull.head.repo.full_name, branch: b2.pull.head.ref, path: c3.path, line: c3.line, start_line: c3.start_line || null, text: sugOf(c3) } }, "sug", true);
+      if (r3 === void 0) {
+        S.applied.delete(String(c3.id));
+        rerender();
+        alert(S.actErr?.m || "Could not apply the suggestion.");
+        return;
+      }
+      refreshPr().finally(() => {
+        S.applied.delete(String(c3.id));
+      });
+    });
+  }
+  async function sendReply(id) {
+    const r3 = await act("reply", { id: +id, body: S.draft["reply-" + id] || "" }, "reply-" + id);
+    if (r3 === void 0) return;
+    delete S.draft["reply-" + id];
+    if (!addLocal("reply", r3, +id)) await refreshPr(r3.id);
+  }
   var rerender = () => {
     S.keepScroll = true;
     render();
@@ -5875,64 +5979,11 @@ ${q3}
   }
   function bindWrite(scope) {
     const { qa: qa2, $: $3 } = scoped(scope);
-    qa2(".cm-btn").forEach((btn) => btn.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      $3(".react-pop")?.remove();
-      const pop = document.createElement("div");
-      pop.className = "react-pop cm-pop";
-      const bb = S.bundle, cc = String(bb.pull.id) === String(btn.dataset.cm) ? bb.pull : [...bb.timeline, ...bb.review_comments].find((x3) => String(x3.id) === String(btn.dataset.cm));
-      const isPr = cc === bb.pull, own = !!S.me && (cc?.user || cc?.actor)?.login === S.me;
-      pop.innerHTML = cmPopHtml(own || !isPr && S.hasToken, own, !isPr && S.hasToken, own && !isPr);
-      const r3 = btn.getBoundingClientRect();
-      pop.style.left = Math.min(r3.left - 100, innerWidth - 180) + "px";
-      pop.style.top = r3.bottom + 4 + "px";
-      pop.onclick = (ev) => {
-        const h3 = ev.target.dataset.h;
-        if (h3) {
-          pop.remove();
-          cmAction(+btn.dataset.cm, btn.dataset.root, h3);
-        }
-      };
-      document.body.appendChild(pop);
-      setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
-    }));
+    qa2(".cm-btn").forEach((btn) => btn.addEventListener("click", (e2) => cmMenu(e2, btn)));
     mountEditors();
     qa2("[data-rerequest]").forEach((b2) => b2.addEventListener("click", (e2) => rerequestReview(e2, b2.dataset.rerequest)));
-    qa2("[data-thread]").forEach((btn) => btn.addEventListener("click", async (e2) => {
-      e2.stopPropagation();
-      const b2 = S.bundle, node = btn.dataset.thread, root = Object.keys(b2.thread_ids || {}).find((k3) => b2.thread_ids[k3] === node);
-      const ids = [Number(root), ...b2.review_comments.filter((c3) => String(c3.in_reply_to_id) === String(root)).map((c3) => c3.id)].filter(Boolean);
-      const prev = [...b2.resolved_ids || []], res = btn.dataset.res === "resolve";
-      b2.resolved_ids = res ? [.../* @__PURE__ */ new Set([...prev, ...ids])] : prev.filter((x3) => !ids.includes(x3));
-      rerender();
-      const r3 = await act(btn.dataset.res, { body: node }, "thread", true);
-      if (r3 === void 0) {
-        b2.resolved_ids = prev;
-        rerender();
-        alert(S.actErr?.m || "Could not update the thread.");
-        return;
-      }
-      refreshPr();
-    }));
-    qa2("[data-sug]").forEach((btn) => btn.addEventListener("click", async (e2) => {
-      e2.stopPropagation();
-      const b2 = S.bundle, c3 = b2.review_comments.find((x3) => String(x3.id) === btn.dataset.sug);
-      if (!c3) return;
-      confirmDlg("Apply suggestion?", `This commits the change to ${c3.path} on ${b2.pull.head.ref}.`, "Commit suggestion", false, async () => {
-        (S.applied ||= /* @__PURE__ */ new Set()).add(String(c3.id));
-        rerender();
-        const r3 = await act("suggest", { extra: { head_repo: b2.pull.head.repo.full_name, branch: b2.pull.head.ref, path: c3.path, line: c3.line, start_line: c3.start_line || null, text: sugOf(c3) } }, "sug", true);
-        if (r3 === void 0) {
-          S.applied.delete(String(c3.id));
-          rerender();
-          alert(S.actErr?.m || "Could not apply the suggestion.");
-          return;
-        }
-        refreshPr().finally(() => {
-          S.applied.delete(String(c3.id));
-        });
-      });
-    }));
+    qa2("[data-thread]").forEach((btn) => btn.addEventListener("click", (e2) => threadAct(e2, btn.dataset.thread, btn.dataset.res)));
+    qa2("[data-sug]").forEach((btn) => btn.addEventListener("click", (e2) => applySuggestion(e2, btn.dataset.sug)));
     qa2("[data-dmode]").forEach((b2) => b2.addEventListener("click", () => {
       S.diffMode = b2.dataset.dmode;
       localStorage.setItem("diffmode", S.diffMode);
@@ -5992,30 +6043,8 @@ ${ev.currentTarget.dataset.code}
     $3("#cbar")?.addEventListener("click", toggleComposer);
     $3("#cbar")?.addEventListener("keydown", cbarKey);
     $3("#docomment")?.addEventListener("click", sendComment);
-    qa2("[data-sendreply]").forEach((btn) => btn.addEventListener("click", async () => {
-      const id = btn.dataset.sendreply, r3 = await act("reply", { id: +id, body: S.draft["reply-" + id] || "" }, "reply-" + id);
-      if (r3 === void 0) return;
-      delete S.draft["reply-" + id];
-      if (!addLocal("reply", r3, +id)) await refreshPr(r3.id);
-    }));
-    qa2(".react-add").forEach((btn) => btn.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      $3(".react-pop")?.remove();
-      const pop = document.createElement("div");
-      pop.className = "react-pop";
-      pop.innerHTML = reactPopHtml(REACTS);
-      const r3 = btn.getBoundingClientRect();
-      pop.style.left = Math.min(r3.left, innerWidth - 300) + "px";
-      pop.style.top = Math.min(r3.bottom + 4, innerHeight - 60) + "px";
-      document.body.appendChild(pop);
-      pop.addEventListener("click", (ev) => {
-        const c3 = ev.target.closest("[data-c]")?.dataset.c;
-        if (!c3) return;
-        pop.remove();
-        toggleReact(btn.dataset.rk, btn.dataset.rid, c3);
-      });
-      setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }), 0);
-    }));
+    qa2("[data-sendreply]").forEach((btn) => btn.addEventListener("click", () => sendReply(btn.dataset.sendreply)));
+    qa2(".react-add").forEach((btn) => btn.addEventListener("click", (e2) => reactAdd(e2, btn)));
     qa2(".rc-btn").forEach((el) => el.addEventListener("mouseenter", () => getMine(el.dataset.rck, el.dataset.rcid)));
     qa2(".react-add").forEach((el) => el.addEventListener("mouseenter", () => getMine(el.dataset.rk, el.dataset.rid)));
     qa2(".rc-btn").forEach((el) => el.addEventListener("click", (e2) => {

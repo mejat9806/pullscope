@@ -1,5 +1,5 @@
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
-import { html, Raw } from './html';
+import { html } from './html';
 import { Av, I, SP, When } from './ui';
 
 const NL = '\n  ';
@@ -29,29 +29,33 @@ export function PrHeader({ b, st, ic, label, tab, split, hideSide, splitOk, comm
 }
 export const prHeaderHtml = (p: PrHeaderProps) => html(<PrHeader {...p} />);
 
-export function FoldBtn({ k, title, def, folded }: { k: string; title: string; def: boolean; folded: boolean }) {
-  return <button class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
+export type FoldFn = (e: Event, k: string, def: boolean) => void;
+export function FoldBtn({ k, title, def, folded, onFold }: { k: string; title: string; def: boolean; folded: boolean; onFold?: FoldFn }) {
+  return <button class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title} onClick={onFold && ((e) => onFold(e, k, def))}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
 }
 export const foldBtnHtml = (p: Parameters<typeof FoldBtn>[0]) => html(<FoldBtn {...p} />);
 
-interface ReactionDef { k: keyof Reactions; e: string }
-export function ReactionsBar({ r, kind, id, defs }: { r: Reactions; kind: string; id: number; defs: ReactionDef[] }) {
+export interface ReactionDef { k: keyof Reactions; e: string }
+export interface ReactHandlers { toggle: (e: Event, kind: string, id: number | string, c: string) => void; add: (e: Event, btn: HTMLElement) => void; hover: (kind: string, id: number | string) => void }
+export interface ReactionsProps { r: Reactions; kind: string; id: number; defs: ReactionDef[] }
+export function ReactionsBar({ r, kind, id, defs, on }: ReactionsProps & { on?: ReactHandlers }) {
   const live = !!(kind && id);
   const items = defs.filter(({ k }) => (r?.[k] ?? 0) > 0).map(({ k, e }) => live
-    ? <span class="reaction rc-btn" data-rck={kind} data-rcid={id} data-rcc={k} title="Click to add or remove your reaction"><span class="e">{e}</span><span>{r?.[k]}</span></span>
+    ? <span class="reaction rc-btn" data-rck={kind} data-rcid={id} data-rcc={k} title="Click to add or remove your reaction" onClick={on && ((ev) => on.toggle(ev, kind, id, k))} onMouseEnter={on && (() => on.hover(kind, id))}><span class="e">{e}</span><span>{r?.[k]}</span></span>
     : <span class="reaction"><span class="e">{e}</span><span>{r?.[k]}</span></span>);
-  const add = live ? <span class="react-wrap"><button class="react-add" data-rk={kind} data-rid={id} title="Add reaction">{I('smiley')}</button></span> : null;
+  const add = live ? <span class="react-wrap"><button class="react-add" data-rk={kind} data-rid={id} title="Add reaction" onClick={on && ((ev) => on.add(ev, ev.currentTarget as HTMLElement))} onMouseEnter={on && (() => on.hover(kind, id))}>{I('smiley')}</button></span> : null;
   return items.length || add ? <div class="reactions">{items}{add}</div> : null;
 }
-export const reactionsBarHtml = (p: Parameters<typeof ReactionsBar>[0]) => html(<ReactionsBar {...p} />);
+export const reactionsBarHtml = (p: ReactionsProps) => html(<ReactionsBar {...p} />);
 
-export interface CommentBoxProps { c: CommentLike; isPr: boolean; assoc: string | undefined; body: string; folded: string; foldHtml: string; reactions: string }
-export function CommentBox({ c, assoc, body, folded, foldHtml, reactions }: CommentBoxProps) {
-  const u = c.user || c.actor;
-  return <div class={`tl-comment${folded}`} id={`c-${c.id ?? ''}`}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
-    <div class="cbox"><div class="chead"><div>{Raw(foldHtml)}{SP}<a class="author u" href={u?.html_url}><span class="author" style="font-weight:600;color:var(--fgColor-default)">{u?.login || 'ghost'}</span></a> commented{SP}<a class="ts" href={c.html_url || '#'}>{When((c.created_at || c.submitted_at)!)}</a></div>{NL}
-      <div class="rt">{assoc ? <span class="assoc">{assoc}</span> : ''}<button class="cm-btn" data-cm={c.id} title="Comment actions">⋯</button></div></div>{NL}
-      <div class="cbody">{Raw(body)}</div>{Raw(reactions)}</div></div>;
+export interface ConvHandlers { fold: FoldFn; menu: (e: Event, btn: HTMLElement) => void; react: ReactHandlers; thread: (e: Event, node: string, how: string) => void; sug: (e: Event, id: string) => void; reply: (id: string) => void }
+export interface CommentBoxProps { c: CommentLike; assoc: string | undefined; bodyHtml: string; folded: boolean; reactions: ReactionsProps; flush?: boolean }
+export function CommentBox({ c, assoc, bodyHtml, folded, reactions, flush, on }: CommentBoxProps & { on?: ConvHandlers }) {
+  const u = c.user || c.actor, k = 'c:' + c.id;
+  return <div class={`tl-comment${folded ? ' folded' : ''}`} id={`c-${c.id ?? ''}`} style={flush ? 'margin-bottom:0' : undefined}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
+    <div class="cbox"><div class="chead"><div><FoldBtn k={k} title="Hide this comment" def={false} folded={folded} onFold={on?.fold} />{SP}<a class="author u" href={u?.html_url}><span class="author" style="font-weight:600;color:var(--fgColor-default)">{u?.login || 'ghost'}</span></a> commented{SP}<a class="ts" href={c.html_url || '#'}>{When((c.created_at || c.submitted_at)!)}</a></div>{NL}
+      <div class="rt">{assoc ? <span class="assoc">{assoc}</span> : ''}<button class="cm-btn" data-cm={c.id} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button></div></div>{NL}
+      <div class="cbody">{bodyHtml ? <div class="markdown-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : <span class="empty">No description provided.</span>}</div><ReactionsBar {...reactions} on={on?.react} /></div></div>;
 }
 export const commentBoxHtml = (p: CommentBoxProps) => html(<CommentBox {...p} />);
 

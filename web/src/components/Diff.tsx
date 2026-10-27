@@ -1,10 +1,21 @@
 import { html, Raw } from './html';
+import { DiffHunkTable, FoldBtn, ReactionsBar } from './Comments';
+import type { ConvHandlers, HunkRow, ReactionsProps } from './Comments';
+import { DraftBox, ErrLine } from './Actions';
 import { Av, I, SP, When } from './ui';
+import { whenParts } from '../app/core';
 import type { Person } from '../types';
 
-export interface TcProps { user: Person | null | undefined; login: string; at: string; id: number | string; root: number | string; withMenu: boolean; body: string; reactions: string; sug: string; anchorId: boolean }
-export function Tc(p: TcProps) {
-  return <div class="tc" id={p.anchorId ? `c-${p.id}` : undefined}><a href={p.user?.html_url || '#'}>{Av(p.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">{p.login}</span>{SP}<span>{When(p.at)}</span>{p.withMenu ? <button class="cm-btn" data-cm={p.id} data-root={p.root} title="Comment actions">⋯</button> : ''}</div><div class="markdown-body" style="margin-top:8px">{Raw(p.body)}</div>{Raw(p.sug)}{Raw(p.reactions)}</div></div>;
+export type SugProps = { kind: 'note'; text: string } | { kind: 'btn'; id: number | string; disabled: boolean; ref: string; mine: boolean };
+export function Sug({ s, on }: { s: SugProps; on?: ConvHandlers }) {
+  return s.kind === 'note'
+    ? <div class="sug-row"><span class="sug-note">{s.text}</span></div>
+    : <div class="sug-row"><button class="btn small primary" data-sug={s.id} disabled={s.disabled} onClick={on && ((e) => on.sug(e, String(s.id)))}>Apply suggestion</button><span class="sug-note">Commits to <code>{s.ref}</code>{s.mine ? '' : ' (fork — needs push access)'}</span></div>;
+}
+export interface TcProps { user: Person | null | undefined; login: string; at: string; id: number | string; root: number | string; withMenu: boolean; bodyHtml: string; reactions: ReactionsProps; sug: SugProps | null; anchorId: boolean }
+export function Tc(p: TcProps & { on?: ConvHandlers }) {
+  const { on } = p;
+  return <div class="tc" id={p.anchorId ? `c-${p.id}` : undefined}><a href={p.user?.html_url || '#'}>{Av(p.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">{p.login}</span>{SP}<span>{When(p.at)}</span>{p.withMenu ? <button class="cm-btn" data-cm={p.id} data-root={p.root} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button> : ''}</div><div class="markdown-body" style="margin-top:8px" dangerouslySetInnerHTML={{ __html: p.bodyHtml }} />{p.sug ? <Sug s={p.sug} on={on} /> : ''}<ReactionsBar {...p.reactions} on={on?.react} /></div></div>;
 }
 export const tcHtml = (p: TcProps) => html(<Tc {...p} />);
 
@@ -14,18 +25,22 @@ export function ThreadRow(p: ThreadRowProps) {
 }
 export const threadRowHtml = (p: ThreadRowProps) => html(<ThreadRow {...p} />);
 
-export const replyBoxHtml = (draftBox: string, err: string, rid: number | string) => html(<div class="reply">{Raw(draftBox)}{Raw(err)}<button class="btn small" data-sendreply={rid}>Reply</button></div>);
+export interface ReplyProps { rid: number | string; ph: string; err: string }
+export function ReplyBox({ rid, ph, err, on }: ReplyProps & { on?: ConvHandlers }) {
+  return <div class="reply"><DraftBox k={`reply-${rid}`} ph={ph} rows={2} /><ErrLine m={err} /><button class="btn small" data-sendreply={rid} onClick={on && (() => on.reply(String(rid)))}>Reply</button></div>;
+}
+export const replyBoxHtml = (p: ReplyProps) => html(<ReplyBox {...p} />);
 
 export const lcCardsHtml = (cards: { id: number | string; body: string }[]) => html(<>{cards.map((c) => <div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">{Raw(c.body)}</div><button class="lc-x" data-lcdel={c.id} title="Delete draft comment">{I('x')}</button></div>)}</>);
 export const lcEditHtml = (draftBox: string, code: string | null) => html(<div class="lc-edit">{Raw(draftBox)}<div class="lc-btns">{code !== null ? <button class="btn small" id="lcsuggest" data-code={code} title="Insert a suggested change for this line">± Suggest change</button> : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>);
 
-export const sugNoteHtml = (t: string) => html(<div class="sug-row"><span class="sug-note">{t}</span></div>);
-export const sugBtnHtml = (id: number | string, disabled: boolean, ref: string, mine: boolean) => html(<div class="sug-row"><button class="btn small primary" data-sug={id} disabled={disabled}>Apply suggestion</button><span class="sug-note">Commits to <code>{ref}</code>{mine ? '' : ' (fork — needs push access)'}</span></div>);
-
-export interface RvThread { folded: string; foldBtn: string; path: string; resolved: boolean; tid: string | null; hunk: string; cards: string[]; reply: string }
-export interface ReviewBlockProps { folded: string; kind: string; ic: string; avatar: string; foldBtn: string; who: string; verb: string; url: string; at: string; sum: { ok: boolean; text: string; allRes: boolean } | null; bodyHtml: string; threads: RvThread[] }
-export function ReviewBlock(p: ReviewBlockProps) {
-  return <div class={`TLI rev${p.folded}`}><div class={`TLI-badge ${p.kind}`}>{I(p.ic)}</div><div class="TLI-avatar">{Raw(p.avatar)}</div><div class="TLI-body"><div class="row">{Raw(p.foldBtn)}{Raw(p.who)} <span>{p.verb}</span> <a class="time" href={p.url}>{p.at}</a>{p.sum ? <span class={`rev-sum${p.sum.ok ? ' ok' : ''}`}>{p.sum.allRes ? <>{I('check')} All resolved</> : p.sum.text}</span> : ''}</div>{'\n  '}
-    {p.bodyHtml ? <div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">{Raw(p.bodyHtml)}</div></div></div> : ''}{p.threads.length ? <div>{p.threads.map((t) => <div class={`thread${t.folded}`}><div class="thread-head">{Raw(t.foldBtn)}{t.path}{t.resolved ? <span class="res">Resolved</span> : ''}{t.tid ? <button class="thread-act" data-thread={t.tid} data-res={t.resolved ? 'unresolve' : 'resolve'}>{t.resolved ? 'Unresolve' : 'Resolve conversation'}</button> : ''}</div><div class="diffhunk">{Raw(t.hunk)}</div>{t.cards.map((c) => Raw(c))}{Raw(t.reply)}</div>)}</div> : ''}</div></div>;
+export interface RvThread { folded: boolean; k: string; def: boolean; path: string; resolved: boolean; tid: string | null; hunk: HunkRow[]; cards: TcProps[]; reply: ReplyProps }
+export interface ReviewBlockProps { folded: boolean; k: string; kind: string; ic: string; user: Person | null | undefined; verb: string; url: string; at: string; sum: { ok: boolean; text: string; allRes: boolean } | null; bodyHtml: string; threads: RvThread[]; allRes: boolean }
+const Actor = ({ u }: { u?: Person | null }) => (u ? <a class="actor" href={u.html_url}>{u.login}</a> : <span class="actor">ghost</span>);
+export function ReviewBlock(p: ReviewBlockProps & { on?: ConvHandlers }) {
+  const { on } = p;
+  return <div class={`TLI rev${p.folded ? ' folded' : ''}`}><div class={`TLI-badge ${p.kind}`}>{I(p.ic)}</div><div class="TLI-avatar">{Av(p.user, 20)}</div><div class="TLI-body"><div class="row"><FoldBtn k={p.k} title="Collapse / expand this review" def={p.allRes} folded={p.folded} onFold={on?.fold} /><Actor u={p.user} /> <span>{p.verb}</span> <a class="time" href={p.url}>{p.at}</a>{p.sum ? <span class={`rev-sum${p.sum.ok ? ' ok' : ''}`}>{p.sum.allRes ? <>{I('check')} All resolved</> : p.sum.text}</span> : ''}</div>{'\n  '}
+    {p.bodyHtml ? <div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body" dangerouslySetInnerHTML={{ __html: p.bodyHtml }} /></div></div> : ''}{p.threads.length ? <div>{p.threads.map((t) => <div class={`thread${t.folded ? ' folded' : ''}`}><div class="thread-head"><FoldBtn k={t.k} title="Hide this thread" def={t.def} folded={t.folded} onFold={on?.fold} />{t.path}{t.resolved ? <span class="res">Resolved</span> : ''}{t.tid ? <button class="thread-act" data-thread={t.tid} data-res={t.resolved ? 'unresolve' : 'resolve'} onClick={on && ((e) => on.thread(e, t.tid!, t.resolved ? 'unresolve' : 'resolve'))}>{t.resolved ? 'Unresolve' : 'Resolve conversation'}</button> : ''}</div><div class="diffhunk"><DiffHunkTable rows={t.hunk} /></div>{t.cards.map((c) => <Tc {...c} on={on} />)}<ReplyBox {...t.reply} on={on} /></div>)}</div> : ''}</div></div>;
 }
 export const reviewBlockHtml = (p: ReviewBlockProps) => html(<ReviewBlock {...p} />);
+void whenParts;

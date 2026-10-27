@@ -3,10 +3,10 @@ import { closedBoxHtml, commitsDialogHtml, commitsListHtml, fcBarHtml, fileBoxHt
 import type { CkGroup, MergeBoxProps, PrSideProps } from '../components/Merge';
 import { errMsg } from './actions';
 import { foldBtn, folded, isFolded } from './comments';
-import { S, avatar, esc, icon, tauri, when, $ } from './core';
+import { S, avatar, esc, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
 import { render } from './pages';
-import { CK, attention, checkState, commitRow, reqBadge, timeline } from './timeline';
+import { CK, attention, checkState, commitRow, timeline } from './timeline';
 
 export type MergeModel = { kind: 'merged'; head: string } | { kind: 'closed'; head: string } | { kind: 'open'; p: MergeBoxProps };
 export function mergeModel(b: Bundle): MergeModel {
