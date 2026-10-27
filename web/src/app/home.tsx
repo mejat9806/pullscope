@@ -33,5 +33,5 @@ const on: HomeHandlers = {
 };
 
 export function HomeView() {
-  return <><Crumbs repo="" trail={S.homeOwner ? [{ t: S.homeOwner }] : []} extra="" on={crumbs} /><Home p={homeProps()} on={on} /></>;
+  return <><Crumbs repo="" trail={S.homeOwner ? [{ t: S.homeOwner }] : []} on={crumbs} /><Home p={homeProps()} on={on} /></>;
 }

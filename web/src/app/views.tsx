@@ -31,7 +31,7 @@ const prl: PrListHandlers = {
 };
 
 export function RepoView() {
-  return <><Crumbs repo={S.repo!} trail={[{ t: 'Pull requests' }]} extra="" on={crumbs} /><PrListPage p={prListProps()} on={prl} /></>;
+  return <><Crumbs repo={S.repo!} trail={[{ t: 'Pull requests' }]} on={crumbs} /><PrListPage p={prListProps()} on={prl} /></>;
 }
 
 const keep = (fn: () => void) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
@@ -47,13 +47,13 @@ const notes: NotesHandlers = {
 };
 
 export function NotesView() {
-  return <><Crumbs repo="" trail={[{ t: 'Notifications' }]} extra="" on={crumbs} /><NotesPage {...notesProps()} on={notes} /></>;
+  return <><Crumbs repo="" trail={[{ t: 'Notifications' }]} on={crumbs} /><NotesPage {...notesProps()} on={notes} /></>;
 }
 
 const inbox: InboxHandlers = { ...open, refresh: () => loadInbox(true) };
 
 export function InboxView() {
-  return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} extra="" on={crumbs} /><InboxPage p={inboxProps()} on={inbox} /></>;
+  return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} on={crumbs} /><InboxPage p={inboxProps()} on={inbox} /></>;
 }
 
 const np = () => S.np!;
@@ -92,5 +92,5 @@ const newpr: NewPrHandlers = {
 };
 
 export function NewPrView() {
-  return <><Crumbs repo={np().repo} trail={[{ t: 'New pull request' }]} extra="" on={crumbs} /><NewPr p={newPrProps()} on={newpr} /></>;
+  return <><Crumbs repo={np().repo} trail={[{ t: 'New pull request' }]} on={crumbs} /><NewPr p={newPrProps()} on={newpr} /></>;
 }

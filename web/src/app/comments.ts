@@ -1,4 +1,3 @@
-import { commentBoxHtml, diffHunkTableHtml, foldBtnHtml, reactionsBarHtml } from '../components/Comments';
 import type { CommentBoxProps, HunkRow, PrHeaderProps, ReactionsProps } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import { act, prRef } from './actions';
@@ -26,11 +25,9 @@ export const isFolded = (k: string, def = false) => (k in S.fold ? S.fold[k] : d
 
 export const folded = (k: string, def = false) => (isFolded(k, def) ? ' folded' : '');
 
-export const foldBtn = (k: string, title = 'Collapse / expand', def = false) => foldBtnHtml({ k, title, def, folded: isFolded(k, def) });
 
 
 export const reactionProps = (r: Reactions | undefined, kind: string, id: number): ReactionsProps => ({ r: r || {}, kind, id, defs: REACTS.map(([k, e]) => ({ k, e })) });
-export const reactionsHtml = (r: Reactions | undefined, kind: string, id: number) => reactionsBarHtml(reactionProps(r, kind, id));
 
 
 export const liveTasks = (h: string) => S.hasToken ? h.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, (m) => m.replace(/\sdisabled(="[^"]*")?/g, '')) : h;
@@ -61,9 +58,8 @@ document.addEventListener('click', async (e) => {
 });
 
 export function commentBoxProps(c: CommentLike, { isPr = false, flush = false } = {}): CommentBoxProps {
-  return { c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
+  return { kb: S.kbId === 'c-' + c.id, c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
 }
-export const commentBox = (c: CommentLike, o: { isPr?: boolean; flush?: boolean } = {}) => commentBoxHtml(commentBoxProps(c, o));
 
 
 export function hunkRows(hunk: string) {
@@ -78,4 +74,3 @@ export function hunkRows(hunk: string) {
   }
   return rows;
 }
-export const diffHunkTable = (hunk: string) => diffHunkTableHtml(hunkRows(hunk));

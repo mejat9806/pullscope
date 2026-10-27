@@ -1,6 +1,5 @@
-import type { Cmp, PrListItem, Pull } from '../types';
-import { S, esc, icon, when } from './core';
-import { crumbsHtml } from '../components/PrList';
+import type { Cmp, PrListItem } from '../types';
+import { S, when } from './core';
 import type { FilterBarProps, PrListProps, PrlRow } from '../components/PrList';
 import { pushBannerItems } from './data';
 
@@ -41,10 +40,4 @@ export function prListProps(): PrListProps {
 }
 
 
-// Breadcrumbs for every page: Home › (owner / repo) › … ; the last item is the current page.
-export function crumbs(repo: string, trail: { t: string; repo?: string }[] = [], extra = '') { return crumbsHtml({ repo, trail, extra }); }
 
-export function repoHeader(p: Pull) {
-  const r = p.base.repo;
-  return crumbs(r.full_name, [{ t: 'Pull requests', repo: r.full_name }, { t: `#${p.number}` }], `<a class="crumb gh" href="${esc(r.html_url)}" data-ext title="Open on GitHub">${icon('link-external', 12)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}`);
-}

@@ -7,7 +7,6 @@ import { b0open } from './mergebox';
 import { LcCards, LcEdit, ReviewBlock, ThreadRow } from '../components/Diff';
 import type { LcHandlers, ReviewBlockProps, SugProps, TcProps, ThreadRowProps } from '../components/Diff';
 import type { ConvHandlers } from '../components/Comments';
-import { html } from '../components/html';
 
 // ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
 S.diffMode = localStorage.getItem('diffmode') || 'unified';
@@ -137,10 +136,10 @@ export function reviewBlockProps(e: TimelineEvent, b: Bundle): ReviewBlockProps 
   const threads = lists.map((list) => ({
     folded: isFolded('t:' + list[0].id, isRes(list)), k: 't:' + list[0].id, def: isRes(list), path: list[0].path, resolved: isRes(list), tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
     hunk: hunkRows(list[0].diff_hunk || ''),
-    cards: list.map((c): TcProps => ({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, bodyHtml: c.body_html || '', reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: suggestProps(c, b, list), anchorId: true })),
+    cards: list.map((c): TcProps => ({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, bodyHtml: c.body_html || '', reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: suggestProps(c, b, list), anchorId: true, kb: S.kbId === 'c-' + c.id })),
     reply: { rid: list[0].id, ph: 'Reply…', err: errMsg('reply-' + list[0].id) },
   }));
   const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}` } : null;
   return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e.user, verb, url: e.html_url ?? '', at: whenParts(e.submitted_at!).text, sum, bodyHtml: hasBody ? e.body_html! : '', threads, allRes };
 }
-void html; void ReviewBlock;
+void ReviewBlock;

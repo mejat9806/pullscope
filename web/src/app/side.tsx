@@ -5,7 +5,8 @@ import type { Cmp, PrListItem } from '../types';
 import { openAux, openClick, openCtx, rmRecent } from './bind';
 import { tokenDialog } from './token';
 import { folded, isFolded } from './comments';
-import { $, S, icon, qa, when } from './core';
+import { $, S, when } from './core';
+import { rerender } from './actions';
 import { loadPrs, openRepo } from './nav';
 import { render } from './pages';
 import { PGROUP, PICON, PSORT, prStatus } from './prlist';
@@ -24,16 +25,11 @@ const on: SideHandlers = {
   repo: (name) => openRepo(name),
   addToken: tokenDialog,
   open: openClick, aux: openAux, ctx: openCtx, rm: rmRecent,
-  // Folding only flips state: the sidebar repaints itself and any copy of the block in the page is updated in place.
+  // Folding only flips state; the page and the sidebar both repaint from it.
   fold: (e, k) => {
     e.stopPropagation();
-    const now = !isFolded(k), els = qa('[data-fold]').filter((x) => x.dataset.fold === k && !x.closest('#side'));
-    S.fold[k] = now; localStorage.setItem('fold', JSON.stringify(S.fold));
-    els.forEach((x) => {
-      const box = x.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
-      const svg = $('svg', x); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
-    });
-    repaintSide();
+    S.fold[k] = !isFolded(k); localStorage.setItem('fold', JSON.stringify(S.fold));
+    rerender(); repaintSide();
   },
 };
 

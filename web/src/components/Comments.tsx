@@ -1,5 +1,4 @@
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
-import { html } from './html';
 import { Av, I, SP, When } from './ui';
 
 const NL = '\n  ';
@@ -27,13 +26,11 @@ export function PrHeader({ b, st, ic, label, tab, split, hideSide, splitOk, comm
       <div class="tools"><button class="split-btn" id="review" onClick={on?.review} title="Submit a review">{I('eye')}<span>Review</span></button><button class={`split-btn ${hideSide || split ? '' : 'on'}`} id="sidetoggle" onClick={on?.side} title="Show or hide the details panel" disabled={tab !== 'conversation' || split} style={tab !== 'conversation' ? 'visibility:hidden' : ''}>{I('sidebar-expand')}<span>Details</span></button><button class={`split-btn ${splitOk && split ? 'on' : ''}`} id="split" onClick={on?.split} title={splitOk ? 'Split view: commits beside conversation' : 'Split view is available on the Conversation and Commits tabs'} disabled={!splitOk}>{I('columns')}<span>Split view</span></button><div class="diffstat"><span class="add">+{p.additions}</span><span class="del">-{p.deletions}</span><span class="sq">{sq.map((c) => <i class={c}></i>)}</span></div></div></div>
   </>;
 }
-export const prHeaderHtml = (p: PrHeaderProps) => html(<PrHeader {...p} />);
 
 export type FoldFn = (e: Event, k: string, def: boolean) => void;
 export function FoldBtn({ k, title, def, folded, onFold }: { k: string; title: string; def: boolean; folded: boolean; onFold?: FoldFn }) {
   return <button class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title} onClick={onFold && ((e) => onFold(e, k, def))}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
 }
-export const foldBtnHtml = (p: Parameters<typeof FoldBtn>[0]) => html(<FoldBtn {...p} />);
 
 export interface ReactionDef { k: keyof Reactions; e: string }
 export interface ReactHandlers { toggle: (e: Event, kind: string, id: number | string, c: string) => void; add: (e: Event, btn: HTMLElement) => void; hover: (kind: string, id: number | string) => void }
@@ -46,18 +43,16 @@ export function ReactionsBar({ r, kind, id, defs, on }: ReactionsProps & { on?: 
   const add = live ? <span class="react-wrap"><button class="react-add" data-rk={kind} data-rid={id} title="Add reaction" onClick={on && ((ev) => on.add(ev, ev.currentTarget as HTMLElement))} onMouseEnter={on && (() => on.hover(kind, id))}>{I('smiley')}</button></span> : null;
   return items.length || add ? <div class="reactions">{items}{add}</div> : null;
 }
-export const reactionsBarHtml = (p: ReactionsProps) => html(<ReactionsBar {...p} />);
 
 export interface ConvHandlers { fold: FoldFn; menu: (e: Event, btn: HTMLElement) => void; react: ReactHandlers; thread: (e: Event, node: string, how: string) => void; sug: (e: Event, id: string) => void; reply: (id: string) => void }
-export interface CommentBoxProps { c: CommentLike; assoc: string | undefined; bodyHtml: string; folded: boolean; reactions: ReactionsProps; flush?: boolean }
-export function CommentBox({ c, assoc, bodyHtml, folded, reactions, flush, on }: CommentBoxProps & { on?: ConvHandlers }) {
+export interface CommentBoxProps { kb?: boolean; c: CommentLike; assoc: string | undefined; bodyHtml: string; folded: boolean; reactions: ReactionsProps; flush?: boolean }
+export function CommentBox({ kb, c, assoc, bodyHtml, folded, reactions, flush, on }: CommentBoxProps & { on?: ConvHandlers }) {
   const u = c.user || c.actor, k = 'c:' + c.id;
-  return <div class={`tl-comment${folded ? ' folded' : ''}`} id={`c-${c.id ?? ''}`} style={flush ? 'margin-bottom:0' : undefined}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
+  return <div class={`tl-comment${folded ? ' folded' : ''}${kb ? ' kb' : ''}`} id={`c-${c.id ?? ''}`} style={flush ? 'margin-bottom:0' : undefined}><div class="avatar-col"><a href={u?.html_url}>{Av(u, 40)}</a></div>{NL}
     <div class="cbox"><div class="chead"><div><FoldBtn k={k} title="Hide this comment" def={false} folded={folded} onFold={on?.fold} />{SP}<a class="author u" href={u?.html_url}><span class="author" style="font-weight:600;color:var(--fgColor-default)">{u?.login || 'ghost'}</span></a> commented{SP}<a class="ts" href={c.html_url || '#'}>{When((c.created_at || c.submitted_at)!)}</a></div>{NL}
       <div class="rt">{assoc ? <span class="assoc">{assoc}</span> : ''}<button class="cm-btn" data-cm={c.id} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button></div></div>{NL}
       <div class="cbody">{bodyHtml ? <div class="markdown-body" dangerouslySetInnerHTML={{ __html: bodyHtml }} /> : <span class="empty">No description provided.</span>}</div><ReactionsBar {...reactions} on={on?.react} /></div></div>;
 }
-export const commentBoxHtml = (p: CommentBoxProps) => html(<CommentBox {...p} />);
 
 export interface HunkRow { kind: 'hunk' | 'add' | 'del' | 'ctx' | 'meta'; o?: number; n?: number; text: string }
 export function DiffHunkTable({ rows }: { rows: HunkRow[] }) {
@@ -69,4 +64,3 @@ export function DiffHunkTable({ rows }: { rows: HunkRow[] }) {
     return <tr><td class="num">{r.o}</td><td class="num">{r.n}</td><td class="code" data-marker=" ">{r.text}</td></tr>;
   })}</table>;
 }
-export const diffHunkTableHtml = (rows: HunkRow[]) => html(<DiffHunkTable rows={rows} />);

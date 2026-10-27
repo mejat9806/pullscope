@@ -1,16 +1,15 @@
 import type { ComponentChildren, VNode } from 'preact';
-import { Bars, Checks, CommitRow, CommitRun, Committed, CrossRef, FoldBar, LabelRow, MergedRow, Referenced, Simple, attentionHtml } from '../components/Timeline';
+import { Bars, Checks, CommitRow, CommitRun, Committed, CrossRef, FoldBar, LabelRow, MergedRow, Referenced, Simple } from '../components/Timeline';
 import type { AttItem, BarHandlers, CommitRowProps, CrossRefProps, RangeBarProps, ReferencedProps, SimpleProps, WhoBarProps } from '../components/Timeline';
 import { Composer, MergeAct } from '../components/Actions';
 import type { ComposerHandlers, ComposerProps, MergeActHandlers, MergeActProps } from '../components/Actions';
 import { ClosedBox, MergeBox, MergedBox } from '../components/Merge';
 import type { MergeBoxHandlers } from '../components/Merge';
-import { html } from '../components/html';
 import { CommentBox } from '../components/Comments';
 import { ReviewBlock } from '../components/Diff';
 import type { Bundle, Check, CommentLike, Person, TimelineEvent } from '../types';
 import { composerProps, mergeActProps } from './actions';
-import { commentBoxProps } from './comments';
+import { commentBoxProps, isFolded } from './comments';
 import type { CommentBoxProps, ConvHandlers } from '../components/Comments';
 import { S } from './core';
 import { reviewBlockProps } from './diff';
@@ -69,7 +68,7 @@ export function timelineModel(b: Bundle): TlModel {
       case 'commented': out.push({ t: 'comment', p: commentBoxProps(e as CommentLike) }); break;
       case 'commit-run': out.push({ t: 'run', n: e.n!, first: e.first!.sha!.slice(0, 7), last: e.last!.sha!.slice(0, 7) }); break;
       case 'reviewed': { const rp = reviewBlockProps(e, b); if (rp) out.push({ t: 'review', p: rp }); break; }
-      case 'committed': out.push({ t: 'committed', row: { first: String(e.message || '').split('\n')[0], sha: e.sha!, author: info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null), url: e.html_url!, verification: e.verification, trailing: '' } }); break;
+      case 'committed': out.push({ t: 'committed', row: { first: String(e.message || '').split('\n')[0], sha: e.sha!, author: info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null), url: e.html_url!, verification: e.verification } }); break;
       case 'referenced': {
         const ci = info[e.commit_id!];
         const ml = ci ? ci.message.split('\n')[0] : '';
@@ -152,7 +151,6 @@ export function attentionProps(b: Bundle) {
   else if (p.draft) add('', 'git-pull-request-draft', 'Draft');
   return { items: it, unres: S.unres, showUnres: roots.length > 0 };
 }
-export const attention = (b: Bundle) => attentionHtml(attentionProps(b));
 
 export function jumpUnresolved() {
   const b = S.bundle, list = unresolvedRoots(b!); if (!list.length) return;
@@ -167,7 +165,11 @@ export function jumpUnresolved() {
 
 
 
-export interface TlHandlers { conv: ConvHandlers; bars: BarHandlers; foldAll: () => void; tab: (k: string) => void; merge: MergeBoxHandlers; act: MergeActHandlers; composer: ComposerHandlers }
+export interface FoldKey { k: string; def: boolean }
+// Every fold toggle the timeline draws, so "collapse all" works from state rather than from the DOM.
+export const foldKeys = (m: TlModel): FoldKey[] => m.rows.flatMap((r): FoldKey[] => r.t === 'comment' ? [{ k: 'c:' + r.p.c.id, def: false }] : r.t === 'review' ? [{ k: r.p.k, def: r.p.allRes }, ...r.p.threads.map((t) => ({ k: t.k, def: t.def }))] : []);
+
+export interface TlHandlers { conv: ConvHandlers; bars: BarHandlers; foldAll: (keys: FoldKey[]) => void; tab: (k: string) => void; merge: MergeBoxHandlers; act: MergeActHandlers; composer: ComposerHandlers }
 
 function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
   switch (r.t) {
@@ -186,11 +188,11 @@ function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
 
 export function Timeline({ m, on }: { m: TlModel; on?: TlHandlers }) {
   const box = m.merge && (m.merge.kind === 'merged' ? <MergedBox head={m.merge.head} /> : m.merge.kind === 'closed' ? <ClosedBox head={m.merge.head} /> : <MergeBox {...m.merge.p} on={on?.merge} />);
+  const keys = foldKeys(m);
   return <>
-    <Bars who={m.who} range={m.range} on={on?.bars} /><FoldBar onClick={on?.foldAll} />
+    <Bars who={m.who} range={m.range} on={on?.bars} /><FoldBar folded={keys.length > 0 && keys.every((x) => isFolded(x.k, x.def))} onClick={() => on?.foldAll(keys)} />
     <div class="TL">{m.rows.map((r) => <Row r={r} on={on} />)}{m.empty ? <div class="diff-empty">{m.empty}</div> : ''}</div>
     {box}{m.act ? <MergeAct {...m.act} on={on?.act} /> : ''}<Composer {...m.composer} on={on?.composer} />
   </>;
 }
 
-export const timeline = (b: Bundle) => html(<Timeline m={timelineModel(b)} />);

@@ -1,7 +1,8 @@
+import { editorMount } from '../components/Actions';
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { $, S, esc, load, tauri, qa } from './core';
+import { $, S, esc, load, tauri } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { closePop, openPop } from './dialogs';
@@ -187,7 +188,7 @@ export function cmAction(id: number, root: HTMLElement, how: string) {
   if (how === 'del') return deleteCommentDialog(c, kind);
   const key = root ? 'reply-' + root : 'comment', q = (c.body || '').split('\n').map((l) => '> ' + l).join('\n');
   S.draft[key] = (S.draft[key] ? S.draft[key] + '\n\n' : '') + `@${((c as CommentLike).user || (c as CommentLike).actor || {} as { login?: string }).login || ''}\n\n${q}\n\n`;
-  saveDrafts(); S.eds = []; S.keepScroll = true; render(); S.keepScroll = false;
+  saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false; syncDraft(key);
   setTimeout(() => $(`[data-draft="${key}"]`)?.scrollIntoView({ block: 'center' }), 50);
 }
 
@@ -209,7 +210,8 @@ export async function rerequestReview(e: Event, login: string) {
   await refreshPr();
 }
 // Merge box, merge actions and composer handlers: shared by the live PR page and by the imperatively bound copies (split view).
-export function toggleComposer() { setComposer(document.getElementById('composer')!.classList.contains('collapsed'), true); }
+export const composerOpen = () => S.busy === 'comment' || S.cOpen === true;
+export function toggleComposer() { setComposer(!composerOpen(), true); }
 export function cbarKey(e: KeyboardEvent) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); (e.currentTarget as HTMLElement).click(); } }
 export async function sendComment() {
   const r = await act('comment', { body: S.draft.comment || '' }, 'comment'); if (r === undefined) return;
@@ -273,11 +275,11 @@ export async function sendReply(id: string) {
 
 // Diff view handlers: shared by the live files tab and the imperatively bound copies.
 export function setDiffMode(m: string) { S.diffMode = m; localStorage.setItem('diffmode', m); rerender(); }
-export function lcOpen(e: Event) { e.stopPropagation(); S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc; rerender(); setTimeout(() => S.eds?.at(-1)?.focus?.(), 200); }
+export function lcOpen(e: Event) { e.stopPropagation(); S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc; rerender(); focusLastEditor(200); }
 export function lcCancel() { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); rerender(); }
 export function lcSuggest(ev: Event) {
   const cur = (S.draft.lc || '').trimEnd(); S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`; saveDrafts();
-  rerender(); setTimeout(() => S.eds?.at(-1)?.focus?.(), 150);
+  rerender(); focusLastEditor(150);
 }
 export function lcAdd() {
   const body = (S.draft.lc || '').trim(); if (!body || !S.lcOpen) return;
@@ -288,19 +290,20 @@ export function lcDel(id: string) { S.pending![pendKey()] = pendList().filter((c
 
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
-const mounted = new WeakSet<Element>();
+// Live editors, so a new draft can be pushed into one and the newest can be focused.
+const live = new Map<EditorHandle, string>();
+export const focusLastEditor = (ms: number) => setTimeout(() => [...live.keys()].at(-1)?.focus?.(), ms);
+export function syncDraft(key: string) { live.forEach((k, ed) => { if (k === key) ed.setMarkdown?.(S.draft[key] || ''); }); }
 
-// Editors are mounted once per host, so a live page can call this after every repaint.
-export function mountEditors() {
-  qa('.tt[data-draft]').forEach((host) => {
-    if (mounted.has(host)) return; mounted.add(host);
-    const key = host.dataset.draft;
-    if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
-    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key!.startsWith('reply-') ? $(`[data-sendreply="${key!.slice(6)}"]`) : $('#revsubmit'))?.click();
-    const mount = () => { (S.eds ||= []).push(window.createEditor!(host, { value: S.draft[key!] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key!] = md; saveDrafts(); }, onSubmit: send })); addPreview(host, key!); };
-    // Editors are heavy: build each one only when its box is near the viewport.
-    const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
-    io.observe(host);
-  });
-}
+// Called by every DraftBox when it mounts: builds the editor once its box is near the viewport; the returned function tears it down.
+editorMount.fn = (host, key) => {
+  if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return () => {}; }
+  const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? $(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
+  let ed: EditorHandle | null = null, gone = false;
+  const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); addPreview(host, key); };
+  // Editors are heavy: build each one only when its box is near the viewport.
+  const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); mount(); } }, { rootMargin: '300px' });
+  io.observe(host);
+  return () => { gone = true; io.disconnect(); if (ed) { live.delete(ed); ed.destroy(); } };
+};
 

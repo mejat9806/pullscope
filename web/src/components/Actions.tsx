@@ -1,8 +1,15 @@
+import { useEffect, useRef } from 'preact/hooks';
 import { I } from './ui';
 
 
 export const ErrLine = ({ m }: { m: string }) => (m ? <div class="act-err">{m}</div> : null);
-export const DraftBox = ({ k, ph, rows }: { k: string; ph: string; rows: number }) => <div class="tt" data-draft={k} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>;
+// The rich editor is a foreign widget: the component owns its host and builds the editor (lazily, when near the viewport) on mount and destroys it on unmount.
+export const editorMount: { fn: ((host: HTMLElement, key: string) => () => void) | null } = { fn: null };
+export function DraftBox({ k, ph, rows }: { k: string; ph: string; rows: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k) : undefined, []);
+  return <div class="tt" ref={ref} data-draft={k} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>;
+}
 
 export interface ComposerHandlers { toggle: () => void; key: (e: KeyboardEvent) => void; send: () => void; close: () => void }
 export interface ComposerProps { open: boolean; draft: string; err: string; merged: boolean; closed: boolean; busy: boolean }

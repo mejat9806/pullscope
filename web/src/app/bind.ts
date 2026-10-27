@@ -2,10 +2,11 @@ import { drafts, rerender, saveDrafts } from './actions';
 import { closePop, openPop } from './dialogs';
 import { openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, qa as qaAll } from './core';
+import { $, KEY_RECENT, S } from './core';
 import { loadPr, qc } from './data';
 import { loadPrs, openPr } from './nav';
 import { render, saveNotes, shownPage } from './pages';
+import type { FoldKey } from './timeline';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 
 // Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
@@ -16,15 +17,14 @@ export const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sb
 export function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
   const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main'), sh = shownPage();
   if (!ref || !m || !sh || sh.ref !== ref || !S.tabs.some((t) => t.ref === ref)) return;
-  S.alive.set(ref, { vnode: sh.vnode, eds: S.eds || [], bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
-  S.eds = [];
-  while (S.alive.size > 6) { const old = S.alive.keys().next().value!; S.alive.get(old)?.eds.forEach((e) => e.destroy()); S.alive.delete(old); }
+  S.alive.set(ref, { vnode: sh.vnode, bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
+  while (S.alive.size > 6) { const old = S.alive.keys().next().value!; S.alive.delete(old); }
 }
 
 export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   const a = S.alive.get(ref); if (!a) return false;
   const mem = qc.peek(ref);
-  if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { a.eds.forEach((e) => e.destroy()); S.alive.delete(ref); return false; }
+  if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
   tabSnap(); stashCurrent(); S.alive.delete(ref);
   const p = a.bundle.pull;
   S.view = 'pr'; S.bundle = a.bundle; S.tab = a.tab; S.sel = null; S.fr = null; S.error = ''; S.loading = false; S.refreshing = false; S.tabPending = ''; S.tabMenu = false;
@@ -33,7 +33,7 @@ export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
   if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   // The parked page goes back in untouched (same vnode: no diff, scroll and editors as they were).
-  S.stash = a; S.eds = a.eds; render();
+  S.stash = a; render();
   $('.main')!.scrollTop = a.scroll;
   // Quietly check for newer data; only redraw if something actually changed.
   if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref))!.then((d) => {
@@ -56,11 +56,10 @@ export function openCtx(el: HTMLElement, e: MouseEvent) {
 export function rmRecent(e: MouseEvent, ref: string) { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== ref); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }
 
 // "Collapse all conversations" flips every fold in the timeline; the label says what the next click does.
-export function syncFoldAll() { const els = [...qaAll('.TL [data-fold]')], l = document.querySelector('#foldallconv span'); if (l && els.length) l.textContent = els.every((x) => isFolded(x.dataset.fold!, x.dataset.def === '1')) ? 'Expand all conversations' : 'Collapse all conversations'; }
-export function foldAllConv() {
-  const els = [...qaAll('.TL [data-fold]')]; if (!els.length) return;
-  const now = els.some((x) => !isFolded(x.dataset.fold!, x.dataset.def === '1'));
-  els.forEach((x) => { S.fold[x.dataset.fold!] = now; });
+export function foldAllConv(keys: FoldKey[]) {
+  if (!keys.length) return;
+  const now = keys.some((x) => !isFolded(x.k, x.def));
+  keys.forEach((x) => { S.fold[x.k] = now; });
   try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ }
   rerender();
 }

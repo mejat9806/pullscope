@@ -35,7 +35,7 @@ const sideOn: PrSideHandlers = {
 function Header() {
   const p = S.bundle!.pull, r = p.base.repo;
   const extra = <><a class="crumb gh" href={r.html_url} data-ext="" title="Open on GitHub">{I('link-external', 12)}</a>{S.refreshing ? <span class="stale">Refreshing…</span> : ''}</>;
-  return <><Crumbs repo={r.full_name} trail={[{ t: 'Pull requests', repo: r.full_name }, { t: `#${p.number}` }]} extra="" extraNode={extra} on={crumbs} /><PrHeader {...prHeaderProps(S.bundle!)} on={head} /></>;
+  return <><Crumbs repo={r.full_name} trail={[{ t: 'Pull requests', repo: r.full_name }, { t: `#${p.number}` }]} extraNode={extra} on={crumbs} /><PrHeader {...prHeaderProps(S.bundle!)} on={head} /></>;
 }
 
 export function PrView() {

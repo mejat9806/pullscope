@@ -10,10 +10,11 @@ export const typing = (t: EventTarget | null) => t && ((t as HTMLElement).closes
 
 export const kbItems = () => [...qa('.main .tl-comment, .main .tc')].filter((e) => e.offsetParent);
 
+// The focused comment is state (S.kbId): the views draw the `kb` class from it.
 export function kbGo(el: HTMLElement) {
   if (!el) return;
-  qa('.kb').forEach((x) => x.classList.remove('kb'));
-  el.classList.add('kb'); S.kbId = el.id; el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  S.kbId = el.id; rerender();
+  document.getElementById(el.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 export const kbCur = () => (S.kbId && document.getElementById(S.kbId)) || null;
@@ -29,8 +30,8 @@ export const openThreads = () => [...qa<HTMLElement>('.main .thread')].filter((t
 
 export function setComposer(open: boolean, focus?: boolean) {
   const el = document.getElementById('composer'); if (!el) return false;
-  S.cOpen = open; el.classList.toggle('collapsed', !open);
-  if (open && focus) { let tries = 0; const t = setInterval(() => { const pm = $('.ProseMirror', el); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 25) clearInterval(t); }, 60); }
+  S.cOpen = open; rerender();
+  if (open && focus) { let tries = 0; const t = setInterval(() => { const pm = $('.ProseMirror', document.getElementById('composer') || el); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 25) clearInterval(t); }, 60); }
   return true;
 }
 

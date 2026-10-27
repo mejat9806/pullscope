@@ -49,7 +49,7 @@ export const tlOn: TlHandlers = {
     to: (e) => keep(() => { S.rTo = (e.target as HTMLInputElement).value; }),
     sort: () => keep(() => { S.sort = S.sort === 'desc' ? 'asc' : 'desc'; localStorage.setItem('csort', S.sort); }),
   },
-  foldAll: () => foldAllConv(),
+  foldAll: foldAllConv,
   tab: openTab,
   merge: { toggle: (e, k) => toggleMb(e, k), rerun: (e) => { rerunChecks(e); }, update: () => { updateBranch(); }, ready: () => { markReady(); } },
   act: { close: () => toggleClosed(), merge: () => doMerge(), noauto: () => { disableAuto(); }, auto: () => { enableAuto(); }, draft: () => toDraft() },

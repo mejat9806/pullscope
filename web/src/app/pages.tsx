@@ -1,6 +1,5 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
-import { mountEditors, rerender, saveDrafts } from './actions';
-import { syncFoldAll } from './bind';
+import { rerender, saveDrafts } from './actions';
 import { paintNotes } from './notes';
 import { paintDlg } from './dialogs';
 import { tokenDialog } from './token';
@@ -163,28 +162,23 @@ const followLink = (e: MouseEvent) => {
 // What the page last drew for the open pull request: leaving the tab parks exactly this vnode, coming back puts it in again untouched.
 let shown: { ref: string; vnode: VNode } | null = null;
 export const shownPage = () => shown;
-let paneKey = '';
 
 export function render() {
   applyMode();
   const { top, rest } = hosts();
   if (needSignIn()) {
-    (S.eds || []).forEach((e) => e.destroy()); S.eds = []; paneKey = ''; shown = null;
+    shown = null;
     clearTop(top); paint(<><Gate err={S.gateErr ? String(S.gateErr) : ''} go={() => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); }} tok={tokenDialog} /><div id="dlg" style="display:contents"></div></>, rest); paintDlg();
     return;
   }
   paintTop(top);
   const stash = S.stash, live = stash ? stash.vnode : liveView(), ref = curRef();
   const key = S.loading ? 'loading' : S.view === 'pr' && S.bundle ? 'pr:' + ref : S.view || 'home';
-  // The editors belong to the page they were built in: a different page (that was not parked) takes them with it.
-  if (key !== paneKey && !stash) { (S.eds || []).forEach((e) => e.destroy()); S.eds = []; }
-  paneKey = key;
   if (S.view === 'pr' && S.bundle && !S.loading && live) shown = { ref, vnode: live };
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
   paint(<Shell nav={!!S.nav} navHidden={!!S.hide.nav} sbw={S.sbw} fade={!!S.fadeMain} active={{ key, children: live }} onPage={followLink} kept={kept} />, rest);
   paintSide($('#side')!); paintDlg(); paintNotes();
   S.stash = null;
-  mountEditors(); syncFoldAll();
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = []; bindSticky();
   if (S.fadeMain) S.fadeMain = false;
   syncUnread();

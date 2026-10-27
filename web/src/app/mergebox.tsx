@@ -134,7 +134,7 @@ export function filesList(files: FileChange[], canComment = false): VNode {
 
 export function commitsView(b: Bundle): VNode {
   const c = b.timeline.filter((e) => e.event === 'committed');
-  return <CommitsList rows={c.map((e) => <CommitRowView first={String(e.message || '').split('\n')[0]} sha={e.sha!} author={e.author?.avatar_url ? e.author : null} url={e.html_url!} verification={e.verification} trailing="" />)} />;
+  return <CommitsList rows={c.map((e) => <CommitRowView first={String(e.message || '').split('\n')[0]} sha={e.sha!} author={e.author?.avatar_url ? e.author : null} url={e.html_url!} verification={e.verification} />)} />;
 }
 
 

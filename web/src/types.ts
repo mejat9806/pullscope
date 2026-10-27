@@ -72,7 +72,7 @@ export interface AppState {
   sbw: number; pf: string; psort: string; pgroup: string; who: string[]; unres: boolean; range: string; rFrom: string; rTo: string; sort: 'asc' | 'desc';
   unIdx: number; nav: boolean; busy: string; actErr: ActErr | null;
   // set after startup
-  np?: NewPr | null; keepScroll?: boolean; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string; eds?: EditorHandle[];
+  np?: NewPr | null; keepScroll?: boolean; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
   refreshing?: boolean; diffMode?: string; inbox?: InboxState | null; alive: Map<string, Alive>; oauthLive?: boolean; lcOpen?: string | null; openSeq?: number; me?: string;
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flashId?: string; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
@@ -105,7 +105,7 @@ export interface NewPr {
   cmp: CompareResult | string | null
 }
 export interface InboxState { data: Inbox | null; err: string; loading: boolean }
-export interface Alive { vnode: import('preact').VNode; eds: EditorHandle[]; bundle: Bundle; tab: string; key: string; scroll: number }
+export interface Alive { vnode: import('preact').VNode; bundle: Bundle; tab: string; key: string; scroll: number }
 
 export interface ActErr { k: string; m: string }
 export interface ActArgs { body?: string; event?: string; extra?: unknown; kind?: string; id?: number; content?: string; method?: string; number?: number; [field: string]: unknown }

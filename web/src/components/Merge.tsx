@@ -1,6 +1,5 @@
 import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
-import { html } from './html';
 import { ErrLine } from './Actions';
 import { FoldBtn } from './Comments';
 import type { FoldFn } from './Comments';
@@ -9,12 +8,10 @@ import { Av, I, SP } from './ui';
 export function MergedBox({ head }: { head: string }) {
   return <div class="TL"><div class="TLI-break" style="margin-left:0"></div><div class="merge-box"><div class="badge"><span class="state-merged" style="background:var(--bgColor-done-emphasis)">{I('git-merge')}</span></div><div class="merge-card merged-card"><div class="row"><div><h3>Pull request successfully merged and closed</h3><p style="font-size:14px;margin-top:4px">You're all set — the <span class="branch">{head}</span> branch can be safely deleted.</p></div></div></div></div></div>;
 }
-export const mergedBoxHtml = (head: string) => html(<MergedBox head={head} />);
 
 export function ClosedBox({ head }: { head: string }) {
   return <div class="merge-box"><div class="badge"><span class="state-closed" style="background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))">{I('git-pull-request-closed')}</span></div><div class="merge-card"><div class="row"><div><h3>Closed with unmerged commits</h3><p style="font-size:14px;margin-top:4px">This pull request is closed, but the <span class="branch">{head}</span> branch has unmerged commits.</p></div></div></div></div>;
 }
-export const closedBoxHtml = (head: string) => html(<ClosedBox head={head} />);
 
 export interface CkItem { st: string; url?: string; icon: string; name: string; req: boolean; desc: string }
 export interface CkGroup { k: string; title: string; open: boolean; items: CkItem[] }
@@ -47,7 +44,6 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
     {p.behind ? <div class="mb-sec mb-warn"><div class="mb-h"><span class="mb-ic">{I('alert', 22)}</span><span class="mb-t"><b>This branch is out-of-date with the base branch</b><i>Merge the latest changes from {p.baseRef} into this branch.</i></span><button class="btn" id="updbranch" onClick={on?.update}>{p.busyUpdate ? 'Updating…' : 'Update branch'}</button></div></div> : ''}
     <div class="mb-sec"><div class={`mb-h ${p.clean ? 'ok' : 'bad'}`}><span class="mb-ic">{I(p.clean ? 'check-circle-fill' : 'alert', 22)}</span><span class="mb-t"><b>{p.clean ? 'This branch has no conflicts with the base branch' : 'This branch has conflicts that must be resolved'}</b><i>{p.clean ? 'Merging can be performed automatically.' : 'Use the web editor or the command line to resolve conflicts.'}</i></span></div></div><ErrLine m={p.errUpdate} /></div></div>;
 }
-export const mergeBoxHtml = (p: MergeBoxProps) => html(<MergeBox {...p} />);
 
 export interface RvRow { u: Person; st: string; prev?: string; canRe: boolean }
 export type SideKey = 'reviewers' | 'assignees' | 'labels' | 'milestone' | 'people';

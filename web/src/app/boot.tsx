@@ -1,7 +1,9 @@
-import type { Check } from '../types';
+import { render as paint } from 'preact';
+import { ToTop } from '../components/ToTop';
 import { loadProfile } from './addressbar';
-import { S, icon, tauri, $ } from './core';
+import { S, tauri, $ } from './core';
 import { pollNotes, qc } from './data';
+import { composerOpen } from './actions';
 import { setComposer } from './keyboard';
 import { loadRepos, openPr } from './nav';
 import { render } from './pages';
@@ -44,16 +46,18 @@ if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 
 
 // Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
 (() => {
-  let target: HTMLElement | null = null, btn: HTMLButtonElement | null = null, lastTop = 0, atEnd = false, auto = false;
-  const ensure = () => { if (btn) return btn; btn = document.createElement('button'); btn.id = 'totop'; btn.title = 'Back to top'; btn.setAttribute('aria-label', 'Back to top'); btn.innerHTML = icon('chevron-up'); btn.hidden = true; btn.onclick = () => { (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(btn); return btn; };
+  let target: HTMLElement | null = null, lastTop = 0, atEnd = false;
+  const host = document.createElement('div'); host.style.display = 'contents'; document.body.appendChild(host);
+  const draw = (hidden: boolean) => paint(<ToTop hidden={hidden} onClick={() => (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' })} />, host);
+  let shown = false; draw(true);
   document.addEventListener('scroll', (e) => {
     const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;
-    target = el as HTMLElement; ensure().hidden = el.scrollTop < 600;
+    target = el as HTMLElement; if (shown !== el.scrollTop >= 600) { shown = !shown; draw(!shown); }
     // The comment bar opens by itself when you reach the end of the thread, and folds away again when you scroll back up.
     const c = document.getElementById('composer'); if (!c || !el.contains(c)) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop; lastTop = el.scrollTop;
-    if (dist < 24 && !atEnd) { atEnd = true; if (c.classList.contains('collapsed')) { setComposer(true, false); auto = true; } }
-    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && !c.classList.contains('collapsed') && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && (document.activeElement as HTMLElement).blur(); setComposer(false); } }
+    if (dist < 24 && !atEnd) { atEnd = true; if (!composerOpen()) setComposer(true, false); }
+    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && composerOpen() && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && (document.activeElement as HTMLElement).blur(); setComposer(false); } }
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !(e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
 })();
