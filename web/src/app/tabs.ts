@@ -1,4 +1,5 @@
 import type { Pull, Tab } from '../types';
+import { sideTabsHtml } from '../components/SideTabs';
 import { avUrl } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
@@ -64,7 +65,7 @@ export function toolbar() {
 }
 
 export function sideRecent() {
-  const tabs = `<div class="sb-tabs"><button data-side="repos" class="${S.sideTab === 'repos' ? 'on' : ''}">Repos</button>${S.repo ? `<button data-side="prs" class="${S.sideTab === 'prs' ? 'on' : ''}">PRs</button>` : ''}<button data-side="recent" class="${S.sideTab === 'recent' ? 'on' : ''}">Recent</button></div>`;
+  const tabs = sideTabsHtml({ active: S.sideTab, hasRepo: !!S.repo });
   let list;
   if (S.sideTab === 'prs' && S.repo) {
     list = prSide();

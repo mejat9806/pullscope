@@ -20,3 +20,21 @@ jobs:
           workspaces: src-tauri
       - run: cargo test --lib
         working-directory: src-tauri
+
+  web:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run check
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - name: Committed ui/app.js is up to date
+        run: git diff --exit-code ui/app.js

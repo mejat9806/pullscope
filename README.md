@@ -106,6 +106,8 @@ Build and install a macOS app bundle into `/Applications`:
 bash scripts/bundle.sh
 ```
 
+The frontend is TypeScript + Preact under `web/`, bundled by esbuild into the committed `ui/app.js`. After editing it run `cd web && npm ci && npm run check && npm run build` (`npm run watch` while developing); `check` runs `tsc --noEmit` under `strict` and rejects explicit `any`.
+
 The rich editor and syntax highlighter are bundled with esbuild from `editor/`; the output is already committed in `ui/vendor/`. To rebuild them: `cd editor && npm install && npm run build`.
 
 ### Preview the UI in a browser
@@ -131,7 +133,8 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers
 |---|---|
 | `src-tauri/src/github.rs` | Fetches a PR, its timeline, files, review comments, checks and thread state from the REST and GraphQL APIs |
 | `src-tauri/src/lib.rs` | Tauri commands: write actions, branches, create PR, notifications, inbox, markdown preview |
-| `ui/app.js`, `ui/app.css` | The whole frontend (no framework) |
+| `web/` | Frontend source (TypeScript, Preact, esbuild): `src/app/*` modules, `src/components/*` Preact components, `src/types.ts` domain types |
+| `ui/app.js`, `ui/app.css` | Built frontend bundle (generated from `web/`, committed) and styles |
 | `editor/` | Source of the rich text editor and highlighter bundles |
 | `scripts/` | `bundle.sh` builds and installs the macOS app |
 | `swift/` | A separate native SwiftUI app (see below) |

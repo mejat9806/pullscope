@@ -5,6 +5,9 @@ cd "$(dirname "$0")/.."
 export PATH=/opt/homebrew/opt/rustup/bin:$PATH
 APP=dist/Pullscope.app
 
+# Frontend: rebuild ui/app.js from web/ when its dependencies are installed
+[ -d web/node_modules ] && (cd web && npm run build)
+
 # Icon: logo.svg -> icon.png (embedded in the binary) and icon.icns (Finder / Dock)
 rsvg-convert -w 1024 -h 1024 scripts/logo.svg -o /tmp/reviewer-1024.png
 cp /tmp/reviewer-1024.png src-tauri/icons/icon.png
