@@ -1,7 +1,7 @@
 import type { PushBanner } from '../components/Home';
 import type { Bundle, Check, FreshItem, Snap, SnapSource } from '../types';
 import { rerender } from './actions';
-import { S, esc, flags, icon, load, tauri } from './core';
+import { S, flags, load, tauri } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
 import { curRef, saveTabs } from './tabs';
@@ -88,10 +88,6 @@ export const pushList = (repo: string) => Object.entries(S.pushes).filter(([r]) 
 
 export function pushBannerItems(repo?: string): PushBanner[] {
   return pushList(repo!).slice(0, 3).map((p) => ({ repo: p.repo, branch: p.branch, ago: ago(p.at), key: `${p.repo}@${p.branch}@${p.at}`, showRepo: !repo }));
-}
-
-export function pushBanners(repo?: string) {
-  return pushList(repo!).slice(0, 3).map((p) => `<div class="push-banner">${icon('git-branch')}<span><b>${esc(p.branch)}</b> had recent pushes ${ago(p.at)}${repo ? '' : ` <i>· ${esc(p.repo)}</i>`}</span><span class="sp"></span><button class="btn small primary" data-compare="${esc(p.repo)}@${esc(p.branch)}">Compare &amp; pull request</button><button class="push-x" data-pdismiss="${esc(`${p.repo}@${p.branch}@${p.at}`)}" title="Dismiss">${icon('x')}</button></div>`).join('');
 }
 
 export async function refreshPushes(repo: string) {

@@ -1,12 +1,13 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
-import { mountEditors, rerender, saveDrafts, setBusy } from './actions';
+import { mountEditors, rerender, saveDrafts } from './actions';
 import { syncFoldAll } from './bind';
 import { paintNotes } from './notes';
 import { paintDlg } from './dialogs';
 import { tokenDialog } from './token';
+import { curRef } from './tabs';
 import { bindSticky, openExternal } from './addressbar';
-import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
-import { pushBanners, qc, seen } from './data';
+import { $, S, applyMode, syncUnread, tauri, when } from './core';
+import { qc, seen } from './data';
 import { loadRepos, openPr } from './nav';
 import { paintSide } from './side';
 import { HomeView } from './home';
@@ -17,12 +18,8 @@ import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
 import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
-import { gateHtmlStr, landingHtml, skeletonHtml } from '../components/Pages';
-
-export function landing() {
-  return landingHtml(pushBanners(), S.error ? String(S.error) : '', icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"'));
-}
-
+import { Gate, Skeleton } from '../components/Pages';
+import { Shell } from '../components/Shell';
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
 
@@ -132,24 +129,21 @@ export function inboxProps(): InboxProps {
 }
 
 
-export function page() { return S.loading ? skeletonHtml() : ''; }
 
 
 // Signing in is required: anonymous GitHub access is capped at 60 requests an hour and is too slow to use.
 export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new URLSearchParams(location.search).get('gate') === '1';
 
-export function gateHtml() { return gateHtmlStr(icon('alert'), S.gateErr ? String(S.gateErr) : ''); }
 
-// #app holds two persistent hosts: Preact owns #top (toolbar and tab strip), #rest is still markup.
+// #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
 function hosts() {
   const app = $('#app')!;
-  if (!app.querySelector(':scope > #top')) app.innerHTML = '<div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div>';
+  if (!app.querySelector(':scope > #top')) { app.innerHTML = ''; paint(<><div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div></>, app); }
   return { top: $('#top')!, rest: $('#rest')! };
 }
 
-// Views that are already live Preact trees; every other view is still markup painted into #page.
 const liveView = (): VNode | null => {
-  if (S.loading || S.mainStub) return null;
+  if (S.loading) return <Skeleton />;
   if (S.view === 'inbox') return <InboxView />;
   if (S.view === 'notes') return <NotesView />;
   if (S.view === 'repo') return <RepoView />;
@@ -159,7 +153,6 @@ const liveView = (): VNode | null => {
 };
 
 // Links inside a pull request page (comment bodies are pre-built HTML) open in the app or the browser.
-const linkHosts = new WeakSet<Element>();
 const followLink = (e: MouseEvent) => {
   if (S.view !== 'pr') return;
   const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]'); if (!a) return;
@@ -167,42 +160,33 @@ const followLink = (e: MouseEvent) => {
   if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h!)) openPr(h!); else if (/^https?:\/\//.test(h!)) openExternal(h!);
 };
 
-function paintPage(host: HTMLElement, live: VNode) {
-  host.setAttribute('data-live', '');
-  if (!linkHosts.has(host)) { linkHosts.add(host); host.addEventListener('click', followLink); }
-  paint(live, host); mountEditors(); syncFoldAll(); bindSticky();
-}
+// What the page last drew for the open pull request: leaving the tab parks exactly this vnode, coming back puts it in again untouched.
+let shown: { ref: string; vnode: VNode } | null = null;
+export const shownPage = () => shown;
+let paneKey = '';
 
 export function render() {
   applyMode();
   const { top, rest } = hosts();
   if (needSignIn()) {
-    (S.eds || []).forEach((e) => e.destroy()); S.eds = []; S.lastHtml = '';
-    clearTop(top); rest.innerHTML = `${gateHtml()}<div id="dlg" style="display:contents"></div>`; paintDlg();
-    $('#gatego')?.addEventListener('click', () => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); });
-    $('#gatetok')?.addEventListener('click', tokenDialog);
+    (S.eds || []).forEach((e) => e.destroy()); S.eds = []; paneKey = ''; shown = null;
+    clearTop(top); paint(<><Gate err={S.gateErr ? String(S.gateErr) : ''} go={() => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); }} tok={tokenDialog} /><div id="dlg" style="display:contents"></div></>, rest); paintDlg();
     return;
   }
   paintTop(top);
-  const side = $('#side'), live = liveView();
-  const html = `<div class="shell ${S.nav ? 'nav-open' : ''} ${S.hide.nav ? 'nav-hidden' : ''}" style="--sbw:${S.sbw}px"><div id="side" style="display:contents"></div><div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main"><div id="page" style="display:contents">${live || S.mainStub ? '' : page()}</div></div></div><div id="dlg" style="display:contents"></div><div id="notehost" style="display:contents"></div>`;
-  const scroll = $('.main')?.scrollTop || 0;
-  const viewKey = () => `${S.bundle?.pull?.id ?? ''}|${S.tab}|${$('#page > *')?.className ?? ''}`, before = viewKey();
-  const same = () => viewKey() === before;
-  // Anchor on the first element with an id that is on screen, so a redraw keeps *it* where it was
-  // (heights above the viewport can change between renders, which made the view creep upward).
-  let anchor = null;
-  { const mn = $('.main')!; if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
-  const inner = true ? [...qa('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement!.className + e.className, e.scrollTop]) : [];
-  const key = html + (live ? '\0live' : '');
-  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); paintDlg(); paintNotes(); return; }
-  (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
-  rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live); paintDlg(); paintNotes();
-  qa('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; });
-  if (S.keepScroll || same()) { $('.main')!.scrollTop = scroll; if (anchor) { const el = document.getElementById(anchor.id), mn = $('.main'); if (el) mn!.scrollTop += el.getBoundingClientRect().top - mn!.getBoundingClientRect().top - anchor.off; } qa('.pane-body, .cm-list, .sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; }); }
+  const stash = S.stash, live = stash ? stash.vnode : liveView(), ref = curRef();
+  const key = S.loading ? 'loading' : S.view === 'pr' && S.bundle ? 'pr:' + ref : S.view || 'home';
+  // The editors belong to the page they were built in: a different page (that was not parked) takes them with it.
+  if (key !== paneKey && !stash) { (S.eds || []).forEach((e) => e.destroy()); S.eds = []; }
+  paneKey = key;
+  if (S.view === 'pr' && S.bundle && !S.loading && live) shown = { ref, vnode: live };
+  const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
+  paint(<Shell nav={!!S.nav} navHidden={!!S.hide.nav} sbw={S.sbw} fade={!!S.fadeMain} active={{ key, children: live }} onPage={followLink} kept={kept} />, rest);
+  paintSide($('#side')!); paintDlg(); paintNotes();
+  S.stash = null;
+  mountEditors(); syncFoldAll();
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = []; bindSticky();
-  if (S.fadeMain) { S.fadeMain = false; $('.main')?.classList.add('tab-in'); }
-  if (S.busy && S.busySel) setBusy($!(S.busySel), true);
+  if (S.fadeMain) S.fadeMain = false;
   syncUnread();
   // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
   if (S.flashId && Date.now() < S.flashUntil!) document.getElementById('c-' + S.flashId)?.classList.add('flash'); else S.flashId = '';

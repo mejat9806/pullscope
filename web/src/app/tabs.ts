@@ -32,7 +32,7 @@ export function tabPut(ref: string, p: Pull, opts: { at?: number; newTab?: boole
 export function openTab(ref: string, { newTab = false } = {}) { if (!newTab && ref !== curRef() && fastTab(ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; return openPr(ref, { newTab, restore: newTab ? '' : S.tabs.find((t) => t.ref === ref)?.tab }); }
 
 export function closeTab(i: number) {
-  const t = S.tabs[i]; if (!t) return; S.alive.delete(t.ref);
+  const t = S.tabs[i]; if (!t) return; S.alive.get(t.ref)?.eds.forEach((e) => e.destroy()); S.alive.delete(t.ref);
   const was = t.ref === curRef(); S.closed = [{ ref: t.ref, tab: t.tab }, ...S.closed.filter((c) => c.ref !== t.ref)].slice(0, 10);
   S.tabs.splice(i, 1); saveTabs();
   if (!was) return render();

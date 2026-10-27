@@ -1,9 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import type { NpListKey, Template } from '../types';
-import { html, Raw } from './html';
 import { I, SP } from './ui';
-
-export const landingHtml = (banners: string, err: string, ic: string) => html(<div class="landing">{banners ? <div class="push-wrap">{Raw(banners)}</div> : ''}{Raw(ic)}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br />Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>{err ? <div class="err">{err}</div> : ''}</div>);
 
 export interface NoteRow { id: number | string; read: boolean; ref: string; target: string; title: string; text: string; when: string }
 export interface NotesHandlers {
@@ -69,7 +66,7 @@ export function InboxPage({ p: { loading, err, secs }, on }: { p: InboxProps; on
   return <div class="notes-page"><div class="np-head"><h1>{I('checklist')}{SP}Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" onClick={on.refresh} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button></div></div>{body}</div>;
 }
 
-export const skeletonHtml = () => html(<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>{[0, 1, 2].map((i) => <div class="sk-row" style={`--i:${i}`}><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>)}</div>);
+export const Skeleton = () => (<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>{[0, 1, 2].map((i) => <div class="sk-row" style={`--i:${i}`}><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>)}</div>);
 
 export type PrSideKind = { kind: 'none' } | { kind: 'rail' } | { kind: 'aside'; inner: ComponentChildren; on: { hide: () => void } };
 export interface PrLayoutHandlers { show: () => void }
@@ -78,9 +75,9 @@ export function PrLayout({ header, body, side, on }: { header: ComponentChildren
 }
 export const SplitLayout = ({ header, split }: { header: ComponentChildren; split: ComponentChildren }) => <div class="pr-page is-split">{header}{split}</div>;
 
-export const gateHtmlStr = (alertIc: string, err: string) => html(<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width={72} height={72} /><h1>Sign in to Pullscope</h1>{'\n  '}
-  <p class="gate-err">{Raw(alertIc)}{SP}No GitHub sign-in or token was found.</p>{'\n  '}
+export const Gate = ({ err, go, tok }: { err: string; go: () => void; tok: () => void }) => (<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width={72} height={72} /><h1>Sign in to Pullscope</h1>{'\n  '}
+  <p class="gate-err">{I('alert')}{SP}No GitHub sign-in or token was found.</p>{'\n  '}
   <p>Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing.</p>{'\n  '}
   {err ? <p class="gate-err">{err}</p> : ''}{'\n  '}
-  <div class="btns" style="justify-content:center"><button class="btn primary" id="gatego">Sign in with GitHub</button><button class="btn" id="gatetok">Use a token instead</button></div>{'\n  '}
+  <div class="btns" style="justify-content:center"><button class="btn primary" id="gatego" onClick={go}>Sign in with GitHub</button><button class="btn" id="gatetok" onClick={tok}>Use a token instead</button></div>{'\n  '}
   <small>Tip: running <code>gh auth login</code> in a terminal also works.</small></div></div>);

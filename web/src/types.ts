@@ -77,7 +77,7 @@ export interface AppState {
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flashId?: string; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
   oauthRun?: number; lastBtn?: HTMLElement | null; cfilter?: string; busySel?: string | null; authChecked?: boolean; applied?: Set<string>; restoring?: boolean | string; recentFilter?: string;
-  oauth?: { code?: string; err?: string }; mine?: Record<string, Promise<Set<string>>>; mainStub?: boolean; lastHtml?: string; kbId?: string; ios?: IntersectionObserver[]; homeTab?: string; flashUntil?: number; cOpen?: boolean;
+  oauth?: { code?: string; err?: string }; mine?: Record<string, Promise<Set<string>>>; stash?: Alive | null; kbId?: string; ios?: IntersectionObserver[]; homeTab?: string; flashUntil?: number; cOpen?: boolean;
   watchAt?: number; watch?: string[]; recentState?: string; nf?: string; hmVis?: string; hmSort?: string; hmGroup?: string; fileSort?: string; autoFoldFor?: string | number;
 }
 
@@ -105,7 +105,7 @@ export interface NewPr {
   cmp: CompareResult | string | null
 }
 export interface InboxState { data: Inbox | null; err: string; loading: boolean }
-export interface Alive { el: HTMLElement; eds: EditorHandle[]; bundle: Bundle; tab: string; key: string; scroll: number }
+export interface Alive { vnode: import('preact').VNode; eds: EditorHandle[]; bundle: Bundle; tab: string; key: string; scroll: number }
 
 export interface ActErr { k: string; m: string }
 export interface ActArgs { body?: string; event?: string; extra?: unknown; kind?: string; id?: number; content?: string; method?: string; number?: number; [field: string]: unknown }

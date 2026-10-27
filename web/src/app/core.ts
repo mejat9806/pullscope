@@ -86,12 +86,3 @@ export const KEY_RECENT = 'recent';
 
 export const compact = (n?: number | null) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Math.floor(n / 1000) + 'k+' : (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k');
 
-// Live trees carry their own handlers. What is still markup inside one (an island) is wired on its own, scoped to that island.
-const qaAll = qa;
-export const scoped = (scope?: HTMLElement) => {
-  const inScope = (e: Element) => (scope ? scope.contains(e) : !e.closest('#side, [data-live]'));
-  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter(inScope);
-  const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
-  return { qa, $ };
-};
-

@@ -1,11 +1,11 @@
 import { drafts, rerender, saveDrafts } from './actions';
 import { closePop, openPop } from './dialogs';
-import { bindSticky, openFromList } from './addressbar';
+import { openFromList } from './addressbar';
 import { isFolded } from './comments';
 import { $, KEY_RECENT, S, qa as qaAll } from './core';
 import { loadPr, qc } from './data';
 import { loadPrs, openPr } from './nav';
-import { render, saveNotes } from './pages';
+import { render, saveNotes, shownPage } from './pages';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 
 // Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
@@ -14,17 +14,17 @@ S.alive = new Map();
 export const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sbw].join('|');
 
 export function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
-  const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main');
-  if (!ref || !m || !m.querySelector('#page > *') || !S.tabs.some((t) => t.ref === ref)) return;
-  S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
+  const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main'), sh = shownPage();
+  if (!ref || !m || !sh || sh.ref !== ref || !S.tabs.some((t) => t.ref === ref)) return;
+  S.alive.set(ref, { vnode: sh.vnode, eds: S.eds || [], bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
   S.eds = [];
-  while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value!);
+  while (S.alive.size > 6) { const old = S.alive.keys().next().value!; S.alive.get(old)?.eds.forEach((e) => e.destroy()); S.alive.delete(old); }
 }
 
 export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   const a = S.alive.get(ref); if (!a) return false;
   const mem = qc.peek(ref);
-  if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
+  if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { a.eds.forEach((e) => e.destroy()); S.alive.delete(ref); return false; }
   tabSnap(); stashCurrent(); S.alive.delete(ref);
   const p = a.bundle.pull;
   S.view = 'pr'; S.bundle = a.bundle; S.tab = a.tab; S.sel = null; S.fr = null; S.error = ''; S.loading = false; S.refreshing = false; S.tabPending = ''; S.tabMenu = false;
@@ -32,10 +32,9 @@ export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   const ti = S.tabs.find((t) => t.ref === ref); if (ti) { ti.dot = false; saveTabs(); }
   if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
   if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
-  S.mainStub = true; render(); S.mainStub = false;
-  $('.main')!.replaceWith(a.el);
-  a.el.scrollTop = a.scroll; S.eds = a.eds;
-  bindSticky();
+  // The parked page goes back in untouched (same vnode: no diff, scroll and editors as they were).
+  S.stash = a; S.eds = a.eds; render();
+  $('.main')!.scrollTop = a.scroll;
   // Quietly check for newer data; only redraw if something actually changed.
   if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref))!.then((d) => {
     if (JSON.stringify(d) === JSON.stringify(a.bundle)) { qc.m.set(ref, { data: a.bundle, at: Date.now() }); return; }
