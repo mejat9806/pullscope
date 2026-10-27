@@ -1,7 +1,7 @@
 import { bindWrite, drafts, rerender, saveDrafts } from './actions';
 import { bindSticky, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, esc, icon, qa as qaAll, tauri } from './core';
+import { $, KEY_RECENT, S, esc, icon, qa as qaAll, scoped, tauri } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
 import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
 import { loadPrs, loadRepos, openPr, openRepo, reload } from './nav';
@@ -62,11 +62,14 @@ export function openCtx(el: HTMLElement, e: MouseEvent) {
 
 export function rmRecent(e: MouseEvent, ref: string) { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== ref); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }
 
-export function bind() {
-  // The sidebar is its own Preact tree with its own handlers; keep the imperative wiring out of it.
-  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter((e) => !e.closest('#side, [data-live]'));
-  const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
-  bindWrite();
+const wired = new WeakMap<Element, ChildNode | null>();
+export function bindIslands() {
+  qaAll('.island').forEach((el) => { if (wired.get(el) === el.firstChild) return; wired.set(el, el.firstChild); bind(el); });
+}
+
+export function bind(scope?: HTMLElement) {
+  const { qa, $ } = scoped(scope);
+  bindWrite(scope);
   $('#fcbtn')?.addEventListener('click', openCommits);
   $('#fcall')?.addEventListener('click', () => setFr(null));
   qa('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle!), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
@@ -142,9 +145,9 @@ export function bind() {
   $<HTMLInputElement>('#cto')?.addEventListener('change', (e) => keep(() => { S.rTo = (e.target as HTMLInputElement).value; }));
   $('#csort')?.addEventListener('click', () => keep(() => { S.sort = S.sort === 'desc' ? 'asc' : 'desc'; localStorage.setItem('csort', S.sort); }));
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
-  (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
-  { const mn = $('.main')!; if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
-  bindSticky();
+  if (!scope) { (S.ios || []).forEach((o) => o.disconnect()); S.ios = []; }
+  if (!scope) { const mn = $('.main')!; if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
+  if (!scope) bindSticky();
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
   qa('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
@@ -164,7 +167,7 @@ export function bind() {
   });
   $('#rvtoggle')?.addEventListener('click', () => { S.showAllReviewers = !S.showAllReviewers; S.keepScroll = true; render(); S.keepScroll = false; });
   $('#copybranch')?.addEventListener('click', () => navigator.clipboard?.writeText(S.bundle!.pull.head.ref));
-  qa('a[href]').forEach((a) => a.addEventListener('click', (e) => {
+  if (!scope) qa('a[href]').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault(); const h = a.getAttribute('href');
     if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h!)) openPr(h!); else if (/^https?:\/\//.test(h!)) openExternal(h!);
   }));

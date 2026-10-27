@@ -37,8 +37,8 @@ export function PrListPage({ p, on }: { p: PrListProps; on: PrListHandlers }) {
 }
 
 export interface CrumbHandlers { home: () => void; owner: (o: string) => void; repo: (r: string) => void }
-export interface CrumbProps { repo: string; trail: { t: string; repo?: string }[]; extra: string; on?: CrumbHandlers }
-export function Crumbs({ repo, trail, extra, on }: CrumbProps) {
+export interface CrumbProps { repo: string; trail: { t: string; repo?: string }[]; extra: string; extraNode?: ComponentChildren; on?: CrumbHandlers }
+export function Crumbs({ repo, trail, extra, extraNode, on }: CrumbProps) {
   const homeCur = !repo && !trail.length;
   const parts: ComponentChildren[] = [homeCur ? <span class="crumb cur home">{I('home', 14)}<span>Home</span></span> : <a class="crumb" data-home="1" onClick={on && on.home} title="Home">{I('home', 14)}<span>Home</span></a>];
   if (repo) {
@@ -46,6 +46,6 @@ export function Crumbs({ repo, trail, extra, on }: CrumbProps) {
     parts.push(<span class="crumb-grp"><a class="crumb" data-owner={owner} onClick={on && (() => on.owner(owner))} title={`Repositories of ${owner}`}>{owner}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo={repo} onClick={on && (() => on.repo(repo))} title={`All pull requests in ${repo}`}>{name}</a></span>);
   }
   trail.forEach((t, i) => parts.push(i === trail.length - 1 ? <span class="crumb cur">{t.t}</span> : <a class="crumb" data-repo={t.repo || undefined} onClick={on && t.repo ? (() => on.repo(t.repo!)) : undefined}>{t.t}</a>));
-  return <nav class="repoline crumbs" aria-label="Breadcrumb">{parts.map((x, i) => <>{i ? <span class="crumb-sep">{I('chevron-right', 12)}</span> : ''}{x}</>)}{extra ? Raw(extra) : null}</nav>;
+  return <nav class="repoline crumbs" aria-label="Breadcrumb">{parts.map((x, i) => <>{i ? <span class="crumb-sep">{I('chevron-right', 12)}</span> : ''}{x}</>)}{extra ? Raw(extra) : null}{extraNode}</nav>;
 }
 export const crumbsHtml = (p: CrumbProps) => html(<Crumbs {...p} />);

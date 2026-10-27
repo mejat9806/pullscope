@@ -1,7 +1,7 @@
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
 import { cmPopHtml, composerHtml, confirmDlgHtml, deleteCommentDialogHtml, draftBoxHtml, editCommentDialogHtml, editPrDialogHtml, errLineHtml, hideCommentDialogHtml, mergeActHtml, reactPopHtml, reviewDialogHtml } from '../components/Actions';
-import { $, REACTS, S, esc, icon, load, tauri, qa } from './core';
+import { $, REACTS, S, esc, icon, load, tauri, qa, scoped } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { confetti } from './fun';
@@ -249,7 +249,8 @@ export function mountEditors() {
   });
 }
 
-export function bindWrite() {
+export function bindWrite(scope?: HTMLElement) {
+  const { qa, $ } = scoped(scope);
   qa('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
     e.stopPropagation(); $('.react-pop')?.remove();
     const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';

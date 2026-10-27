@@ -1,22 +1,20 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
 import { mountEditors, rerender, saveDrafts, setBusy } from './actions';
-import { bind, bindTokenDialog, tokDlgHtml, tokenDialog } from './bind';
-import { prHeader } from './comments';
+import { bind, bindIslands, bindTokenDialog, tokDlgHtml, tokenDialog } from './bind';
+import { bindSticky, openExternal } from './addressbar';
 import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
-import { commitsView, filesView, sidebar, splitView } from './mergebox';
-import { loadRepos } from './nav';
-import { repoHeader } from './prlist';
+import { loadRepos, openPr } from './nav';
 import { paintSide } from './side';
 import { HomeView } from './home';
 import { InboxView, NewPrView, NotesView, RepoView } from './views';
+import { PrView } from './pr';
 import { render as paint } from 'preact';
 import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
-import { attention, checksView, timeline } from './timeline';
 import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
-import { gateHtmlStr, landingHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
+import { gateHtmlStr, landingHtml, skeletonHtml } from '../components/Pages';
 
 export function landing() {
   return landingHtml(pushBanners(), S.error ? String(S.error) : '', icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"'));
@@ -131,16 +129,7 @@ export function inboxProps(): InboxProps {
 }
 
 
-export function page() {
-  const b = S.bundle;
-  if (S.loading) return skeletonHtml();
-  if (S.view === 'inbox' || S.view === 'newpr' || S.view === 'notes' || S.view === 'repo') return '';
-  if (S.view === 'home' || !b) return '';
-  if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return splitPageHtml(repoHeader(b.pull) + prHeader(b), splitView(b));
-  const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
-  const side = S.tab !== 'conversation' ? { kind: 'none' as const } : S.hide.side ? { kind: 'rail' as const, ic: icon('columns') } : { kind: 'aside' as const, x: icon('x'), inner: sidebar(b) };
-  return prPageHtml({ header: repoHeader(b.pull) + prHeader(b), body, side });
-}
+export function page() { return S.loading ? skeletonHtml() : ''; }
 
 
 // Signing in is required: anonymous GitHub access is capped at 60 requests an hour and is too slow to use.
@@ -162,10 +151,24 @@ const liveView = (): VNode | null => {
   if (S.view === 'notes') return <NotesView />;
   if (S.view === 'repo') return <RepoView />;
   if (S.view === 'newpr') return S.np ? <NewPrView /> : null;
+  if (S.view === 'pr' && S.bundle) return <PrView />;
   return (S.view === 'home' || !S.bundle) && S.view !== 'newpr' ? <HomeView /> : null;
 };
 
-function paintPage(host: HTMLElement, live: VNode) { host.setAttribute('data-live', ''); paint(live, host); }
+// Links inside a pull request page (comment bodies are pre-built HTML) open in the app or the browser.
+const linkHosts = new WeakSet<Element>();
+const followLink = (e: MouseEvent) => {
+  if (S.view !== 'pr') return;
+  const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]'); if (!a) return;
+  e.preventDefault(); const h = a.getAttribute('href');
+  if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h!)) openPr(h!); else if (/^https?:\/\//.test(h!)) openExternal(h!);
+};
+
+function paintPage(host: HTMLElement, live: VNode) {
+  host.setAttribute('data-live', '');
+  if (!linkHosts.has(host)) { linkHosts.add(host); host.addEventListener('click', followLink); }
+  paint(live, host); mountEditors(); bindIslands(); bindSticky();
+}
 
 export function render() {
   applyMode();
@@ -189,7 +192,7 @@ export function render() {
   { const mn = $('.main')!; if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...qa('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement!.className + e.className, e.scrollTop]) : [];
   const key = html + (live ? '\0live' : '');
-  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) { paintPage(pg, live); mountEditors(); } return; }
+  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); return; }
   (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
   rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live);
   qa('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; });

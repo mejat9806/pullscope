@@ -71,12 +71,12 @@ export function InboxPage({ p: { loading, err, secs }, on }: { p: InboxProps; on
 
 export const skeletonHtml = () => html(<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>{[0, 1, 2].map((i) => <div class="sk-row" style={`--i:${i}`}><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>)}</div>);
 
-export interface PrLayoutProps { header: string; body: string; side: { kind: 'none' } | { kind: 'rail'; ic: string } | { kind: 'aside'; x: string; inner: string } }
-export const splitPageHtml = (header: string, split: string) => html(<div class="pr-page is-split">{Raw(header)}{Raw(split)}</div>);
-export function prPageHtml(p: PrLayoutProps) {
-  const s = p.side;
-  return html(<div class="pr-page">{Raw(p.header)}<div class="pr-layout"><main class="pr-main">{Raw(p.body)}</main>{s.kind === 'rail' ? <button class="pane-rail side-rail" data-show="side" title="Show details">{Raw(s.ic)}<span>Details</span></button> : s.kind === 'aside' ? <aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">{Raw(s.x)}</button></div>{Raw(s.inner)}</aside> : ''}</div></div>);
+export type PrSideKind = { kind: 'none' } | { kind: 'rail' } | { kind: 'aside'; inner: ComponentChildren; on: { hide: () => void } };
+export interface PrLayoutHandlers { show: () => void }
+export function PrLayout({ header, body, side, on }: { header: ComponentChildren; body: ComponentChildren; side: PrSideKind; on: PrLayoutHandlers }) {
+  return <div class="pr-page">{header}<div class="pr-layout"><main class="pr-main">{body}</main>{side.kind === 'rail' ? <button class="pane-rail side-rail" data-show="side" onClick={on.show} title="Show details">{I('columns')}<span>Details</span></button> : side.kind === 'aside' ? <aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" onClick={side.on.hide} title="Hide this panel">{I('x')}</button></div>{side.inner}</aside> : ''}</div></div>;
 }
+export const SplitLayout = ({ header, split }: { header: ComponentChildren; split: ComponentChildren }) => <div class="pr-page is-split">{header}{split}</div>;
 
 export const gateHtmlStr = (alertIc: string, err: string) => html(<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width={72} height={72} /><h1>Sign in to Pullscope</h1>{'\n  '}
   <p class="gate-err">{Raw(alertIc)}{SP}No GitHub sign-in or token was found.</p>{'\n  '}

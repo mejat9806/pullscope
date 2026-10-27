@@ -1,5 +1,5 @@
-import { commentBoxHtml, diffHunkTableHtml, foldBtnHtml, prHeaderHtml, reactionsBarHtml } from '../components/Comments';
-import type { HunkRow } from '../components/Comments';
+import { commentBoxHtml, diffHunkTableHtml, foldBtnHtml, reactionsBarHtml } from '../components/Comments';
+import type { HunkRow, PrHeaderProps } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import { act, prRef } from './actions';
 import { ASSOC, REACTS, S, tauri } from './core';
@@ -13,12 +13,12 @@ export function stateOf(p: Pull) {
 }
 
 
-export function prHeader(b: Bundle) {
+export function prHeaderProps(b: Bundle): PrHeaderProps {
   const p = b.pull, [st, ic, label] = stateOf(p);
   const commentsTotal = p.comments + p.review_comments + b.timeline.filter((e) => e.event === 'reviewed').length;
   const sq = (() => { const t = p.additions + p.deletions || 1; const small = t <= 5; const a = small ? p.additions : Math.round((p.additions / t) * 5); const d = small ? p.deletions : 5 - a; const arr = []; for (let i = 0; i < 5; i++) arr.push(i < a ? 'a' : i < a + d ? 'd' : ''); return arr; })();
   const splitOk = S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline';
-  return prHeaderHtml({ b, st, ic, label, tab: S.tab, split: S.split, hideSide: !!S.hide.side, splitOk, commentsTotal, sq });
+  return { b, st, ic, label, tab: S.tab, split: S.split, hideSide: !!S.hide.side, splitOk, commentsTotal, sq };
 }
 
 

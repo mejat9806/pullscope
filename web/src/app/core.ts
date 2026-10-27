@@ -19,7 +19,7 @@ export const icon = (name: string, size = 16, cls = '') => {
 
 export const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export function when(iso: string, lead = 'on ') {
+export function whenParts(iso: string, lead = 'on '): { title: string; text: string } {
   const d = new Date(iso), now = new Date(), diff = (+now - +d) / 1000;
   const abs = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${d.getUTCFullYear() !== now.getUTCFullYear() ? ', ' + d.getUTCFullYear() : ''}`;
   const title = d.toUTCString();
@@ -27,10 +27,12 @@ export function when(iso: string, lead = 'on ') {
   if (diff < 30 * 86400 && diff >= 0) {
     const n = (v: number, u: string) => `${v} ${u}${v === 1 ? '' : 's'} ago`;
     t = diff < 60 ? 'now' : diff < 3600 ? n(Math.floor(diff / 60), 'minute') : diff < 86400 ? n(Math.floor(diff / 3600), 'hour') : n(Math.floor(diff / 86400), 'day');
-    return `<span title="${title}">${t}</span>`;
+    return { title, text: t };
   }
-  return `<span title="${title}">${lead}${abs}</span>`;
+  return { title, text: `${lead}${abs}` };
 }
+
+export function when(iso: string, lead = 'on ') { const w = whenParts(iso, lead); return `<span title="${w.title}">${w.text}</span>`; }
 
 export function fullDate(iso: string) {
   const d = new Date(iso);
@@ -83,3 +85,13 @@ export function applyMode() {
 export const KEY_RECENT = 'recent';
 
 export const compact = (n?: number | null) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Math.floor(n / 1000) + 'k+' : (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k');
+
+// Live trees carry their own handlers. What is still markup inside one (an island) is wired on its own, scoped to that island.
+const qaAll = qa;
+export const scoped = (scope?: HTMLElement) => {
+  const inScope = (e: Element) => (scope ? scope.contains(e) : !e.closest('#side, [data-live]'));
+  const qa = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T[] => qaAll<T>(sel, r).filter(inScope);
+  const $ = <T extends HTMLElement = HTMLElement>(sel: string, r: ParentNode = document): T | null => qa<T>(sel, r)[0] ?? null;
+  return { qa, $ };
+};
+

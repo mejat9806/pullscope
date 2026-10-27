@@ -149,7 +149,10 @@ export function openFromList(ref: string, newTab: boolean) {
   return newTab ? openTab(ref, { newTab: true }) : openPr(ref);
 }
 
+let stuckOn: Element | null = null;
 export function bindSticky() {
   const ta = $('.pr-title-area'), tb = $('.pr-tabs');
+  if (ta && ta === stuckOn && S.ios?.length) return;
+  stuckOn = ta;
   if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios!.push(io); }
 }
