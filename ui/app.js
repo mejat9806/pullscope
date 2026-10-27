@@ -1253,7 +1253,7 @@ const npHuman = (s) => s.replace(/^[a-z]+\//i, '').replace(/[-_]+/g, ' ').replac
 function newPrPage() {
   const n = S.np, repos = (S.repos || []).filter((r) => !r.archived), br = n.branches[n.repo];
   const opts = (list, cur) => list.map((x) => `<option value="${esc(x)}" ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('');
-  const repoSel = repos.length ? `<select class="sel" id="nprepo">${opts(repos.map((r) => r.full_name), n.repo)}${repos.some((r) => r.full_name === n.repo) ? '' : `<option selected>${esc(n.repo || 'Choose a repository')}</option>`}</select>` : `<input class="input" id="nprepoin" placeholder="owner/repo" value="${esc(n.repo)}">`;
+  const repoSel = repos.length ? `<button type="button" class="sel bp-btn" id="nprepo"><span>${esc(n.repo || 'Choose a repository')}</span>${icon('chevron-down', 14)}</button>` : `<input class="input" id="nprepoin" placeholder="owner/repo" value="${esc(n.repo)}">`;
   const same = n.base && n.base === n.head;
   const cmp = n.cmp === 'loading' ? '<span class="np-note">Comparing…</span>' : !n.cmp ? '' : typeof n.cmp === 'string' ? `<span class="np-note err">${esc(n.cmp)}</span>`
     : n.cmp.ahead_by ? `<span class="np-note ok">${icon('git-commit')} ${n.cmp.ahead_by} commit${n.cmp.ahead_by === 1 ? '' : 's'} · ${n.cmp.files} file${n.cmp.files === 1 ? '' : 's'} changed${n.cmp.behind_by ? ` · ${n.cmp.behind_by} behind ${esc(n.base)}` : ''}</span>` : '<span class="np-note err">These branches are identical — there is nothing to compare.</span>';
@@ -1472,22 +1472,30 @@ function bpGroups(br, q, me) {
   if (single.length) out.push([out.length ? 'Other' : '', single.sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0))]);
   return out;
 }
-function bpOpen(btn, side, pick) {
+function rpGroups(repos, q, me) {
+  const all = repos.filter((r) => !r.archived).map((r) => ({ name: r.full_name, at: r.pushed_at || '', by: r.private ? 'private' : '' })).sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0));
+  if (q) { const t = q.toLowerCase(); return [['', all.filter((x) => x.name.toLowerCase().includes(t))]]; }
+  const out = [], recent = all.slice(0, 5), used = new Set(recent.map((x) => x.name)); if (recent.length) out.push(['Recently pushed', recent]);
+  const by = new Map(); all.filter((x) => !used.has(x.name)).forEach((x) => { const o = x.name.split('/')[0]; (by.get(o) || by.set(o, []).get(o)).push(x); });
+  [...by.entries()].sort((a, b) => (b[0].toLowerCase() === me.toLowerCase()) - (a[0].toLowerCase() === me.toLowerCase()) || b[1].length - a[1].length).forEach(([o, l]) => out.push([o, l]));
+  return out;
+}
+function bpOpen(btn, side, pick, repoMode = false) {
   bpClose();
-  const n = S.np, br = n.branches[n.repo]; if (!br) return;
-  const cur = n[side], me = S.profile?.login || '', r = btn.getBoundingClientRect();
+  const n = S.np, br = repoMode ? null : n.branches[n.repo]; if (!repoMode && !br) return;
+  const cur = repoMode ? n.repo : n[side], me = S.profile?.login || '', r = btn.getBoundingClientRect();
   const pop = document.createElement('div'); pop.id = 'bppop'; pop.className = 'bp-pop';
   const w = Math.max(r.width, 340);
   pop.style.cssText = `left:${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px;width:${w}px;`;
-  pop.innerHTML = `<input class="bp-q" placeholder="Filter branches…" spellcheck="false"><div class="bp-list"></div>`;
+  pop.innerHTML = `<input class="bp-q" placeholder="${repoMode ? 'Filter repositories…' : 'Filter branches…'}" spellcheck="false"><div class="bp-list"></div>`;
   document.body.appendChild(pop);
   const below = innerHeight - r.bottom, up = below < 300 && r.top > below;
   pop.style.maxHeight = Math.min(420, (up ? r.top : below) - 16) + 'px'; if (up) pop.style.bottom = innerHeight - r.top + 4 + 'px'; else pop.style.top = r.bottom + 4 + 'px';
   const q = pop.querySelector('.bp-q'), list = pop.querySelector('.bp-list'); let act = 0, rows = [];
   const draw = () => {
-    const groups = bpGroups(br, q.value.trim(), me); rows = groups.flatMap(([, l]) => l);
+    const groups = repoMode ? rpGroups(S.repos || [], q.value.trim(), me) : bpGroups(br, q.value.trim(), me); rows = groups.flatMap(([, l]) => l);
     act = Math.max(0, Math.min(act, rows.length - 1)); let i = 0;
-    list.innerHTML = groups.length && rows.length ? groups.map(([h, l]) => `${h ? `<div class="bp-h">${esc(h)}<span>${l.length}</span></div>` : ''}${l.map((x) => `<div class="bp-r${i++ === act ? ' act' : ''}${x.name === cur ? ' cur' : ''}" data-b="${esc(x.name)}"><span class="bp-ck">${x.name === cur ? '✓' : ''}</span><span class="bp-n">${esc(x.name)}</span>${x.by ? `<span class="bp-by">${esc(x.by)}</span>` : ''}<span class="bp-t">${bpAge(x.at)}</span></div>`).join('')}`).join('') : '<div class="bp-empty">No matching branches</div>';
+    list.innerHTML = groups.length && rows.length ? groups.map(([h, l]) => `${h ? `<div class="bp-h">${esc(h)}<span>${l.length}</span></div>` : ''}${l.map((x) => `<div class="bp-r${i++ === act ? ' act' : ''}${x.name === cur ? ' cur' : ''}" data-b="${esc(x.name)}"><span class="bp-ck">${x.name === cur ? '✓' : ''}</span><span class="bp-n">${esc(x.name)}</span>${x.by ? `<span class="bp-by">${esc(x.by)}</span>` : ''}<span class="bp-t">${bpAge(x.at)}</span></div>`).join('')}`).join('') : '<div class="bp-empty">No matches</div>';
     list.querySelector('.act')?.scrollIntoView({ block: 'nearest' });
   };
   const done = (v) => { bpClose(); document.removeEventListener('mousedown', away, true); if (v && v !== cur) pick(v); };
@@ -1676,7 +1684,7 @@ function bind() {
   $('#newprbtn')?.addEventListener('click', () => openNewPr());
   $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
   const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
-  $('#nprepo')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); });
+  $('#nprepo')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'repo', (v) => { npSet(() => { S.np.repo = v; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); }, true));
   $('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value.trim(); S.np.base = ''; S.np.head = ''; }); npLoadBranches(S.np.repo); });
   $('#npbase')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'base', (v) => { npSet(() => { S.np.base = v; }); npCompare(); }));
   $('#nphead')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'head', (v) => { npSet(() => { S.np.head = v; S.np.titleTouched = false; }); npCompare(); }));
