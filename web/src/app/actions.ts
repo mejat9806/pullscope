@@ -1,5 +1,6 @@
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
+import { cmPopHtml, composerHtml, confirmDlgHtml, deleteCommentDialogHtml, draftBoxHtml, editCommentDialogHtml, editPrDialogHtml, errLineHtml, hideCommentDialogHtml, mergeActHtml, reactPopHtml, reviewDialogHtml } from '../components/Actions';
 import { $, REACTS, S, esc, icon, load, tauri, qa } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
@@ -18,41 +19,29 @@ export function saveDrafts() { if (!S.draftRef) return; const d = Object.fromEnt
 
 export const prRef = () => ({ repo: S.bundle!.pull.base.repo.full_name, number: S.bundle!.pull.number });
 
-export const draftBox = (key: string, ph: string, rows = 4) => `<div class="tt" data-draft="${key}" data-ph="${esc(ph)} — type / for blocks" style="--rows:${rows}"></div>`;
+export const draftBox = (key: string, ph: string, rows = 4) => draftBoxHtml(key, ph, rows);
 
-export const errLine = (k: string) => (S.actErr && S.actErr.k === k ? `<div class="act-err">${esc(S.actErr.m)}</div>` : '');
+export const errLine = (k: string) => (S.actErr && S.actErr.k === k ? errLineHtml(S.actErr.m) : '');
 
 
 export function composer(b: Bundle) {
   const p = b.pull, closed = p.state === 'closed', busy = S.busy === 'comment';
   const open = busy || S.cOpen === true, dr = (S.draft.comment || '').trim();
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
-  return `<div class="composer dock${open ? '' : ' collapsed'}" id="composer"><div class="composer-h" id="cbar" role="button" tabindex="0" title="Write a comment (C)">${icon('comment')}<b>Add a comment</b><span class="cbar-ph">${dr ? `Draft: ${esc(dr.replace(/\s+/g, ' ').slice(0, 60))}` : 'Write a comment…'}</span><kbd>C</kbd><span class="cbar-x">${icon('chevron-down')}</span></div>
-  <div class="composer-body">${draftBox('comment', 'Write a comment… (Markdown supported)')}${errLine('comment')}
-  <div class="composer-f"><span class="hint">⌘↵ to send · Esc to collapse</span><span style="flex:1"></span>
-  ${p.merged ? '' : `<button class="btn ghost" id="doclose">${closed ? 'Reopen pull request' : 'Close pull request'}</button>`}
-  <button class="btn primary" id="docomment" ${busy ? 'disabled' : ''}>${busy ? 'Sending…' : 'Comment'}</button></div></div></div>`;
+  return composerHtml({ open, draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '', draftBox: draftBox('comment', 'Write a comment… (Markdown supported)'), err: errLine('comment'), merged: !!p.merged, closed, busy });
 }
 
 
 export function mergeActions(b: Bundle) {
   const p = b.pull; if (p.merged || p.state === 'closed') return '';
   const busy = S.busy === 'merge', am = p.auto_merge, blocked = p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
-  const opts = (sel: string) => [['merge', 'Create a merge commit'], ['squash', 'Squash and merge'], ['rebase', 'Rebase and merge']].map(([v, t]) => `<option value="${v}" ${sel === v ? 'selected' : ''}>${t}</option>`).join('');
   const cur = am ? (({ MERGE: 'merge', SQUASH: 'squash', REBASE: 'rebase' } as Record<string, string>)[am.merge_method!] || 'merge') : 'merge';
-  if (p.draft) return `<div class="merge-act"><button class="btn ghost" id="doclose">Close pull request</button>${errLine('merge')}</div>`;
-  return `<div class="merge-act"><select class="sel" id="mmethod">${opts(cur)}</select><button class="btn primary" id="domerge" ${busy ? 'disabled' : ''}>${busy ? 'Merging…' : 'Merge pull request'}</button>
-  ${am ? `<button class="btn" id="noauto" title="Auto-merge is on (${esc(am.merge_method!.toLowerCase())})">${S.busy === 'disable_automerge' ? 'Turning off…' : 'Disable auto-merge'}</button>` : blocked ? `<button class="btn" id="doauto" title="Merge automatically once required checks and reviews pass">${S.busy === 'automerge' ? 'Enabling…' : 'Enable auto-merge'}</button>` : ''}
-  <button class="btn ghost" id="todraft" title="Mark as draft again">Convert to draft</button>${errLine('merge')}${errLine('automerge')}</div>`;
+  return mergeActHtml({ draft: !!p.draft, err: errLine('merge'), method: cur, busy, auto: am ? { method: am.merge_method!.toLowerCase(), busy: S.busy === 'disable_automerge' } : null, canAuto: blocked, autoBusy: S.busy === 'automerge', errAuto: errLine('automerge') });
 }
 
 
 export function reviewDialog() {
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2>${draftBox('review', pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)', 5)}
-  <div class="radios"><label><input type="radio" name="rev" value="COMMENT" checked> <b>Comment</b> <span>Submit general feedback without explicit approval.</span></label>
-  <label><input type="radio" name="rev" value="APPROVE"> <b>Approve</b> <span>Submit feedback and approve merging these changes.</span></label>
-  <label><input type="radio" name="rev" value="REQUEST_CHANGES"> <b>Request changes</b> <span>Submit feedback that must be addressed before merging.</span></label></div>
-  <div id="reverr"></div><div class="btns"><button class="btn" id="revcancel">Cancel</button><button class="btn primary" id="revsubmit">Submit review</button></div></div></div>`;
+  S.dialog = reviewDialogHtml(draftBox('review', pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)', 5));
   render();
   $('#revcancel')!.onclick = () => { S.dialog = ''; render(); };
   $('#revsubmit')!.onclick = async () => {
@@ -67,7 +56,7 @@ export function reviewDialog() {
 
 export function editPrDialog() {
   const p = S.bundle!.pull; S.draft.prbody = p.body || '';
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit pull request</h2><label class="np-l">Title</label><input class="input" id="eptitle" value="${esc(p.title)}" style="width:100%;box-sizing:border-box;height:34px"><label class="np-l">Description</label>${draftBox('prbody', 'Describe your changes', 8)}<div id="reverr">${errLine('editpr')}</div><div class="btns"><button class="btn" id="epcancel">Cancel</button><button class="btn primary" id="epsave">Save</button></div></div></div>`;
+  S.dialog = editPrDialogHtml(p.title, draftBox('prbody', 'Describe your changes', 8), errLine('editpr'));
   render();
   $('#epcancel')!.onclick = () => { delete S.draft.prbody; S.dialog = ''; render(); };
   $('#epsave')!.onclick = async () => {
@@ -106,7 +95,7 @@ export function addPreview(host: HTMLElement, key: string) {
 
 
 export function confirmDlg(title: string, text: string, label: string, danger: boolean, fn: () => void | Promise<void>) {
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="btns"><button class="btn" id="cfcancel">Cancel</button><button class="btn ${danger ? 'danger' : 'primary'}" id="cfok">${esc(label)}</button></div></div></div>`;
+  S.dialog = confirmDlgHtml(title, text, label, danger);
   render();
   $('#cfcancel')!.onclick = () => { S.dialog = ''; render(); };
   $('#cfok')!.onclick = async () => { S.dialog = ''; render(); await fn(); };
@@ -163,7 +152,7 @@ export const refreshPr = (focus: string | number = '') => { qc.invalidate(`${prR
 
 export function editCommentDialog(c: ReviewComment | TimelineEvent, kind: string) {
   S.draft.editc = c.body || '';
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit comment</h2>${draftBox('editc', 'Edit your comment', 6)}<div id="reverr">${errLine('editc')}</div><div class="btns"><button class="btn" id="eccancel">Cancel</button><button class="btn primary" id="ecsave">Save</button></div></div></div>`;
+  S.dialog = editCommentDialogHtml(draftBox('editc', 'Edit your comment', 6), errLine('editc'));
   render();
   $('#eccancel')!.onclick = () => { delete S.draft.editc; S.dialog = ''; render(); };
   $('#ecsave')!.onclick = async () => {
@@ -174,7 +163,7 @@ export function editCommentDialog(c: ReviewComment | TimelineEvent, kind: string
 }
 
 export function deleteCommentDialog(c: { id?: number }, kind: string) {
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Delete this comment?</h2><p style="color:var(--fgColor-muted)">This can't be undone.</p><div id="reverr">${errLine('delc')}</div><div class="btns"><button class="btn" id="dccancel">Cancel</button><button class="btn danger" id="dcdo">Delete</button></div></div></div>`;
+  S.dialog = deleteCommentDialogHtml(errLine('delc'));
   render();
   $('#dccancel')!.onclick = () => { S.dialog = ''; render(); };
   $('#dcdo')!.onclick = async () => {
@@ -186,7 +175,7 @@ export function deleteCommentDialog(c: { id?: number }, kind: string) {
 
 export function hideCommentDialog(c: { node_id?: string; id?: number | string }) {
   const reasons = [['SPAM', 'Spam'], ['ABUSE', 'Abuse'], ['OFF_TOPIC', 'Off-topic'], ['OUTDATED', 'Outdated'], ['DUPLICATE', 'Duplicate'], ['RESOLVED', 'Resolved']];
-  S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Hide this comment</h2><label class="np-l">Reason</label><select class="sel" id="hcreason" style="width:100%;height:34px">${reasons.map(([v, l]) => `<option value="${v}" ${v === 'OUTDATED' ? 'selected' : ''}>${l}</option>`).join('')}</select><div id="reverr">${errLine('hidec')}</div><div class="btns"><button class="btn" id="hccancel">Cancel</button><button class="btn primary" id="hcdo">Hide comment</button></div></div></div>`;
+  S.dialog = hideCommentDialogHtml(reasons as [string, string][], errLine('hidec'));
   render();
   $('#hccancel')!.onclick = () => { S.dialog = ''; render(); };
   $('#hcdo')!.onclick = async () => {
@@ -250,7 +239,7 @@ export function bindWrite() {
     const pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
     const bb = S.bundle, cc = String(bb!.pull.id) === String(btn.dataset.cm) ? bb!.pull : [...bb!.timeline, ...bb!.review_comments].find((x) => String(x.id) === String(btn.dataset.cm));
     const isPr = cc === bb!.pull, own = !!S.me && ((cc as CommentLike | null)?.user || (cc as CommentLike | null)?.actor)?.login === S.me;
-    pop.innerHTML = `<button data-h="link">Copy link</button><button data-h="md">Copy Markdown</button><button data-h="quote">Quote reply</button><button data-h="issue">Reference in new issue</button>${own || (!isPr && S.hasToken) ? '<hr>' : ''}${own ? '<button data-h="edit">Edit</button>' : ''}${!isPr && S.hasToken ? '<button data-h="hide">Hide</button>' : ''}${own && !isPr ? '<button data-h="del" class="danger">Delete</button>' : ''}`;
+    pop.innerHTML = cmPopHtml(own || (!isPr && S.hasToken), own, !isPr && S.hasToken, own && !isPr);
     const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left - 100, innerWidth - 180) + 'px'; pop.style.top = r.bottom + 4 + 'px';
     pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (h) { pop.remove(); cmAction(+btn.dataset.cm!, btn.dataset.root as unknown as HTMLElement, h); } };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
@@ -317,7 +306,7 @@ export function bindWrite() {
   qa('.react-add').forEach((btn) => btn.addEventListener('click', (e) => {
     e.stopPropagation(); $('.react-pop')?.remove();
     const pop = document.createElement('div'); pop.className = 'react-pop';
-    pop.innerHTML = REACTS.map(([k, em]) => `<button data-c="${k}">${em}</button>`).join('');
+    pop.innerHTML = reactPopHtml(REACTS as [string, string][]);
     const r = btn.getBoundingClientRect(); pop.style.left = Math.min(r.left, innerWidth - 300) + 'px'; pop.style.top = Math.min(r.bottom + 4, innerHeight - 60) + 'px';
     document.body.appendChild(pop);
     pop.addEventListener('click', (ev) => { const c = (ev.target as HTMLElement).closest<HTMLElement>('[data-c]')?.dataset.c; if (!c) return; pop.remove(); toggleReact(btn.dataset.rk!, btn.dataset.rid!, c); });

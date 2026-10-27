@@ -3,6 +3,7 @@ import { draftBox, errLine } from './actions';
 import { diffHunkTable, foldBtn, folded, isFolded, reactionsHtml } from './comments';
 import { S, avatar, esc, icon, load, user, when } from './core';
 import { b0open } from './mergebox';
+import { lcCardsHtml, lcEditHtml, replyBoxHtml, reviewBlockHtml, sugBtnHtml, sugNoteHtml, tcHtml, threadRowHtml } from '../components/Diff';
 
 // ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
 S.diffMode = localStorage.getItem('diffmode') || 'unified';
@@ -43,19 +44,19 @@ export function lineThreads(path: string, line: number, side: 'LEFT' | 'RIGHT', 
   const all = threadsFor(path); if (!all.length) return '';
   const roots = all.filter((c) => !c.in_reply_to_id && (c.line ?? c.original_line) === line && (c.side || 'RIGHT') === side); if (!roots.length) return '';
   const res = new Set(S.bundle!.resolved_ids || []);
-  const b = S.bundle, card = (c: ReviewComment, rootId: number) => `<div class="tc"><a href="${esc(c.user?.html_url || '#')}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user?.login || 'ghost')}</span> <span>${when(c.created_at)}</span>${S.hasToken ? `<button class="cm-btn" data-cm="${esc(c.id)}" data-root="${rootId}" title="Comment actions">⋯</button>` : ''}</div><div class="markdown-body" style="margin-top:8px">${c.body_html || esc(c.body || '')}</div>${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`;
+  const b = S.bundle, card = (c: ReviewComment, rootId: number) => tcHtml({ user: c.user, login: c.user?.login || 'ghost', at: c.created_at, id: c.id, root: rootId, withMenu: !!S.hasToken, body: c.body_html || esc(c.body || ''), reactions: reactionsHtml(c.reactions, 'review_comment', c.id), sug: '', anchorId: false });
   return roots.map((r) => {
     const isRes = res.has(r.id), tid = (b!.thread_ids || {})[r.id], list = [r, ...all.filter((c) => c.in_reply_to_id === r.id)];
-    const act = tid && S.hasToken ? `<button class="thread-act" data-thread="${esc(tid)}" data-res="${isRes ? 'unresolve' : 'resolve'}">${isRes ? 'Unresolve conversation' : 'Resolve conversation'}</button>` : '';
-    const reply = S.hasToken ? `<div class="reply">${draftBox('reply-' + r.id, 'Write a reply', 2)}${errLine('reply-' + r.id)}<button class="btn small" data-sendreply="${r.id}">Reply</button></div>` : '';
-    return `<tr class="lc-row th-row"><td colspan="${cols}"><div class="thread inl${folded('t:' + r.id, isRes)}"><div class="thread-head">${foldBtn('t:' + r.id, 'Hide this thread', isRes)}<span class="th-t">Comment on line <b>${side === 'LEFT' ? 'L' : 'R'}${line}</b></span>${r.line == null ? '<span class="res out">Outdated</span>' : ''}${isRes ? '<span class="res">Resolved</span>' : ''}</div>${list.map((c) => card(c, r.id)).join('')}${reply}${act ? `<div class="th-foot">${act}</div>` : ''}</div></td></tr>`;
+    const act = tid && S.hasToken ? { tid, res: isRes } : null;
+    const reply = S.hasToken ? replyBoxHtml(draftBox('reply-' + r.id, 'Write a reply', 2), errLine('reply-' + r.id), r.id) : '';
+    return threadRowHtml({ cols, folded: folded('t:' + r.id, isRes), foldBtn: foldBtn('t:' + r.id, 'Hide this thread', isRes), side: side === 'LEFT' ? 'L' : 'R', line, outdated: r.line == null, resolved: isRes, cards: list.map((c) => card(c, r.id)), reply, act });
   }).join('');
 }
 
 export function lineExtras(path: string, line: number, side: 'LEFT' | 'RIGHT', cols: number, canComment: boolean, text?: string) {
   const k = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c) => c.path === path && c.line === line && c.side === side);
-  const cards = mine.map((c) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${lcBody(c.body)}</div><button class="lc-x" data-lcdel="${c.id}" title="Delete draft comment">${icon('x')}</button></div>`).join('');
-  const open = canComment && S.lcOpen === k ? `<div class="lc-edit">${draftBox('lc', 'Leave a comment on this line', 3)}<div class="lc-btns">${side === 'RIGHT' && text !== undefined ? `<button class="btn small" id="lcsuggest" data-code="${esc(text)}" title="Insert a suggested change for this line">± Suggest change</button>` : ''}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : '';
+  const cards = mine.length ? lcCardsHtml(mine.map((c) => ({ id: c.id, body: lcBody(c.body) }))) : '';
+  const open = canComment && S.lcOpen === k ? lcEditHtml(draftBox('lc', 'Leave a comment on this line', 3), side === 'RIGHT' && text !== undefined ? text : null) : '';
   return th + (cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : '');
 }
 
@@ -117,11 +118,11 @@ export function chunkTables(out: string[], cls: string, cols: string, size = Inf
 export const sugOf = (c: { body?: string | null }) => { const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/); return m ? m[1] : null; };
 
 export function suggestBtn(c: ReviewComment, b: Bundle, list: ReviewComment[]) {
-  const t = sugOf(c); if (t !== null && S.applied?.has(String(c.id))) return '<div class="sug-row"><span class="sug-note">Applying suggestion…</span></div>';
+  const t = sugOf(c); if (t !== null && S.applied?.has(String(c.id))) return sugNoteHtml('Applying suggestion…');
   if (t === null || !b0open() || list.some((x) => (b.resolved_ids || []).includes(x.id))) return '';
   const p = b.pull, mine = p.head.repo && !p.head.repo.fork || (p.head.repo && p.head.repo.full_name === p.base.repo.full_name);
-  if (!c.line) return '<div class="sug-row"><span class="sug-note">Outdated suggestion — the lines have changed.</span></div>';
-  return `<div class="sug-row"><button class="btn small primary" data-sug="${c.id}" ${p.head.repo ? '' : 'disabled'}>Apply suggestion</button><span class="sug-note">Commits to <code>${esc(p.head.ref)}</code>${mine ? '' : ' (fork — needs push access)'}</span></div>`;
+  if (!c.line) return sugNoteHtml('Outdated suggestion — the lines have changed.');
+  return sugBtnHtml(c.id, !p.head.repo, p.head.ref, !!mine);
 }
 
 export function reviewBlock(e: TimelineEvent, b: Bundle) {
@@ -136,8 +137,12 @@ export function reviewBlock(e: TimelineEvent, b: Bundle) {
   const all = Object.values(byPath).map((l) => l.sort((x, y) => (x.in_reply_to_id ? 1 : 0) - (y.in_reply_to_id ? 1 : 0) || x.id - y.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = 'r:' + e.id;
   const lists = S.unres ? all.filter((l) => !isRes(l)) : all;
   if (S.unres && !lists.length) return '';
-  const threads = lists.map((list) => `<div class="thread${folded('t:' + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ''}${(b.thread_ids || {})[list[0].id] ? `<button class="thread-act" data-thread="${esc(b.thread_ids[list[0].id])}" data-res="${isRes(list) ? 'unresolve' : 'resolve'}">${isRes(list) ? 'Unresolve' : 'Resolve conversation'}</button>` : ''}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || '')}</div>${list.map((c) => `<div class="tc" id="c-${esc(c.id)}"><a href="${esc(c.user.html_url)}">${avatar(c.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c.user.login)}</span> <span>${when(c.created_at)}</span><button class="cm-btn" data-cm="${esc(c.id)}" data-root="${list[0].id}" title="Comment actions">⋯</button></div><div class="markdown-body" style="margin-top:8px">${c.body_html || ''}</div>${suggestBtn(c, b, list)}${reactionsHtml(c.reactions, 'review_comment', c.id)}</div></div>`).join('')}<div class="reply">${draftBox('reply-' + list[0].id, 'Reply…', 2)}${errLine('reply-' + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join('');
-  const sum = all.length ? `<span class="rev-sum${allRes ? ' ok' : ''}">${allRes ? icon('check') + ' All resolved' : `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}`}</span>` : '';
-  return `<div class="TLI rev${folded(rk, allRes)}"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e.user, 20)}</div><div class="TLI-body"><div class="row">${foldBtn(rk, 'Collapse / expand this review', allRes)}${user(e.user)} <span>${verb}</span> <a class="time" href="${esc(e.html_url)}">${when(e.submitted_at!).replace(/<\/?span[^>]*>/g, '')}</a>${sum}</div>
-  ${hasBody ? `<div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">${e.body_html}</div></div></div>` : ''}${threads ? `<div>${threads}</div>` : ''}</div></div>`;
+  const threads = lists.map((list) => ({
+    folded: folded('t:' + list[0].id, isRes(list)), foldBtn: foldBtn('t:' + list[0].id, 'Hide this thread', isRes(list)), path: list[0].path, resolved: isRes(list), tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
+    hunk: diffHunkTable(list[0].diff_hunk || ''),
+    cards: list.map((c) => tcHtml({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, body: c.body_html || '', reactions: reactionsHtml(c.reactions, 'review_comment', c.id), sug: suggestBtn(c, b, list), anchorId: true })),
+    reply: replyBoxHtml(draftBox('reply-' + list[0].id, 'Reply…', 2), errLine('reply-' + list[0].id), list[0].id),
+  }));
+  const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}` } : null;
+  return reviewBlockHtml({ folded: folded(rk, allRes), kind, ic, avatar: avatar(e.user, 20), foldBtn: foldBtn(rk, 'Collapse / expand this review', allRes), who: user(e.user), verb, url: e.html_url ?? '', at: when(e.submitted_at!).replace(/<\/?span[^>]*>/g, ''), sum, bodyHtml: hasBody ? e.body_html! : '', threads });
 }

@@ -10,9 +10,10 @@ import { loadRepos } from './nav';
 import { crumbs, prList, repoHeader } from './prlist';
 import { sideRecent, tabStrip, toolbar } from './tabs';
 import { attention, checksView, timeline } from './timeline';
+import { gateHtmlStr, inboxPageHtml, landingHtml, newPrHtml, notesPageHtml, npMetaHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
 
 export function landing() {
-  return `<div class="landing">${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ''}${icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"')}<h1>Open a pull request</h1><p>Type <code>owner/repo#123</code> or paste a pull request URL in the bar above.<br>Shortcuts: ⌘L address bar · ⌘R reload · ⌘[ ⌘] history</p>${S.error ? `<div class="err">${esc(S.error)}</div>` : ''}</div>`;
+  return landingHtml(pushBanners(), S.error ? String(S.error) : '', icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"'));
 }
 
 
@@ -20,14 +21,8 @@ export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.no
 
 export function notesPage() {
   const f = S.nf || 'all', unread = S.notes.filter((n) => !n.read).length;
-  const list = S.notes.filter((n) => f === 'all' || (f === 'unread' ? !n.read : n.read));
-  const rows = list.map((n) => `<div class="np-row ${n.read ? '' : 'new'}"><button class="np-dot" data-nread="${n.id}" title="${n.read ? 'Mark as unread' : 'Mark as read'}"></button>
-    <a class="np-main" data-open="${esc(n.ref)}" data-target="${esc(n.target || '')}" data-note="${n.id}"><b>${esc(n.title)}</b><span>${esc(n.text)}</span><i>${esc(n.ref)} · ${when(n.at).replace(/<\/?span[^>]*>/g, '')}</i></a>
-    <button class="np-act" data-nread="${n.id}">${n.read ? 'Mark unread' : 'Mark read'}</button><button class="np-act del" data-ndel="${n.id}" title="Delete">${icon('x')}</button></div>`).join('')
-    || `<div class="note-empty np-empty">${f === 'unread' ? 'You are all caught up.' : f === 'read' ? 'Nothing read yet.' : 'No notifications yet. New comments, commits and reviews on PRs you opened will show up here.'}</div>`;
-  return `<div class="notes-page"><div class="np-head"><h1>${icon('bell')} Notifications</h1><div class="np-tools"><button class="btn small" id="npcheck">Check now</button><button class="btn small" id="npreadall" ${unread ? '' : 'disabled'}>Mark all as read</button><button class="btn small ghost" id="npclear" ${S.notes.length ? '' : 'disabled'}>Clear all</button></div></div>
-  <div class="np-tabs">${[['all', 'All', S.notes.length], ['unread', 'Unread', unread], ['read', 'Read', S.notes.length - unread]].map(([k, l, c]) => `<button class="${f === k ? 'sel' : ''}" data-nf="${k}">${l}<span>${c}</span></button>`).join('')}</div>
-  <div class="np-list">${rows}</div></div>`;
+  const rows = S.notes.filter((n) => f === 'all' || (f === 'unread' ? !n.read : n.read)).map((n) => ({ id: n.id, read: !!n.read, ref: n.ref, target: n.target || '', title: n.title, text: n.text, when: when(n.at).replace(/<\/?span[^>]*>/g, '') }));
+  return notesPageHtml({ f, rows, unread, total: S.notes.length });
 }
 
 
@@ -45,26 +40,13 @@ export async function loadInbox(force = false) {
 export const npHuman = (s: string) => s.replace(/^[a-z]+\//i, '').replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
 export function newPrPage() {
-  const n = S.np, repos = (S.repos || []).filter((r) => !r.archived), br = n!.branches[n!.repo];
-  const opts = (list: string[], cur: string) => list.map((x) => `<option value="${esc(x)}" ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('');
-  const repoSel = repos.length ? `<button type="button" class="sel bp-btn" id="nprepo"><span>${esc(n!.repo || 'Choose a repository')}</span>${icon('chevron-down', 14)}</button>` : `<input class="input" id="nprepoin" placeholder="owner/repo" value="${esc(n!.repo)}">`;
-  const same = n!.base && n!.base === n!.head;
-  const cmp = n!.cmp === 'loading' ? '<span class="np-note">Comparing…</span>' : !n!.cmp ? '' : typeof n!.cmp === 'string' ? `<span class="np-note err">${esc(n!.cmp)}</span>`
-    : n!.cmp.ahead_by ? `<span class="np-note ok">${icon('git-commit')} ${n!.cmp.ahead_by} commit${n!.cmp.ahead_by === 1 ? '' : 's'} · ${n!.cmp.files} file${n!.cmp.files === 1 ? '' : 's'} changed${n!.cmp.behind_by ? ` · ${n!.cmp.behind_by} behind ${esc(n!.base)}` : ''}</span>` : '<span class="np-note err">These branches are identical — there is nothing to compare.</span>';
-  const ready = n!.title.trim() && n!.repo && n!.base && n!.head && !same && n!.cmp && typeof n!.cmp === 'object' && n!.cmp.ahead_by > 0;
-  return `<div class="notes-page np-new"><div class="np-head"><h1>${icon('git-pull-request')} New pull request</h1></div>
-  <div class="np-card"><div class="np-main-col">
-    <div class="np-box"><label class="np-l">Repository</label>${repoSel}
-    <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" ${br ? '' : 'disabled'}><span>${br ? esc(n!.base || 'Choose a branch') : 'Loading…'}</span>${icon('chevron-down', 14)}</button></div>
-      <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>
-      <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" ${br ? '' : 'disabled'}><span>${br ? esc(n!.head || 'Choose a branch') : 'Loading…'}</span>${icon('chevron-down', 14)}</button></div></div>
-    <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div></div>
-    <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n!.title)}"></div>
-    <div class="np-box"><label class="np-l">Description</label>${(() => { const t = n!.tpl[`${n!.repo}|${n!.base}`]; return t && t.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t.map((x, i) => `<option value="${i}" ${x.body === n!.tplText ? 'selected' : ''}>Template: ${esc(x.name)}</option>`).join('')}</select>` : ''; })()}${draftBox('newpr', 'Describe your changes', 8)}</div>
-    <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" ${n!.draft ? 'checked' : ''}> Create as draft <span>(not ready for review yet)</span></label>
-    ${n!.err ? `<div class="act-err">${esc(n!.err)}</div>` : ''}
-    <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? '' : 'disabled'}>${n!.draft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>
-  </div><div class="np-side-col">${npMeta(n!)}</div></div></div>`;
+  const n = S.np!, repos = (S.repos || []).filter((r) => !r.archived), br = n.branches[n.repo];
+  const same = !!(n.base && n.base === n.head);
+  const c = n.cmp;
+  const cmp = c === 'loading' ? { kind: 'loading' as const, text: '', ahead: 0, files: 0, behind: 0 } : !c ? { kind: 'none' as const, text: '', ahead: 0, files: 0, behind: 0 } : typeof c === 'string' ? { kind: 'err' as const, text: c, ahead: 0, files: 0, behind: 0 }
+    : c.ahead_by ? { kind: 'ok' as const, text: '', ahead: c.ahead_by, files: c.files, behind: c.behind_by } : { kind: 'same' as const, text: '', ahead: 0, files: 0, behind: 0 };
+  const ready = !!(n.title.trim() && n.repo && n.base && n.head && !same && n.cmp && typeof n.cmp === 'object' && n.cmp.ahead_by > 0);
+  return newPrHtml({ hasRepos: repos.length > 0, repo: n.repo, base: n.base, head: n.head, hasBranches: !!br, same, cmp, title: n.title, tpls: n.tpl[`${n.repo}|${n.base}`] ?? null, tplText: n.tplText, draftBox: draftBox('newpr', 'Describe your changes', 8), isDraft: !!n.draft, err: n.err || '', ready, meta: npMeta(n) });
 }
 
 // Reviewers / assignees / labels / milestone / linked issues pickers
@@ -81,12 +63,8 @@ export function bindNpMeta() {
 export function npMeta(n: NewPr) {
   const m = n.meta?.[n.repo]; if (!m) return '';
   const ppl = m.people.map((x) => x.login), me = S.me || '';
-  const chips = (k: string, label: string) => `<span class="np-chip" data-npdel="${k}" data-v="${esc(label)}" title="Remove">${esc(label)} ×</span>`;
-  const add = (k: NpListKey, title: string, list: string[]) => { const free = list.filter((x) => !n[k].includes(x)); return free.length ? `<select class="sel np-add" data-npadd="${k}"><option value="">${title}</option>${free.map((x) => `<option>${esc(x)}</option>`).join('')}</select>` : ''; };
-  const row = (k: NpListKey, name: string, list: string[]) => `<div class="np-meta"><label class="np-l">${name}</label><div class="np-chips">${n[k].map((x: string) => chips(k, x)).join('')}${add(k, `Add ${name.toLowerCase()}…`, list)}</div></div>`;
-  return `<div class="np-box np-metas" id="npmeta">${row('reviewers', 'Reviewers', ppl.filter((x) => x !== me))}${row('assignees', 'Assignees', ppl)}${row('labels', 'Labels', m.labels.map((x) => x.name))}
-    <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>${m.milestones.map((x) => `<option value="${x.number}" ${String(n.milestone) === String(x.number) ? 'selected' : ''}>${esc(x.title)}</option>`).join('')}</select></div>
-    <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value="${esc(n.issues)}"></div></div>`;
+  const row = (k: NpListKey, name: string, list: string[]) => ({ k, name, chips: n[k].slice() as string[], free: list.filter((x) => !n[k].includes(x)) });
+  return npMetaHtml({ rows: [row('reviewers', 'Reviewers', ppl.filter((x) => x !== me)), row('assignees', 'Assignees', ppl), row('labels', 'Labels', m.labels.map((x) => x.name))], milestones: m.milestones.map((x) => ({ number: x.number, title: x.title, on: String(n.milestone) === String(x.number) })), issues: n.issues });
 }
 
 export async function npLoadMeta(repo: string) {
@@ -148,41 +126,31 @@ export function openInbox() { S.view = 'inbox'; S.nav = false; render(); if (!S.
 
 export function inboxPage() {
   const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data;
-  const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at, fresh = was && p.updated_at > was;
-    return `<a class="ib-row" data-open="${esc(ref)}"><img src="${esc(p.avatar)}" alt=""><span class="ib-t"><b>${esc(p.title)}</b><i>${esc(ref)} · ${esc(p.user)} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}</i></span>${fresh ? '<span class="ib-new">New activity</span>' : ''}${p.comments ? `<span class="ib-c">${icon('comment')} ${p.comments}</span>` : ''}</a>`; };
-  const sec = (title: string, sub: string, list: InboxItem[]) => `<section class="ib-sec"><h2>${title}<span>${list.length}</span></h2><p>${sub}</p>${list.length ? list.map(row).join('') : '<div class="ib-none">Nothing here. Nice.</div>'}</section>`;
-  const body = I.err ? `<div class="diff-empty err">${esc(I.err)}</div>` : !d ? '<div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>'
-    : sec('Review requested', 'Waiting on you', d.requested) + sec('Ready to merge', 'Your approved pull requests', d.ready) + sec('Your pull requests', 'Open PRs you opened', d.mine);
-  return `<div class="notes-page"><div class="np-head"><h1>${icon('checklist')} Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" ${I.loading ? 'disabled' : ''}>${I.loading ? 'Loading…' : 'Refresh'}</button></div></div>${body}</div>`;
+  const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0 }; };
+  const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, rows: list.map(row) });
+  return inboxPageHtml({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine)] : null });
 }
 
 
 export function page() {
   const b = S.bundle;
-  if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i) => `<div class="sk-row" style="--i:${i}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join('')}</div>`;
+  if (S.loading) return skeletonHtml();
   if (S.view === 'newpr') return crumbs(S.np!?.repo, [{ t: 'New pull request' }]) + newPrPage();
   if (S.view === 'inbox') return crumbs('', [{ t: 'Inbox' }]) + inboxPage();
   if (S.view === 'notes') return crumbs('', [{ t: 'Notifications' }]) + notesPage();
   if (S.view === 'repo') return crumbs(S.repo!, [{ t: 'Pull requests' }]) + prList();
   if (S.view === 'home' || !b) return crumbs('', S.homeOwner ? [{ t: S.homeOwner }] : []) + homePage();
-  if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return `<div class="pr-page is-split">${repoHeader(b.pull)}${prHeader(b)}${splitView(b)}</div>`;
+  if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return splitPageHtml(repoHeader(b.pull) + prHeader(b), splitView(b));
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
-  const side = S.tab !== 'conversation' ? '' : S.hide.side ? `<button class="pane-rail side-rail" data-show="side" title="Show details">${icon('columns')}<span>Details</span></button>` : `<aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">${icon('x')}</button></div>${sidebar(b)}</aside>`;
-  return `<div class="pr-page">${repoHeader(b.pull)}${prHeader(b)}<div class="pr-layout"><main class="pr-main">${body}</main>${side}</div></div>`;
+  const side = S.tab !== 'conversation' ? { kind: 'none' as const } : S.hide.side ? { kind: 'rail' as const, ic: icon('columns') } : { kind: 'aside' as const, x: icon('x'), inner: sidebar(b) };
+  return prPageHtml({ header: repoHeader(b.pull) + prHeader(b), body, side });
 }
 
 
 // Signing in is required: anonymous GitHub access is capped at 60 requests an hour and is too slow to use.
 export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new URLSearchParams(location.search).get('gate') === '1';
 
-export function gateHtml() {
-  return `<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width="72" height="72"><h1>Sign in to Pullscope</h1>
-  <p class="gate-err">${icon('alert')} No GitHub sign-in or token was found.</p>
-  <p>Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing.</p>
-  ${S.gateErr ? `<p class="gate-err">${esc(S.gateErr)}</p>` : ''}
-  <div class="btns" style="justify-content:center"><button class="btn primary" id="gatego">Sign in with GitHub</button><button class="btn" id="gatetok">Use a token instead</button></div>
-  <small>Tip: running <code>gh auth login</code> in a terminal also works.</small></div></div>`;
-}
+export function gateHtml() { return gateHtmlStr(icon('alert'), S.gateErr ? String(S.gateErr) : ''); }
 
 export function render() {
   applyMode();

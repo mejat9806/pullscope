@@ -18,7 +18,7 @@ export function RangeBar({ range, from, to, desc }: RangeBarProps) {
 
 export interface WhoBarProps { everyone: boolean; people: { u: Person; n: number; on: boolean }[] }
 export function WhoBar({ everyone, people }: WhoBarProps) {
-  return <div class="who-bar"><span class="who-l">{I('person')}Show</span><button class={`who-chip ${everyone ? '' : 'on'}`} data-whoclear="1">Everyone</button>{people.map(({ u, n, on }) => <button class={`who-chip ${on ? 'on' : ''}`} data-who={u.login} title={`${n} comment${n === 1 ? '' : 's'}`}>{Av(u, 18)}<span>{u.login}</span><i>{n}</i></button>)}</div>;
+  return <div class="who-bar"><span class="who-l">{I('person')}Show</span><button class={`who-chip ${everyone ? 'on' : ''}`} data-whoclear="1">Everyone</button>{people.map(({ u, n, on }) => <button class={`who-chip ${on ? 'on' : ''}`} data-who={u.login} title={`${n} comment${n === 1 ? '' : 's'}`}>{Av(u, 18)}<span>{u.login}</span><i>{n}</i></button>)}</div>;
 }
 export const barsHtml = (who: WhoBarProps | null, range: RangeBarProps) => html(<>{who && <WhoBar {...who} />}<RangeBar {...range} /></>);
 

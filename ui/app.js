@@ -584,20 +584,20 @@
   // src/components/Comments.tsx
   var NL = "\n  ";
   function Who({ p: p3, st }) {
-    const plural = p3.commits === 1 ? "" : "s";
+    const plural2 = p3.commits === 1 ? "" : "s";
     return st === "merged" ? /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("a", { class: "author", style: "text-decoration:underline;text-underline-offset:2px", href: p3.merged_by.html_url, children: p3.merged_by.login }),
       " merged ",
       p3.commits,
       " commit",
-      plural,
+      plural2,
       " into"
     ] }) : /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("a", { class: "author", href: p3.user.html_url, children: p3.user.login }),
       " wants to merge ",
       p3.commits,
       " commit",
-      plural,
+      plural2,
       " into"
     ] });
   }
@@ -775,23 +775,23 @@
   }
 
   // src/components/Sidebar.tsx
-  function RecentList({ recent, curRef: curRef2, icon: icon3 }) {
+  function RecentList({ recent, curRef: curRef2, icon: icon6 }) {
     if (!recent.length) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Pull requests you open appear here." });
     return /* @__PURE__ */ u3(S2, { children: recent.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${r3.ref === curRef2 ? "on" : ""}`, "data-open": r3.ref, children: [
-      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon3(r3.icon)) }),
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon6(r3.icon)) }),
       /* @__PURE__ */ u3("span", { class: "rc-t", children: [
         /* @__PURE__ */ u3("b", { children: r3.title }),
         /* @__PURE__ */ u3("i", { children: r3.ref })
       ] }),
-      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: Raw(icon3("x")) })
+      /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: Raw(icon6("x")) })
     ] })) });
   }
-  function RepoList({ repos, repo, filter, icon: icon3 }) {
+  function RepoList({ repos, repo, filter, icon: icon6 }) {
     const f4 = filter.toLowerCase(), shown = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter }),
       shown.length ? shown.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: Raw(icon3(r3.private ? "lock" : "repo")) }),
+        /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: Raw(icon6(r3.private ? "lock" : "repo")) }),
         /* @__PURE__ */ u3("span", { class: "rc-t", children: [
           /* @__PURE__ */ u3("b", { children: r3.full_name.split("/")[1] }),
           /* @__PURE__ */ u3("i", { children: r3.full_name.split("/")[0] })
@@ -811,30 +811,30 @@
   var sidebarHtml = (p3) => html(/* @__PURE__ */ u3(Sidebar, { ...p3 }));
 
   // src/components/TabStrip.tsx
-  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon3 }) {
+  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon6 }) {
     return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
       tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, title: t2.ref + " \xB7 " + t2.title, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon3(t2.icon)) }),
+        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon6(t2.icon)) }),
         /* @__PURE__ */ u3("span", { class: "pt-t", children: [
           /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
           " ",
           t2.title
         ] }),
         t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon3("x")) })
+        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon6("x")) })
       ] })),
       /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", title: "New tab (\u2318T)", "aria-label": "New tab", children: [
-        Raw(icon3("plus")),
+        Raw(icon6("plus")),
         tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
       ] }),
       menu && /* @__PURE__ */ u3("div", { class: "pt-menu", children: [
         /* @__PURE__ */ u3("a", { "data-tabhome": "", children: [
-          Raw(icon3("home")),
+          Raw(icon6("home")),
           " Home"
         ] }),
         recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
         recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon3(r3.icon)) }),
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon6(r3.icon)) }),
           /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
             /* @__PURE__ */ u3("i", { children: r3.ref }),
             " ",
@@ -844,7 +844,7 @@
         closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
           /* @__PURE__ */ u3("h6", { children: "Closed" }),
           /* @__PURE__ */ u3("a", { "data-tabreopen": "", children: [
-            Raw(icon3("clock")),
+            Raw(icon6("clock")),
             " Reopen ",
             closedFirst,
             " ",
@@ -859,33 +859,33 @@
   // src/components/Toolbar.tsx
   var NL2 = "\n  ";
   function Toolbar(p3) {
-    const { icon: icon3 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    const { icon: icon6 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
     return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
       NL2,
-      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon3("three-bars")) }),
+      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon6("three-bars")) }),
       /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon3("chevron-left")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon3("chevron-right")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon3("sync")) })
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon6("chevron-left")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon6("chevron-right")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon6("sync")) })
       ] }),
       NL2,
       /* @__PURE__ */ u3("form", { id: "addr", class: "addr", children: [
-        Raw(icon3("search")),
+        Raw(icon6("search")),
         /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
       ] }),
       p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", title: "Download and install the new version, then restart", children: [
-        Raw(icon3("sync")),
+        Raw(icon6("sync")),
         " ",
         p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
       ] }),
       NL2,
       /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon3("alert")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon3("link-external")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon3("plus")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon3("checklist")) }),
+        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon6("alert")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon6("link-external")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon6("plus")) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon6("checklist")) }),
         /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", title: "Notifications", children: [
-          Raw(icon3("bell")),
+          Raw(icon6("bell")),
           p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
         ] }),
         /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
@@ -903,12 +903,158 @@
         p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", title: `${label} \u2014 account menu`, children: [
           /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
           /* @__PURE__ */ u3("span", { children: label }),
-          Raw(icon3("chevron-down", 12))
-        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon3("key")) })
+          Raw(icon6("chevron-down", 12))
+        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon6("key")) })
       ] })
     ] });
   }
   var toolbarHtml = (p3) => html(/* @__PURE__ */ u3(Toolbar, { ...p3 }));
+
+  // src/components/PrList.tsx
+  function Sel({ id, opts, v: v2 }) {
+    return /* @__PURE__ */ u3("select", { class: "input sb-sel", id, children: opts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === v2, children: t2 })) });
+  }
+  var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function SideHead(p3) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "sb-repo", children: [
+        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-side": "repos", title: "All repositories", children: I2("chevron-left") }),
+        /* @__PURE__ */ u3("b", { title: p3.repo, children: p3.repo })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-sps": s3, class: p3.state === s3 ? "on" : "", children: cap(s3) })) }),
+      "\n  ",
+      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "prfilter", placeholder: "Filter by title, #, author, label\u2026", value: p3.filter }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "sb-ctl", children: [
+        /* @__PURE__ */ u3("label", { children: [
+          "Sort",
+          /* @__PURE__ */ u3(Sel, { id: "prsort", opts: p3.sorts, v: p3.sort })
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Group",
+          /* @__PURE__ */ u3(Sel, { id: "prgroup", opts: p3.groups, v: p3.group })
+        ] })
+      ] })
+    ] });
+  }
+  var sideHeadHtml = (p3) => html(/* @__PURE__ */ u3(SideHead, { ...p3 }));
+  function RcItem({ r: r3 }) {
+    return /* @__PURE__ */ u3("a", { class: `rc ${r3.on ? "on" : ""}`, "data-open": r3.ref, children: [
+      /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
+      /* @__PURE__ */ u3("span", { class: "rc-t", children: [
+        /* @__PURE__ */ u3("b", { children: r3.title }),
+        /* @__PURE__ */ u3("i", { children: r3.sub })
+      ] })
+    ] });
+  }
+  var sideEmptyHtml = (t2) => html(/* @__PURE__ */ u3("div", { class: "sb-empty", children: t2 }));
+  var sideCountHtml = (n2, rows) => html(/* @__PURE__ */ u3(S2, { children: [
+    /* @__PURE__ */ u3("div", { class: "sb-count", children: [
+      n2,
+      " pull request",
+      n2 === 1 ? "" : "s"
+    ] }),
+    rows.map((r3) => /* @__PURE__ */ u3(RcItem, { r: r3 }))
+  ] }));
+  var pgHtml = (groups) => html(/* @__PURE__ */ u3(S2, { children: groups.map((g2) => /* @__PURE__ */ u3("div", { class: `pg${g2.folded}`, children: [
+    /* @__PURE__ */ u3("div", { class: "pg-h", "data-fold": g2.key, children: [
+      I2(g2.closed ? "chevron-right" : "chevron-down"),
+      /* @__PURE__ */ u3("span", { children: g2.name }),
+      /* @__PURE__ */ u3("i", { children: g2.rows.length })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "pg-b", children: g2.rows.map((r3) => /* @__PURE__ */ u3(RcItem, { r: r3 })) })
+  ] })) }));
+  function Opts({ arr, v: v2, all }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("option", { value: "", children: all }),
+      arr.map((x3) => /* @__PURE__ */ u3("option", { value: x3, selected: x3 === v2, children: x3 }))
+    ] });
+  }
+  function FilterBar(p3) {
+    return /* @__PURE__ */ u3("div", { class: "prl-filters", children: [
+      /* @__PURE__ */ u3("span", { class: "pf-search", children: [
+        I2("search"),
+        /* @__PURE__ */ u3("input", { class: "input", id: "mainfilter", placeholder: "Filter by title, #, author, branch, label\u2026", value: p3.filter, spellcheck: false })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfauthor", children: /* @__PURE__ */ u3(Opts, { arr: p3.authors, v: p3.author, all: "Author: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pflabel", children: /* @__PURE__ */ u3(Opts, { arr: p3.labels, v: p3.label, all: "Label: all" }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfstatus", children: [
+        /* @__PURE__ */ u3("option", { value: "", children: "Status: any" }),
+        p3.statuses.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.status, children: t2 }))
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("select", { class: "input", id: "pfsort", children: p3.sorts.map(([k3, t2]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === p3.sort, children: [
+        "Sort: ",
+        t2
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u3("span", { class: "pf-count", children: [
+        p3.n,
+        " of ",
+        p3.total
+      ] }),
+      p3.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", children: "Clear" }) : ""
+    ] });
+  }
+  var filterBarHtml = (p3) => html(/* @__PURE__ */ u3(FilterBar, { ...p3 }));
+  function PrListPage({ repo, state, banners, filterBar, body }) {
+    return /* @__PURE__ */ u3("div", { class: "pr-page", children: [
+      /* @__PURE__ */ u3("div", { class: "repoline", style: "padding-bottom:16px" }),
+      Raw(banners),
+      /* @__PURE__ */ u3("div", { class: "prl", children: [
+        /* @__PURE__ */ u3("div", { class: "prl-head", children: [
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("span", { class: "repo-ic", children: I2("repo", 16) }),
+            SP,
+            /* @__PURE__ */ u3("b", { children: repo })
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((s3) => /* @__PURE__ */ u3("button", { "data-ps": s3, class: state === s3 ? "on" : "", children: cap(s3) })) })
+        ] }),
+        Raw(filterBar),
+        body
+      ] })
+    ] });
+  }
+  var prListPageHtml = (p3) => html(/* @__PURE__ */ u3(PrListPage, { repo: p3.repo, state: p3.state, banners: p3.banners, filterBar: p3.filterBar, body: p3.err ? /* @__PURE__ */ u3("div", { class: "err", style: "padding:16px", children: p3.err }) : p3.loading ? /* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading pull requests\u2026" }) : p3.rows && p3.rows.length ? /* @__PURE__ */ u3(S2, { children: p3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "prl-row", "data-open": r3.ref, children: [
+    /* @__PURE__ */ u3("span", { class: `rc-i ${r3.st}`, children: I2(r3.icon) }),
+    /* @__PURE__ */ u3("span", { class: "prl-main", children: [
+      /* @__PURE__ */ u3("b", { children: r3.title }),
+      r3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color};margin:0 0 0 4px`, children: l3.name })),
+      /* @__PURE__ */ u3("i", { children: r3.meta })
+    ] }),
+    /* @__PURE__ */ u3("img", { src: `${r3.avatar}&s=40`, width: 20, height: 20, style: "border-radius:50%" })
+  ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: p3.empty }) }));
+  function Crumbs({ repo, trail, extra }) {
+    const homeCur = !repo && !trail.length;
+    const parts = [homeCur ? /* @__PURE__ */ u3("span", { class: "crumb cur home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u3("span", { children: "Home" })
+    ] }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-home": "1", title: "Home", children: [
+      I2("home", 14),
+      /* @__PURE__ */ u3("span", { children: "Home" })
+    ] })];
+    if (repo) {
+      const [owner, name] = repo.split("/");
+      parts.push(/* @__PURE__ */ u3("span", { class: "crumb-grp", children: [
+        /* @__PURE__ */ u3("a", { class: "crumb", "data-owner": owner, title: `Repositories of ${owner}`, children: owner }),
+        /* @__PURE__ */ u3("span", { class: "crumb-slash", children: "/" }),
+        /* @__PURE__ */ u3("a", { class: "crumb strong", "data-repo": repo, title: `All pull requests in ${repo}`, children: name })
+      ] }));
+    }
+    trail.forEach((t2, i3) => parts.push(i3 === trail.length - 1 ? /* @__PURE__ */ u3("span", { class: "crumb cur", children: t2.t }) : /* @__PURE__ */ u3("a", { class: "crumb", "data-repo": t2.repo || void 0, children: t2.t })));
+    return /* @__PURE__ */ u3("nav", { class: "repoline crumbs", "aria-label": "Breadcrumb", children: [
+      parts.map((x3, i3) => /* @__PURE__ */ u3(S2, { children: [
+        i3 ? /* @__PURE__ */ u3("span", { class: "crumb-sep", children: I2("chevron-right", 12) }) : "",
+        x3
+      ] })),
+      Raw(extra)
+    ] });
+  }
+  var crumbsHtml = (p3) => html(/* @__PURE__ */ u3(Crumbs, { ...p3 }));
 
   // src/app/prlist.ts
   var PSORT = { updated: "Recently updated", created: "Newest", oldest: "Oldest", number: "Number", title: "Title A\u2013Z", author: "Author" };
@@ -918,22 +1064,18 @@
   function prSide() {
     const cur = S.bundle && S.view === "pr" ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
     const f4 = S.pf.toLowerCase();
-    const sel = (id, opts, v2) => `<select class="input sb-sel" id="${id}">${Object.entries(opts).map(([k3, t2]) => `<option value="${k3}"${k3 === v2 ? " selected" : ""}>${t2}</option>`).join("")}</select>`;
-    const head = `<div class="sb-repo"><button class="fold-btn" data-side="repos" title="All repositories">${icon("chevron-left")}</button><b title="${esc(S.repo)}">${esc(S.repo)}</b></div>
-  <div class="seg sb-seg">${["open", "closed", "all"].map((s3) => `<button data-sps="${s3}" class="${S.prState === s3 ? "on" : ""}">${s3[0].toUpperCase() + s3.slice(1)}</button>`).join("")}</div>
-  <input class="input sb-filter" id="prfilter" placeholder="Filter by title, #, author, label\u2026" value="${esc(S.pf)}">
-  <div class="sb-ctl"><label>Sort${sel("prsort", PSORT, S.psort)}</label><label>Group${sel("prgroup", PGROUP, S.pgroup)}</label></div>`;
-    if (!S.prs) return head + '<div class="sb-empty">Loading pull requests\u2026</div>';
+    const head = sideHeadHtml({ repo: S.repo, state: S.prState, filter: S.pf, sort: S.psort, group: S.pgroup, sorts: Object.entries(PSORT), groups: Object.entries(PGROUP) });
+    if (!S.prs) return head + sideEmptyHtml("Loading pull requests\u2026");
     const list = S.prs.filter((p3) => !f4 || `#${p3.number} ${p3.title} ${p3.user.login} ${p3.head?.ref || ""} ${(p3.labels || []).map((l3) => l3.name).join(" ")}`.toLowerCase().includes(f4));
     const sorts = { updated: (a3, b2) => b2.updated_at.localeCompare(a3.updated_at), created: (a3, b2) => b2.created_at.localeCompare(a3.created_at), oldest: (a3, b2) => a3.created_at.localeCompare(b2.created_at), number: (a3, b2) => b2.number - a3.number, title: (a3, b2) => a3.title.localeCompare(b2.title), author: (a3, b2) => a3.user.login.localeCompare(b2.user.login) || b2.number - a3.number };
     const by = sorts[S.psort];
     list.sort(by);
     const row = (p3) => {
       const st = prStatus(p3), ref = `${S.repo}#${p3.number}`;
-      return `<a class="rc ${ref === cur ? "on" : ""}" data-open="${esc(ref)}"><span class="rc-i ${st}">${icon(PICON[st])}</span><span class="rc-t"><b>${esc(p3.title)}</b><i>#${p3.number} \xB7 ${esc(p3.user.login)} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}</i></span></a>`;
+      return { ref, on: ref === cur, st, icon: PICON[st], title: p3.title, sub: `#${p3.number} \xB7 ${p3.user.login} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}` };
     };
-    if (!list.length) return head + `<div class="sb-empty">${S.pf ? "No matches." : "No pull requests."}</div>`;
-    if (S.pgroup === "none") return head + `<div class="sb-count">${list.length} pull request${list.length === 1 ? "" : "s"}</div>` + list.map(row).join("");
+    if (!list.length) return head + sideEmptyHtml(S.pf ? "No matches." : "No pull requests.");
+    if (S.pgroup === "none") return head + sideCountHtml(list.length, list.map(row));
     const groups = /* @__PURE__ */ new Map(), put = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
     list.forEach((p3) => {
       if (S.pgroup === "status") put({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }[prStatus(p3)], p3);
@@ -943,10 +1085,10 @@
       else put("No label", p3);
     });
     const order = S.pgroup === "status" ? ["Open", "Draft", "Merged", "Closed"] : [...groups.keys()].sort((a3, b2) => +(a3 === "No label") - +(b2 === "No label") || a3.localeCompare(b2));
-    return head + order.filter((k3) => groups.has(k3)).map((k3) => {
+    return head + pgHtml(order.filter((k3) => groups.has(k3)).map((k3) => {
       const key = "pg:" + S.pgroup + ":" + k3;
-      return `<div class="pg${folded(key)}"><div class="pg-h" data-fold="${esc(key)}">${icon(isFolded(key) ? "chevron-right" : "chevron-down")}<span>${esc(k3)}</span><i>${groups.get(k3).length}</i></div><div class="pg-b">${groups.get(k3).map(row).join("")}</div></div>`;
-    }).join("");
+      return { key, folded: folded(key), closed: isFolded(key), name: k3, rows: groups.get(k3).map(row) };
+    }));
   }
   function prFiltered() {
     const f4 = S.pf.toLowerCase();
@@ -958,39 +1100,30 @@
     if (!S.prs) return "";
     const authors = [...new Set(S.prs.map((p3) => p3.user.login))].sort((a3, b2) => a3.localeCompare(b2));
     const labels = [...new Set(S.prs.flatMap((p3) => (p3.labels || []).map((l3) => l3.name)))].sort((a3, b2) => a3.localeCompare(b2));
-    const opt = (arr, v2, all) => `<option value="">${all}</option>` + arr.map((x3) => `<option value="${esc(x3)}"${x3 === v2 ? " selected" : ""}>${esc(x3)}</option>`).join("");
-    const sts = { open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" };
-    const n2 = prFiltered().length, active = S.pf || S.pAuthor || S.pLabel || S.pStatus;
-    return `<div class="prl-filters"><span class="pf-search">${icon("search")}<input class="input" id="mainfilter" placeholder="Filter by title, #, author, branch, label\u2026" value="${esc(S.pf)}" spellcheck="false"></span>
-  <select class="input" id="pfauthor">${opt(authors, S.pAuthor, "Author: all")}</select>
-  <select class="input" id="pflabel">${opt(labels, S.pLabel, "Label: all")}</select>
-  <select class="input" id="pfstatus"><option value="">Status: any</option>${Object.entries(sts).map(([k3, t2]) => `<option value="${k3}"${k3 === S.pStatus ? " selected" : ""}>${t2}</option>`).join("")}</select>
-  <select class="input" id="pfsort">${Object.entries(PSORT).map(([k3, t2]) => `<option value="${k3}"${k3 === S.psort ? " selected" : ""}>Sort: ${t2}</option>`).join("")}</select>
-  <span class="pf-count">${n2} of ${S.prs.length}</span>${active ? '<button class="btn" id="pfclear">Clear</button>' : ""}</div>`;
+    return filterBarHtml({
+      filter: S.pf,
+      authors,
+      labels,
+      author: S.pAuthor,
+      label: S.pLabel,
+      status: S.pStatus ?? "",
+      statuses: Object.entries({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }),
+      sort: S.psort,
+      sorts: Object.entries(PSORT),
+      n: prFiltered().length,
+      total: S.prs.length,
+      active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus)
+    });
   }
   function prList() {
-    const head = `<div class="prl-head"><div><span class="repo-ic">${icon("repo", 16)}</span> <b>${esc(S.repo)}</b></div><div class="seg">${["open", "closed", "all"].map((s3) => `<button data-ps="${s3}" class="${S.prState === s3 ? "on" : ""}">${s3[0].toUpperCase() + s3.slice(1)}</button>`).join("")}</div></div>`;
-    let body;
-    const pb = pushBanners(S.repo);
-    if (S.error) body = `<div class="err" style="padding:16px">${esc(S.error)}</div>`;
-    else if (!S.prs) body = '<div class="spinner" style="margin:48px auto">Loading pull requests\u2026</div>';
-    else body = prFiltered().map((p3) => {
+    const rows = S.error || !S.prs ? null : prFiltered().map((p3) => {
       const st = p3.merged_at ? ["merged", "git-merge"] : p3.state === "closed" ? ["closed", "git-pull-request-closed"] : p3.draft ? ["draft", "git-pull-request-draft"] : ["open", "git-pull-request"];
-      const lbl = (p3.labels || []).map((l3) => `<span class="pill-label" style="background:#${esc(l3.color)}33;color:#${esc(l3.color)};border-color:#${esc(l3.color)};margin:0 0 0 4px">${esc(l3.name)}</span>`).join("");
-      return `<a class="prl-row" data-open="${esc(S.repo)}#${p3.number}"><span class="rc-i ${st[0]}">${icon(st[1])}</span><span class="prl-main"><b>${esc(p3.title)}</b>${lbl}<i>#${p3.number} ${p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : "opened"} ${when(p3.merged_at || p3.closed_at || p3.created_at).replace(/<\/?span[^>]*>/g, "")} by ${esc(p3.user.login)}</i></span><img src="${esc(p3.user.avatar_url)}&s=40" width="20" height="20" style="border-radius:50%"></a>`;
-    }).join("") || `<div class="diff-empty">${S.prs.length ? "No pull requests match the filters." : "No pull requests."}</div>`;
-    return `<div class="pr-page"><div class="repoline" style="padding-bottom:16px"></div>${pb}<div class="prl">${head}${prFilterBar()}${body}</div></div>`;
+      return { ref: `${S.repo}#${p3.number}`, st: st[0], icon: st[1], title: p3.title, labels: p3.labels || [], meta: `#${p3.number} ${p3.merged_at ? "merged" : p3.state === "closed" ? "closed" : "opened"} ${when(p3.merged_at || p3.closed_at || p3.created_at).replace(/<\/?span[^>]*>/g, "")} by ${p3.user.login}`, avatar: p3.user.avatar_url ?? "" };
+    });
+    return prListPageHtml({ repo: S.repo, state: S.prState, banners: pushBanners(S.repo), filterBar: prFilterBar(), rows, err: S.error ? String(S.error) : "", loading: !S.error && !S.prs, empty: S.prs?.length ? "No pull requests match the filters." : "No pull requests." });
   }
   function crumbs(repo, trail = [], extra = "") {
-    const sep = `<span class="crumb-sep">${icon("chevron-right", 12)}</span>`;
-    const homeCur = !repo && !trail.length;
-    const parts = [homeCur ? `<span class="crumb cur home">${icon("home", 14)}<span>Home</span></span>` : `<a class="crumb" data-home="1" title="Home">${icon("home", 14)}<span>Home</span></a>`];
-    if (repo) {
-      const [owner, name] = repo.split("/");
-      parts.push(`<span class="crumb-grp"><a class="crumb" data-owner="${esc(owner)}" title="Repositories of ${esc(owner)}">${esc(owner)}</a><span class="crumb-slash">/</span><a class="crumb strong" data-repo="${esc(repo)}" title="All pull requests in ${esc(repo)}">${esc(name)}</a></span>`);
-    }
-    trail.forEach((t2, i3) => parts.push(i3 === trail.length - 1 ? `<span class="crumb cur">${esc(t2.t)}</span>` : `<a class="crumb" ${t2.repo ? `data-repo="${esc(t2.repo)}"` : ""}>${esc(t2.t)}</a>`));
-    return `<nav class="repoline crumbs" aria-label="Breadcrumb">${parts.join(sep)}${extra}</nav>`;
+    return crumbsHtml({ repo, trail, extra });
   }
   function repoHeader(p3) {
     const r3 = p3.base.repo;
@@ -1008,7 +1141,7 @@
   var curRef = () => S.view === "pr" && S.bundle ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "";
   var saveTabs = () => {
     try {
-      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon3, tab, dot, scroll }) => ({ ref, title, state, icon: icon3, tab, dot, scroll })) }));
+      localStorage.setItem(KEY_TABS, JSON.stringify({ list: S.tabs.map(({ ref, title, state, icon: icon6, tab, dot, scroll }) => ({ ref, title, state, icon: icon6, tab, dot, scroll })) }));
     } catch {
     }
   };
@@ -1405,6 +1538,493 @@
     })();
   }
 
+  // src/components/Merge.tsx
+  function MergedBox({ head }) {
+    return /* @__PURE__ */ u3("div", { class: "TL", children: [
+      /* @__PURE__ */ u3("div", { class: "TLI-break", style: "margin-left:0" }),
+      /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+        /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-merged", style: "background:var(--bgColor-done-emphasis)", children: I2("git-merge") }) }),
+        /* @__PURE__ */ u3("div", { class: "merge-card merged-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("h3", { children: "Pull request successfully merged and closed" }),
+          /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+            "You're all set \u2014 the ",
+            /* @__PURE__ */ u3("span", { class: "branch", children: head }),
+            " branch can be safely deleted."
+          ] })
+        ] }) }) })
+      ] })
+    ] });
+  }
+  var mergedBoxHtml = (head) => html(/* @__PURE__ */ u3(MergedBox, { head }));
+  function ClosedBox({ head }) {
+    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { class: "state-closed", style: "background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))", children: I2("git-pull-request-closed") }) }),
+      /* @__PURE__ */ u3("div", { class: "merge-card", children: /* @__PURE__ */ u3("div", { class: "row", children: /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h3", { children: "Closed with unmerged commits" }),
+        /* @__PURE__ */ u3("p", { style: "font-size:14px;margin-top:4px", children: [
+          "This pull request is closed, but the ",
+          /* @__PURE__ */ u3("span", { class: "branch", children: head }),
+          " branch has unmerged commits."
+        ] })
+      ] }) }) })
+    ] });
+  }
+  var closedBoxHtml = (head) => html(/* @__PURE__ */ u3(ClosedBox, { head }));
+  var plural = (n2) => n2 === 1 ? "" : "s";
+  function Sec({ k: k3, h: h3, rerunable, open, children }) {
+    return /* @__PURE__ */ u3("div", { class: "mb-sec", children: [
+      /* @__PURE__ */ u3("button", { class: `mb-h ${h3[0]}`, "data-mb": k3, children: [
+        /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(h3[1], 22) }),
+        /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+          /* @__PURE__ */ u3("b", { children: h3[2] }),
+          /* @__PURE__ */ u3("i", { children: h3[3] || "" })
+        ] }),
+        k3 === "ck" && rerunable ? /* @__PURE__ */ u3("span", { class: "btn small", id: "rerunck", role: "button", children: "Re-run failed" }) : "",
+        I2(open ? "chevron-up" : "chevron-down", 16)
+      ] }),
+      open && children ? /* @__PURE__ */ u3("div", { class: "mb-body", children }) : ""
+    ] });
+  }
+  function CkGroupView({ g: g2 }) {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("button", { class: "mb-grp", "data-mb": `g${g2.k}`, children: [
+        g2.title,
+        SP,
+        I2(g2.open ? "chevron-up" : "chevron-down", 12)
+      ] }),
+      g2.open ? g2.items.map((c3) => /* @__PURE__ */ u3("a", { class: `mb-ck ${c3.st}`, href: c3.url || void 0, children: [
+        I2(c3.icon, 14),
+        /* @__PURE__ */ u3("b", { children: c3.name }),
+        Raw(c3.req),
+        /* @__PURE__ */ u3("i", { children: c3.desc })
+      ] })) : ""
+    ] });
+  }
+  function MergeBox(p3) {
+    const { rv, ck } = p3;
+    const rvBody = /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+        I2("check", 14),
+        SP,
+        rv.ap,
+        " approval",
+        plural(rv.ap)
+      ] }),
+      rv.cr ? /* @__PURE__ */ u3("div", { class: "mb-line bad", children: [
+        I2("x-circle-fill", 14),
+        SP,
+        rv.cr,
+        " requested changes"
+      ] }) : "",
+      /* @__PURE__ */ u3("div", { class: "mb-line", children: [
+        I2("person", 14),
+        SP,
+        rv.pend,
+        " pending review",
+        plural(rv.pend),
+        rv.pend ? `: ${rv.pendNames}` : ""
+      ] })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "merge-box", children: [
+      /* @__PURE__ */ u3("div", { class: "badge", children: /* @__PURE__ */ u3("span", { style: "background:var(--bgColor-success-emphasis)", children: I2("git-pull-request") }) }),
+      /* @__PURE__ */ u3("div", { class: "merge-card mb-card", children: [
+        p3.draft ? /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
+            /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("git-pull-request-draft", 22) }),
+            /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+              /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
+              /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
+            ] }),
+            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", children: p3.busyReady ? "Updating\u2026" : "Ready for review" })
+          ] }) }),
+          Raw(p3.errReady)
+        ] }) : "",
+        /* @__PURE__ */ u3(Sec, { k: "rv", h: rv.h, open: rv.open, children: rvBody }),
+        ck ? /* @__PURE__ */ u3(Sec, { k: "ck", h: ck.h, rerunable: ck.rerunable, open: ck.open, children: ck.groups.map((g2) => /* @__PURE__ */ u3(CkGroupView, { g: g2 })) }) : "",
+        p3.behind ? /* @__PURE__ */ u3("div", { class: "mb-sec mb-warn", children: /* @__PURE__ */ u3("div", { class: "mb-h", children: [
+          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2("alert", 22) }),
+          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u3("b", { children: "This branch is out-of-date with the base branch" }),
+            /* @__PURE__ */ u3("i", { children: [
+              "Merge the latest changes from ",
+              p3.baseRef,
+              " into this branch."
+            ] })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", children: p3.busyUpdate ? "Updating\u2026" : "Update branch" })
+        ] }) }) : "",
+        /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${p3.clean ? "ok" : "bad"}`, children: [
+          /* @__PURE__ */ u3("span", { class: "mb-ic", children: I2(p3.clean ? "check-circle-fill" : "alert", 22) }),
+          /* @__PURE__ */ u3("span", { class: "mb-t", children: [
+            /* @__PURE__ */ u3("b", { children: p3.clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved" }),
+            /* @__PURE__ */ u3("i", { children: p3.clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts." })
+          ] })
+        ] }) }),
+        Raw(p3.errUpdate)
+      ] })
+    ] });
+  }
+  var mergeBoxHtml = (p3) => html(/* @__PURE__ */ u3(MergeBox, { ...p3 }));
+  function ReviewerRow({ r: r3 }) {
+    const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
+      I2(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")
+    ] }) : I2(r3.st === "approved" ? "check" : r3.st === "changes_requested" ? "file-diff" : r3.st === "req" ? "dot-fill" : "comment");
+    return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
+      /* @__PURE__ */ u3("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
+      /* @__PURE__ */ u3("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
+      /* @__PURE__ */ u3("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
+      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, children: I2("sync") }) : ""
+    ] });
+  }
+  function PrSide(p3) {
+    const rv = p3.reviewers, more = rv.length - 3;
+    const rvSection = rv.length ? /* @__PURE__ */ u3(S2, { children: [
+      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3 })),
+      more > 0 ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", children: [
+          /* @__PURE__ */ u3("span", { children: [
+            "+",
+            more,
+            " more reviewer",
+            plural(more)
+          ] }),
+          I2(p3.showAll ? "chevron-up" : "chevron-down")
+        ] }),
+        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3 })) : ""
+      ] }) : ""
+    ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
+    const head = (t2, fb) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+      Raw(fb),
+      /* @__PURE__ */ u3("span", { children: t2 }),
+      I2("gear", 16, "gear")
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
+      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.reviewers}`, children: [
+        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+          Raw(p3.foldBtn.reviewers),
+          /* @__PURE__ */ u3("span", { children: "Reviewers" })
+        ] }),
+        rvSection
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.assignees}`, children: [
+        head("Assignees", p3.foldBtn.assignees),
+        p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
+          /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
+          /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
+        ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.labels}`, children: [
+        head("Labels", p3.foldBtn.labels),
+        p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.milestone}`, children: [
+        head("Milestone", p3.foldBtn.milestone),
+        p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.people}`, children: [
+        /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+          Raw(p3.foldBtn.people),
+          /* @__PURE__ */ u3("span", { children: [
+            p3.peopleCount,
+            " participant",
+            plural(p3.peopleCount)
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u3("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
+      ] })
+    ] });
+  }
+  var prSideHtml = (p3) => html(/* @__PURE__ */ u3(PrSide, { ...p3 }));
+  function CommitsDialog(p3) {
+    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg cp-dlg", children: [
+      /* @__PURE__ */ u3("div", { class: "cp-h", children: [
+        /* @__PURE__ */ u3("h2", { children: "Select commits to view" }),
+        /* @__PURE__ */ u3("button", { class: "icon-btn", id: "cpx", title: "Close", children: I2("x") })
+      ] }),
+      /* @__PURE__ */ u3("button", { class: `cp-opt${p3.allOn ? " on" : ""}`, id: "cpall", children: [
+        /* @__PURE__ */ u3("b", { children: "All commits" }),
+        /* @__PURE__ */ u3("i", { children: [
+          p3.count,
+          " commit",
+          plural(p3.count)
+        ] })
+      ] }),
+      p3.since ? /* @__PURE__ */ u3("button", { class: `cp-opt${p3.since.on ? " on" : ""}`, id: "cpsince", disabled: !p3.since.n, children: [
+        /* @__PURE__ */ u3("b", { children: "Changes since your last review" }),
+        /* @__PURE__ */ u3("i", { children: p3.since.n ? `${p3.since.n} commit${plural(p3.since.n)}` : "No new commits" })
+      ] }) : "",
+      /* @__PURE__ */ u3("div", { class: "cp-sub", children: "Select a commit, or click a second one to view the range between them" }),
+      /* @__PURE__ */ u3("input", { class: "input cp-q", id: "cpq", placeholder: "Filter commits\u2026", value: p3.filter }),
+      /* @__PURE__ */ u3("div", { class: "cp-list", id: "cplist", "data-q": p3.q, children: p3.rows.map((r3) => /* @__PURE__ */ u3("label", { class: `cp-row${r3.on ? " on" : ""}`, "data-cp": r3.i, children: [
+        /* @__PURE__ */ u3("input", { type: "checkbox", checked: r3.on, tabindex: -1 }),
+        /* @__PURE__ */ u3("span", { class: "cp-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.title }),
+          /* @__PURE__ */ u3("i", { children: [
+            r3.by,
+            " committed ",
+            Raw(r3.when)
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("code", { children: r3.sha })
+      ] })).reverse() }),
+      /* @__PURE__ */ u3("div", { class: "btns", children: [
+        /* @__PURE__ */ u3("span", { class: "cp-sel", children: p3.selLabel }),
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: "btn", id: "cpcancel", children: "Cancel" }),
+        /* @__PURE__ */ u3("button", { class: "btn primary", id: "cpsave", disabled: !p3.hasPick, children: "Save" })
+      ] })
+    ] }) });
+  }
+  var commitsDialogHtml = (p3) => html(/* @__PURE__ */ u3(CommitsDialog, { ...p3 }));
+  function FcBar(p3) {
+    return /* @__PURE__ */ u3("div", { class: "fc-bar", children: [
+      /* @__PURE__ */ u3("button", { class: "btn small", id: "fcbtn", title: "Choose which commits to view", children: [
+        I2("git-commit"),
+        SP,
+        p3.label,
+        p3.count !== null ? /* @__PURE__ */ u3(S2, { children: [
+          SP,
+          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count })
+        ] }) : "",
+        p3.code ? /* @__PURE__ */ u3(S2, { children: [
+          SP,
+          /* @__PURE__ */ u3("code", { children: p3.code })
+        ] }) : "",
+        SP,
+        "\u25BE"
+      ] }),
+      p3.nav ? /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u3("button", { "data-fstep": "-1", disabled: p3.nav.prevOff, children: "\u2039 Prev" }),
+        /* @__PURE__ */ u3("button", { "data-fstep": "1", disabled: p3.nav.nextOff, children: "Next \u203A" })
+      ] }) : "",
+      p3.hasRange ? /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("span", { class: "fc-t", children: p3.title }),
+        /* @__PURE__ */ u3("button", { class: "link-btn", id: "fcall", children: "Show all commits" })
+      ] }) : ""
+    ] });
+  }
+  var fcBarHtml = (p3) => html(/* @__PURE__ */ u3(FcBar, { ...p3 }));
+  var SORTS = [["path", "GitHub order"], ["pathz", "Path Z\u2013A"], ["most", "Most changed"], ["least", "Least changed"], ["comments", "Most comments"], ["status", "By status"]];
+  function FilesBar(p3) {
+    return /* @__PURE__ */ u3("div", { class: "files-bar", children: [
+      /* @__PURE__ */ u3("div", { class: "seg-ctl", children: [
+        /* @__PURE__ */ u3("button", { class: p3.mode === "unified" ? "on" : "", "data-dmode": "unified", children: "Unified" }),
+        /* @__PURE__ */ u3("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", children: "Split" })
+      ] }),
+      /* @__PURE__ */ u3("select", { class: "input fsort", id: "fsort", title: "Sort files", children: SORTS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.sort === v2, children: t2 })) }),
+      p3.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", children: [
+        "Finish review \xB7 ",
+        p3.pending,
+        " comment",
+        plural(p3.pending)
+      ] }) : "",
+      /* @__PURE__ */ u3("button", { class: "link-btn", "data-foldall": p3.allFolded ? "open" : "close", "data-files": p3.names, children: p3.allFolded ? "Expand all files" : "Collapse all files" })
+    ] });
+  }
+  var filesBarHtml = (p3) => html(/* @__PURE__ */ u3(FilesBar, { ...p3 }));
+  function FileBox(p3) {
+    return /* @__PURE__ */ u3("div", { class: `file${p3.folded}`, children: [
+      /* @__PURE__ */ u3("div", { class: "file-head", "data-fold": `f:${p3.name}`, children: [
+        /* @__PURE__ */ u3("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
+        /* @__PURE__ */ u3("span", { class: "stat", children: [
+          /* @__PURE__ */ u3("span", { class: "a", children: [
+            "+",
+            p3.add
+          ] }),
+          SP,
+          /* @__PURE__ */ u3("span", { class: "d", children: [
+            "\u2212",
+            p3.del
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) }),
+        /* @__PURE__ */ u3("span", { class: "path", children: p3.name })
+      ] }),
+      Raw(p3.body)
+    ] });
+  }
+  var fileBoxHtml = (p3) => html(/* @__PURE__ */ u3(FileBox, { ...p3 }));
+  function CommitsList({ rows }) {
+    return /* @__PURE__ */ u3("div", { style: "border:1px solid var(--borderColor-default);border-radius:6px", children: rows.length ? rows.map((r3) => /* @__PURE__ */ u3("div", { style: "padding:16px;border-bottom:1px solid var(--borderColor-muted)", children: Raw(r3) })) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No commits listed." }) });
+  }
+  var commitsListHtml = (rows) => html(/* @__PURE__ */ u3(CommitsList, { rows }));
+  function CmItem({ c: c3 }) {
+    return /* @__PURE__ */ u3("div", { class: `cm ${c3.on ? "on" : ""}`, "data-sha": c3.sha, children: [
+      /* @__PURE__ */ u3("span", { class: "cm-av", children: c3.avatar ? Raw(c3.avatar) : /* @__PURE__ */ u3("i", { children: c3.initial }) }),
+      /* @__PURE__ */ u3("span", { class: "cm-t", children: [
+        /* @__PURE__ */ u3("b", { children: c3.title }),
+        /* @__PURE__ */ u3("i", { children: c3.sub })
+      ] }),
+      c3.n ? /* @__PURE__ */ u3("span", { class: "cm-n", children: [
+        I2("comment"),
+        c3.n
+      ] }) : "",
+      /* @__PURE__ */ u3("code", { children: c3.sha.slice(0, 7) })
+    ] });
+  }
+  function Rail({ k: k3, label, ic }) {
+    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, children: [
+      I2(ic),
+      /* @__PURE__ */ u3("span", { children: label })
+    ] });
+  }
+  function SplitView(p3) {
+    const left = p3.hl ? /* @__PURE__ */ u3(Rail, { k: "l", label: "Commits", ic: "git-commit" }) : /* @__PURE__ */ u3("section", { class: "pane pane-l", children: [
+      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldList}`, children: [
+        /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+          I2("git-commit"),
+          /* @__PURE__ */ u3("span", { children: "Commits" }),
+          /* @__PURE__ */ u3("span", { class: "counter", children: p3.count }),
+          /* @__PURE__ */ u3("span", { class: "sp" }),
+          /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", children: "\u21C4" }),
+          Raw(p3.foldBtnList),
+          /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "l", title: "Hide this panel", children: I2("x") })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "cm-list", children: [
+          /* @__PURE__ */ u3("div", { class: `cm all ${p3.allOn ? "on" : ""}`, "data-sha": "", children: [
+            /* @__PURE__ */ u3("span", { class: "cm-av", children: /* @__PURE__ */ u3("i", { children: I2("diff") }) }),
+            /* @__PURE__ */ u3("span", { class: "cm-t", children: [
+              /* @__PURE__ */ u3("b", { children: "All changes" }),
+              /* @__PURE__ */ u3("i", { children: p3.allSub })
+            ] })
+          ] }),
+          p3.rows.map((c3) => /* @__PURE__ */ u3(CmItem, { c: c3 }))
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldDiff}`, children: [
+        /* @__PURE__ */ u3("div", { class: "pane-h sub", children: [
+          I2("file-diff"),
+          /* @__PURE__ */ u3("span", { children: p3.subTitle }),
+          /* @__PURE__ */ u3("span", { class: "sp" }),
+          Raw(p3.foldBtnDiff)
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "pane-body", children: Raw(p3.diff) })
+      ] })
+    ] });
+    const right = p3.hr ? /* @__PURE__ */ u3(Rail, { k: "r", label: "Conversation", ic: "comment-discussion" }) : /* @__PURE__ */ u3("section", { class: "pane pane-r", children: [
+      /* @__PURE__ */ u3("div", { class: "pane-h", children: [
+        I2("comment-discussion"),
+        /* @__PURE__ */ u3("span", { children: "Conversation" }),
+        /* @__PURE__ */ u3("span", { class: "sp" }),
+        /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", children: "\u21C4" }),
+        /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", children: I2("x") })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "pane-body", children: Raw(p3.right) })
+    ] });
+    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
+      left,
+      p3.hl || p3.hr ? "" : /* @__PURE__ */ u3("div", { class: "gutter", id: "gutter", title: "Drag to resize" }),
+      right
+    ] });
+  }
+  var splitViewHtml = (p3) => html(/* @__PURE__ */ u3(SplitView, { ...p3 }));
+
+  // src/components/Diff.tsx
+  function Tc(p3) {
+    return /* @__PURE__ */ u3("div", { class: "tc", id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
+      /* @__PURE__ */ u3("a", { href: p3.user?.html_url || "#", children: Av(p3.user, 24) }),
+      /* @__PURE__ */ u3("div", { style: "flex:1;min-width:0", children: [
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("span", { class: "who", children: p3.login }),
+          SP,
+          /* @__PURE__ */ u3("span", { children: When(p3.at) }),
+          p3.withMenu ? /* @__PURE__ */ u3("button", { class: "cm-btn", "data-cm": p3.id, "data-root": p3.root, title: "Comment actions", children: "\u22EF" }) : ""
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "markdown-body", style: "margin-top:8px", children: Raw(p3.body) }),
+        Raw(p3.sug),
+        Raw(p3.reactions)
+      ] })
+    ] });
+  }
+  var tcHtml = (p3) => html(/* @__PURE__ */ u3(Tc, { ...p3 }));
+  function ThreadRow(p3) {
+    return /* @__PURE__ */ u3("tr", { class: "lc-row th-row", children: /* @__PURE__ */ u3("td", { colspan: p3.cols, children: /* @__PURE__ */ u3("div", { class: `thread inl${p3.folded}`, children: [
+      /* @__PURE__ */ u3("div", { class: "thread-head", children: [
+        Raw(p3.foldBtn),
+        /* @__PURE__ */ u3("span", { class: "th-t", children: [
+          "Comment on line ",
+          /* @__PURE__ */ u3("b", { children: [
+            p3.side,
+            p3.line
+          ] })
+        ] }),
+        p3.outdated ? /* @__PURE__ */ u3("span", { class: "res out", children: "Outdated" }) : "",
+        p3.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : ""
+      ] }),
+      p3.cards.map((c3) => Raw(c3)),
+      Raw(p3.reply),
+      p3.act ? /* @__PURE__ */ u3("div", { class: "th-foot", children: /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": p3.act.tid, "data-res": p3.act.res ? "unresolve" : "resolve", children: p3.act.res ? "Unresolve conversation" : "Resolve conversation" }) }) : ""
+    ] }) }) });
+  }
+  var threadRowHtml = (p3) => html(/* @__PURE__ */ u3(ThreadRow, { ...p3 }));
+  var replyBoxHtml = (draftBox2, err, rid) => html(/* @__PURE__ */ u3("div", { class: "reply", children: [
+    Raw(draftBox2),
+    Raw(err),
+    /* @__PURE__ */ u3("button", { class: "btn small", "data-sendreply": rid, children: "Reply" })
+  ] }));
+  var lcCardsHtml = (cards) => html(/* @__PURE__ */ u3(S2, { children: cards.map((c3) => /* @__PURE__ */ u3("div", { class: "lc-card", children: [
+    /* @__PURE__ */ u3("span", { class: "lc-tag", children: "Pending" }),
+    /* @__PURE__ */ u3("div", { class: "lc-body", children: Raw(c3.body) }),
+    /* @__PURE__ */ u3("button", { class: "lc-x", "data-lcdel": c3.id, title: "Delete draft comment", children: I2("x") })
+  ] })) }));
+  var lcEditHtml = (draftBox2, code) => html(/* @__PURE__ */ u3("div", { class: "lc-edit", children: [
+    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { class: "lc-btns", children: [
+      code !== null ? /* @__PURE__ */ u3("button", { class: "btn small", id: "lcsuggest", "data-code": code, title: "Insert a suggested change for this line", children: "\xB1 Suggest change" }) : "",
+      /* @__PURE__ */ u3("span", { class: "sp" }),
+      /* @__PURE__ */ u3("button", { class: "btn small", id: "lccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", children: "Add to review" })
+    ] })
+  ] }));
+  var sugNoteHtml = (t2) => html(/* @__PURE__ */ u3("div", { class: "sug-row", children: /* @__PURE__ */ u3("span", { class: "sug-note", children: t2 }) }));
+  var sugBtnHtml = (id, disabled, ref, mine) => html(/* @__PURE__ */ u3("div", { class: "sug-row", children: [
+    /* @__PURE__ */ u3("button", { class: "btn small primary", "data-sug": id, disabled, children: "Apply suggestion" }),
+    /* @__PURE__ */ u3("span", { class: "sug-note", children: [
+      "Commits to ",
+      /* @__PURE__ */ u3("code", { children: ref }),
+      mine ? "" : " (fork \u2014 needs push access)"
+    ] })
+  ] }));
+  function ReviewBlock(p3) {
+    return /* @__PURE__ */ u3("div", { class: `TLI rev${p3.folded}`, children: [
+      /* @__PURE__ */ u3("div", { class: `TLI-badge ${p3.kind}`, children: I2(p3.ic) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Raw(p3.avatar) }),
+      /* @__PURE__ */ u3("div", { class: "TLI-body", children: [
+        /* @__PURE__ */ u3("div", { class: "row", children: [
+          Raw(p3.foldBtn),
+          Raw(p3.who),
+          " ",
+          /* @__PURE__ */ u3("span", { children: p3.verb }),
+          " ",
+          /* @__PURE__ */ u3("a", { class: "time", href: p3.url, children: p3.at }),
+          p3.sum ? /* @__PURE__ */ u3("span", { class: `rev-sum${p3.sum.ok ? " ok" : ""}`, children: p3.sum.allRes ? /* @__PURE__ */ u3(S2, { children: [
+            I2("check"),
+            " All resolved"
+          ] }) : p3.sum.text }) : ""
+        ] }),
+        "\n  ",
+        p3.bodyHtml ? /* @__PURE__ */ u3("div", { class: "cbox nocaret", style: "margin-top:8px;color:var(--fgColor-default)", children: /* @__PURE__ */ u3("div", { class: "cbody", children: /* @__PURE__ */ u3("div", { class: "markdown-body", children: Raw(p3.bodyHtml) }) }) }) : "",
+        p3.threads.length ? /* @__PURE__ */ u3("div", { children: p3.threads.map((t2) => /* @__PURE__ */ u3("div", { class: `thread${t2.folded}`, children: [
+          /* @__PURE__ */ u3("div", { class: "thread-head", children: [
+            Raw(t2.foldBtn),
+            t2.path,
+            t2.resolved ? /* @__PURE__ */ u3("span", { class: "res", children: "Resolved" }) : "",
+            t2.tid ? /* @__PURE__ */ u3("button", { class: "thread-act", "data-thread": t2.tid, "data-res": t2.resolved ? "unresolve" : "resolve", children: t2.resolved ? "Unresolve" : "Resolve conversation" }) : ""
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "diffhunk", children: Raw(t2.hunk) }),
+          t2.cards.map((c3) => Raw(c3)),
+          Raw(t2.reply)
+        ] })) }) : ""
+      ] })
+    ] });
+  }
+  var reviewBlockHtml = (p3) => html(/* @__PURE__ */ u3(ReviewBlock, { ...p3 }));
+
   // src/app/diff.ts
   S.diffMode = localStorage.getItem("diffmode") || "unified";
   S.pending = load("pending", {});
@@ -1447,18 +2067,18 @@
     const roots = all.filter((c3) => !c3.in_reply_to_id && (c3.line ?? c3.original_line) === line && (c3.side || "RIGHT") === side);
     if (!roots.length) return "";
     const res = new Set(S.bundle.resolved_ids || []);
-    const b2 = S.bundle, card = (c3, rootId) => `<div class="tc"><a href="${esc(c3.user?.html_url || "#")}">${avatar(c3.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c3.user?.login || "ghost")}</span> <span>${when(c3.created_at)}</span>${S.hasToken ? `<button class="cm-btn" data-cm="${esc(c3.id)}" data-root="${rootId}" title="Comment actions">\u22EF</button>` : ""}</div><div class="markdown-body" style="margin-top:8px">${c3.body_html || esc(c3.body || "")}</div>${reactionsHtml(c3.reactions, "review_comment", c3.id)}</div></div>`;
+    const b2 = S.bundle, card = (c3, rootId) => tcHtml({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, body: c3.body_html || esc(c3.body || ""), reactions: reactionsHtml(c3.reactions, "review_comment", c3.id), sug: "", anchorId: false });
     return roots.map((r3) => {
       const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all.filter((c3) => c3.in_reply_to_id === r3.id)];
-      const act3 = tid && S.hasToken ? `<button class="thread-act" data-thread="${esc(tid)}" data-res="${isRes ? "unresolve" : "resolve"}">${isRes ? "Unresolve conversation" : "Resolve conversation"}</button>` : "";
-      const reply = S.hasToken ? `<div class="reply">${draftBox("reply-" + r3.id, "Write a reply", 2)}${errLine("reply-" + r3.id)}<button class="btn small" data-sendreply="${r3.id}">Reply</button></div>` : "";
-      return `<tr class="lc-row th-row"><td colspan="${cols}"><div class="thread inl${folded("t:" + r3.id, isRes)}"><div class="thread-head">${foldBtn("t:" + r3.id, "Hide this thread", isRes)}<span class="th-t">Comment on line <b>${side === "LEFT" ? "L" : "R"}${line}</b></span>${r3.line == null ? '<span class="res out">Outdated</span>' : ""}${isRes ? '<span class="res">Resolved</span>' : ""}</div>${list.map((c3) => card(c3, r3.id)).join("")}${reply}${act3 ? `<div class="th-foot">${act3}</div>` : ""}</div></td></tr>`;
+      const act3 = tid && S.hasToken ? { tid, res: isRes } : null;
+      const reply = S.hasToken ? replyBoxHtml(draftBox("reply-" + r3.id, "Write a reply", 2), errLine("reply-" + r3.id), r3.id) : "";
+      return threadRowHtml({ cols, folded: folded("t:" + r3.id, isRes), foldBtn: foldBtn("t:" + r3.id, "Hide this thread", isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply, act: act3 });
     }).join("");
   }
   function lineExtras(path, line, side, cols, canComment, text) {
     const k3 = lineKey(path, line, side), th = lineThreads(path, line, side, cols), mine = pendList().filter((c3) => c3.path === path && c3.line === line && c3.side === side);
-    const cards = mine.map((c3) => `<div class="lc-card"><span class="lc-tag">Pending</span><div class="lc-body">${lcBody(c3.body)}</div><button class="lc-x" data-lcdel="${c3.id}" title="Delete draft comment">${icon("x")}</button></div>`).join("");
-    const open = canComment && S.lcOpen === k3 ? `<div class="lc-edit">${draftBox("lc", "Leave a comment on this line", 3)}<div class="lc-btns">${side === "RIGHT" && text !== void 0 ? `<button class="btn small" id="lcsuggest" data-code="${esc(text)}" title="Insert a suggested change for this line">\xB1 Suggest change</button>` : ""}<span class="sp"></span><button class="btn small" id="lccancel">Cancel</button><button class="btn small primary" id="lcadd">Add to review</button></div></div>` : "";
+    const cards = mine.length ? lcCardsHtml(mine.map((c3) => ({ id: c3.id, body: lcBody(c3.body) }))) : "";
+    const open = canComment && S.lcOpen === k3 ? lcEditHtml(draftBox("lc", "Leave a comment on this line", 3), side === "RIGHT" && text !== void 0 ? text : null) : "";
     return th + (cards || open ? `<tr class="lc-row"><td colspan="${cols}"><div class="lc">${cards}${open}</div></td></tr>` : "");
   }
   var diffCache = /* @__PURE__ */ new Map();
@@ -1527,11 +2147,11 @@
   };
   function suggestBtn(c3, b2, list) {
     const t2 = sugOf(c3);
-    if (t2 !== null && S.applied?.has(String(c3.id))) return '<div class="sug-row"><span class="sug-note">Applying suggestion\u2026</span></div>';
+    if (t2 !== null && S.applied?.has(String(c3.id))) return sugNoteHtml("Applying suggestion\u2026");
     if (t2 === null || !b0open() || list.some((x3) => (b2.resolved_ids || []).includes(x3.id))) return "";
     const p3 = b2.pull, mine = p3.head.repo && !p3.head.repo.fork || p3.head.repo && p3.head.repo.full_name === p3.base.repo.full_name;
-    if (!c3.line) return '<div class="sug-row"><span class="sug-note">Outdated suggestion \u2014 the lines have changed.</span></div>';
-    return `<div class="sug-row"><button class="btn small primary" data-sug="${c3.id}" ${p3.head.repo ? "" : "disabled"}>Apply suggestion</button><span class="sug-note">Commits to <code>${esc(p3.head.ref)}</code>${mine ? "" : " (fork \u2014 needs push access)"}</span></div>`;
+    if (!c3.line) return sugNoteHtml("Outdated suggestion \u2014 the lines have changed.");
+    return sugBtnHtml(c3.id, !p3.head.repo, p3.head.ref, !!mine);
   }
   function reviewBlock(e2, b2) {
     const resolved = new Set(b2.resolved_ids || []), isRes = (list) => list.some((c3) => resolved.has(c3.id));
@@ -1545,10 +2165,18 @@
     const all = Object.values(byPath).map((l3) => l3.sort((x3, y2) => (x3.in_reply_to_id ? 1 : 0) - (y2.in_reply_to_id ? 1 : 0) || x3.id - y2.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = "r:" + e2.id;
     const lists = S.unres ? all.filter((l3) => !isRes(l3)) : all;
     if (S.unres && !lists.length) return "";
-    const threads = lists.map((list) => `<div class="thread${folded("t:" + list[0].id, isRes(list))}"><div class="thread-head">${foldBtn("t:" + list[0].id, "Hide this thread", isRes(list))}${esc(list[0].path)}${isRes(list) ? '<span class="res">Resolved</span>' : ""}${(b2.thread_ids || {})[list[0].id] ? `<button class="thread-act" data-thread="${esc(b2.thread_ids[list[0].id])}" data-res="${isRes(list) ? "unresolve" : "resolve"}">${isRes(list) ? "Unresolve" : "Resolve conversation"}</button>` : ""}</div><div class="diffhunk">${diffHunkTable(list[0].diff_hunk || "")}</div>${list.map((c3) => `<div class="tc" id="c-${esc(c3.id)}"><a href="${esc(c3.user.html_url)}">${avatar(c3.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">${esc(c3.user.login)}</span> <span>${when(c3.created_at)}</span><button class="cm-btn" data-cm="${esc(c3.id)}" data-root="${list[0].id}" title="Comment actions">\u22EF</button></div><div class="markdown-body" style="margin-top:8px">${c3.body_html || ""}</div>${suggestBtn(c3, b2, list)}${reactionsHtml(c3.reactions, "review_comment", c3.id)}</div></div>`).join("")}<div class="reply">${draftBox("reply-" + list[0].id, "Reply\u2026", 2)}${errLine("reply-" + list[0].id)}<button class="btn small" data-sendreply="${list[0].id}">Reply</button></div></div>`).join("");
-    const sum = all.length ? `<span class="rev-sum${allRes ? " ok" : ""}">${allRes ? icon("check") + " All resolved" : `${all.length} thread${all.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}`}</span>` : "";
-    return `<div class="TLI rev${folded(rk, allRes)}"><div class="TLI-badge ${kind}">${icon(ic)}</div><div class="TLI-avatar">${avatar(e2.user, 20)}</div><div class="TLI-body"><div class="row">${foldBtn(rk, "Collapse / expand this review", allRes)}${user(e2.user)} <span>${verb}</span> <a class="time" href="${esc(e2.html_url)}">${when(e2.submitted_at).replace(/<\/?span[^>]*>/g, "")}</a>${sum}</div>
-  ${hasBody ? `<div class="cbox nocaret" style="margin-top:8px;color:var(--fgColor-default)"><div class="cbody"><div class="markdown-body">${e2.body_html}</div></div></div>` : ""}${threads ? `<div>${threads}</div>` : ""}</div></div>`;
+    const threads = lists.map((list) => ({
+      folded: folded("t:" + list[0].id, isRes(list)),
+      foldBtn: foldBtn("t:" + list[0].id, "Hide this thread", isRes(list)),
+      path: list[0].path,
+      resolved: isRes(list),
+      tid: (b2.thread_ids || {})[list[0].id] ? b2.thread_ids[list[0].id] : null,
+      hunk: diffHunkTable(list[0].diff_hunk || ""),
+      cards: list.map((c3) => tcHtml({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, body: c3.body_html || "", reactions: reactionsHtml(c3.reactions, "review_comment", c3.id), sug: suggestBtn(c3, b2, list), anchorId: true })),
+      reply: replyBoxHtml(draftBox("reply-" + list[0].id, "Reply\u2026", 2), errLine("reply-" + list[0].id), list[0].id)
+    }));
+    const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}` } : null;
+    return reviewBlockHtml({ folded: folded(rk, allRes), kind, ic, avatar: avatar(e2.user, 20), foldBtn: foldBtn(rk, "Collapse / expand this review", allRes), who: user(e2.user), verb, url: e2.html_url ?? "", at: when(e2.submitted_at).replace(/<\/?span[^>]*>/g, ""), sum, bodyHtml: hasBody ? e2.body_html : "", threads });
   }
 
   // src/components/Timeline.tsx
@@ -1591,7 +2219,7 @@
         I2("person"),
         "Show"
       ] }),
-      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "" : "on"}`, "data-whoclear": "1", children: "Everyone" }),
+      /* @__PURE__ */ u3("button", { class: `who-chip ${everyone ? "on" : ""}`, "data-whoclear": "1", children: "Everyone" }),
       people.map(({ u: u4, n: n2, on }) => /* @__PURE__ */ u3("button", { class: `who-chip ${on ? "on" : ""}`, "data-who": u4.login, title: `${n2} comment${n2 === 1 ? "" : "s"}`, children: [
         Av(u4, 18),
         /* @__PURE__ */ u3("span", { children: u4.login }),
@@ -2011,18 +2639,14 @@
   function mergeBox(b2) {
     const p3 = b2.pull;
     const head = p3.head.label.split(":")[1];
-    if (p3.merged) {
-      return `<div class="TL"><div class="TLI-break" style="margin-left:0"></div><div class="merge-box"><div class="badge"><span class="state-merged" style="background:var(--bgColor-done-emphasis)">${icon("git-merge")}</span></div><div class="merge-card merged-card"><div class="row"><div><h3>Pull request successfully merged and closed</h3><p style="font-size:14px;margin-top:4px">You're all set \u2014 the <span class="branch">${esc(head)}</span> branch can be safely deleted.</p></div></div></div></div></div>`;
-    }
-    if (p3.state === "closed") {
-      return `<div class="merge-box"><div class="badge"><span class="state-closed" style="background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))">${icon("git-pull-request-closed")}</span></div><div class="merge-card"><div class="row"><div><h3>Closed with unmerged commits</h3><p style="font-size:14px;margin-top:4px">This pull request is closed, but the <span class="branch">${esc(head)}</span> branch has unmerged commits.</p></div></div></div></div>`;
-    }
+    if (p3.merged) return mergedBoxHtml(head);
+    if (p3.state === "closed") return closedBoxHtml(head);
     const clean = p3.mergeable_state === "clean" || p3.mergeable !== false;
     const latest = /* @__PURE__ */ new Map();
     b2.timeline.filter((e2) => e2.event === "reviewed" && e2.user).forEach((e2) => {
-      const st2 = e2.state.toLowerCase();
-      if (st2 === "commented" && latest.has(e2.user.login)) return;
-      latest.set(e2.user.login, st2);
+      const st = e2.state.toLowerCase();
+      if (st === "commented" && latest.has(e2.user.login)) return;
+      latest.set(e2.user.login, st);
     });
     const ap = [...latest.values()].filter((x3) => x3 === "approved").length, cr = [...latest.values()].filter((x3) => x3 === "changes_requested").length, pendRev = (p3.requested_reviewers || []).length;
     const rvHead = cr ? ["bad", "x-circle-fill", "Changes requested", `${cr} reviewer${cr === 1 ? "" : "s"} requested changes`] : ap ? ["ok", "check-circle-fill", "Changes approved", `${ap} approving review${ap === 1 ? "" : "s"}`] : ["", "eye", "Review not yet submitted", pendRev ? `${pendRev} pending review${pendRev === 1 ? "" : "s"}` : "No reviews yet"];
@@ -2031,21 +2655,22 @@
     const ckSub = [cnt("skip") && `${cnt("skip")} neutral`, cnt("pass") && `${cnt("pass")} successful`, cnt("fail") && `${cnt("fail")} failing`, cnt("pending") && `${cnt("pending")} pending`].filter(Boolean).join(", ");
     const grp = (k3, title) => {
       const g2 = list.filter((c3) => c3.st === k3);
-      if (!g2.length) return "";
+      if (!g2.length) return [];
       const open = S.mbOpen?.has("g" + k3) ?? k3 !== "pass";
-      return `<button class="mb-grp" data-mb="g${k3}">${title} ${icon(open ? "chevron-up" : "chevron-down", 12)}</button>${open ? g2.map((c3) => `<a class="mb-ck ${c3.st}" ${c3.url ? `href="${esc(c3.url)}"` : ""}>${icon(CK[c3.st][0], 14)}<b>${esc(c3.name)}</b>${reqBadge(c3)}<i>${esc(c3.description || c3.app || "")}</i></a>`).join("") : ""}`;
+      return [{ k: k3, title, open, items: g2.map((c3) => ({ st: c3.st, url: c3.url, icon: CK[c3.st][0], name: c3.name, req: reqBadge(c3), desc: c3.description || c3.app || "" })) }];
     };
-    const rerunable = list.some((c3) => c3.st === "fail" && /\/actions\/runs\//.test(c3.url || ""));
-    const sec = (k3, h3, body) => {
-      const open = S.mbOpen?.has(k3);
-      return `<div class="mb-sec"><button class="mb-h ${h3[0]}" data-mb="${k3}"><span class="mb-ic">${icon(h3[1], 22)}</span><span class="mb-t"><b>${h3[2]}</b><i>${h3[3] || ""}</i></span>${k3 === "ck" && rerunable ? '<span class="btn small" id="rerunck" role="button">Re-run failed</span>' : ""}${icon(open ? "chevron-up" : "chevron-down", 16)}</button>${open && body ? `<div class="mb-body">${body}</div>` : ""}</div>`;
-    };
-    const rvBody = `<div class="mb-line">${icon("check", 14)} ${ap} approval${ap === 1 ? "" : "s"}</div>${cr ? `<div class="mb-line bad">${icon("x-circle-fill", 14)} ${cr} requested changes</div>` : ""}<div class="mb-line">${icon("person", 14)} ${pendRev} pending review${pendRev === 1 ? "" : "s"}${pendRev ? `: ${p3.requested_reviewers.map((u4) => esc(u4.login)).join(", ")}` : ""}</div>`;
-    const behind = p3.mergeable_state === "behind";
-    const upd = behind ? `<div class="mb-sec mb-warn"><div class="mb-h"><span class="mb-ic">${icon("alert", 22)}</span><span class="mb-t"><b>This branch is out-of-date with the base branch</b><i>Merge the latest changes from ${esc(p3.base.ref)} into this branch.</i></span><button class="btn" id="updbranch">${S.busy === "update_branch" ? "Updating\u2026" : "Update branch"}</button></div></div>` : "";
-    const st = p3.draft ? `<div class="mb-sec"><div class="mb-h"><span class="mb-ic">${icon("git-pull-request-draft", 22)}</span><span class="mb-t"><b>This pull request is still a work in progress</b><i>Draft pull requests cannot be merged.</i></span><button class="btn primary" id="doready">${S.busy === "ready" ? "Updating\u2026" : "Ready for review"}</button></div></div>${errLine("ready")}` : "";
-    const conf = `<div class="mb-sec"><div class="mb-h ${clean ? "ok" : "bad"}"><span class="mb-ic">${icon(clean ? "check-circle-fill" : "alert", 22)}</span><span class="mb-t"><b>${clean ? "This branch has no conflicts with the base branch" : "This branch has conflicts that must be resolved"}</b><i>${clean ? "Merging can be performed automatically." : "Use the web editor or the command line to resolve conflicts."}</i></span></div></div>`;
-    return `<div class="merge-box"><div class="badge"><span style="background:var(--bgColor-success-emphasis)">${icon("git-pull-request")}</span></div><div class="merge-card mb-card">${st}${sec("rv", rvHead, rvBody)}${list.length ? sec("ck", ckHead.concat(ckSub), grp("fail", "Failing checks") + grp("pending", "In progress") + grp("skip", "Neutral checks") + grp("pass", "Successful checks")) : ""}${upd}${conf}${errLine("update_branch")}</div></div>`;
+    return mergeBoxHtml({
+      draft: !!p3.draft,
+      busyReady: S.busy === "ready",
+      errReady: errLine("ready"),
+      rv: { h: rvHead, open: !!S.mbOpen?.has("rv"), ap, cr, pend: pendRev, pendNames: (p3.requested_reviewers || []).map((u4) => u4.login).join(", ") },
+      ck: list.length ? { h: ckHead.concat(ckSub), open: !!S.mbOpen?.has("ck"), rerunable: list.some((c3) => c3.st === "fail" && /\/actions\/runs\//.test(c3.url || "")), groups: [...grp("fail", "Failing checks"), ...grp("pending", "In progress"), ...grp("skip", "Neutral checks"), ...grp("pass", "Successful checks")] } : null,
+      behind: p3.mergeable_state === "behind",
+      busyUpdate: S.busy === "update_branch",
+      baseRef: p3.base.ref,
+      errUpdate: errLine("update_branch"),
+      clean
+    });
   }
   function sidebar(b2) {
     const p3 = b2.pull;
@@ -2058,22 +2683,23 @@
         if (!cur.prev || st === "approved" || st === "changes_requested") cur.prev = st;
       } else if (!cur || st === "approved" || st === "changes_requested") reviewers.set(e2.user.login, { u: e2.user, st });
     });
-    const rv = [...reviewers.values()];
     const canRe = !p3.merged && p3.state === "open";
-    const rvHtml = (r3) => `<div class="reviewer"><a href="${esc(r3.u.html_url)}">${avatar(r3.u, 20)}</a><a class="nm" href="${esc(r3.u.html_url)}">${esc(r3.u.login)}</a><span class="st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}">${r3.st === "req" && r3.prev ? `<span title="Asked to review again" style="margin-right:6px">${icon("sync")}</span>${icon(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")}` : icon(r3.st === "approved" ? "check" : r3.st === "changes_requested" ? "file-diff" : r3.st === "req" ? "dot-fill" : "comment")}</span>${canRe && r3.st !== "req" && r3.u.login !== p3.user.login ? `<button class="rerequest" data-rerequest="${esc(r3.u.login)}" title="Ask ${esc(r3.u.login)} to review again">${icon("sync")}</button>` : ""}</div>`;
-    const first = rv.length > 1 ? `<button class="sb-toggle" id="rvtoggle"><span>${rv.length - 0} reviewers</span>${icon(S.showAllReviewers ? "chevron-up" : "chevron-down")}</button>` : "";
-    const rvSection = rv.length ? `${rv.slice(0, 3).map(rvHtml).join("")}${rv.length > 3 ? `<button class="sb-toggle" id="rvtoggle"><span>+${rv.length - 3} more reviewer${rv.length - 3 === 1 ? "" : "s"}</span>${icon(S.showAllReviewers ? "chevron-up" : "chevron-down")}</button>${S.showAllReviewers ? rv.slice(3).map(rvHtml).join("") : ""}` : ""}` : '<div class="sb-none">No reviews</div>';
+    const rv = [...reviewers.values()].map((r3) => ({ ...r3, canRe: canRe && r3.st !== "req" && r3.u.login !== p3.user.login }));
     const people = /* @__PURE__ */ new Map();
     [p3.user, ...b2.timeline.map((e2) => e2.user || e2.actor || e2.author)].forEach((u4) => u4 && u4.login && !people.has(u4.login) && people.set(u4.login, u4));
-    const labels = p3.labels.length ? p3.labels.map((l3) => `<span class="pill-label" style="background:#${esc(l3.color)}33;color:#${esc(l3.color)};border-color:#${esc(l3.color)}">${esc(l3.name)}</span>`).join("") : '<span class="sb-none">None yet</span>';
-    const assignees = p3.assignees.length ? p3.assignees.map((u4) => `<div class="reviewer"><a href="${esc(u4.html_url)}">${avatar(u4, 20)}</a><a class="nm" href="${esc(u4.html_url)}">${esc(u4.login)}</a></div>`).join("") : '<span class="sb-none">No one\u2014</span>';
-    const head = (t2) => `<div class="sb-head">${foldBtn("sb:" + t2, "Hide section")}<span>${t2}</span>${icon("gear", 16, "gear")}</div>`;
-    const item = (k3, inner) => `<div class="sb-item${folded("sb:" + k3)}">${inner}</div>`;
-    return `<div class="pr-side-inner">${item("Reviewers", `<div class="sb-head">${foldBtn("sb:Reviewers", "Hide section")}<span>Reviewers</span></div>${rvSection}`)}
-  ${item("Assignees", head("Assignees") + assignees)}
-  ${item("Labels", head("Labels") + labels)}
-  ${item("Milestone", head("Milestone") + (p3.milestone ? `<a class="sb-link" href="${esc(p3.milestone.html_url)}">${esc(p3.milestone.title)}</a>` : '<span class="sb-none">No milestone</span>'))}
-  <div class="sb-item${folded("sb:people")}"><div class="sb-head">${foldBtn("sb:people", "Hide section")}<span>${people.size} participant${people.size === 1 ? "" : "s"}</span></div><div class="participants">${[...people.values()].slice(0, 30).map((u4) => `<a href="${esc(u4.html_url)}" title="${esc(u4.login)}">${avatar(u4, 32)}</a>`).join("")}</div></div></div>`;
+    const keys = ["Reviewers", "Assignees", "Labels", "Milestone", "people"];
+    const fb = (k3) => foldBtn("sb:" + k3, "Hide section");
+    return prSideHtml({
+      reviewers: rv,
+      showAll: !!S.showAllReviewers,
+      assignees: p3.assignees,
+      labels: p3.labels,
+      milestone: p3.milestone ?? null,
+      people: [...people.values()].slice(0, 30),
+      peopleCount: people.size,
+      fold: { reviewers: folded("sb:Reviewers"), assignees: folded("sb:Assignees"), labels: folded("sb:Labels"), milestone: folded("sb:Milestone"), people: folded("sb:people") },
+      foldBtn: { reviewers: fb(keys[0]), assignees: fb(keys[1]), labels: fb(keys[2]), milestone: fb(keys[3]), people: fb(keys[4]) }
+    });
   }
   var frKey = (cs, r3) => r3.a === r3.b ? cs[r3.a].sha : `${cs[r3.a].parent}..${cs[r3.b].sha}`;
   function frDiff(b2) {
@@ -2111,16 +2737,17 @@
   }
   function commitsDialog() {
     const b2 = S.bundle, cs = commitList(b2), pick = S.cpick || S.fr, sr = sinceReview(b2);
-    const on = (i3) => pick && i3 >= pick.a && i3 <= pick.b;
-    const rows = cs.map((c3, i3) => `<label class="cp-row${on(i3) ? " on" : ""}" data-cp="${i3}"><input type="checkbox" ${on(i3) ? "checked" : ""} tabindex="-1"><span class="cp-t"><b>${esc(String(c3.message).split("\n")[0])}</b><i>${esc(c3.name || c3.author?.login || "")} committed ${when(c3.date).replace(/<\/?span[^>]*>/g, "")}</i></span><code>${esc(c3.sha.slice(0, 7))}</code></label>`).reverse().join("");
-    const q3 = (S.cfilter || "").toLowerCase();
-    return `<div class="dlg-bg" id="dlgbg"><div class="dlg cp-dlg"><div class="cp-h"><h2>Select commits to view</h2><button class="icon-btn" id="cpx" title="Close">${icon("x")}</button></div>
-  <button class="cp-opt${S.fr ? "" : " on"}" id="cpall"><b>All commits</b><i>${cs.length} commit${cs.length === 1 ? "" : "s"}</i></button>
-  ${sr ? `<button class="cp-opt${S.fr && S.fr.a === sr.at + 1 && S.fr.b === cs.length - 1 ? " on" : ""}" id="cpsince" ${sr.n ? "" : "disabled"}><b>Changes since your last review</b><i>${sr.n ? `${sr.n} commit${sr.n === 1 ? "" : "s"}` : "No new commits"}</i></button>` : ""}
-  <div class="cp-sub">Select a commit, or click a second one to view the range between them</div>
-  <input class="input cp-q" id="cpq" placeholder="Filter commits\u2026" value="${esc(S.cfilter || "")}">
-  <div class="cp-list" id="cplist" data-q="${esc(q3)}">${rows}</div>
-  <div class="btns"><span class="cp-sel">${pick ? pick.a === pick.b ? "1 commit selected" : `${pick.b - pick.a + 1} commits selected` : "Nothing selected"}</span><span class="sp"></span><button class="btn" id="cpcancel">Cancel</button><button class="btn primary" id="cpsave" ${pick ? "" : "disabled"}>Save</button></div></div></div>`;
+    const on = (i3) => !!pick && i3 >= pick.a && i3 <= pick.b;
+    return commitsDialogHtml({
+      rows: cs.map((c3, i3) => ({ i: i3, on: on(i3), title: String(c3.message).split("\n")[0], by: c3.name || c3.author?.login || "", when: when(c3.date).replace(/<\/?span[^>]*>/g, ""), sha: c3.sha.slice(0, 7) })),
+      count: cs.length,
+      allOn: !S.fr,
+      since: sr ? { on: !!S.fr && S.fr.a === sr.at + 1 && S.fr.b === cs.length - 1, n: sr.n } : null,
+      filter: S.cfilter || "",
+      q: (S.cfilter || "").toLowerCase(),
+      selLabel: pick ? pick.a === pick.b ? "1 commit selected" : `${pick.b - pick.a + 1} commits selected` : "Nothing selected",
+      hasPick: !!pick
+    });
   }
   function openCommits() {
     S.cpick = S.fr ? { ...S.fr } : null;
@@ -2129,10 +2756,16 @@
     render();
   }
   function filesView(b2) {
-    const cs = commitList(b2), r3 = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = r3 && r3.a === r3.b;
-    const label = !r3 ? `All commits <span class="counter">${cs.length}</span>` : single ? `Commit <code>${esc(cs[r3.a].sha.slice(0, 7))}</code>` : `${r3.b - r3.a + 1} commits <code>${esc(cs[r3.a].sha.slice(0, 7))}\u2026${esc(cs[r3.b].sha.slice(0, 7))}</code>`;
-    const nav = single ? `<div class="seg-ctl"><button data-fstep="-1" ${r3.a <= 0 ? "disabled" : ""}>\u2039 Prev</button><button data-fstep="1" ${r3.a >= cs.length - 1 ? "disabled" : ""}>Next \u203A</button></div>` : "";
-    const bar = `<div class="fc-bar"><button class="btn small" id="fcbtn" title="Choose which commits to view">${icon("git-commit")} ${label} \u25BE</button>${nav}${r3 ? `<span class="fc-t">${single ? esc(String(cs[r3.a].message).split("\n")[0]) : ""}</span><button class="link-btn" id="fcall">Show all commits</button>` : ""}</div>`;
+    const cs = commitList(b2), r3 = S.fr && cs[S.fr.a] && cs[S.fr.b] ? S.fr : null, single = !!r3 && r3.a === r3.b;
+    const sh = (i3) => cs[i3].sha.slice(0, 7);
+    const bar = fcBarHtml({
+      label: !r3 ? "All commits" : single ? "Commit" : `${r3.b - r3.a + 1} commits`,
+      count: !r3 ? cs.length : null,
+      code: !r3 ? null : single ? sh(r3.a) : `${sh(r3.a)}\u2026${sh(r3.b)}`,
+      nav: single ? { prevOff: r3.a <= 0, nextOff: r3.a >= cs.length - 1 } : null,
+      title: r3 && single ? String(cs[r3.a].message).split("\n")[0] : "",
+      hasRange: !!r3
+    });
     if (!r3) return bar + filesList(b2.files, true);
     const d3 = frDiff(b2);
     return bar + (d3 === void 0 || d3 === "loading" ? '<div class="diff-empty">Loading\u2026</div>' : typeof d3 === "string" ? `<div class="diff-empty err">${esc(d3)}</div>` : filesList(d3));
@@ -2158,16 +2791,15 @@
     const srtFn = so[srt];
     if (srtFn) files = [...files].sort(srtFn);
     const all = files.every((f4) => S.fold["f:" + f4.filename]);
-    return `<div class="files-bar"><div class="seg-ctl"><button class="${S.diffMode === "unified" ? "on" : ""}" data-dmode="unified">Unified</button><button class="${S.diffMode === "split" ? "on" : ""}" data-dmode="split">Split</button></div><select class="input fsort" id="fsort" title="Sort files">${[["path", "GitHub order"], ["pathz", "Path Z\u2013A"], ["most", "Most changed"], ["least", "Least changed"], ["comments", "Most comments"], ["status", "By status"]].map(([v2, t2]) => `<option value="${v2}" ${srt === v2 ? "selected" : ""}>${t2}</option>`).join("")}</select>${pendList().length ? `<button class="btn small primary" id="finishrev">Finish review \xB7 ${pendList().length} comment${pendList().length === 1 ? "" : "s"}</button>` : ""}<button class="link-btn" data-foldall="${all ? "open" : "close"}" data-files="${esc(files.map((f4) => f4.filename).join("\n"))}">${all ? "Expand all files" : "Collapse all files"}</button></div>` + files.map((f4, i3) => {
+    return filesBarHtml({ mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename).join("\n") }) + files.map((f4) => {
       const t2 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t2 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t2 * 5));
-      const sq = Array.from({ length: 5 }, (_3, i4) => `<i class="${i4 < a3 ? "a" : i4 < a3 + d3 ? "d" : ""}"></i>`).join("");
-      return `<div class="file${folded("f:" + f4.filename)}"><div class="file-head" data-fold="f:${esc(f4.filename)}"><span class="tgl">${icon(S.fold["f:" + f4.filename] ? "chevron-right" : "chevron-down")}</span><span class="stat"><span class="a">+${f4.additions}</span> <span class="d">\u2212${f4.deletions}</span></span><span class="sq">${sq}</span><span class="path">${esc(f4.filename)}</span></div>${!shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>'}</div>`;
+      const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
+      return fileBoxHtml({ name: f4.filename, folded: folded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, body: !shown(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open()) : '<div class="diff-empty">Binary file or diff too large to display.</div>' });
     }).join("");
   }
   function commitsView(b2) {
-    const info = b2.commit_info || {};
     const c3 = b2.timeline.filter((e2) => e2.event === "committed");
-    return `<div style="border:1px solid var(--borderColor-default);border-radius:6px">${c3.map((e2) => `<div style="padding:16px;border-bottom:1px solid var(--borderColor-muted)">${commitRow(e2.message, e2.sha, e2.author?.avatar_url ? e2.author : null, e2.html_url, e2.verification)}</div>`).join("") || '<div class="diff-empty">No commits listed.</div>'}</div>`;
+    return commitsListHtml(c3.map((e2) => commitRow(e2.message, e2.sha, e2.author?.avatar_url ? e2.author : null, e2.html_url, e2.verification)));
   }
   function commitList(b2) {
     if (b2.commits && b2.commits.length) return b2.commits.map((c3) => ({ sha: c3.sha, message: c3.commit.message, author: c3.author, name: c3.commit.author?.name, date: c3.commit.author?.date, url: c3.html_url, parent: c3.parents?.[0]?.sha }));
@@ -2182,19 +2814,29 @@
   function splitView(b2) {
     const cs = commitList(b2), sha = S.sel;
     const cnt = (c3) => b2.review_comments.filter((r3) => r3.original_commit_id === c3 || r3.commit_id === c3).length;
-    const row = (c3) => `<div class="cm ${sha === c3.sha ? "on" : ""}" data-sha="${esc(c3.sha)}"><span class="cm-av">${c3.author ? avatar(c3.author, 24) : `<i>${esc((c3.name || "?")[0])}</i>`}</span><span class="cm-t"><b>${esc(String(c3.message).split("\n")[0])}</b><i>${esc(c3.name || c3.author?.login || "")} \xB7 ${when(c3.date).replace(/<\/?span[^>]*>/g, "")}</i></span>${cnt(c3.sha) ? `<span class="cm-n">${icon("comment")}${cnt(c3.sha)}</span>` : ""}<code>${esc(c3.sha.slice(0, 7))}</code></div>`;
-    const all = `<div class="cm all ${sha ? "" : "on"}" data-sha=""><span class="cm-av"><i>${icon("diff")}</i></span><span class="cm-t"><b>All changes</b><i>${b2.pull.changed_files} files \xB7 +${b2.pull.additions} \u2212${b2.pull.deletions}</i></span></div>`;
     let diff;
     if (!sha) diff = filesList(b2.files, true);
     else {
       const d3 = S.cdiff[sha];
       diff = d3 === void 0 || d3 === "loading" ? '<div class="diff-empty">Loading commit\u2026</div>' : typeof d3 === "string" ? `<div class="diff-empty err">${esc(d3)}</div>` : filesList(d3);
     }
-    const hl = S.hide.l, hr = S.hide.r;
-    const rail = (k3, label, ic) => `<button class="pane-rail" data-show="${k3}" title="Show ${label}">${icon(ic)}<span>${label}</span></button>`;
-    const left = hl ? rail("l", "Commits", "git-commit") : `<section class="pane pane-l"><div class="fold-sec${folded("cm-list")}"><div class="pane-h">${icon("git-commit")}<span>Commits</span><span class="counter">${cs.length}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip title="Swap sides (F)">\u21C4</button>${foldBtn("cm-list", "Collapse commit list")}<button class="fold-btn" data-hide="l" title="Hide this panel">${icon("x")}</button></div><div class="cm-list">${all}${cs.map(row).join("")}</div></div><div class="fold-sec${folded("cm-diff")}"><div class="pane-h sub">${icon("file-diff")}<span>${sha ? "Commit " + esc(sha.slice(0, 7)) : "All changes"}</span><span class="sp"></span>${foldBtn("cm-diff", "Collapse changes")}</div><div class="pane-body">${diff}</div></div></section>`;
-    const right = hr ? rail("r", "Conversation", "comment-discussion") : `<section class="pane pane-r"><div class="pane-h">${icon("comment-discussion")}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip title="Swap sides (F)">\u21C4</button><button class="fold-btn" data-hide="r" title="Hide this panel">${icon("x")}</button></div><div class="pane-body">${attention(b2)}${timeline(b2)}</div></section>`;
-    return `<div class="split ${hl ? "hl" : ""} ${hr ? "hr" : ""} ${S.flip ? "flip" : ""}" style="--lw:${S.lw}%">${left}${hl || hr ? "" : '<div class="gutter" id="gutter" title="Drag to resize"></div>'}${right}</div>`;
+    return splitViewHtml({
+      hl: !!S.hide.l,
+      hr: !!S.hide.r,
+      flip: !!S.flip,
+      lw: S.lw,
+      allOn: !sha,
+      allSub: `${b2.pull.changed_files} files \xB7 +${b2.pull.additions} \u2212${b2.pull.deletions}`,
+      rows: cs.map((c3) => ({ sha: c3.sha, on: sha === c3.sha, avatar: c3.author ? avatar(c3.author, 24) : "", initial: (c3.name || "?")[0], title: String(c3.message).split("\n")[0], sub: `${c3.name || c3.author?.login || ""} \xB7 ${when(c3.date).replace(/<\/?span[^>]*>/g, "")}`, n: cnt(c3.sha) })),
+      count: cs.length,
+      subTitle: sha ? "Commit " + sha.slice(0, 7) : "All changes",
+      foldList: folded("cm-list"),
+      foldDiff: folded("cm-diff"),
+      foldBtnList: foldBtn("cm-list", "Collapse commit list"),
+      foldBtnDiff: foldBtn("cm-diff", "Collapse changes"),
+      diff,
+      right: attention(b2) + timeline(b2)
+    });
   }
   async function selectCommit(sha) {
     S.sel = sha || null;
@@ -3145,19 +3787,122 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     };
   }
 
+  // src/components/Home.tsx
+  var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
+  function Card({ r: r3 }) {
+    return /* @__PURE__ */ u3("a", { class: "hm-card", "data-repo": r3.full, children: [
+      /* @__PURE__ */ u3("span", { class: "rc-i", style: "color:var(--fgColor-muted)", children: I2(r3.priv ? "lock" : "repo") }),
+      /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+        /* @__PURE__ */ u3("b", { children: r3.name }),
+        /* @__PURE__ */ u3("i", { children: [
+          r3.owner,
+          r3.archived ? " \xB7 archived" : "",
+          r3.issues ? ` \xB7 ${r3.issues} open` : ""
+        ] }),
+        r3.desc ? /* @__PURE__ */ u3("em", { children: r3.desc }) : ""
+      ] })
+    ] });
+  }
+  function Opt({ v: v2, cur, t: t2 }) {
+    return /* @__PURE__ */ u3("option", { value: v2, selected: cur === v2, children: t2 });
+  }
+  function Body({ b: b2 }) {
+    if (b2.kind === "html") return Raw(b2.html);
+    if (b2.kind === "recent") {
+      return /* @__PURE__ */ u3(S2, { children: [
+        b2.hasAny ? /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+          /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmrfilter", placeholder: "Filter by title or repo\u2026", value: b2.filter }),
+          /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.state === x3 ? "on" : "", "data-rstate": x3, children: cap2(x3) })) })
+        ] }) : "",
+        b2.cards.length ? /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3("a", { class: "hm-card", "data-open": r3.ref, children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: I2(r3.icon) }),
+          /* @__PURE__ */ u3("span", { class: "hm-t", children: [
+            /* @__PURE__ */ u3("b", { children: r3.title }),
+            /* @__PURE__ */ u3("i", { children: r3.ref })
+          ] }),
+          /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, title: "Remove", children: I2("x") })
+        ] })) }) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: b2.emptyText })
+      ] });
+    }
+    const grid = b2.none ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No matching repositories." }) : b2.groups ? /* @__PURE__ */ u3(S2, { children: b2.groups.map((g2) => /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("h3", { class: "hm-grp", children: [
+        g2.owner,
+        /* @__PURE__ */ u3("span", { children: g2.cards.length })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "hm-grid", children: g2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3 })) })
+    ] })) }) : /* @__PURE__ */ u3("div", { class: "hm-grid", children: b2.cards.map((r3) => /* @__PURE__ */ u3(Card, { r: r3 })) });
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3("div", { class: "hm-fbar", children: [
+        /* @__PURE__ */ u3("input", { class: "input hm-filter", id: "hmfilter", placeholder: "Find a repository\u2026", value: b2.filter }),
+        /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((x3) => /* @__PURE__ */ u3("button", { class: b2.vis === x3 ? "on" : "", "data-hvis": x3, children: cap2(x3) })) }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmsort", title: "Sort", children: [
+          /* @__PURE__ */ u3(Opt, { v: "pushed", cur: b2.sort, t: "Recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "oldest", cur: b2.sort, t: "Least recently pushed" }),
+          /* @__PURE__ */ u3(Opt, { v: "name", cur: b2.sort, t: "Name A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "namez", cur: b2.sort, t: "Name Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.sort, t: "Owner A\u2013Z" }),
+          /* @__PURE__ */ u3(Opt, { v: "ownerz", cur: b2.sort, t: "Owner Z\u2013A" }),
+          /* @__PURE__ */ u3(Opt, { v: "issues", cur: b2.sort, t: "Most open issues" })
+        ] }),
+        /* @__PURE__ */ u3("select", { class: "input", id: "hmgroup", title: "Group", children: [
+          /* @__PURE__ */ u3(Opt, { v: "none", cur: b2.group, t: "No grouping" }),
+          /* @__PURE__ */ u3(Opt, { v: "owner", cur: b2.group, t: "Group by owner" })
+        ] })
+      ] }),
+      grid
+    ] });
+  }
+  function Home(p3) {
+    return /* @__PURE__ */ u3("div", { class: "notes-page hm-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
+        I2("home"),
+        SP,
+        p3.owner || "Home"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("p", { class: "hm-hint", children: [
+        "Open a pull request: type ",
+        /* @__PURE__ */ u3("code", { children: "owner/repo#123" }),
+        " or paste a URL in the bar above."
+      ] }),
+      p3.banners ? /* @__PURE__ */ u3("div", { class: "push-wrap", children: Raw(p3.banners) }) : "",
+      p3.err ? /* @__PURE__ */ u3("div", { class: "err", children: p3.err }) : "",
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: [
+        /* @__PURE__ */ u3("button", { class: p3.tab === "repos" ? "sel" : "", "data-htab": "repos", children: [
+          I2("repo"),
+          " Repositories",
+          p3.repoCount !== null ? /* @__PURE__ */ u3("span", { children: p3.repoCount }) : ""
+        ] }),
+        /* @__PURE__ */ u3("button", { class: p3.tab === "recent" ? "sel" : "", "data-htab": "recent", children: [
+          I2("clock"),
+          " Recent",
+          /* @__PURE__ */ u3("span", { children: p3.recentCount })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3(Body, { b: p3.body })
+    ] });
+  }
+  var homeHtml = (p3) => html(/* @__PURE__ */ u3(Home, { ...p3 }));
+  var diffEmptyHtml = (inner, cls = "") => html(/* @__PURE__ */ u3("div", { class: `diff-empty${cls}`, children: inner }));
+  var addTokenHtml = () => html(/* @__PURE__ */ u3("div", { class: "diff-empty", children: [
+    "Add an access token to list all your repositories and their pull requests.",
+    /* @__PURE__ */ u3("br", {}),
+    /* @__PURE__ */ u3("br", {}),
+    /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", children: "Add token" })
+  ] }));
+  var spinnerHtml = () => html(/* @__PURE__ */ u3("div", { class: "spinner", style: "margin:48px auto", children: "Loading repositories\u2026" }));
+
   // src/app/bindwrite.ts
   function homePage() {
     const tab = S.homeTab || "repos", owner = S.homeOwner || "";
-    const tabs = `<div class="np-tabs"><button class="${tab === "repos" ? "sel" : ""}" data-htab="repos">${icon("repo")} Repositories${S.repos ? `<span>${S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length}</span>` : ""}</button><button class="${tab === "recent" ? "sel" : ""}" data-htab="recent">${icon("clock")} Recent<span>${S.recent.length}</span></button></div>`;
     let body;
     if (tab === "recent") {
       const q3 = (S.recentFilter || "").toLowerCase(), st = S.recentState || "all";
       const list = S.recent.filter((r3) => (st === "all" || r3.state === st) && (!q3 || (r3.title + " " + r3.ref).toLowerCase().includes(q3)));
-      const bar = S.recent.length ? `<div class="hm-fbar"><input class="input hm-filter" id="hmrfilter" placeholder="Filter by title or repo\u2026" value="${esc(S.recentFilter || "")}"><div class="seg-ctl">${["all", "open", "merged", "closed"].map((x3) => `<button class="${st === x3 ? "on" : ""}" data-rstate="${x3}">${x3[0].toUpperCase() + x3.slice(1)}</button>`).join("")}</div></div>` : "";
-      body = bar + (list.length ? `<div class="hm-grid">${list.map((r3) => `<a class="hm-card" data-open="${esc(r3.ref)}"><span class="rc-i ${r3.state}">${icon(r3.icon)}</span><span class="hm-t"><b>${esc(r3.title)}</b><i>${esc(r3.ref)}</i></span><button class="rc-x" data-rm="${esc(r3.ref)}" title="Remove">${icon("x")}</button></a>`).join("")}</div>` : `<div class="diff-empty">${S.recent.length ? "No matching pull requests." : "Pull requests you open appear here."}</div>`);
-    } else if (!S.hasToken) body = '<div class="diff-empty">Add an access token to list all your repositories and their pull requests.<br><br><button class="btn primary" id="addtoken">Add token</button></div>';
-    else if (S.reposErr) body = `<div class="diff-empty err">${esc(S.reposErr)}</div>`;
-    else if (!S.repos) body = '<div class="spinner" style="margin:48px auto">Loading repositories\u2026</div>';
+      body = { kind: "recent", filter: S.recentFilter || "", state: st, hasAny: S.recent.length > 0, cards: list.map((r3) => ({ ref: r3.ref, state: r3.state, icon: r3.icon, title: r3.title })), emptyText: S.recent.length ? "No matching pull requests." : "Pull requests you open appear here." };
+    } else if (!S.hasToken) body = { kind: "html", html: addTokenHtml() };
+    else if (S.reposErr) body = { kind: "html", html: diffEmptyHtml(S.reposErr, " err") };
+    else if (!S.repos) body = { kind: "html", html: spinnerHtml() };
     else {
       const f4 = (S.repoFilter || "").toLowerCase();
       const vis = S.hmVis || "all", srt = S.hmSort || "pushed", grp = S.hmGroup || "none";
@@ -3166,36 +3911,310 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       const sorters = { name: (a3, b2) => nm(a3).localeCompare(nm(b2)), namez: (a3, b2) => nm(b2).localeCompare(nm(a3)), issues: (a3, b2) => (b2.open_issues_count || 0) - (a3.open_issues_count || 0) || nm(a3).localeCompare(nm(b2)), oldest: (a3, b2) => pushed(a3) - pushed(b2), owner: (a3, b2) => a3.full_name.localeCompare(b2.full_name), ownerz: (a3, b2) => b2.full_name.split("/")[0].localeCompare(a3.full_name.split("/")[0]) || nm(a3).localeCompare(nm(b2)) };
       const sorter = sorters[srt];
       if (sorter) list = [...list].sort(sorter);
-      const card = (r3) => `<a class="hm-card" data-repo="${esc(r3.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r3.private ? "lock" : "repo")}</span><span class="hm-t"><b>${esc(r3.full_name.split("/")[1])}</b><i>${esc(r3.full_name.split("/")[0])}${r3.archived ? " \xB7 archived" : ""}${r3.open_issues_count ? ` \xB7 ${r3.open_issues_count} open` : ""}</i>${r3.description ? `<em>${esc(r3.description)}</em>` : ""}</span></a>`;
-      let grid;
-      if (!list.length) grid = '<div class="diff-empty">No matching repositories.</div>';
-      else if (grp === "owner") {
+      const card = (r3) => ({ full: r3.full_name, name: r3.full_name.split("/")[1], owner: r3.full_name.split("/")[0], priv: !!r3.private, archived: !!r3.archived, issues: r3.open_issues_count || 0, desc: r3.description || "" });
+      let groups = null;
+      if (grp === "owner") {
         const by = /* @__PURE__ */ new Map();
         list.forEach((r3) => {
           const o3 = r3.full_name.split("/")[0];
           if (!by.has(o3)) by.set(o3, []);
           by.get(o3).push(r3);
         });
-        grid = [...by].map(([o3, rs]) => `<h3 class="hm-grp">${esc(o3)}<span>${rs.length}</span></h3><div class="hm-grid">${rs.map(card).join("")}</div>`).join("");
-      } else grid = `<div class="hm-grid">${list.map(card).join("")}</div>`;
-      const opt = (v2, cur, t2) => `<option value="${v2}" ${cur === v2 ? "selected" : ""}>${t2}</option>`;
-      body = `<div class="hm-fbar"><input class="input hm-filter" id="hmfilter" placeholder="Find a repository\u2026" value="${esc(S.repoFilter || "")}"><div class="seg-ctl">${["all", "public", "private"].map((x3) => `<button class="${vis === x3 ? "on" : ""}" data-hvis="${x3}">${x3[0].toUpperCase() + x3.slice(1)}</button>`).join("")}</div><select class="input" id="hmsort" title="Sort">${opt("pushed", srt, "Recently pushed")}${opt("oldest", srt, "Least recently pushed")}${opt("name", srt, "Name A\u2013Z")}${opt("namez", srt, "Name Z\u2013A")}${opt("owner", srt, "Owner A\u2013Z")}${opt("ownerz", srt, "Owner Z\u2013A")}${opt("issues", srt, "Most open issues")}</select><select class="input" id="hmgroup" title="Group">${opt("none", grp, "No grouping")}${opt("owner", grp, "Group by owner")}</select></div>` + grid;
+        groups = [...by].map(([o3, rs]) => ({ owner: o3, cards: rs.map(card) }));
+      }
+      body = { kind: "repos", filter: S.repoFilter || "", vis, sort: srt, group: grp, groups: list.length ? groups : null, cards: list.map(card), none: !list.length };
     }
-    return `<div class="notes-page hm-page"><div class="np-head"><h1>${icon("home")} ${owner ? esc(owner) : "Home"}</h1></div>
-  <p class="hm-hint">Open a pull request: type <code>owner/repo#123</code> or paste a URL in the bar above.</p>${pushBanners() ? `<div class="push-wrap">${pushBanners()}</div>` : ""}${S.error ? `<div class="err">${esc(S.error)}</div>` : ""}${tabs}${body}</div>`;
+    return homeHtml({ owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBanners(), err: S.error ? String(S.error) : "", body });
   }
+
+  // src/components/Pages.tsx
+  function NotesPage({ f: f4, rows, unread, total }) {
+    const tabs = [["all", "All", total], ["unread", "Unread", unread], ["read", "Read", total - unread]];
+    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: [
+        /* @__PURE__ */ u3("h1", { children: [
+          I2("bell"),
+          SP,
+          "Notifications"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: [
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", children: "Check now" }),
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "npreadall", disabled: !unread, children: "Mark all as read" }),
+          /* @__PURE__ */ u3("button", { class: "btn small ghost", id: "npclear", disabled: !total, children: "Clear all" })
+        ] })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([k3, l3, c3]) => /* @__PURE__ */ u3("button", { class: f4 === k3 ? "sel" : "", "data-nf": k3, children: [
+        l3,
+        /* @__PURE__ */ u3("span", { children: c3 })
+      ] })) }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-list", children: rows.length ? rows.map((n2) => /* @__PURE__ */ u3("div", { class: `np-row ${n2.read ? "" : "new"}`, children: [
+        /* @__PURE__ */ u3("button", { class: "np-dot", "data-nread": n2.id, title: n2.read ? "Mark as unread" : "Mark as read" }),
+        "\n    ",
+        /* @__PURE__ */ u3("a", { class: "np-main", "data-open": n2.ref, "data-target": n2.target, "data-note": n2.id, children: [
+          /* @__PURE__ */ u3("b", { children: n2.title }),
+          /* @__PURE__ */ u3("span", { children: n2.text }),
+          /* @__PURE__ */ u3("i", { children: [
+            n2.ref,
+            " \xB7 ",
+            n2.when
+          ] })
+        ] }),
+        "\n    ",
+        /* @__PURE__ */ u3("button", { class: "np-act", "data-nread": n2.id, children: n2.read ? "Mark unread" : "Mark read" }),
+        /* @__PURE__ */ u3("button", { class: "np-act del", "data-ndel": n2.id, title: "Delete", children: I2("x") })
+      ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
+    ] });
+  }
+  var notesPageHtml = (p3) => html(/* @__PURE__ */ u3(NotesPage, { ...p3 }));
+  function NpMeta(p3) {
+    return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
+      p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: r3.name }),
+        /* @__PURE__ */ u3("div", { class: "np-chips", children: [
+          r3.chips.map((x3) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x3, title: "Remove", children: [
+            x3,
+            " \xD7"
+          ] })),
+          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, children: [
+            /* @__PURE__ */ u3("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
+            r3.free.map((x3) => /* @__PURE__ */ u3("option", { children: x3 }))
+          ] }) : ""
+        ] })
+      ] })),
+      "\n    ",
+      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: "Milestone" }),
+        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", children: [
+          /* @__PURE__ */ u3("option", { value: "", children: "None" }),
+          p3.milestones.map((x3) => /* @__PURE__ */ u3("option", { value: x3.number, selected: x3.on, children: x3.title }))
+        ] })
+      ] }),
+      "\n    ",
+      /* @__PURE__ */ u3("div", { class: "np-meta", children: [
+        /* @__PURE__ */ u3("label", { class: "np-l", children: [
+          "Linked issues ",
+          /* @__PURE__ */ u3("i", { children: "closed when this merges" })
+        ] }),
+        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues })
+      ] })
+    ] });
+  }
+  var npMetaHtml = (p3) => html(/* @__PURE__ */ u3(NpMeta, { ...p3 }));
+  function NewPr(p3) {
+    const c3 = p3.cmp;
+    const cmp = c3.kind === "loading" ? /* @__PURE__ */ u3("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u3("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u3("span", { class: "np-note ok", children: [
+      I2("git-commit"),
+      SP,
+      c3.ahead,
+      " commit",
+      c3.ahead === 1 ? "" : "s",
+      " \xB7 ",
+      c3.files,
+      " file",
+      c3.files === 1 ? "" : "s",
+      " changed",
+      c3.behind ? ` \xB7 ${c3.behind} behind ${p3.base}` : ""
+    ] }) : /* @__PURE__ */ u3("span", { class: "np-note err", children: "These branches are identical \u2014 there is nothing to compare." });
+    const t2 = p3.tpls;
+    return /* @__PURE__ */ u3("div", { class: "notes-page np-new", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: /* @__PURE__ */ u3("h1", { children: [
+        I2("git-pull-request"),
+        SP,
+        "New pull request"
+      ] }) }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "np-card", children: [
+        /* @__PURE__ */ u3("div", { class: "np-main-col", children: [
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Repository" }),
+            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", children: [
+              /* @__PURE__ */ u3("span", { children: p3.repo || "Choose a repository" }),
+              I2("chevron-down", 14)
+            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo }),
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-branches", children: [
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("label", { class: "np-l", children: [
+                  "Base ",
+                  /* @__PURE__ */ u3("i", { children: "merge into" })
+                ] }),
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] }),
+              "\n      ",
+              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", title: "Swap base and head", children: "\u21C4" }),
+              "\n      ",
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("label", { class: "np-l", children: [
+                  "Head ",
+                  /* @__PURE__ */ u3("i", { children: "changes from" })
+                ] }),
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", disabled: !p3.hasBranches, children: [
+                  /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
+                  I2("chevron-down", 14)
+                ] })
+              ] })
+            ] }),
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-cmp", children: p3.same ? /* @__PURE__ */ u3("span", { class: "np-note err", children: "Base and head are the same branch." }) : cmp })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
+            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title })
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
+            t2 && t2.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", children: [
+              /* @__PURE__ */ u3("option", { value: "", children: "No template" }),
+              t2.map((x3, i3) => /* @__PURE__ */ u3("option", { value: i3, selected: x3.body === p3.tplText, children: [
+                "Template: ",
+                x3.name
+              ] }))
+            ] }) : "",
+            Raw(p3.draftBox)
+          ] }),
+          "\n    ",
+          /* @__PURE__ */ u3("div", { class: "np-box", children: [
+            /* @__PURE__ */ u3("label", { class: "np-check", children: [
+              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft }),
+              " Create as draft ",
+              /* @__PURE__ */ u3("span", { children: "(not ready for review yet)" })
+            ] }),
+            "\n    ",
+            p3.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: p3.err }) : "",
+            "\n    ",
+            /* @__PURE__ */ u3("div", { class: "np-btns", children: [
+              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", children: "Cancel" }),
+              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
+            ] })
+          ] }),
+          "\n  "
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-side-col", children: Raw(p3.meta) })
+      ] })
+    ] });
+  }
+  var newPrHtml = (p3) => html(/* @__PURE__ */ u3(NewPr, { ...p3 }));
+  function InboxPage({ loading, err, secs }) {
+    const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
+      /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
+      /* @__PURE__ */ u3("h2", { children: [
+        s3.title,
+        /* @__PURE__ */ u3("span", { children: s3.rows.length })
+      ] }),
+      /* @__PURE__ */ u3("p", { children: s3.sub }),
+      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, children: [
+        /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
+        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.title }),
+          /* @__PURE__ */ u3("i", { children: r3.sub })
+        ] }),
+        r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
+        r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
+          I2("comment"),
+          SP,
+          r3.comments
+        ] }) : ""
+      ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: "Nothing here. Nice." })
+    ] }));
+    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: [
+        /* @__PURE__ */ u3("h1", { children: [
+          I2("checklist"),
+          SP,
+          "Inbox"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+      ] }),
+      body
+    ] });
+  }
+  var inboxPageHtml = (p3) => html(/* @__PURE__ */ u3(InboxPage, { ...p3 }));
+  var skeletonHtml = () => html(/* @__PURE__ */ u3("div", { class: "skel", "aria-busy": "true", children: [
+    /* @__PURE__ */ u3("div", { class: "sk sk-crumb" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-title" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-pill" }),
+    /* @__PURE__ */ u3("div", { class: "sk sk-line w60" }),
+    /* @__PURE__ */ u3("div", { class: "sk-tabs", children: [
+      /* @__PURE__ */ u3("i", { class: "sk" }),
+      /* @__PURE__ */ u3("i", { class: "sk" }),
+      /* @__PURE__ */ u3("i", { class: "sk" })
+    ] }),
+    [0, 1, 2].map((i3) => /* @__PURE__ */ u3("div", { class: "sk-row", style: `--i:${i3}`, children: [
+      /* @__PURE__ */ u3("div", { class: "sk sk-av" }),
+      /* @__PURE__ */ u3("div", { class: "sk-card", children: [
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w40" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
+        /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+      ] })
+    ] }))
+  ] }));
+  var splitPageHtml = (header, split) => html(/* @__PURE__ */ u3("div", { class: "pr-page is-split", children: [
+    Raw(header),
+    Raw(split)
+  ] }));
+  function prPageHtml(p3) {
+    const s3 = p3.side;
+    return html(/* @__PURE__ */ u3("div", { class: "pr-page", children: [
+      Raw(p3.header),
+      /* @__PURE__ */ u3("div", { class: "pr-layout", children: [
+        /* @__PURE__ */ u3("main", { class: "pr-main", children: Raw(p3.body) }),
+        s3.kind === "rail" ? /* @__PURE__ */ u3("button", { class: "pane-rail side-rail", "data-show": "side", title: "Show details", children: [
+          Raw(s3.ic),
+          /* @__PURE__ */ u3("span", { children: "Details" })
+        ] }) : s3.kind === "aside" ? /* @__PURE__ */ u3("aside", { class: "pr-side", children: [
+          /* @__PURE__ */ u3("div", { class: "side-top", children: [
+            /* @__PURE__ */ u3("span", { children: "Details" }),
+            /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "side", title: "Hide this panel", children: Raw(s3.x) })
+          ] }),
+          Raw(s3.inner)
+        ] }) : ""
+      ] })
+    ] }));
+  }
+  var gateHtmlStr = (alertIc, err) => html(/* @__PURE__ */ u3("div", { class: "gate", children: /* @__PURE__ */ u3("div", { class: "gate-card", children: [
+    /* @__PURE__ */ u3("img", { src: "logo.png", alt: "", width: 72, height: 72 }),
+    /* @__PURE__ */ u3("h1", { children: "Sign in to Pullscope" }),
+    "\n  ",
+    /* @__PURE__ */ u3("p", { class: "gate-err", children: [
+      Raw(alertIc),
+      SP,
+      "No GitHub sign-in or token was found."
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("p", { children: "Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing." }),
+    "\n  ",
+    err ? /* @__PURE__ */ u3("p", { class: "gate-err", children: err }) : "",
+    "\n  ",
+    /* @__PURE__ */ u3("div", { class: "btns", style: "justify-content:center", children: [
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "gatego", children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u3("button", { class: "btn", id: "gatetok", children: "Use a token instead" })
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("small", { children: [
+      "Tip: running ",
+      /* @__PURE__ */ u3("code", { children: "gh auth login" }),
+      " in a terminal also works."
+    ] })
+  ] }) }));
 
   // src/app/pages.ts
   var saveNotes = () => localStorage.setItem("notes", JSON.stringify(S.notes));
   function notesPage() {
     const f4 = S.nf || "all", unread = S.notes.filter((n2) => !n2.read).length;
-    const list = S.notes.filter((n2) => f4 === "all" || (f4 === "unread" ? !n2.read : n2.read));
-    const rows = list.map((n2) => `<div class="np-row ${n2.read ? "" : "new"}"><button class="np-dot" data-nread="${n2.id}" title="${n2.read ? "Mark as unread" : "Mark as read"}"></button>
-    <a class="np-main" data-open="${esc(n2.ref)}" data-target="${esc(n2.target || "")}" data-note="${n2.id}"><b>${esc(n2.title)}</b><span>${esc(n2.text)}</span><i>${esc(n2.ref)} \xB7 ${when(n2.at).replace(/<\/?span[^>]*>/g, "")}</i></a>
-    <button class="np-act" data-nread="${n2.id}">${n2.read ? "Mark unread" : "Mark read"}</button><button class="np-act del" data-ndel="${n2.id}" title="Delete">${icon("x")}</button></div>`).join("") || `<div class="note-empty np-empty">${f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here."}</div>`;
-    return `<div class="notes-page"><div class="np-head"><h1>${icon("bell")} Notifications</h1><div class="np-tools"><button class="btn small" id="npcheck">Check now</button><button class="btn small" id="npreadall" ${unread ? "" : "disabled"}>Mark all as read</button><button class="btn small ghost" id="npclear" ${S.notes.length ? "" : "disabled"}>Clear all</button></div></div>
-  <div class="np-tabs">${[["all", "All", S.notes.length], ["unread", "Unread", unread], ["read", "Read", S.notes.length - unread]].map(([k3, l3, c3]) => `<button class="${f4 === k3 ? "sel" : ""}" data-nf="${k3}">${l3}<span>${c3}</span></button>`).join("")}</div>
-  <div class="np-list">${rows}</div></div>`;
+    const rows = S.notes.filter((n2) => f4 === "all" || (f4 === "unread" ? !n2.read : n2.read)).map((n2) => ({ id: n2.id, read: !!n2.read, ref: n2.ref, target: n2.target || "", title: n2.title, text: n2.text, when: when(n2.at).replace(/<\/?span[^>]*>/g, "") }));
+    return notesPageHtml({ f: f4, rows, unread, total: S.notes.length });
   }
   async function loadInbox(force = false) {
     S.inbox = S.inbox || { data: null, err: "", loading: true };
@@ -3215,27 +4234,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   var npHuman = (s3) => s3.replace(/^[a-z]+\//i, "").replace(/[-_]+/g, " ").replace(/^./, (c3) => c3.toUpperCase());
   function newPrPage() {
     const n2 = S.np, repos = (S.repos || []).filter((r3) => !r3.archived), br = n2.branches[n2.repo];
-    const opts = (list, cur) => list.map((x3) => `<option value="${esc(x3)}" ${x3 === cur ? "selected" : ""}>${esc(x3)}</option>`).join("");
-    const repoSel = repos.length ? `<button type="button" class="sel bp-btn" id="nprepo"><span>${esc(n2.repo || "Choose a repository")}</span>${icon("chevron-down", 14)}</button>` : `<input class="input" id="nprepoin" placeholder="owner/repo" value="${esc(n2.repo)}">`;
-    const same = n2.base && n2.base === n2.head;
-    const cmp = n2.cmp === "loading" ? '<span class="np-note">Comparing\u2026</span>' : !n2.cmp ? "" : typeof n2.cmp === "string" ? `<span class="np-note err">${esc(n2.cmp)}</span>` : n2.cmp.ahead_by ? `<span class="np-note ok">${icon("git-commit")} ${n2.cmp.ahead_by} commit${n2.cmp.ahead_by === 1 ? "" : "s"} \xB7 ${n2.cmp.files} file${n2.cmp.files === 1 ? "" : "s"} changed${n2.cmp.behind_by ? ` \xB7 ${n2.cmp.behind_by} behind ${esc(n2.base)}` : ""}</span>` : '<span class="np-note err">These branches are identical \u2014 there is nothing to compare.</span>';
-    const ready = n2.title.trim() && n2.repo && n2.base && n2.head && !same && n2.cmp && typeof n2.cmp === "object" && n2.cmp.ahead_by > 0;
-    return `<div class="notes-page np-new"><div class="np-head"><h1>${icon("git-pull-request")} New pull request</h1></div>
-  <div class="np-card"><div class="np-main-col">
-    <div class="np-box"><label class="np-l">Repository</label>${repoSel}
-    <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" ${br ? "" : "disabled"}><span>${br ? esc(n2.base || "Choose a branch") : "Loading\u2026"}</span>${icon("chevron-down", 14)}</button></div>
-      <button class="tb-btn" id="npswap" title="Swap base and head">\u21C4</button>
-      <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" ${br ? "" : "disabled"}><span>${br ? esc(n2.head || "Choose a branch") : "Loading\u2026"}</span>${icon("chevron-down", 14)}</button></div></div>
-    <div class="np-cmp">${same ? '<span class="np-note err">Base and head are the same branch.</span>' : cmp}</div></div>
-    <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value="${esc(n2.title)}"></div>
-    <div class="np-box"><label class="np-l">Description</label>${(() => {
-      const t2 = n2.tpl[`${n2.repo}|${n2.base}`];
-      return t2 && t2.length > 1 ? `<select class="sel np-tpl" id="nptpl"><option value="">No template</option>${t2.map((x3, i3) => `<option value="${i3}" ${x3.body === n2.tplText ? "selected" : ""}>Template: ${esc(x3.name)}</option>`).join("")}</select>` : "";
-    })()}${draftBox("newpr", "Describe your changes", 8)}</div>
-    <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" ${n2.draft ? "checked" : ""}> Create as draft <span>(not ready for review yet)</span></label>
-    ${n2.err ? `<div class="act-err">${esc(n2.err)}</div>` : ""}
-    <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" ${ready ? "" : "disabled"}>${n2.draft ? "Create draft pull request" : "Create pull request"}</button></div></div>
-  </div><div class="np-side-col">${npMeta(n2)}</div></div></div>`;
+    const same = !!(n2.base && n2.base === n2.head);
+    const c3 = n2.cmp;
+    const cmp = c3 === "loading" ? { kind: "loading", text: "", ahead: 0, files: 0, behind: 0 } : !c3 ? { kind: "none", text: "", ahead: 0, files: 0, behind: 0 } : typeof c3 === "string" ? { kind: "err", text: c3, ahead: 0, files: 0, behind: 0 } : c3.ahead_by ? { kind: "ok", text: "", ahead: c3.ahead_by, files: c3.files, behind: c3.behind_by } : { kind: "same", text: "", ahead: 0, files: 0, behind: 0 };
+    const ready = !!(n2.title.trim() && n2.repo && n2.base && n2.head && !same && n2.cmp && typeof n2.cmp === "object" && n2.cmp.ahead_by > 0);
+    return newPrHtml({ hasRepos: repos.length > 0, repo: n2.repo, base: n2.base, head: n2.head, hasBranches: !!br, same, cmp, title: n2.title, tpls: n2.tpl[`${n2.repo}|${n2.base}`] ?? null, tplText: n2.tplText, draftBox: draftBox("newpr", "Describe your changes", 8), isDraft: !!n2.draft, err: n2.err || "", ready, meta: npMeta(n2) });
   }
   function npMetaRefresh() {
     const el = $("#npmeta");
@@ -3266,15 +4269,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     const m2 = n2.meta?.[n2.repo];
     if (!m2) return "";
     const ppl = m2.people.map((x3) => x3.login), me = S.me || "";
-    const chips = (k3, label) => `<span class="np-chip" data-npdel="${k3}" data-v="${esc(label)}" title="Remove">${esc(label)} \xD7</span>`;
-    const add = (k3, title, list) => {
-      const free = list.filter((x3) => !n2[k3].includes(x3));
-      return free.length ? `<select class="sel np-add" data-npadd="${k3}"><option value="">${title}</option>${free.map((x3) => `<option>${esc(x3)}</option>`).join("")}</select>` : "";
-    };
-    const row = (k3, name, list) => `<div class="np-meta"><label class="np-l">${name}</label><div class="np-chips">${n2[k3].map((x3) => chips(k3, x3)).join("")}${add(k3, `Add ${name.toLowerCase()}\u2026`, list)}</div></div>`;
-    return `<div class="np-box np-metas" id="npmeta">${row("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me))}${row("assignees", "Assignees", ppl)}${row("labels", "Labels", m2.labels.map((x3) => x3.name))}
-    <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>${m2.milestones.map((x3) => `<option value="${x3.number}" ${String(n2.milestone) === String(x3.number) ? "selected" : ""}>${esc(x3.title)}</option>`).join("")}</select></div>
-    <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value="${esc(n2.issues)}"></div></div>`;
+    const row = (k3, name, list) => ({ k: k3, name, chips: n2[k3].slice(), free: list.filter((x3) => !n2[k3].includes(x3)) });
+    return npMetaHtml({ rows: [row("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me)), row("assignees", "Assignees", ppl), row("labels", "Labels", m2.labels.map((x3) => x3.name))], milestones: m2.milestones.map((x3) => ({ number: x3.number, title: x3.title, on: String(n2.milestone) === String(x3.number) })), issues: n2.issues });
   }
   async function npLoadMeta(repo) {
     const n2 = S.np;
@@ -3376,34 +4372,28 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function inboxPage() {
     const I3 = S.inbox || { loading: true }, d3 = I3.data;
     const row = (p3) => {
-      const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at, fresh = was && p3.updated_at > was;
-      return `<a class="ib-row" data-open="${esc(ref)}"><img src="${esc(p3.avatar)}" alt=""><span class="ib-t"><b>${esc(p3.title)}</b><i>${esc(ref)} \xB7 ${esc(p3.user)} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}</i></span>${fresh ? '<span class="ib-new">New activity</span>' : ""}${p3.comments ? `<span class="ib-c">${icon("comment")} ${p3.comments}</span>` : ""}</a>`;
+      const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at;
+      return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
-    const sec = (title, sub, list) => `<section class="ib-sec"><h2>${title}<span>${list.length}</span></h2><p>${sub}</p>${list.length ? list.map(row).join("") : '<div class="ib-none">Nothing here. Nice.</div>'}</section>`;
-    const body = I3.err ? `<div class="diff-empty err">${esc(I3.err)}</div>` : !d3 ? '<div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>' : sec("Review requested", "Waiting on you", d3.requested) + sec("Ready to merge", "Your approved pull requests", d3.ready) + sec("Your pull requests", "Open PRs you opened", d3.mine);
-    return `<div class="notes-page"><div class="np-head"><h1>${icon("checklist")} Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" ${I3.loading ? "disabled" : ""}>${I3.loading ? "Loading\u2026" : "Refresh"}</button></div></div>${body}</div>`;
+    const sec = (title, sub, list) => ({ title, sub, rows: list.map(row) });
+    return inboxPageHtml({ loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null });
   }
   function page() {
     const b2 = S.bundle;
-    if (S.loading) return `<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>${[0, 1, 2].map((i3) => `<div class="sk-row" style="--i:${i3}"><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>`).join("")}</div>`;
+    if (S.loading) return skeletonHtml();
     if (S.view === "newpr") return crumbs(S.np?.repo, [{ t: "New pull request" }]) + newPrPage();
     if (S.view === "inbox") return crumbs("", [{ t: "Inbox" }]) + inboxPage();
     if (S.view === "notes") return crumbs("", [{ t: "Notifications" }]) + notesPage();
     if (S.view === "repo") return crumbs(S.repo, [{ t: "Pull requests" }]) + prList();
     if (S.view === "home" || !b2) return crumbs("", S.homeOwner ? [{ t: S.homeOwner }] : []) + homePage();
-    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return `<div class="pr-page is-split">${repoHeader(b2.pull)}${prHeader(b2)}${splitView(b2)}</div>`;
+    if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return splitPageHtml(repoHeader(b2.pull) + prHeader(b2), splitView(b2));
     const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : attention(b2) + timeline(b2);
-    const side = S.tab !== "conversation" ? "" : S.hide.side ? `<button class="pane-rail side-rail" data-show="side" title="Show details">${icon("columns")}<span>Details</span></button>` : `<aside class="pr-side"><div class="side-top"><span>Details</span><button class="fold-btn" data-hide="side" title="Hide this panel">${icon("x")}</button></div>${sidebar(b2)}</aside>`;
-    return `<div class="pr-page">${repoHeader(b2.pull)}${prHeader(b2)}<div class="pr-layout"><main class="pr-main">${body}</main>${side}</div></div>`;
+    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail", ic: icon("columns") } : { kind: "aside", x: icon("x"), inner: sidebar(b2) };
+    return prPageHtml({ header: repoHeader(b2.pull) + prHeader(b2), body, side });
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function gateHtml() {
-    return `<div class="gate"><div class="gate-card"><img src="logo.png" alt="" width="72" height="72"><h1>Sign in to Pullscope</h1>
-  <p class="gate-err">${icon("alert")} No GitHub sign-in or token was found.</p>
-  <p>Pullscope needs your GitHub account to load pull requests. Without one GitHub allows only 60 requests an hour, so the app would be slow and keep failing.</p>
-  ${S.gateErr ? `<p class="gate-err">${esc(S.gateErr)}</p>` : ""}
-  <div class="btns" style="justify-content:center"><button class="btn primary" id="gatego">Sign in with GitHub</button><button class="btn" id="gatetok">Use a token instead</button></div>
-  <small>Tip: running <code>gh auth login</code> in a terminal also works.</small></div></div>`;
+    return gateHtmlStr(icon("alert"), S.gateErr ? String(S.gateErr) : "");
   }
   function render() {
     applyMode();
@@ -3755,6 +4745,149 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
 
+  // src/components/Actions.tsx
+  var draftBoxHtml = (key, ph, rows) => html(/* @__PURE__ */ u3("div", { class: "tt", "data-draft": key, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` }));
+  var errLineHtml = (m2) => html(/* @__PURE__ */ u3("div", { class: "act-err", children: m2 }));
+  function Composer(p3) {
+    return /* @__PURE__ */ u3("div", { class: `composer dock${p3.open ? "" : " collapsed"}`, id: "composer", children: [
+      /* @__PURE__ */ u3("div", { class: "composer-h", id: "cbar", role: "button", tabindex: 0, title: "Write a comment (C)", children: [
+        I2("comment"),
+        /* @__PURE__ */ u3("b", { children: "Add a comment" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-ph", children: p3.draft ? `Draft: ${p3.draft}` : "Write a comment\u2026" }),
+        /* @__PURE__ */ u3("kbd", { children: "C" }),
+        /* @__PURE__ */ u3("span", { class: "cbar-x", children: I2("chevron-down") })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("div", { class: "composer-body", children: [
+        Raw(p3.draftBox),
+        Raw(p3.err),
+        "\n  ",
+        /* @__PURE__ */ u3("div", { class: "composer-f", children: [
+          /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
+          /* @__PURE__ */ u3("span", { style: "flex:1" }),
+          "\n  ",
+          p3.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", children: p3.closed ? "Reopen pull request" : "Close pull request" }),
+          "\n  ",
+          /* @__PURE__ */ u3("button", { class: "btn primary", id: "docomment", disabled: p3.busy, children: p3.busy ? "Sending\u2026" : "Comment" })
+        ] })
+      ] })
+    ] });
+  }
+  var composerHtml = (p3) => html(/* @__PURE__ */ u3(Composer, { ...p3 }));
+  var METHODS = [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]];
+  function MergeAct(p3) {
+    if (p3.draft) return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", children: "Close pull request" }),
+      Raw(p3.err)
+    ] });
+    return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
+      /* @__PURE__ */ u3("select", { class: "sel", id: "mmethod", children: METHODS.map(([v2, t2]) => /* @__PURE__ */ u3("option", { value: v2, selected: p3.method === v2, children: t2 })) }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "domerge", disabled: p3.busy, children: p3.busy ? "Merging\u2026" : "Merge pull request" }),
+      "\n  ",
+      p3.auto ? /* @__PURE__ */ u3("button", { class: "btn", id: "noauto", title: `Auto-merge is on (${p3.auto.method})`, children: p3.auto.busy ? "Turning off\u2026" : "Disable auto-merge" }) : p3.canAuto ? /* @__PURE__ */ u3("button", { class: "btn", id: "doauto", title: "Merge automatically once required checks and reviews pass", children: p3.autoBusy ? "Enabling\u2026" : "Enable auto-merge" }) : "",
+      "\n  ",
+      /* @__PURE__ */ u3("button", { class: "btn ghost", id: "todraft", title: "Mark as draft again", children: "Convert to draft" }),
+      Raw(p3.err),
+      Raw(p3.errAuto)
+    ] });
+  }
+  var mergeActHtml = (p3) => html(/* @__PURE__ */ u3(MergeAct, { ...p3 }));
+  var reviewDialogHtml = (draftBox2) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
+    Raw(draftBox2),
+    "\n  ",
+    /* @__PURE__ */ u3("div", { class: "radios", children: [
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "COMMENT", checked: true }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Comment" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit general feedback without explicit approval." })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "APPROVE" }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Approve" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit feedback and approve merging these changes." })
+      ] }),
+      "\n  ",
+      /* @__PURE__ */ u3("label", { children: [
+        /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: "REQUEST_CHANGES" }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: "Request changes" }),
+        " ",
+        /* @__PURE__ */ u3("span", { children: "Submit feedback that must be addressed before merging." })
+      ] })
+    ] }),
+    "\n  ",
+    /* @__PURE__ */ u3("div", { id: "reverr" }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", children: "Submit review" })
+    ] })
+  ] }) }));
+  var editPrDialogHtml = (title, draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit pull request" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
+    /* @__PURE__ */ u3("input", { class: "input", id: "eptitle", value: title, style: "width:100%;box-sizing:border-box;height:34px" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
+    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", children: "Save" })
+    ] })
+  ] }) }));
+  var confirmDlgHtml = (title, text, label, danger) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: title }),
+    /* @__PURE__ */ u3("p", { children: text }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: `btn ${danger ? "danger" : "primary"}`, id: "cfok", children: label })
+    ] })
+  ] }) }));
+  var editCommentDialogHtml = (draftBox2, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+    /* @__PURE__ */ u3("h2", { children: "Edit comment" }),
+    Raw(draftBox2),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", children: "Save" })
+    ] })
+  ] }) }));
+  var deleteCommentDialogHtml = (err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Delete this comment?" }),
+    /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", children: "Delete" })
+    ] })
+  ] }) }));
+  var hideCommentDialogHtml = (reasons, err) => html(/* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Hide this comment" }),
+    /* @__PURE__ */ u3("label", { class: "np-l", children: "Reason" }),
+    /* @__PURE__ */ u3("select", { class: "sel", id: "hcreason", style: "width:100%;height:34px", children: reasons.map(([v2, l3]) => /* @__PURE__ */ u3("option", { value: v2, selected: v2 === "OUTDATED", children: l3 })) }),
+    /* @__PURE__ */ u3("div", { id: "reverr", children: Raw(err) }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", children: "Hide comment" })
+    ] })
+  ] }) }));
+  var cmPopHtml = (hr, edit, hide, del) => html(/* @__PURE__ */ u3(S2, { children: [
+    /* @__PURE__ */ u3("button", { "data-h": "link", children: "Copy link" }),
+    /* @__PURE__ */ u3("button", { "data-h": "md", children: "Copy Markdown" }),
+    /* @__PURE__ */ u3("button", { "data-h": "quote", children: "Quote reply" }),
+    /* @__PURE__ */ u3("button", { "data-h": "issue", children: "Reference in new issue" }),
+    hr ? /* @__PURE__ */ u3("hr", {}) : "",
+    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", children: "Edit" }) : "",
+    hide ? /* @__PURE__ */ u3("button", { "data-h": "hide", children: "Hide" }) : "",
+    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", children: "Delete" }) : ""
+  ] }));
+  var reactPopHtml = (reacts) => html(/* @__PURE__ */ u3(S2, { children: reacts.map(([k3, em]) => /* @__PURE__ */ u3("button", { "data-c": k3, children: em })) }));
+
   // src/app/keyboard.ts
   var typing = (t2) => t2 && (t2.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t2.isContentEditable);
   var kbItems = () => [...qa(".main .tl-comment, .main .tc")].filter((e2) => e2.offsetParent);
@@ -3848,13 +4981,13 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     el.innerHTML = `<div class="dlg pal"><h2>Keyboard shortcuts</h2>${k3("Jump to any pull request", "\u2318 K")}${k3("Next / previous comment", "j / k")}${k3("Next / previous unresolved thread", "] / [")}${k3("Reply to the selected comment", "r")}${k3("Write a comment (docked at the bottom)", "c")}${k3("New pull request", "n")}${k3("New tab / close tab / reopen closed", "\u2318T \xB7 \u2318W \xB7 \u2318\u21E7T")}${k3("Go to tab 1\u20139 / next tab", "\u23181\u20139 \xB7 \u2303Tab")}${k3("Open a PR in a new tab", "\u2318-click")}${k3("Turn Split view on / off", "s")}${k3("Swap the two sides of Split view", "f")}${k3("Diff: unified \u21C4 side-by-side", "d")}${k3("Show this help", "?")}${k3("Close dialogs and menus", "Esc")}</div>`;
     document.body.appendChild(el);
     el.addEventListener("mousedown", () => el.remove());
-    const esc2 = (e2) => {
+    const esc22 = (e2) => {
       if (e2.key === "Escape") {
         el.remove();
-        removeEventListener("keydown", esc2);
+        removeEventListener("keydown", esc22);
       }
     };
-    addEventListener("keydown", esc2);
+    addEventListener("keydown", esc22);
   }
   document.addEventListener("mousedown", (e2) => {
     if (S.tabMenu && !e2.target.closest(".pt-menu, #tabadd")) {
@@ -3973,34 +5106,22 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
   }
   var prRef = () => ({ repo: S.bundle.pull.base.repo.full_name, number: S.bundle.pull.number });
-  var draftBox = (key, ph, rows = 4) => `<div class="tt" data-draft="${key}" data-ph="${esc(ph)} \u2014 type / for blocks" style="--rows:${rows}"></div>`;
-  var errLine = (k3) => S.actErr && S.actErr.k === k3 ? `<div class="act-err">${esc(S.actErr.m)}</div>` : "";
+  var draftBox = (key, ph, rows = 4) => draftBoxHtml(key, ph, rows);
+  var errLine = (k3) => S.actErr && S.actErr.k === k3 ? errLineHtml(S.actErr.m) : "";
   function composer(b2) {
     const p3 = b2.pull, closed = p3.state === "closed", busy = S.busy === "comment";
     const open = busy || S.cOpen === true, dr = (S.draft.comment || "").trim();
-    return `<div class="composer dock${open ? "" : " collapsed"}" id="composer"><div class="composer-h" id="cbar" role="button" tabindex="0" title="Write a comment (C)">${icon("comment")}<b>Add a comment</b><span class="cbar-ph">${dr ? `Draft: ${esc(dr.replace(/\s+/g, " ").slice(0, 60))}` : "Write a comment\u2026"}</span><kbd>C</kbd><span class="cbar-x">${icon("chevron-down")}</span></div>
-  <div class="composer-body">${draftBox("comment", "Write a comment\u2026 (Markdown supported)")}${errLine("comment")}
-  <div class="composer-f"><span class="hint">\u2318\u21B5 to send \xB7 Esc to collapse</span><span style="flex:1"></span>
-  ${p3.merged ? "" : `<button class="btn ghost" id="doclose">${closed ? "Reopen pull request" : "Close pull request"}</button>`}
-  <button class="btn primary" id="docomment" ${busy ? "disabled" : ""}>${busy ? "Sending\u2026" : "Comment"}</button></div></div></div>`;
+    return composerHtml({ open, draft: dr ? dr.replace(/\s+/g, " ").slice(0, 60) : "", draftBox: draftBox("comment", "Write a comment\u2026 (Markdown supported)"), err: errLine("comment"), merged: !!p3.merged, closed, busy });
   }
   function mergeActions(b2) {
     const p3 = b2.pull;
     if (p3.merged || p3.state === "closed") return "";
     const busy = S.busy === "merge", am = p3.auto_merge, blocked = p3.mergeable_state !== "clean" && p3.mergeable_state !== "unstable";
-    const opts = (sel) => [["merge", "Create a merge commit"], ["squash", "Squash and merge"], ["rebase", "Rebase and merge"]].map(([v2, t2]) => `<option value="${v2}" ${sel === v2 ? "selected" : ""}>${t2}</option>`).join("");
     const cur = am ? { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" }[am.merge_method] || "merge" : "merge";
-    if (p3.draft) return `<div class="merge-act"><button class="btn ghost" id="doclose">Close pull request</button>${errLine("merge")}</div>`;
-    return `<div class="merge-act"><select class="sel" id="mmethod">${opts(cur)}</select><button class="btn primary" id="domerge" ${busy ? "disabled" : ""}>${busy ? "Merging\u2026" : "Merge pull request"}</button>
-  ${am ? `<button class="btn" id="noauto" title="Auto-merge is on (${esc(am.merge_method.toLowerCase())})">${S.busy === "disable_automerge" ? "Turning off\u2026" : "Disable auto-merge"}</button>` : blocked ? `<button class="btn" id="doauto" title="Merge automatically once required checks and reviews pass">${S.busy === "automerge" ? "Enabling\u2026" : "Enable auto-merge"}</button>` : ""}
-  <button class="btn ghost" id="todraft" title="Mark as draft again">Convert to draft</button>${errLine("merge")}${errLine("automerge")}</div>`;
+    return mergeActHtml({ draft: !!p3.draft, err: errLine("merge"), method: cur, busy, auto: am ? { method: am.merge_method.toLowerCase(), busy: S.busy === "disable_automerge" } : null, canAuto: blocked, autoBusy: S.busy === "automerge", errAuto: errLine("automerge") });
   }
   function reviewDialog() {
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2>${draftBox("review", pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", 5)}
-  <div class="radios"><label><input type="radio" name="rev" value="COMMENT" checked> <b>Comment</b> <span>Submit general feedback without explicit approval.</span></label>
-  <label><input type="radio" name="rev" value="APPROVE"> <b>Approve</b> <span>Submit feedback and approve merging these changes.</span></label>
-  <label><input type="radio" name="rev" value="REQUEST_CHANGES"> <b>Request changes</b> <span>Submit feedback that must be addressed before merging.</span></label></div>
-  <div id="reverr"></div><div class="btns"><button class="btn" id="revcancel">Cancel</button><button class="btn primary" id="revsubmit">Submit review</button></div></div></div>`;
+    S.dialog = reviewDialogHtml(draftBox("review", pendList().length ? `Leave a review comment (${pendList().length} line comment${pendList().length === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", 5));
     render();
     $("#revcancel").onclick = () => {
       S.dialog = "";
@@ -4021,7 +5142,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function editPrDialog() {
     const p3 = S.bundle.pull;
     S.draft.prbody = p3.body || "";
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit pull request</h2><label class="np-l">Title</label><input class="input" id="eptitle" value="${esc(p3.title)}" style="width:100%;box-sizing:border-box;height:34px"><label class="np-l">Description</label>${draftBox("prbody", "Describe your changes", 8)}<div id="reverr">${errLine("editpr")}</div><div class="btns"><button class="btn" id="epcancel">Cancel</button><button class="btn primary" id="epsave">Save</button></div></div></div>`;
+    S.dialog = editPrDialogHtml(p3.title, draftBox("prbody", "Describe your changes", 8), errLine("editpr"));
     render();
     $("#epcancel").onclick = () => {
       delete S.draft.prbody;
@@ -4079,7 +5200,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     });
   }
   function confirmDlg(title, text, label, danger, fn) {
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>${esc(title)}</h2><p>${esc(text)}</p><div class="btns"><button class="btn" id="cfcancel">Cancel</button><button class="btn ${danger ? "danger" : "primary"}" id="cfok">${esc(label)}</button></div></div></div>`;
+    S.dialog = confirmDlgHtml(title, text, label, danger);
     render();
     $("#cfcancel").onclick = () => {
       S.dialog = "";
@@ -4175,7 +5296,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   };
   function editCommentDialog(c3, kind) {
     S.draft.editc = c3.body || "";
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit comment</h2>${draftBox("editc", "Edit your comment", 6)}<div id="reverr">${errLine("editc")}</div><div class="btns"><button class="btn" id="eccancel">Cancel</button><button class="btn primary" id="ecsave">Save</button></div></div></div>`;
+    S.dialog = editCommentDialogHtml(draftBox("editc", "Edit your comment", 6), errLine("editc"));
     render();
     $("#eccancel").onclick = () => {
       delete S.draft.editc;
@@ -4191,7 +5312,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     };
   }
   function deleteCommentDialog(c3, kind) {
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Delete this comment?</h2><p style="color:var(--fgColor-muted)">This can't be undone.</p><div id="reverr">${errLine("delc")}</div><div class="btns"><button class="btn" id="dccancel">Cancel</button><button class="btn danger" id="dcdo">Delete</button></div></div></div>`;
+    S.dialog = deleteCommentDialogHtml(errLine("delc"));
     render();
     $("#dccancel").onclick = () => {
       S.dialog = "";
@@ -4206,7 +5327,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   }
   function hideCommentDialog(c3) {
     const reasons = [["SPAM", "Spam"], ["ABUSE", "Abuse"], ["OFF_TOPIC", "Off-topic"], ["OUTDATED", "Outdated"], ["DUPLICATE", "Duplicate"], ["RESOLVED", "Resolved"]];
-    S.dialog = `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Hide this comment</h2><label class="np-l">Reason</label><select class="sel" id="hcreason" style="width:100%;height:34px">${reasons.map(([v2, l3]) => `<option value="${v2}" ${v2 === "OUTDATED" ? "selected" : ""}>${l3}</option>`).join("")}</select><div id="reverr">${errLine("hidec")}</div><div class="btns"><button class="btn" id="hccancel">Cancel</button><button class="btn primary" id="hcdo">Hide comment</button></div></div></div>`;
+    S.dialog = hideCommentDialogHtml(reasons, errLine("hidec"));
     render();
     $("#hccancel").onclick = () => {
       S.dialog = "";
@@ -4302,7 +5423,7 @@ ${q3}
       pop.className = "react-pop cm-pop";
       const bb = S.bundle, cc = String(bb.pull.id) === String(btn.dataset.cm) ? bb.pull : [...bb.timeline, ...bb.review_comments].find((x3) => String(x3.id) === String(btn.dataset.cm));
       const isPr = cc === bb.pull, own = !!S.me && (cc?.user || cc?.actor)?.login === S.me;
-      pop.innerHTML = `<button data-h="link">Copy link</button><button data-h="md">Copy Markdown</button><button data-h="quote">Quote reply</button><button data-h="issue">Reference in new issue</button>${own || !isPr && S.hasToken ? "<hr>" : ""}${own ? '<button data-h="edit">Edit</button>' : ""}${!isPr && S.hasToken ? '<button data-h="hide">Hide</button>' : ""}${own && !isPr ? '<button data-h="del" class="danger">Delete</button>' : ""}`;
+      pop.innerHTML = cmPopHtml(own || !isPr && S.hasToken, own, !isPr && S.hasToken, own && !isPr);
       const r3 = btn.getBoundingClientRect();
       pop.style.left = Math.min(r3.left - 100, innerWidth - 180) + "px";
       pop.style.top = r3.bottom + 4 + "px";
@@ -4467,7 +5588,7 @@ ${ev.currentTarget.dataset.code}
       $(".react-pop")?.remove();
       const pop = document.createElement("div");
       pop.className = "react-pop";
-      pop.innerHTML = REACTS.map(([k3, em]) => `<button data-c="${k3}">${em}</button>`).join("");
+      pop.innerHTML = reactPopHtml(REACTS);
       const r3 = btn.getBoundingClientRect();
       pop.style.left = Math.min(r3.left, innerWidth - 300) + "px";
       pop.style.top = Math.min(r3.bottom + 4, innerHeight - 60) + "px";
