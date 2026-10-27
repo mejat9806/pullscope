@@ -1,14 +1,14 @@
-import { bindWrite, drafts, rerender, saveDrafts, setBell, setBusy } from './actions';
-import { avUrl, bindSticky, bpOpen, focusAddr, openExternal, openFromList } from './addressbar';
+import { bindWrite, drafts, rerender, saveDrafts, setBusy } from './actions';
+import { bindSticky, bpOpen, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, applyMode, esc, icon, isDark, tauri, qa } from './core';
+import { $, KEY_RECENT, S, esc, icon, tauri, qa } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
 import { confetti } from './fun';
 import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
 import { loadPrs, loadRepos, openPr, openRepo, reload } from './nav';
-import { bindNpMeta, loadInbox, npCompare, npLoadBranches, openInbox, openNewPr, render, saveNotes } from './pages';
+import { bindNpMeta, loadInbox, npCompare, npLoadBranches, openNewPr, render, saveNotes } from './pages';
 import { go } from './render';
-import { closeTab, curRef, reopenTab, saveTabs, tabIdx, tabSnap } from './tabs';
+import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 import { jumpUnresolved } from './timeline';
 
 // Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
@@ -58,11 +58,6 @@ export function bind() {
   $('#prsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
   $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = (e.target as HTMLInputElement).value; localStorage.setItem('pgroup', S.pgroup); render(); });
   qa('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps!; loadPrs(); }));
-  $('#upd')?.addEventListener('click', async () => {
-    const u = S.update; if (!u || u.busy) return; u.busy = true; render();
-    try { await u.obj.downloadAndInstall(); await window.__TAURI__!.process.relaunch(); }
-    catch (e) { u.busy = false; S.actErr = { k: 'update', m: 'Update failed: ' + String(e) }; render(); }
-  });
   $('#addtoken')?.addEventListener('click', tokenDialog);
   qa('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
   $<HTMLSelectElement>('#hmsort')?.addEventListener('change', (e) => { S.hmSort = (e.target as HTMLInputElement).value; render(); });
@@ -94,34 +89,6 @@ export function bind() {
   qa('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
   qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps!; openRepo(S.repo!, { nav: true }); }));
-  $('#back')?.addEventListener('click', () => go(-1));
-  $('#fwd')?.addEventListener('click', () => go(1));
-  $('#reload')?.addEventListener('click', reload);
-  $('#external')?.addEventListener('click', () => openExternal(S.bundle!.pull.html_url));
-  $('#mode')?.addEventListener('click', (e) => {
-    const btn = e.currentTarget as HTMLElement, r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
-    S.mode = isDark() ? 'light' : 'dark'; localStorage.setItem('mode', S.mode);
-    const swap = () => { applyMode(); btn!.classList.toggle('dark', isDark()); btn!.setAttribute('aria-checked', String(isDark())); btn!.title = `Switch to ${isDark() ? 'light' : 'dark'} mode`; };
-    btn!.classList.remove('pop'); void btn!.offsetWidth; btn!.classList.add('pop');
-    if (!document.startViewTransition) { swap(); return; }
-    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    document.documentElement.classList.add('vt');
-    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished.finally(() => document.documentElement.classList.remove('vt')));
-  });
-  $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($<HTMLInputElement>('#addrinput')!.value); $<HTMLInputElement>('#addrinput')!.blur(); });
-  $('#signin')?.addEventListener('click', tokenDialog);
-  $('#profbtn')?.addEventListener('click', (e) => {
-    e.stopPropagation(); const had = $('.prof-pop')!; $('.react-pop')?.remove(); if (had) return;
-    const pr = S.profile, pop = document.createElement('div'); pop.className = 'react-pop cm-pop prof-pop';
-    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr!.avatar_url!, 80))}" alt=""><div><b>${esc(pr!.name || pr!.login)}</b><i>@${esc(pr!.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="out" class="danger">Sign out</button>`;
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); pop.style.right = Math.max(8, innerWidth - r.right) + 'px'; pop.style.top = r.bottom + 6 + 'px';
-    pop.onclick = async (ev) => {
-      const h = (ev.target as HTMLElement).closest<HTMLElement>('[data-h]')?.dataset.h; if (!h) return; pop.remove();
-      if (h === 'profile') openExternal(pr!.html_url!); else if (h === 'token') tokenDialog();
-      else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
-    };
-    document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
-  });
   qa('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open!, true); } else openFromList(el.dataset.open!, false); }));
   qa('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open!, true); } }));
   qa('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
@@ -132,41 +99,11 @@ export function bind() {
     pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref!, true); else if (h === 'here') openFromList(ref!, false); else { const m = ref!.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m! ? `https://github.com/${m[1]}/pull/${m[2]}` : ref!).catch(() => {}); } };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
   }));
-  qa('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('.pt-x')) return; const t = S.tabs[+el.dataset.tab!]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab!); } }); });
   // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
-  qa('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
-    if (e.button !== 0 || (e.target as HTMLElement).closest<HTMLElement>('.pt-x')) return;
-    const from = +el.dataset.tab!, x0 = e.clientX; let moved = false, to = from;
-    const strip = el.parentElement, tabs = [...strip!.querySelectorAll<HTMLElement>('.ptab')];
-    const mv = (ev: MouseEvent) => {
-      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
-      if (!moved) { moved = true; el.classList.add('drag'); document.body.classList.add('dragging'); }
-      el.style.transform = `translateX(${ev.clientX - x0}px)`;
-      to = tabs.reduce((best, t, i) => { const r = t.getBoundingClientRect(); return ev.clientX > r.left + r.width / 2 ? i : best; }, 0);
-      tabs.forEach((t, i) => { if (t !== el) t.style.transform = from < to && i > from && i <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i < from && i >= to ? `translateX(${el.offsetWidth}px)` : ''; });
-    };
-    const up = () => {
-      removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging');
-      if (!moved) return;
-      el.addEventListener('click', (c) => c.stopImmediatePropagation(), { capture: true, once: true });
-      if (to !== from) { const [t] = S.tabs.splice(from, 1); S.tabs.splice(to, 0, t); saveTabs(); }
-      render();
-    };
-    addEventListener('mousemove', mv); addEventListener('mouseup', up);
-  }));
-  qa('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx!); }));
-  { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
-  $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });
-  qa('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openFromList(el.dataset.tabnew!, true)));
-  $('[data-tabhome]')?.addEventListener('click', () => { S.tabMenu = false; S.view = 'home'; render(); });
-  $('[data-tabreopen]')?.addEventListener('click', () => { S.tabMenu = false; reopenTab(); });
   qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
   qa('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab!; render(); $('.main')!.scrollTop = 0; }));
-  $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
-  $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget as HTMLElement, true); S.offline = navigator.onLine === false; reload(); });
   qa('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare!.split('@'); openNewPr(repo, br); }));
   qa('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss!] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
-  $('#newprbtn')?.addEventListener('click', () => openNewPr());
   $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
   const npSet = (f: () => void) => { f(); S.np!.key = `${S.np!.repo}|${S.np!.base}|${S.np!.head}`; };
   $('#nprepo')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'repo', (v) => { npSet(() => { S.np!.repo = v; S.np!.base = ''; S.np!.head = ''; S.np!.cmp = null; S.np!.titleTouched = false; S.np!.title = ''; }); render(); npLoadBranches(S.np!.repo); }, true));
@@ -193,7 +130,6 @@ export function bind() {
       delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n!.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
     } catch (err) { setBusy(btn!, false); n!.err = String(err).replace(/^Error: /, ''); rerender(); }
   });
-  $('#inboxbtn')?.addEventListener('click', openInbox);
   $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
   $('#npcheck')?.addEventListener('click', () => pollNotes());
@@ -239,11 +175,6 @@ export function bind() {
   qa('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show!] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
   qa('[data-who]').forEach((el) => el.addEventListener('click', () => keep(() => { const w = el.dataset.who!; S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; })));
   qa('[data-whoclear]').forEach((el) => el.addEventListener('click', () => keep(() => { S.who = []; })));
-  $('#navbtn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (matchMedia('(min-width: 901px)').matches) { S.hide.nav = !S.hide.nav; try { localStorage.setItem('hide', JSON.stringify(S.hide)); } catch { /* storage full */ } $('.shell')?.classList.toggle('nav-hidden', S.hide.nav); return; }
-    keep(() => { S.nav = !S.nav; });
-  });
   $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
   $('#nextun')?.addEventListener('click', jumpUnresolved);
   $<HTMLSelectElement>('#crange')?.addEventListener('change', (e) => keep(() => { S.range = (e.target as HTMLInputElement).value; if (S.range === 'custom' && !S.rFrom && !S.rTo) { const d = (t: number) => new Date(t - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); S.rTo = d(Date.now()); S.rFrom = d(Date.now() - 7 * 864e5); } }));

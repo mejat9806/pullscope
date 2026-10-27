@@ -61,7 +61,6 @@
   }
   S.offline = typeof navigator !== "undefined" && navigator.onLine === false;
   var isOff = () => !!(S.offline || S.bundle && S.bundle._cached);
-  var offlineBar = () => "";
   function applyMode() {
     const d3 = document.documentElement, dark = isDark();
     d3.setAttribute("data-color-mode", dark ? "dark" : "light");
@@ -306,6 +305,10 @@
   function Q(n2, l3, u4) {
     return this.constructor(n2, u4);
   }
+  function R(u4, t2, i3) {
+    var r3, o3, e2, f4;
+    t2 == document && (t2 = document.documentElement), l.__ && l.__(u4, t2), o3 = (r3 = "function" == typeof i3) ? null : i3 && i3.__k || t2.__k, e2 = [], f4 = [], q(t2, u4 = (!r3 && i3 || t2).__k = k(S2, null, [u4]), o3 || d, d, t2.namespaceURI, !r3 && i3 ? [i3] : o3 ? null : t2.firstChild ? n.call(t2.childNodes) : null, e2, !r3 && i3 ? i3 : o3 ? o3.__e : t2.firstChild, r3, f4), D(e2, u4, f4), u4.props.children = null;
+  }
   n = w.slice, l = { __e: function(n2, l3, u4, t2) {
     for (var i3, r3, o3; l3 = l3.__; ) if ((i3 = l3.__c) && !i3.__) try {
       if ((r3 = i3.constructor) && null != r3.getDerivedStateFromError && (i3.setState(r3.getDerivedStateFromError(n2)), o3 = i3.__d), null != i3.componentDidCatch && (i3.componentDidCatch(n2, t2 || {}), o3 = i3.__d), o3) return i3.__E = i3;
@@ -440,7 +443,7 @@
         if (O2) $3 = P2(t2, H2), z2 = t2.__c;
         else {
           t2.__c = z2 = _2(t2, H2);
-          for (var R = 0; z2.__d && R++ < 25; ) z2.__d = false, x2 && x2(t2), $3 = F.call(z2, M, H2);
+          for (var R2 = 0; z2.__d && R2++ < 25; ) z2.__d = false, x2 && x2(t2), $3 = F.call(z2, M, H2);
           z2.__d = true;
         }
         if (null != z2.getChildContext && (s3 = T2({}, s3, z2.getChildContext())), O2 && l.errorBoundaries && (F.getDerivedStateFromError || z2.componentDidCatch)) {
@@ -564,12 +567,6 @@
     return out;
   };
 
-  // src/components/ui.tsx
-  var I2 = (name, size, cls) => Raw(icon(name, size, cls));
-  var Av = (u4, s3 = 40) => Raw(avatar(u4, s3));
-  var When = (t2) => Raw(when(t2));
-  var SP = " ";
-
   // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
   var f3 = 0;
   function u3(e2, t2, n2, o3, i3, u4) {
@@ -580,6 +577,13 @@
     if ("function" == typeof e2 && (a3 = e2.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
     return l.vnode && l.vnode(l3), l3;
   }
+
+  // src/components/ui.tsx
+  var I2 = (name, size, cls) => Raw(icon(name, size, cls));
+  var Av = (u4, s3 = 40) => Raw(avatar(u4, s3));
+  var When = (t2) => Raw(when(t2));
+  var SP = " ";
+  var Icon = ({ n: n2, s: s3 = 16, c: c3 = "" }) => /* @__PURE__ */ u3("svg", { class: `octicon ${c3}`, viewBox: `0 0 ${s3} ${s3}`, width: s3, height: s3, "aria-hidden": "true", dangerouslySetInnerHTML: { __html: (window.OCTICONS || {})[n2] || "" } });
 
   // src/components/Comments.tsx
   var NL = "\n  ";
@@ -809,106 +813,6 @@
   var recentListHtml = (p3) => html(/* @__PURE__ */ u3(RecentList, { ...p3 }));
   var repoListHtml = (p3) => html(/* @__PURE__ */ u3(RepoList, { ...p3 }));
   var sidebarHtml = (p3) => html(/* @__PURE__ */ u3(Sidebar, { ...p3 }));
-
-  // src/components/TabStrip.tsx
-  function TabStrip({ tabs, cur, recents, menu, closedFirst, icon: icon6 }) {
-    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
-      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, title: t2.ref + " \xB7 " + t2.title, children: [
-        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: Raw(icon6(t2.icon)) }),
-        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
-          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
-          " ",
-          t2.title
-        ] }),
-        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, "aria-label": "Close tab", children: Raw(icon6("x")) })
-      ] })),
-      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", title: "New tab (\u2318T)", "aria-label": "New tab", children: [
-        Raw(icon6("plus")),
-        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
-      ] }),
-      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", children: [
-        /* @__PURE__ */ u3("a", { "data-tabhome": "", children: [
-          Raw(icon6("home")),
-          " Home"
-        ] }),
-        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
-        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, children: [
-          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: Raw(icon6(r3.icon)) }),
-          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
-            /* @__PURE__ */ u3("i", { children: r3.ref }),
-            " ",
-            r3.title
-          ] })
-        ] })),
-        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
-          /* @__PURE__ */ u3("h6", { children: "Closed" }),
-          /* @__PURE__ */ u3("a", { "data-tabreopen": "", children: [
-            Raw(icon6("clock")),
-            " Reopen ",
-            closedFirst,
-            " ",
-            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
-          ] })
-        ] })
-      ] })
-    ] });
-  }
-  var tabStripHtml = (p3) => html(/* @__PURE__ */ u3(TabStrip, { ...p3 }));
-
-  // src/components/Toolbar.tsx
-  var NL2 = "\n  ";
-  function Toolbar(p3) {
-    const { icon: icon6 } = p3, label = p3.profile ? p3.profile.name || p3.profile.login : "";
-    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
-      NL2,
-      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", title: "Show or hide the sidebar", children: Raw(icon6("three-bars")) }),
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", disabled: !p3.canBack, title: "Back (\u2318[)", children: Raw(icon6("chevron-left")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", disabled: !p3.canFwd, title: "Forward (\u2318])", children: Raw(icon6("chevron-right")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: Raw(icon6("sync")) })
-      ] }),
-      NL2,
-      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", children: [
-        Raw(icon6("search")),
-        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
-      ] }),
-      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", title: "Download and install the new version, then restart", children: [
-        Raw(icon6("sync")),
-        " ",
-        p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
-      ] }),
-      NL2,
-      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
-        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: Raw(icon6("alert")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", disabled: !p3.hasBundle, title: "Open on github.com", children: Raw(icon6("link-external")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", title: "New pull request", children: Raw(icon6("plus")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", title: "Inbox: PRs that need you", children: Raw(icon6("checklist")) }),
-        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", title: "Notifications", children: [
-          Raw(icon6("bell")),
-          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
-        ] }),
-        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
-          /* @__PURE__ */ u3("i", { class: "st" }),
-          /* @__PURE__ */ u3("i", { class: "st s2" }),
-          /* @__PURE__ */ u3("i", { class: "st s3" }),
-          /* @__PURE__ */ u3("i", { class: "cl" }),
-          /* @__PURE__ */ u3("i", { class: "cl c2" }),
-          /* @__PURE__ */ u3("span", { class: "knob", children: [
-            /* @__PURE__ */ u3("b", { class: "cr" }),
-            /* @__PURE__ */ u3("b", { class: "cr c2" }),
-            /* @__PURE__ */ u3("b", { class: "cr c3" })
-          ] })
-        ] }),
-        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", title: `${label} \u2014 account menu`, children: [
-          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
-          /* @__PURE__ */ u3("span", { children: label }),
-          Raw(icon6("chevron-down", 12))
-        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", title: "Access token", children: Raw(icon6("key")) })
-      ] })
-    ] });
-  }
-  var toolbarHtml = (p3) => html(/* @__PURE__ */ u3(Toolbar, { ...p3 }));
 
   // src/components/PrList.tsx
   function Sel({ id, opts, v: v2 }) {
@@ -1199,27 +1103,6 @@
     if (S.tabs.length < 2) return;
     const i3 = tabIdx(), n2 = S.tabs[(i3 + d3 + S.tabs.length) % S.tabs.length];
     openTab(n2.ref);
-  }
-  function tabStrip() {
-    const open = new Set(S.tabs.map((t2) => t2.ref));
-    return tabStripHtml({ tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, icon });
-  }
-  function toolbar() {
-    const b2 = S.bundle, pr = S.profile;
-    return toolbarHtml({
-      prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
-      hasBundle: !!b2,
-      canBack: !(S.hist.length < 2 || S.hi < 1),
-      canFwd: !(S.hi >= S.hist.length - 1),
-      update: S.update ? { busy: S.update.busy, version: S.update.version } : null,
-      offline: isOff(),
-      unread: S.notes.filter((n2) => !n2.read).length,
-      dark: isDark(),
-      profile: pr,
-      hasToken: S.hasToken,
-      avatar: S.hasToken && pr ? avUrl(pr.avatar_url, 56) : "",
-      icon
-    });
   }
   function sideRecent() {
     let list;
@@ -2465,18 +2348,18 @@
       const x3 = t2 ? Date.parse(t2) : NaN;
       return isNaN(x3) || x3 >= rLo && x3 <= rHi;
     };
-    const keep = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
+    const keep2 = !rangeOn ? byKind : byKind.filter((e2) => inRange(evTime(e2)) || e2.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e2.id && inRange(c3.created_at)) || e2.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e2.id)));
     const bars = barsHtml(people.size > 1 ? { everyone: !on, people: [...people.values()].sort((x3, y2) => y2.n - x3.n).map(({ u: u4, n: n2 }) => ({ u: u4, n: n2, on: who.includes(u4.login) })) } : null, { range: S.range, from: S.rFrom, to: S.rTo, desc: S.sort === "desc" });
     if (!S.unres && (!on || who.includes(p3.user.login))) out.push(commentBox({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true }).replace('class="tl-comment"', 'class="tl-comment" style="margin-bottom:0"'));
     const evs = [];
-    for (let i3 = 0; i3 < keep.length; ) {
+    for (let i3 = 0; i3 < keep2.length; ) {
       let j3 = i3;
-      while (j3 < keep.length && keep[j3].event === "committed") j3++;
+      while (j3 < keep2.length && keep2[j3].event === "committed") j3++;
       if (j3 - i3 >= 6) {
-        evs.push({ event: "commit-run", n: j3 - i3, first: keep[i3], last: keep[j3 - 1] });
+        evs.push({ event: "commit-run", n: j3 - i3, first: keep2[i3], last: keep2[j3 - 1] });
         i3 = j3;
       } else {
-        evs.push(keep[i3]);
+        evs.push(keep2[i3]);
         i3++;
       }
     }
@@ -2976,20 +2859,6 @@
       S.prState = el.dataset.sps;
       loadPrs();
     }));
-    $("#upd")?.addEventListener("click", async () => {
-      const u4 = S.update;
-      if (!u4 || u4.busy) return;
-      u4.busy = true;
-      render();
-      try {
-        await u4.obj.downloadAndInstall();
-        await window.__TAURI__.process.relaunch();
-      } catch (e2) {
-        u4.busy = false;
-        S.actErr = { k: "update", m: "Update failed: " + String(e2) };
-        render();
-      }
-    });
     $("#addtoken")?.addEventListener("click", tokenDialog);
     qa("[data-hvis]").forEach((b2) => b2.addEventListener("click", () => {
       S.hmVis = b2.dataset.hvis;
@@ -3041,11 +2910,11 @@
         e2.preventDefault();
         const i3 = Number(row.dataset.cp), p3 = S.cpick;
         S.cpick = !p3 || p3.a !== p3.b ? { a: i3, b: i3 } : { a: Math.min(p3.a, i3), b: Math.max(p3.b, i3) };
-        const keep2 = $("#cplist").scrollTop;
+        const keep3 = $("#cplist").scrollTop;
         S.dialog = commitsDialog();
         render();
         const l3 = $("#cplist");
-        if (l3) l3.scrollTop = keep2;
+        if (l3) l3.scrollTop = keep3;
       }));
     }
     $("#fsort")?.addEventListener("change", (e2) => {
@@ -3103,73 +2972,6 @@
       S.prState = el.dataset.ps;
       openRepo(S.repo, { nav: true });
     }));
-    $("#back")?.addEventListener("click", () => go(-1));
-    $("#fwd")?.addEventListener("click", () => go(1));
-    $("#reload")?.addEventListener("click", reload);
-    $("#external")?.addEventListener("click", () => openExternal(S.bundle.pull.html_url));
-    $("#mode")?.addEventListener("click", (e2) => {
-      const btn = e2.currentTarget, r3 = btn.getBoundingClientRect(), x3 = r3.left + r3.width / 2, y2 = r3.top + r3.height / 2;
-      S.mode = isDark() ? "light" : "dark";
-      localStorage.setItem("mode", S.mode);
-      const swap = () => {
-        applyMode();
-        btn.classList.toggle("dark", isDark());
-        btn.setAttribute("aria-checked", String(isDark()));
-        btn.title = `Switch to ${isDark() ? "light" : "dark"} mode`;
-      };
-      btn.classList.remove("pop");
-      void btn.offsetWidth;
-      btn.classList.add("pop");
-      if (!document.startViewTransition) {
-        swap();
-        return;
-      }
-      const end = Math.hypot(Math.max(x3, innerWidth - x3), Math.max(y2, innerHeight - y2));
-      document.documentElement.classList.add("vt");
-      document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x3}px ${y2}px)`, `circle(${end}px at ${x3}px ${y2}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished.finally(() => document.documentElement.classList.remove("vt")));
-    });
-    $("#addr")?.addEventListener("submit", (e2) => {
-      e2.preventDefault();
-      openPr($("#addrinput").value);
-      $("#addrinput").blur();
-    });
-    $("#signin")?.addEventListener("click", tokenDialog);
-    $("#profbtn")?.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      const had = $(".prof-pop");
-      $(".react-pop")?.remove();
-      if (had) return;
-      const pr = S.profile, pop = document.createElement("div");
-      pop.className = "react-pop cm-pop prof-pop";
-      pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon("link-external")} Your GitHub profile</button><button data-h="token">${icon("key")} Access token\u2026</button><button data-h="out" class="danger">Sign out</button>`;
-      const r3 = e2.currentTarget.getBoundingClientRect();
-      pop.style.right = Math.max(8, innerWidth - r3.right) + "px";
-      pop.style.top = r3.bottom + 6 + "px";
-      pop.onclick = async (ev) => {
-        const h3 = ev.target.closest("[data-h]")?.dataset.h;
-        if (!h3) return;
-        pop.remove();
-        if (h3 === "profile") openExternal(pr.html_url);
-        else if (h3 === "token") tokenDialog();
-        else {
-          try {
-            await tauri?.invoke("set_token", { token: "" });
-          } catch {
-          }
-          S.hasToken = false;
-          S.profile = null;
-          S.me = "";
-          S.repos = null;
-          try {
-            localStorage.removeItem("profile");
-          } catch {
-          }
-          render();
-        }
-      };
-      document.body.appendChild(pop);
-      setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
-    });
     qa("[data-open]").forEach((el) => el.addEventListener("click", (e2) => {
       if (e2.target.closest("[data-rm], .np-act, .np-dot")) return;
       S.nav = false;
@@ -3214,91 +3016,6 @@
       document.body.appendChild(pop);
       setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
     }));
-    qa(".ptab").forEach((el) => {
-      el.addEventListener("click", (e2) => {
-        if (e2.target.closest(".pt-x")) return;
-        const t2 = S.tabs[+el.dataset.tab];
-        if (t2.ref !== curRef()) {
-          if (fastTab(t2.ref)) return;
-          stashCurrent();
-          tabSnap();
-          S.fadeMain = true;
-          S.tabMenu = false;
-          openPr(t2.ref, { nav: true, restore: t2.tab });
-        }
-      });
-      el.addEventListener("auxclick", (e2) => {
-        if (e2.button === 1) {
-          e2.preventDefault();
-          closeTab(+el.dataset.tab);
-        }
-      });
-    });
-    qa(".ptab").forEach((el) => el.addEventListener("mousedown", (e2) => {
-      if (e2.button !== 0 || e2.target.closest(".pt-x")) return;
-      const from = +el.dataset.tab, x0 = e2.clientX;
-      let moved = false, to = from;
-      const strip = el.parentElement, tabs = [...strip.querySelectorAll(".ptab")];
-      const mv = (ev) => {
-        if (!moved && Math.abs(ev.clientX - x0) < 6) return;
-        if (!moved) {
-          moved = true;
-          el.classList.add("drag");
-          document.body.classList.add("dragging");
-        }
-        el.style.transform = `translateX(${ev.clientX - x0}px)`;
-        to = tabs.reduce((best, t2, i3) => {
-          const r3 = t2.getBoundingClientRect();
-          return ev.clientX > r3.left + r3.width / 2 ? i3 : best;
-        }, 0);
-        tabs.forEach((t2, i3) => {
-          if (t2 !== el) t2.style.transform = from < to && i3 > from && i3 <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i3 < from && i3 >= to ? `translateX(${el.offsetWidth}px)` : "";
-        });
-      };
-      const up = () => {
-        removeEventListener("mousemove", mv);
-        removeEventListener("mouseup", up);
-        document.body.classList.remove("dragging");
-        if (!moved) return;
-        el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
-        if (to !== from) {
-          const [t2] = S.tabs.splice(from, 1);
-          S.tabs.splice(to, 0, t2);
-          saveTabs();
-        }
-        render();
-      };
-      addEventListener("mousemove", mv);
-      addEventListener("mouseup", up);
-    }));
-    qa(".pt-x").forEach((el) => el.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      closeTab(+el.dataset.tabx);
-    }));
-    {
-      const m2 = $(".pt-menu"), a3 = $("#tabadd");
-      if (m2 && a3) {
-        const r3 = a3.getBoundingClientRect();
-        m2.style.top = r3.bottom + 4 + "px";
-        m2.style.left = Math.min(r3.left, innerWidth - 350) + "px";
-        m2.style.marginTop = "0";
-      }
-    }
-    $("#tabadd")?.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      S.tabMenu = !S.tabMenu;
-      rerender();
-    });
-    qa("[data-tabnew]").forEach((el) => el.addEventListener("click", () => openFromList(el.dataset.tabnew, true)));
-    $("[data-tabhome]")?.addEventListener("click", () => {
-      S.tabMenu = false;
-      S.view = "home";
-      render();
-    });
-    $("[data-tabreopen]")?.addEventListener("click", () => {
-      S.tabMenu = false;
-      reopenTab();
-    });
     qa("[data-rm]").forEach((el) => el.addEventListener("click", (e2) => {
       e2.stopPropagation();
       S.recent = S.recent.filter((r3) => r3.ref !== el.dataset.rm);
@@ -3312,15 +3029,6 @@
       render();
       $(".main").scrollTop = 0;
     }));
-    $("#bell")?.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      setBell(!S.bell);
-    });
-    $("#retry")?.addEventListener("click", (ev) => {
-      setBusy(ev.currentTarget, true);
-      S.offline = navigator.onLine === false;
-      reload();
-    });
     qa("[data-compare]").forEach((b2) => b2.addEventListener("click", () => {
       const [repo, br] = b2.dataset.compare.split("@");
       openNewPr(repo, br);
@@ -3330,7 +3038,6 @@
       localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
       rerender();
     }));
-    $("#newprbtn")?.addEventListener("click", () => openNewPr());
     $("#npcancel")?.addEventListener("click", () => {
       S.view = S.bundle ? "pr" : "home";
       delete S.draft.newpr;
@@ -3430,7 +3137,6 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         rerender();
       }
     });
-    $("#inboxbtn")?.addEventListener("click", openInbox);
     $("#ibrefresh")?.addEventListener("click", () => loadInbox(true));
     $("#noteall")?.addEventListener("click", () => {
       S.bell = false;
@@ -3491,7 +3197,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       S.notes.forEach((n2) => n2.read = true);
       localStorage.setItem("notes", JSON.stringify(S.notes));
     }));
-    const keep = (fn) => {
+    const keep2 = (fn) => {
       S.keepScroll = true;
       fn();
       render();
@@ -3544,47 +3250,32 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       const r3 = box.getBoundingClientRect(), m2 = main.getBoundingClientRect();
       if (r3.bottom > m2.bottom - 8 || r3.top < m2.top) box.scrollIntoView({ block: r3.height > m2.height * 0.85 ? "start" : "center", behavior: "smooth" });
     }));
-    qa("[data-foldall]").forEach((el) => el.addEventListener("click", () => keep(() => {
+    qa("[data-foldall]").forEach((el) => el.addEventListener("click", () => keep2(() => {
       el.dataset.files.split("\n").forEach((n2) => {
         S.fold["f:" + n2] = el.dataset.foldall === "close";
       });
       localStorage.setItem("fold", JSON.stringify(S.fold));
     })));
-    qa("[data-hide]").forEach((el) => el.addEventListener("click", () => keep(() => {
+    qa("[data-hide]").forEach((el) => el.addEventListener("click", () => keep2(() => {
       S.hide[el.dataset.hide] = true;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     })));
-    qa("[data-show]").forEach((el) => el.addEventListener("click", () => keep(() => {
+    qa("[data-show]").forEach((el) => el.addEventListener("click", () => keep2(() => {
       S.hide[el.dataset.show] = false;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     })));
-    qa("[data-who]").forEach((el) => el.addEventListener("click", () => keep(() => {
+    qa("[data-who]").forEach((el) => el.addEventListener("click", () => keep2(() => {
       const w3 = el.dataset.who;
       S.who = S.who.includes(w3) ? S.who.filter((x3) => x3 !== w3) : [...S.who, w3];
     })));
-    qa("[data-whoclear]").forEach((el) => el.addEventListener("click", () => keep(() => {
+    qa("[data-whoclear]").forEach((el) => el.addEventListener("click", () => keep2(() => {
       S.who = [];
     })));
-    $("#navbtn")?.addEventListener("click", (e2) => {
-      e2.stopPropagation();
-      if (matchMedia("(min-width: 901px)").matches) {
-        S.hide.nav = !S.hide.nav;
-        try {
-          localStorage.setItem("hide", JSON.stringify(S.hide));
-        } catch {
-        }
-        $(".shell")?.classList.toggle("nav-hidden", S.hide.nav);
-        return;
-      }
-      keep(() => {
-        S.nav = !S.nav;
-      });
-    });
-    $("#scrim")?.addEventListener("click", () => keep(() => {
+    $("#scrim")?.addEventListener("click", () => keep2(() => {
       S.nav = false;
     }));
     $("#nextun")?.addEventListener("click", jumpUnresolved);
-    $("#crange")?.addEventListener("change", (e2) => keep(() => {
+    $("#crange")?.addEventListener("change", (e2) => keep2(() => {
       S.range = e2.target.value;
       if (S.range === "custom" && !S.rFrom && !S.rTo) {
         const d3 = (t2) => new Date(t2 - (/* @__PURE__ */ new Date()).getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
@@ -3592,17 +3283,17 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
         S.rFrom = d3(Date.now() - 7 * 864e5);
       }
     }));
-    $("#cfrom")?.addEventListener("change", (e2) => keep(() => {
+    $("#cfrom")?.addEventListener("change", (e2) => keep2(() => {
       S.rFrom = e2.target.value;
     }));
-    $("#cto")?.addEventListener("change", (e2) => keep(() => {
+    $("#cto")?.addEventListener("change", (e2) => keep2(() => {
       S.rTo = e2.target.value;
     }));
-    $("#csort")?.addEventListener("click", () => keep(() => {
+    $("#csort")?.addEventListener("click", () => keep2(() => {
       S.sort = S.sort === "desc" ? "asc" : "desc";
       localStorage.setItem("csort", S.sort);
     }));
-    $("#unres")?.addEventListener("click", () => keep(() => {
+    $("#unres")?.addEventListener("click", () => keep2(() => {
       S.unres = !S.unres;
     }));
     (S.ios || []).forEach((o3) => o3.disconnect());
@@ -3625,12 +3316,12 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       }
     }
     bindSticky();
-    $("#sidetoggle")?.addEventListener("click", () => keep(() => {
+    $("#sidetoggle")?.addEventListener("click", () => keep2(() => {
       S.hide.side = !S.hide.side;
       localStorage.setItem("hide", JSON.stringify(S.hide));
     }));
     qa("[data-flip]").forEach((b2) => b2.addEventListener("click", flipSides));
-    $("#split")?.addEventListener("click", () => keep(() => {
+    $("#split")?.addEventListener("click", () => keep2(() => {
       S.split = !S.split;
       localStorage.setItem("split", S.split ? "1" : "0");
     }));
@@ -3926,6 +3617,338 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     }
     return homeHtml({ owner, tab, repoCount: S.repos ? S.repos.filter((r3) => !owner || r3.full_name.startsWith(owner + "/")).length : null, recentCount: S.recent.length, banners: pushBanners(), err: S.error ? String(S.error) : "", body });
   }
+
+  // src/components/TabStrip.tsx
+  function TabStrip({ tabs, cur, recents, menu, closedFirst, on }) {
+    return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
+      tabs.map((t2, i3) => /* @__PURE__ */ u3("div", { class: `ptab ${t2.ref === cur ? "on" : ""}`, "data-tab": i3, onClick: (e2) => {
+        if (e2.target.closest(".pt-x")) return;
+        on.open(i3);
+      }, onAuxClick: (e2) => on.aux(e2, i3), onMouseDown: (e2) => on.down(e2, i3), title: t2.ref + " \xB7 " + t2.title, children: [
+        /* @__PURE__ */ u3("span", { class: `rc-i ${t2.state}`, children: /* @__PURE__ */ u3(Icon, { n: t2.icon }) }),
+        /* @__PURE__ */ u3("span", { class: "pt-t", children: [
+          /* @__PURE__ */ u3("i", { children: t2.ref.split("/").pop() }),
+          " ",
+          t2.title
+        ] }),
+        t2.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
+        /* @__PURE__ */ u3("button", { class: "pt-x", "data-tabx": i3, onClick: (e2) => on.close(e2, i3), "aria-label": "Close tab", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
+      ] })),
+      /* @__PURE__ */ u3("button", { class: "pt-add", id: "tabadd", onClick: on.add, title: "New tab (\u2318T)", "aria-label": "New tab", children: [
+        /* @__PURE__ */ u3(Icon, { n: "plus" }),
+        tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
+      ] }),
+      menu && /* @__PURE__ */ u3("div", { class: "pt-menu", ref: on.menu, children: [
+        /* @__PURE__ */ u3("a", { "data-tabhome": "", onClick: on.home, children: [
+          /* @__PURE__ */ u3(Icon, { n: "home" }),
+          " Home"
+        ] }),
+        recents.length > 0 && /* @__PURE__ */ u3("h6", { children: "Recent" }),
+        recents.map((r3) => /* @__PURE__ */ u3("a", { "data-tabnew": r3.ref, onClick: () => on.fresh(r3.ref), children: [
+          /* @__PURE__ */ u3("span", { class: `rc-i ${r3.state}`, children: /* @__PURE__ */ u3(Icon, { n: r3.icon }) }),
+          /* @__PURE__ */ u3("span", { class: "pt-mt", children: [
+            /* @__PURE__ */ u3("i", { children: r3.ref }),
+            " ",
+            r3.title
+          ] })
+        ] })),
+        closedFirst !== null && /* @__PURE__ */ u3(S2, { children: [
+          /* @__PURE__ */ u3("h6", { children: "Closed" }),
+          /* @__PURE__ */ u3("a", { "data-tabreopen": "", onClick: on.reopen, children: [
+            /* @__PURE__ */ u3(Icon, { n: "clock" }),
+            " Reopen ",
+            closedFirst,
+            " ",
+            /* @__PURE__ */ u3("kbd", { children: "\u2318\u21E7T" })
+          ] })
+        ] })
+      ] })
+    ] });
+  }
+
+  // src/components/Toolbar.tsx
+  var NL2 = "\n  ";
+  function Toolbar(p3) {
+    const label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", children: [
+      NL2,
+      /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "back", onClick: p3.on.back, disabled: !p3.canBack, title: "Back (\u2318[)", children: /* @__PURE__ */ u3(Icon, { n: "chevron-left" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "fwd", onClick: p3.on.fwd, disabled: !p3.canFwd, title: "Forward (\u2318])", children: /* @__PURE__ */ u3(Icon, { n: "chevron-right" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "reload", onClick: p3.on.reload, disabled: !p3.hasBundle, title: "Reload (\u2318R)", children: /* @__PURE__ */ u3(Icon, { n: "sync" }) })
+      ] }),
+      NL2,
+      /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
+        /* @__PURE__ */ u3(Icon, { n: "search" }),
+        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+      ] }),
+      p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
+        /* @__PURE__ */ u3(Icon, { n: "sync" }),
+        " ",
+        p3.update.busy ? "Updating\u2026" : "Update to v" + p3.update.version
+      ] }),
+      NL2,
+      /* @__PURE__ */ u3("div", { class: "tb-group", children: [
+        /* @__PURE__ */ u3("button", { class: `tb-btn off-ind ${p3.offline ? "on" : ""}`, id: "retry", onClick: p3.on.retry, "data-tip": "Offline \u2014 can't reach GitHub. Showing the saved copy. Click to retry.", "aria-label": "Offline, click to retry", tabindex: p3.offline ? 0 : -1, children: /* @__PURE__ */ u3(Icon, { n: "alert" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "external", onClick: p3.on.external, disabled: !p3.hasBundle, title: "Open on github.com", children: /* @__PURE__ */ u3(Icon, { n: "link-external" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "newprbtn", onClick: p3.on.newPr, title: "New pull request", children: /* @__PURE__ */ u3(Icon, { n: "plus" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn", id: "inboxbtn", onClick: p3.on.inbox, title: "Inbox: PRs that need you", children: /* @__PURE__ */ u3(Icon, { n: "checklist" }) }),
+        /* @__PURE__ */ u3("button", { class: "tb-btn bell", id: "bell", onClick: p3.on.bell, title: "Notifications", children: [
+          /* @__PURE__ */ u3(Icon, { n: "bell" }),
+          p3.unread > 0 && /* @__PURE__ */ u3("i", { class: "dot", children: p3.unread })
+        ] }),
+        /* @__PURE__ */ u3("button", { class: `theme-sw${p3.dark ? " dark" : ""}`, id: "mode", onClick: p3.on.mode, role: "switch", "aria-checked": p3.dark, title: `Switch to ${p3.dark ? "light" : "dark"} mode`, children: [
+          /* @__PURE__ */ u3("i", { class: "st" }),
+          /* @__PURE__ */ u3("i", { class: "st s2" }),
+          /* @__PURE__ */ u3("i", { class: "st s3" }),
+          /* @__PURE__ */ u3("i", { class: "cl" }),
+          /* @__PURE__ */ u3("i", { class: "cl c2" }),
+          /* @__PURE__ */ u3("span", { class: "knob", children: [
+            /* @__PURE__ */ u3("b", { class: "cr" }),
+            /* @__PURE__ */ u3("b", { class: "cr c2" }),
+            /* @__PURE__ */ u3("b", { class: "cr c3" })
+          ] })
+        ] }),
+        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
+          /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
+          /* @__PURE__ */ u3("span", { children: label }),
+          /* @__PURE__ */ u3(Icon, { n: "chevron-down", s: 12 })
+        ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u3(Icon, { n: "key" }) })
+      ] })
+    ] });
+  }
+
+  // src/app/top.tsx
+  var keep = (fn) => {
+    S.keepScroll = true;
+    fn();
+    render();
+    S.keepScroll = false;
+  };
+  var mode = (e2) => {
+    const btn = e2.currentTarget, r3 = btn.getBoundingClientRect(), x3 = r3.left + r3.width / 2, y2 = r3.top + r3.height / 2;
+    S.mode = isDark() ? "light" : "dark";
+    localStorage.setItem("mode", S.mode);
+    const swap = () => {
+      applyMode();
+      btn.classList.toggle("dark", isDark());
+      btn.setAttribute("aria-checked", String(isDark()));
+      btn.title = `Switch to ${isDark() ? "light" : "dark"} mode`;
+    };
+    btn.classList.remove("pop");
+    void btn.offsetWidth;
+    btn.classList.add("pop");
+    if (!document.startViewTransition) {
+      swap();
+      return;
+    }
+    const end = Math.hypot(Math.max(x3, innerWidth - x3), Math.max(y2, innerHeight - y2));
+    document.documentElement.classList.add("vt");
+    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x3}px ${y2}px)`, `circle(${end}px at ${x3}px ${y2}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished.finally(() => document.documentElement.classList.remove("vt")));
+  };
+  var prof = (e2) => {
+    e2.stopPropagation();
+    const had = $(".prof-pop");
+    $(".react-pop")?.remove();
+    if (had) return;
+    const pr = S.profile, pop = document.createElement("div");
+    pop.className = "react-pop cm-pop prof-pop";
+    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon("link-external")} Your GitHub profile</button><button data-h="token">${icon("key")} Access token\u2026</button><button data-h="out" class="danger">Sign out</button>`;
+    const r3 = e2.currentTarget.getBoundingClientRect();
+    pop.style.right = Math.max(8, innerWidth - r3.right) + "px";
+    pop.style.top = r3.bottom + 6 + "px";
+    pop.onclick = async (ev) => {
+      const h3 = ev.target.closest("[data-h]")?.dataset.h;
+      if (!h3) return;
+      pop.remove();
+      if (h3 === "profile") openExternal(pr.html_url);
+      else if (h3 === "token") tokenDialog();
+      else {
+        try {
+          await tauri?.invoke("set_token", { token: "" });
+        } catch {
+        }
+        S.hasToken = false;
+        S.profile = null;
+        S.me = "";
+        S.repos = null;
+        try {
+          localStorage.removeItem("profile");
+        } catch {
+        }
+        render();
+      }
+    };
+    document.body.appendChild(pop);
+    setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
+  };
+  var tb = {
+    nav: (e2) => {
+      e2.stopPropagation();
+      if (matchMedia("(min-width: 901px)").matches) {
+        S.hide.nav = !S.hide.nav;
+        try {
+          localStorage.setItem("hide", JSON.stringify(S.hide));
+        } catch {
+        }
+        $(".shell")?.classList.toggle("nav-hidden", S.hide.nav);
+        return;
+      }
+      keep(() => {
+        S.nav = !S.nav;
+      });
+    },
+    back: () => go(-1),
+    fwd: () => go(1),
+    reload,
+    external: () => openExternal(S.bundle.pull.html_url),
+    mode,
+    addr: (e2) => {
+      e2.preventDefault();
+      openPr($("#addrinput").value);
+      $("#addrinput").blur();
+    },
+    upd: async () => {
+      const u4 = S.update;
+      if (!u4 || u4.busy) return;
+      u4.busy = true;
+      render();
+      try {
+        await u4.obj.downloadAndInstall();
+        await window.__TAURI__.process.relaunch();
+      } catch (e2) {
+        u4.busy = false;
+        S.actErr = { k: "update", m: "Update failed: " + String(e2) };
+        render();
+      }
+    },
+    retry: (ev) => {
+      setBusy(ev.currentTarget, true);
+      S.offline = navigator.onLine === false;
+      reload();
+    },
+    newPr: () => openNewPr(),
+    inbox: openInbox,
+    bell: (e2) => {
+      e2.stopPropagation();
+      setBell(!S.bell);
+    },
+    signin: tokenDialog,
+    prof
+  };
+  var tabDown = (e2, from) => {
+    const el = e2.currentTarget;
+    if (e2.button !== 0 || e2.target.closest(".pt-x")) return;
+    const x0 = e2.clientX;
+    let moved = false, to = from;
+    const strip = el.parentElement, tabs = [...strip.querySelectorAll(".ptab")];
+    const mv = (ev) => {
+      if (!moved && Math.abs(ev.clientX - x0) < 6) return;
+      if (!moved) {
+        moved = true;
+        el.classList.add("drag");
+        document.body.classList.add("dragging");
+      }
+      el.style.transform = `translateX(${ev.clientX - x0}px)`;
+      to = tabs.reduce((best, t2, i3) => {
+        const r3 = t2.getBoundingClientRect();
+        return ev.clientX > r3.left + r3.width / 2 ? i3 : best;
+      }, 0);
+      tabs.forEach((t2, i3) => {
+        if (t2 !== el) t2.style.transform = from < to && i3 > from && i3 <= to ? `translateX(-${el.offsetWidth}px)` : from > to && i3 < from && i3 >= to ? `translateX(${el.offsetWidth}px)` : "";
+      });
+    };
+    const up = () => {
+      removeEventListener("mousemove", mv);
+      removeEventListener("mouseup", up);
+      document.body.classList.remove("dragging");
+      if (!moved) return;
+      el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
+      if (to !== from) {
+        const [t2] = S.tabs.splice(from, 1);
+        S.tabs.splice(to, 0, t2);
+        saveTabs();
+      }
+      render();
+    };
+    addEventListener("mousemove", mv);
+    addEventListener("mouseup", up);
+  };
+  var ts = {
+    open: (i3) => {
+      const t2 = S.tabs[i3];
+      if (t2.ref !== curRef()) {
+        if (fastTab(t2.ref)) return;
+        stashCurrent();
+        tabSnap();
+        S.fadeMain = true;
+        S.tabMenu = false;
+        openPr(t2.ref, { nav: true, restore: t2.tab });
+      }
+    },
+    aux: (e2, i3) => {
+      if (e2.button === 1) {
+        e2.preventDefault();
+        closeTab(i3);
+      }
+    },
+    down: tabDown,
+    close: (e2, i3) => {
+      e2.stopPropagation();
+      closeTab(i3);
+    },
+    add: (e2) => {
+      e2.stopPropagation();
+      S.tabMenu = !S.tabMenu;
+      rerender();
+    },
+    fresh: (ref) => openFromList(ref, true),
+    home: () => {
+      S.tabMenu = false;
+      S.view = "home";
+      render();
+    },
+    reopen: () => {
+      S.tabMenu = false;
+      reopenTab();
+    },
+    menu: (m2) => {
+      const a3 = $("#tabadd");
+      if (m2 && a3) {
+        const r3 = a3.getBoundingClientRect();
+        m2.style.top = r3.bottom + 4 + "px";
+        m2.style.left = Math.min(r3.left, innerWidth - 350) + "px";
+        m2.style.marginTop = "0";
+      }
+    }
+  };
+  function Top() {
+    const b2 = S.bundle, pr = S.profile, open = new Set(S.tabs.map((t2) => t2.ref));
+    return /* @__PURE__ */ u3(S2, { children: [
+      S.refreshing && /* @__PURE__ */ u3("div", { class: "refreshing-bar" }),
+      /* @__PURE__ */ u3(
+        Toolbar,
+        {
+          prRef: b2 ? `${b2.pull.base.repo.full_name}#${b2.pull.number}` : "",
+          hasBundle: !!b2,
+          canBack: !(S.hist.length < 2 || S.hi < 1),
+          canFwd: !(S.hi >= S.hist.length - 1),
+          update: S.update ? { busy: S.update.busy, version: S.update.version } : null,
+          offline: isOff(),
+          unread: S.notes.filter((n2) => !n2.read).length,
+          dark: isDark(),
+          profile: pr,
+          hasToken: S.hasToken,
+          avatar: S.hasToken && pr ? avUrl(pr.avatar_url, 56) : "",
+          on: tb
+        }
+      ),
+      /* @__PURE__ */ u3(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open.has(r3.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
+    ] });
+  }
+  var paintTop = (host) => R(/* @__PURE__ */ u3(Top, {}), host);
+  var clearTop = (host) => R(null, host);
 
   // src/components/Pages.tsx
   function NotesPage({ f: f4, rows, unread, total }) {
@@ -4395,13 +4418,20 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function gateHtml() {
     return gateHtmlStr(icon("alert"), S.gateErr ? String(S.gateErr) : "");
   }
+  function hosts() {
+    const app = $("#app");
+    if (!app.querySelector(":scope > #top")) app.innerHTML = '<div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div>';
+    return { top: $("#top"), rest: $("#rest") };
+  }
   function render() {
     applyMode();
+    const { top, rest } = hosts();
     if (needSignIn()) {
       (S.eds || []).forEach((e2) => e2.destroy());
       S.eds = [];
       S.lastHtml = "";
-      $("#app").innerHTML = `${gateHtml()}${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}`;
+      clearTop(top);
+      rest.innerHTML = `${gateHtml()}${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}`;
       $("#gatego")?.addEventListener("click", () => {
         tokenDialog();
         setTimeout(() => $("#oauthgo")?.click(), 50);
@@ -4410,7 +4440,8 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       bindTokenDialog();
       return;
     }
-    const html2 = `${S.refreshing ? '<div class="refreshing-bar"></div>' : ""}${toolbar()}${offlineBar()}${tabStrip()}<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? "" : page()}</div></div>${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}${notePanel()}`;
+    paintTop(top);
+    const html2 = `<div class="shell ${S.nav ? "nav-open" : ""} ${S.hide.nav ? "nav-hidden" : ""}" style="--sbw:${S.sbw}px">${sideRecent()}<div class="sb-grip" id="sbgrip" title="Drag to resize \xB7 double-click to reset"></div><div class="scrim" id="scrim"></div><div class="main">${S.mainStub ? "" : page()}</div></div>${S.dialog === "__TOKDLG__" ? tokDlgHtml() : S.dialog || ""}${notePanel()}`;
     const scroll = $(".main")?.scrollTop || 0;
     const viewKey = () => `${S.bundle?.pull?.id ?? ""}|${S.tab}|${$(".main > *")?.className ?? ""}`, before = viewKey();
     const same = () => viewKey() === before;
@@ -4418,21 +4449,21 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     {
       const mn = $(".main");
       if (mn) {
-        const top = mn.getBoundingClientRect().top;
+        const top2 = mn.getBoundingClientRect().top;
         for (const el of mn.querySelectorAll("[id]")) {
           const r3 = el.getBoundingClientRect();
-          if (r3.bottom > top + 4) {
-            anchor = { id: el.id, off: r3.top - top };
+          if (r3.bottom > top2 + 4) {
+            anchor = { id: el.id, off: r3.top - top2 };
             break;
           }
         }
       }
     }
     const inner = true ? [...qa(".pane-body, .cm-list, .sb-list")].map((e2) => [e2.parentElement.className + e2.className, e2.scrollTop]) : [];
-    if (html2 === S.lastHtml && $("#app").firstElementChild && !S.fadeMain) return;
+    if (html2 === S.lastHtml && rest.firstElementChild && !S.fadeMain) return;
     (S.eds || []).forEach((e2) => e2.destroy());
     S.eds = [];
-    $("#app").innerHTML = html2;
+    rest.innerHTML = html2;
     S.lastHtml = html2;
     qa(".sb-list").forEach((e2) => {
       const m2 = inner.find(([k3]) => k3 === e2.parentElement.className + e2.className);
@@ -4737,9 +4768,9 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     return newTab ? openTab(ref, { newTab: true }) : openPr(ref);
   }
   function bindSticky() {
-    const ta = $(".pr-title-area"), tb = $(".pr-tabs");
-    if (ta && tb && !$(".is-split")) {
-      const io = new IntersectionObserver(([en]) => tb.classList.toggle("stuck", !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $(".main"), threshold: 0 });
+    const ta = $(".pr-title-area"), tb2 = $(".pr-tabs");
+    if (ta && tb2 && !$(".is-split")) {
+      const io = new IntersectionObserver(([en]) => tb2.classList.toggle("stuck", !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $(".main"), threshold: 0 });
       io.observe(ta);
       S.ios.push(io);
     }
@@ -5167,9 +5198,9 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     pv.hidden = true;
     host.prepend(tabs);
     host.append(pv);
-    const show = async (mode) => {
-      tabs.querySelectorAll("button").forEach((b2) => b2.classList.toggle("on", b2.dataset.pv === mode));
-      const prev = mode === "preview";
+    const show = async (mode2) => {
+      tabs.querySelectorAll("button").forEach((b2) => b2.classList.toggle("on", b2.dataset.pv === mode2));
+      const prev = mode2 === "preview";
       host.querySelectorAll(".tt-bar, .tt-body").forEach((el) => {
         el.hidden = prev;
       });

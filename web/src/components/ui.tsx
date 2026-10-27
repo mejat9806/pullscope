@@ -7,3 +7,7 @@ export const I = (name: string, size?: number, cls?: string) => Raw(icon(name, s
 export const Av = (u?: Person | null, s = 40) => Raw(avatar(u, s));
 export const When = (t: string) => Raw(when(t));
 export const SP = ' ';
+
+export const Icon = ({ n, s = 16, c = '' }: { n: string; s?: number; c?: string }) => (
+  <svg class={`octicon ${c}`} viewBox={`0 0 ${s} ${s}`} width={s} height={s} aria-hidden="true" dangerouslySetInnerHTML={{ __html: (window.OCTICONS || {})[n] || '' }} />
+);

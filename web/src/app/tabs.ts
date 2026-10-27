@@ -1,11 +1,8 @@
 import type { Pull, Tab } from '../types';
 import { recentListHtml, repoListHtml, sidebarHtml } from '../components/Sidebar';
-import { tabStripHtml } from '../components/TabStrip';
-import { toolbarHtml } from '../components/Toolbar';
-import { avUrl } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
-import { $, S, esc, icon, isDark, isOff, load } from './core';
+import { $, S, esc, icon, load } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
 import { prSide } from './prlist';
@@ -48,20 +45,6 @@ export function closeTab(i: number) {
 export function reopenTab() { const c = S.closed.shift(); if (c) { tabSnap(); openPr(c.ref, { newTab: true, restore: c.tab }); } }
 
 export function stepTab(d: number) { if (S.tabs.length < 2) return; const i = tabIdx(), n = S.tabs[(i + d + S.tabs.length) % S.tabs.length]; openTab(n.ref); }
-
-export function tabStrip() {
-  const open = new Set(S.tabs.map((t) => t.ref));
-  return tabStripHtml({ tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r) => !open.has(r.ref)).slice(0, 8), menu: S.tabMenu, closedFirst: S.closed.length ? S.closed[0].ref : null, icon });
-}
-
-export function toolbar() {
-  const b = S.bundle, pr = S.profile;
-  return toolbarHtml({
-    prRef: b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '', hasBundle: !!b, canBack: !(S.hist.length < 2 || S.hi < 1), canFwd: !(S.hi >= S.hist.length - 1),
-    update: S.update ? { busy: S.update.busy, version: S.update.version } : null, offline: isOff(), unread: S.notes.filter((n) => !n.read).length,
-    dark: isDark(), profile: pr, hasToken: S.hasToken, avatar: S.hasToken && pr ? avUrl(pr.avatar_url!, 56) : '', icon,
-  });
-}
 
 export function sideRecent() {
   let list;
