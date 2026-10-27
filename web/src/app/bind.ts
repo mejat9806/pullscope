@@ -97,6 +97,7 @@ export function bind() {
   $<HTMLInputElement>('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmrfilter')!; n.focus(); n.setSelectionRange(p, p); });
   qa('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
   $<HTMLInputElement>('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmfilter')!; n.focus(); n.setSelectionRange(p, p); });
+  qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
   qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
   qa('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
   qa('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));

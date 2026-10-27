@@ -3028,6 +3028,7 @@
       n2.focus();
       n2.setSelectionRange(p3, p3);
     });
+    qa2("[data-repo]").forEach((el) => el.addEventListener("click", () => openRepo(el.dataset.repo)));
     qa2("[data-home]").forEach((el) => el.addEventListener("click", () => {
       S.view = "home";
       S.homeOwner = "";
