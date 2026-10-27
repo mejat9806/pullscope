@@ -101,9 +101,18 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   });
   const TB = [['bold', '<b>B</b>', 'Bold (⌘B)', (c) => c.toggleBold()], ['italic', '<i>I</i>', 'Italic (⌘I)', (c) => c.toggleItalic()], ['strike', '<s>S</s>', 'Strikethrough', (c) => c.toggleStrike()], ['code', '&lt;/&gt;', 'Inline code', (c) => c.toggleCode()],
     ['h2', 'H', 'Heading', (c) => c.toggleHeading({ level: 2 })], ['bulletList', '•', 'Bulleted list', (c) => c.toggleBulletList()], ['orderedList', '1.', 'Numbered list', (c) => c.toggleOrderedList()], ['taskList', '☑', 'Task list', (c) => c.toggleTaskList()],
-    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })]];
-  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<span class="tt-sp"></span><span class="tt-tip">@ mention · : emoji · markdown shortcuts</span>';
-  bar.addEventListener('mousedown', (ev) => ev.preventDefault());
+    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })], ['link', '🔗', 'Link (⌘K)', () => openLink()]];
+  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<input class="tt-link" placeholder="https://… ↵" hidden><span class="tt-sp"></span><span class="tt-tip">@ mention · : emoji · markdown shortcuts</span>';
+  const linkIn = bar.querySelector('.tt-link');
+  const openLink = () => { linkIn.value = editor.getAttributes('link').href || ''; linkIn.hidden = false; linkIn.focus(); linkIn.select(); };
+  linkIn.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== 'Escape') return; e.preventDefault(); e.stopPropagation();
+    const v = linkIn.value.trim(); linkIn.hidden = true;
+    if (e.key === 'Enter') (v ? editor.chain().focus().extendMarkRange('link').setLink({ href: /^[a-z]+:/i.test(v) ? v : 'https://' + v }) : editor.chain().focus().unsetLink()).run(); else editor.commands.focus();
+  });
+  linkIn.addEventListener('blur', () => { linkIn.hidden = true; });
+  bar.addEventListener('mousedown', (ev) => { if (ev.target !== linkIn) ev.preventDefault(); });
+  body.addEventListener('keydown', (ev) => { if ((ev.metaKey || ev.ctrlKey) && !ev.shiftKey && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openLink(); } });
   bar.addEventListener('click', (ev) => { const k = ev.target.closest('[data-k]')?.dataset.k; const t = TB.find((x) => x[0] === k); if (t) t[3](editor.chain().focus()).run(); });
   const sync = () => bar.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', editor.isActive(b.dataset.k)));
   editor.on('transaction', sync);

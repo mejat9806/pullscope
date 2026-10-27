@@ -964,3 +964,4 @@ table.diff { contain: layout paint; }
 
 /* No floating formatting bar over selected text; the toolbar above the editor does the same job. */
 .tt-bubble { display: none !important; }
+.tt-bar .tt-link { border: 1px solid var(--borderColor-default); background: var(--bgColor-default); color: var(--fgColor-default); margin-left: 6px; } .tt-bar .tt-link[hidden] { display: none; }
