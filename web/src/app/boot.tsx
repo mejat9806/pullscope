@@ -1,10 +1,7 @@
-import { setSlot } from './frame';
-import { ToTop } from '../components/ToTop';
+import { paintToTop } from './scrolling';
 import { loadProfile } from './addressbar';
-import { S, tauri, $ } from './core';
+import { S, tauri } from './core';
 import { pollNotes, qc } from './data';
-import { composerOpen } from './actions';
-import { setComposer } from './keyboard';
 import { loadRepos, openPr } from './nav';
 import { render } from './pages';
 
@@ -44,19 +41,4 @@ export async function checkUpdate() {
 if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 1000); }
 
 
-// Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
-(() => {
-  let target: HTMLElement | null = null, lastTop = 0, atEnd = false;
-  const draw = (hidden: boolean) => setSlot('totop', <ToTop hidden={hidden} onClick={() => (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' })} />);
-  let shown = false; draw(true);
-  document.addEventListener('scroll', (e) => {
-    const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;
-    target = el as HTMLElement; if (shown !== el.scrollTop >= 600) { shown = !shown; draw(!shown); }
-    // The comment bar opens by itself when you reach the end of the thread, and folds away again when you scroll back up.
-    const c = document.getElementById('composer'); if (!c || !el.contains(c)) return;
-    const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop; lastTop = el.scrollTop;
-    if (dist < 24 && !atEnd) { atEnd = true; if (!composerOpen()) setComposer(true, false); }
-    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && composerOpen() && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && (document.activeElement as HTMLElement).blur(); setComposer(false); } }
-  }, true);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !(e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
-})();
+paintToTop();

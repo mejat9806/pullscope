@@ -1,5 +1,6 @@
 import type { Profile } from '../types';
 import { Icon } from './ui';
+import { useFocusTarget } from './req';
 
 export interface ToolbarHandlers {
   nav: (e: MouseEvent) => void; back: () => void; fwd: () => void; reload: () => void; external: () => void
@@ -25,7 +26,7 @@ export function Toolbar(p: ToolbarProps) {
         <button class="tb-btn" id="fwd" onClick={p.on.fwd} disabled={!p.canFwd} title="Forward (⌘])"><Icon n={'chevron-right'} /></button>
         <button class="tb-btn" id="reload" onClick={p.on.reload} disabled={!p.hasBundle} title="Reload (⌘R)"><Icon n={'sync'} /></button>
       </div>
-      {NL}<form id="addr" class="addr" onSubmit={p.on.addr}><Icon n={'search'} /><input id="addrinput" value={p.prRef} placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck={false} autocomplete="off" /></form>{p.update && <button class="upd" id="upd" onClick={p.on.upd} title="Download and install the new version, then restart"><Icon n={'sync'} /> {p.update.busy ? 'Updating…' : 'Update to v' + p.update.version}</button>}
+      {NL}<form id="addr" class="addr" onSubmit={p.on.addr}><Icon n={'search'} /><input id="addrinput" ref={useFocusTarget('addr')} value={p.prRef} placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)" spellcheck={false} autocomplete="off" /></form>{p.update && <button class="upd" id="upd" onClick={p.on.upd} title="Download and install the new version, then restart"><Icon n={'sync'} /> {p.update.busy ? 'Updating…' : 'Update to v' + p.update.version}</button>}
       {NL}<div class="tb-group">
         <button class={`tb-btn off-ind ${p.offline ? 'on' : ''}`} id="retry" onClick={p.on.retry} data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry." aria-label="Offline, click to retry" tabindex={p.offline ? 0 : -1}><Icon n={'alert'} /></button>
         <button class="tb-btn" id="external" onClick={p.on.external} disabled={!p.hasBundle} title="Open on github.com"><Icon n={'link-external'} /></button>

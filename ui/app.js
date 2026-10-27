@@ -520,13 +520,18 @@
     h2(() => editorMount.fn ? editorMount.fn(ref.current, k3, hint) : void 0, []);
     const show = (m3) => {
       setMode(m3);
-      if (m3 === "write") {
-        setTimeout(() => ref.current?.querySelector(".tt-content")?.focus(), 0);
-        return;
-      }
+      if (m3 === "write") return;
       setPv("loading");
       editorMount.preview?.(k3).then(setPv);
     };
+    const first = A2(true);
+    h2(() => {
+      if (first.current) {
+        first.current = false;
+        return;
+      }
+      if (mode2 === "write") ref.current?.querySelector(".tt-content")?.focus();
+    }, [mode2]);
     const prev = mode2 === "preview";
     return /* @__PURE__ */ u3("div", { class: `tt${prev ? " previewing" : ""}`, "data-draft": k3, "data-ph": hint, style: `--rows:${rows}`, children: [
       /* @__PURE__ */ u3("div", { class: "tt-tabs", children: [
@@ -589,23 +594,76 @@
     ] });
   }
 
+  // src/components/req.ts
+  var scrollers2 = /* @__PURE__ */ new Map();
+  function useScroller(id) {
+    const ref = A2(null);
+    h2(() => {
+      scrollers2.set(id, (top, smooth) => ref.current?.scrollTo({ top, behavior: smooth ? "smooth" : "auto" }));
+      return () => {
+        scrollers2.delete(id);
+      };
+    }, [id]);
+    return ref;
+  }
+  var scrollPane = (id, top, smooth) => scrollers2.get(id)?.(top, smooth);
+  var focusers = /* @__PURE__ */ new Map();
+  function useFocusTarget(id) {
+    const ref = A2(null);
+    h2(() => {
+      focusers.set(id, (a3) => {
+        const el = ref.current;
+        if (!el) return;
+        if (a3 === "blur") el.blur();
+        else {
+          el.focus();
+          if (a3 === "select") el.select();
+        }
+      });
+      return () => {
+        focusers.delete(id);
+      };
+    }, [id]);
+    return ref;
+  }
+  var focusTarget = (id, a3) => focusers.get(id)?.(a3);
+  var revealers = /* @__PURE__ */ new Set();
+  var reveal = (key) => revealers.forEach((f4) => f4(key));
+  function useReveal(key) {
+    const ref = A2(null);
+    h2(() => {
+      if (!key) return;
+      const f4 = (k3) => {
+        const box = ref.current, main = box?.closest(".main");
+        if (k3 !== key || !box || !main) return;
+        const r3 = box.getBoundingClientRect(), m3 = main.getBoundingClientRect();
+        if (r3.bottom > m3.bottom - 8 || r3.top < m3.top) box.scrollIntoView({ block: r3.height > m3.height * 0.85 ? "start" : "center", behavior: "smooth" });
+      };
+      revealers.add(f4);
+      return () => {
+        revealers.delete(f4);
+      };
+    }, [key]);
+    return ref;
+  }
+
   // src/components/Shell.tsx
   var Main = (p3) => {
     const ref = A2(null), seen2 = A2(p3.scroll?.n);
     _2(() => {
       if (p3.scroll && p3.scroll.n !== seen2.current) {
         seen2.current = p3.scroll.n;
-        ref.current.scrollTop = p3.scroll.top;
+        ref.current.scrollTo({ top: p3.scroll.top, behavior: p3.scroll.smooth ? "smooth" : "auto" });
       }
     });
-    return /* @__PURE__ */ u3("div", { class: p3.cls, ref, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: p3.children }) });
+    return /* @__PURE__ */ u3("div", { class: p3.cls, ref, onScroll: p3.onScroll, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: p3.children }) });
   };
   var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
     /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
       /* @__PURE__ */ u3("div", { id: "side", style: "display:contents", children: p3.side }),
       /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
       /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, scroll: p3.scroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, scroll: p3.scroll, onScroll: p3.onScroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
     ] }),
     /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: p3.dlg }),
     /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents", children: p3.notes })
@@ -967,7 +1025,7 @@
     ] });
   }
   function FoldBtn({ k: k3, title, def, folded: folded2, onFold }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e3) => onFold(e3, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
+    return /* @__PURE__ */ u3("button", { ref: useReveal(k3), class: "fold-btn", "data-fold": k3, "data-def": def ? 1 : 0, title, onClick: onFold && ((e3) => onFold(e3, k3, def)), children: I2(folded2 ? "chevron-right" : "chevron-down") });
   }
   function ReactionsBar({ r: r3, kind, id, defs, on: on3 }) {
     const live2 = !!(kind && id);
@@ -1250,7 +1308,7 @@
     ] });
   }
   function SideFold({ k: k3, folded: folded2, onFold }) {
-    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e3) => {
+    return /* @__PURE__ */ u3("button", { ref: useReveal(k3), class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e3) => {
       e3.stopPropagation();
       onFold(k3, false);
     }, children: I2(folded2 ? "chevron-right" : "chevron-down") });
@@ -1345,9 +1403,9 @@
     ] });
   }
   function FileBox(p3) {
-    const { on: on3 } = p3;
+    const { on: on3 } = p3, rv = useReveal(`f:${p3.name}`);
     return /* @__PURE__ */ u3("div", { class: `file${p3.folded ? " folded" : ""}`, children: [
-      /* @__PURE__ */ u3("div", { class: "file-head", "data-fold": `f:${p3.name}`, onClick: on3 && ((e3) => on3.fold(e3, `f:${p3.name}`, false)), children: [
+      /* @__PURE__ */ u3("div", { ref: rv, class: "file-head", "data-fold": `f:${p3.name}`, onClick: on3 && ((e3) => on3.fold(e3, `f:${p3.name}`, false)), children: [
         /* @__PURE__ */ u3("span", { class: "tgl", children: I2(p3.closed ? "chevron-right" : "chevron-down") }),
         /* @__PURE__ */ u3("span", { class: "stat", children: [
           /* @__PURE__ */ u3("span", { class: "a", children: [
@@ -1390,7 +1448,7 @@
     ] });
   }
   function SplitView(p3) {
-    const { on: on3 } = p3;
+    const { on: on3 } = p3, pl = useScroller("l"), pr = useScroller("r");
     const left = p3.hl ? /* @__PURE__ */ u3(Rail, { k: "l", label: "Commits", ic: "git-commit", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-l", children: [
       /* @__PURE__ */ u3("div", { class: `fold-sec${p3.foldList ? " folded" : ""}`, children: [
         /* @__PURE__ */ u3("div", { class: "pane-h", children: [
@@ -1420,7 +1478,7 @@
           /* @__PURE__ */ u3("span", { class: "sp" }),
           /* @__PURE__ */ u3(FoldBtn, { k: "cm-diff", title: "Collapse changes", def: false, folded: p3.foldDiff, onFold: on3?.fold })
         ] }),
-        /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.diff })
+        /* @__PURE__ */ u3("div", { class: "pane-body", ref: pl, onScroll: on3 && ((e3) => on3.scroll("l", e3)), children: p3.diff })
       ] })
     ] });
     const right = p3.hr ? /* @__PURE__ */ u3(Rail, { k: "r", label: "Conversation", ic: "comment-discussion", on: on3 }) : /* @__PURE__ */ u3("section", { class: "pane pane-r", children: [
@@ -1431,7 +1489,7 @@
         /* @__PURE__ */ u3("button", { class: "fold-btn flip-btn", "data-flip": "", title: "Swap sides (F)", onClick: on3?.flip, children: "\u21C4" }),
         /* @__PURE__ */ u3("button", { class: "fold-btn", "data-hide": "r", title: "Hide this panel", onClick: on3 && (() => on3.hide("r", true)), children: I2("x") })
       ] }),
-      /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.right })
+      /* @__PURE__ */ u3("div", { class: "pane-body", ref: pr, onScroll: on3 && ((e3) => on3.scroll("r", e3)), children: p3.right })
     ] });
     return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, children: [
       left,
@@ -2229,15 +2287,11 @@
   function foldToggle(e3, k3, def) {
     e3.stopPropagation();
     if (e3.target.closest("a")) return;
-    const el = e3.currentTarget, now = !isFolded(k3, def);
+    const now = !isFolded(k3, def);
     S.fold[k3] = now;
     localStorage.setItem("fold", JSON.stringify(S.fold));
     rerender();
-    if (now) return;
-    const box = el.closest(".fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane"), main = $(".main");
-    if (!box || !main || !main.contains(box)) return;
-    const r3 = box.getBoundingClientRect(), m3 = main.getBoundingClientRect();
-    if (r3.bottom > m3.bottom - 8 || r3.top < m3.top) box.scrollIntoView({ block: r3.height > m3.height * 0.85 ? "start" : "center", behavior: "smooth" });
+    if (!now) reveal(k3);
   }
 
   // src/app/timeline.tsx
@@ -2595,6 +2649,236 @@
     }, close: () => toggleClosed() }
   };
 
+  // src/components/ToTop.tsx
+  var ToTop = ({ hidden, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: "Back to top", "aria-label": "Back to top", hidden, onClick, children: I2("chevron-up") });
+
+  // src/app/palette.tsx
+  var rowsFor = (raw) => {
+    const q3 = raw.trim().toLowerCase();
+    const rows = S.recent.filter((r3) => !q3 || `${r3.ref} ${r3.title}`.toLowerCase().includes(q3)).slice(0, 8).map((r3) => ({ ref: r3.ref, label: r3.title, sub: r3.ref }));
+    if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q3)) rows.unshift({ ref: raw.trim(), label: `Open ${raw.trim()}`, sub: "Go to this pull request" });
+    return rows;
+  };
+  function closePal() {
+    S.pal = null;
+    paintPal();
+  }
+  function go(r3) {
+    closePal();
+    if (r3) {
+      S.nav = false;
+      S.focus = "";
+      openPr(r3.ref);
+    }
+  }
+  function paintPal() {
+    const p3 = S.pal;
+    if (!p3) {
+      setSlot("pal", null);
+      return;
+    }
+    if (p3.k === "help") {
+      setSlot("pal", /* @__PURE__ */ u3(HelpDialog, { close: closePal }));
+      return;
+    }
+    const rows = rowsFor(p3.q), sel = Math.min(p3.sel, Math.max(0, rows.length - 1));
+    const onKey = (e3) => {
+      if (e3.key === "Escape") closePal();
+      else if (e3.key === "ArrowDown") {
+        p3.sel = Math.min(rows.length - 1, sel + 1);
+        paintPal();
+        e3.preventDefault();
+      } else if (e3.key === "ArrowUp") {
+        p3.sel = Math.max(0, sel - 1);
+        paintPal();
+        e3.preventDefault();
+      } else if (e3.key === "Enter") go(rows[sel]);
+    };
+    setSlot("pal", /* @__PURE__ */ u3(Palette, { q: p3.q, rows, sel, onQ: (v3) => {
+      p3.q = v3;
+      p3.sel = 0;
+      paintPal();
+    }, onKey, pick: (i3) => go(rows[i3]), close: closePal }));
+  }
+  function openPalette() {
+    if (S.pal) return;
+    S.pal = { k: "pal", q: "", sel: 0 };
+    paintPal();
+  }
+  function showHelp() {
+    if (S.pal) return;
+    S.pal = { k: "help" };
+    paintPal();
+  }
+  addEventListener("keydown", (e3) => {
+    if (e3.key === "Escape" && S.pal?.k === "help") closePal();
+  });
+
+  // src/app/keyboard.ts
+  var typing = (t3) => t3 && (t3.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t3.isContentEditable);
+  var kbItems = () => [...qa(".main .tl-comment, .main .tc")].filter((e3) => e3.offsetParent);
+  function kbGo(el) {
+    if (!el) return;
+    S.kbId = el.id;
+    rerender();
+  }
+  var kbCur = () => S.kbId && document.getElementById(S.kbId) || null;
+  function kbStep(dir, pick = kbItems) {
+    const items = pick(), cur = kbCur();
+    if (!items.length) return;
+    let i3 = cur ? items.indexOf(cur) : -1;
+    if (i3 === -1 && cur) i3 = items.findIndex((e3) => cur.compareDocumentPosition(e3) & Node.DOCUMENT_POSITION_FOLLOWING) - (dir > 0 ? 1 : 0);
+    kbGo(items[Math.min(items.length - 1, Math.max(0, i3 + dir))]);
+  }
+  var openThreads = () => [...qa(".main .thread")].filter((t3) => !$(".thread-head .res", t3) && t3.offsetParent).map((t3) => $(".tc", t3)).filter(Boolean);
+  function setComposer(open2, focus) {
+    const el = document.getElementById("composer");
+    if (!el) return false;
+    S.cOpen = open2;
+    rerender();
+    if (open2 && focus) focusDraft("comment");
+    return true;
+  }
+  document.addEventListener("mousedown", (e3) => {
+    if (S.tabMenu && !e3.target.closest(".pt-menu, #tabadd")) {
+      S.tabMenu = false;
+      rerender();
+    }
+  });
+  document.addEventListener("keydown", (e3) => {
+    if (S.tabMenu && e3.key === "Escape") {
+      S.tabMenu = false;
+      rerender();
+      return;
+    }
+    if ((e3.metaKey || e3.ctrlKey) && !e3.altKey) {
+      const k3 = e3.key.toLowerCase();
+      if (k3 === "t" && !e3.shiftKey) {
+        e3.preventDefault();
+        S.tabMenu = !S.tabMenu;
+        if (!S.tabs.length) S.tabMenu = true;
+        rerender();
+        return;
+      }
+      if (k3 === "t" && e3.shiftKey) {
+        e3.preventDefault();
+        reopenTab();
+        return;
+      }
+      if (k3 === "w" && S.tabs.length && tabIdx() >= 0) {
+        e3.preventDefault();
+        closeTab(tabIdx());
+        return;
+      }
+      if (/^[1-9]$/.test(k3) && S.tabs[+k3 - 1]) {
+        e3.preventDefault();
+        openTab2(S.tabs[+k3 - 1].ref);
+        return;
+      }
+      if (e3.key === "Tab" && e3.ctrlKey) {
+        e3.preventDefault();
+        stepTab(e3.shiftKey ? -1 : 1);
+        return;
+      }
+    }
+    if (e3.key === "Escape" && !e3.defaultPrevented && e3.target.closest?.("#composer") && !$(".tt-slash")) {
+      e3.preventDefault();
+      e3.target.blur?.();
+      setComposer(false);
+      return;
+    }
+    if ((e3.metaKey || e3.ctrlKey) && e3.key.toLowerCase() === "k") {
+      e3.preventDefault();
+      openPalette();
+      return;
+    }
+    if (e3.metaKey || e3.ctrlKey || e3.altKey || typing(e3.target) || $(".palette, .dlg-bg")) return;
+    if (e3.key === "j") kbStep(1);
+    else if (e3.key === "k") kbStep(-1);
+    else if (e3.key === "]") kbStep(1, openThreads);
+    else if (e3.key === "[") kbStep(-1, openThreads);
+    else if (e3.key === "?") showHelp();
+    else if (e3.key === "n") {
+      e3.preventDefault();
+      openNewPr();
+    } else if (e3.key === "c" && S.view === "pr" && document.getElementById("composer")) {
+      e3.preventDefault();
+      setComposer(true, true);
+    } else if (e3.key === "f" && $(".split")) flipSides();
+    else if (e3.key === "s" && S.bundle) {
+      $("#split")?.click();
+    } else if (e3.key === "d" && S.bundle) {
+      const b2 = $(`[data-dmode="${S.diffMode === "split" ? "unified" : "split"}"]`);
+      if (b2) b2.click();
+      else {
+        S.diffMode = S.diffMode === "split" ? "unified" : "split";
+        localStorage.setItem("diffmode", S.diffMode);
+      }
+    } else if (e3.key === "r") {
+      const cur = kbCur(), host = cur?.closest(".thread")?.querySelector(".reply .tt");
+      if (!host) {
+        if (document.getElementById("composer")) {
+          e3.preventDefault();
+          setComposer(true, true);
+        }
+        return;
+      }
+      e3.preventDefault();
+      const key = host.dataset.draft;
+      scrollDraft(key);
+      focusDraft(key);
+    }
+  });
+
+  // src/app/scrolling.tsx
+  var scrollRaf = 0;
+  var lastTop = 0;
+  var atEnd = false;
+  var toTop = (smooth = true) => {
+    if (S.scrollId && S.scrollId !== "main") scrollPane(S.scrollId, 0, smooth);
+    else scrollMain(0, smooth);
+  };
+  var paintToTop = () => setSlot("totop", /* @__PURE__ */ u3(ToTop, { hidden: !S.toTop, onClick: () => toTop() }));
+  function scrolled(id, el) {
+    S.scrollId = id;
+    if (id === "main") {
+      S.mainTop = el.scrollTop;
+      if (S.view === "pr" && !S.restoring && !scrollRaf) scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0;
+        const t3 = S.tabs[tabIdx()];
+        if (t3) {
+          t3.scroll = el.scrollTop;
+          t3.tab = S.tab;
+        }
+      });
+    }
+    if (!!S.toTop !== el.scrollTop >= 600) {
+      S.toTop = !S.toTop;
+      paintToTop();
+    }
+    const c3 = document.getElementById("composer");
+    if (!c3 || !el.contains(c3)) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop;
+    lastTop = el.scrollTop;
+    if (dist < 24 && !atEnd) {
+      atEnd = true;
+      if (!composerOpen()) setComposer(true, false);
+    }
+    if (dist > c3.offsetHeight + 60) {
+      atEnd = false;
+      if (up && composerOpen() && !(S.draft.comment || "").trim()) {
+        c3.contains(document.activeElement) && document.activeElement.blur();
+        setComposer(false);
+      }
+    }
+  }
+  document.addEventListener("keydown", (e3) => {
+    if (e3.key === "Home" && !e3.target.closest?.("input, textarea, select, [contenteditable]") && S.scrollId) {
+      e3.preventDefault();
+      toTop();
+    }
+  });
+
   // src/app/mergebox.tsx
   function mergeModel(b2) {
     const p3 = b2.pull;
@@ -2796,7 +3080,7 @@
   }
   var splitOn = { hide: hideSide, flip: flipSides, pick: (sha) => {
     selectCommit(sha);
-  }, gutter: gutterDrag, fold: (e3, k3, def) => convOn.fold(e3, k3, def) };
+  }, gutter: gutterDrag, fold: (e3, k3, def) => convOn.fold(e3, k3, def), scroll: (id, e3) => scrolled(id, e3.currentTarget) };
   function splitView(b2) {
     const cs = commitList(b2), sha = S.sel;
     const cnt = (c3) => b2.review_comments.filter((r3) => r3.original_commit_id === c3 || r3.commit_id === c3).length;
@@ -3134,21 +3418,6 @@
       S.keepScroll = false;
     }
   });
-  var scrollRaf = 0;
-  document.addEventListener("scroll", (e3) => {
-    const mn = e3.target;
-    if (!mn.classList?.contains("main")) return;
-    S.mainTop = mn.scrollTop;
-    if (S.view !== "pr" || S.restoring || scrollRaf) return;
-    scrollRaf = requestAnimationFrame(() => {
-      scrollRaf = 0;
-      const t3 = S.tabs[tabIdx()];
-      if (t3) {
-        t3.scroll = mn.scrollTop;
-        t3.tab = S.tab;
-      }
-    });
-  }, { capture: true, passive: true });
 
   // src/app/tabs.ts
   var KEY_TABS = "tabs";
@@ -3421,7 +3690,7 @@
       NL2,
       /* @__PURE__ */ u3("form", { id: "addr", class: "addr", onSubmit: p3.on.addr, children: [
         /* @__PURE__ */ u3(Icon, { n: "search" }),
-        /* @__PURE__ */ u3("input", { id: "addrinput", value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
+        /* @__PURE__ */ u3("input", { id: "addrinput", ref: useFocusTarget("addr"), value: p3.prRef, placeholder: "Open a pull request: owner/repo#123 or URL  (\u2318L)", spellcheck: false, autocomplete: "off" })
       ] }),
       p3.update && /* @__PURE__ */ u3("button", { class: "upd", id: "upd", onClick: p3.on.upd, title: "Download and install the new version, then restart", children: [
         /* @__PURE__ */ u3(Icon, { n: "sync" }),
@@ -3460,7 +3729,7 @@
   }
 
   // src/app/render.ts
-  var go = (n2) => {
+  var go2 = (n2) => {
     const t3 = S.hi + n2;
     if (t3 < 0 || t3 >= S.hist.length) return;
     S.hi = t3;
@@ -3535,15 +3804,15 @@
         S.nav = !S.nav;
       });
     },
-    back: () => go(-1),
-    fwd: () => go(1),
+    back: () => go2(-1),
+    fwd: () => go2(1),
     reload,
     external: () => openExternal(S.bundle.pull.html_url),
     mode,
     addr: (e3) => {
       e3.preventDefault();
       openPr($("#addrinput").value);
-      $("#addrinput").blur();
+      focusTarget("addr", "blur");
     },
     upd: async () => {
       const u4 = S.update;
@@ -5001,9 +5270,9 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
-  function scrollMain(top) {
+  function scrollMain(top, smooth = false) {
     S.mainTop = top;
-    S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top };
+    S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top, smooth };
     repaintShell({ scroll: S.scrollReq });
   }
   var repaintShell = (patch) => {
@@ -5049,7 +5318,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
     batch(() => {
       paintTop();
-      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live2 }, onPage: followLink, kept });
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live2 }, onPage: followLink, onScroll: (e3) => scrolled("main", e3.currentTarget), kept });
       paintSide();
       paintDlg();
       paintNotes();
@@ -5121,13 +5390,13 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     if (!r3 || !inp) return;
     if (r3.fill) {
       inp.value = r3.fill;
-      inp.focus();
+      focusTarget("addr", "focus");
       AC.sel = -1;
       acDraw();
       return;
     }
     acClose();
-    inp.blur();
+    focusTarget("addr", "blur");
     openPr(r3.ref);
   }
   document.addEventListener("focusin", (e3) => {
@@ -5287,184 +5556,6 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       S.ios.push(io);
     }
   }
-
-  // src/app/palette.tsx
-  var rowsFor = (raw) => {
-    const q3 = raw.trim().toLowerCase();
-    const rows = S.recent.filter((r3) => !q3 || `${r3.ref} ${r3.title}`.toLowerCase().includes(q3)).slice(0, 8).map((r3) => ({ ref: r3.ref, label: r3.title, sub: r3.ref }));
-    if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q3)) rows.unshift({ ref: raw.trim(), label: `Open ${raw.trim()}`, sub: "Go to this pull request" });
-    return rows;
-  };
-  function closePal() {
-    S.pal = null;
-    paintPal();
-  }
-  function go2(r3) {
-    closePal();
-    if (r3) {
-      S.nav = false;
-      S.focus = "";
-      openPr(r3.ref);
-    }
-  }
-  function paintPal() {
-    const p3 = S.pal;
-    if (!p3) {
-      setSlot("pal", null);
-      return;
-    }
-    if (p3.k === "help") {
-      setSlot("pal", /* @__PURE__ */ u3(HelpDialog, { close: closePal }));
-      return;
-    }
-    const rows = rowsFor(p3.q), sel = Math.min(p3.sel, Math.max(0, rows.length - 1));
-    const onKey = (e3) => {
-      if (e3.key === "Escape") closePal();
-      else if (e3.key === "ArrowDown") {
-        p3.sel = Math.min(rows.length - 1, sel + 1);
-        paintPal();
-        e3.preventDefault();
-      } else if (e3.key === "ArrowUp") {
-        p3.sel = Math.max(0, sel - 1);
-        paintPal();
-        e3.preventDefault();
-      } else if (e3.key === "Enter") go2(rows[sel]);
-    };
-    setSlot("pal", /* @__PURE__ */ u3(Palette, { q: p3.q, rows, sel, onQ: (v3) => {
-      p3.q = v3;
-      p3.sel = 0;
-      paintPal();
-    }, onKey, pick: (i3) => go2(rows[i3]), close: closePal }));
-  }
-  function openPalette() {
-    if (S.pal) return;
-    S.pal = { k: "pal", q: "", sel: 0 };
-    paintPal();
-  }
-  function showHelp() {
-    if (S.pal) return;
-    S.pal = { k: "help" };
-    paintPal();
-  }
-  addEventListener("keydown", (e3) => {
-    if (e3.key === "Escape" && S.pal?.k === "help") closePal();
-  });
-
-  // src/app/keyboard.ts
-  var typing = (t3) => t3 && (t3.closest?.('input, textarea, select, [contenteditable="true"], .ProseMirror') || t3.isContentEditable);
-  var kbItems = () => [...qa(".main .tl-comment, .main .tc")].filter((e3) => e3.offsetParent);
-  function kbGo(el) {
-    if (!el) return;
-    S.kbId = el.id;
-    rerender();
-  }
-  var kbCur = () => S.kbId && document.getElementById(S.kbId) || null;
-  function kbStep(dir, pick = kbItems) {
-    const items = pick(), cur = kbCur();
-    if (!items.length) return;
-    let i3 = cur ? items.indexOf(cur) : -1;
-    if (i3 === -1 && cur) i3 = items.findIndex((e3) => cur.compareDocumentPosition(e3) & Node.DOCUMENT_POSITION_FOLLOWING) - (dir > 0 ? 1 : 0);
-    kbGo(items[Math.min(items.length - 1, Math.max(0, i3 + dir))]);
-  }
-  var openThreads = () => [...qa(".main .thread")].filter((t3) => !$(".thread-head .res", t3) && t3.offsetParent).map((t3) => $(".tc", t3)).filter(Boolean);
-  function setComposer(open2, focus) {
-    const el = document.getElementById("composer");
-    if (!el) return false;
-    S.cOpen = open2;
-    rerender();
-    if (open2 && focus) focusDraft("comment");
-    return true;
-  }
-  document.addEventListener("mousedown", (e3) => {
-    if (S.tabMenu && !e3.target.closest(".pt-menu, #tabadd")) {
-      S.tabMenu = false;
-      rerender();
-    }
-  });
-  document.addEventListener("keydown", (e3) => {
-    if (S.tabMenu && e3.key === "Escape") {
-      S.tabMenu = false;
-      rerender();
-      return;
-    }
-    if ((e3.metaKey || e3.ctrlKey) && !e3.altKey) {
-      const k3 = e3.key.toLowerCase();
-      if (k3 === "t" && !e3.shiftKey) {
-        e3.preventDefault();
-        S.tabMenu = !S.tabMenu;
-        if (!S.tabs.length) S.tabMenu = true;
-        rerender();
-        return;
-      }
-      if (k3 === "t" && e3.shiftKey) {
-        e3.preventDefault();
-        reopenTab();
-        return;
-      }
-      if (k3 === "w" && S.tabs.length && tabIdx() >= 0) {
-        e3.preventDefault();
-        closeTab(tabIdx());
-        return;
-      }
-      if (/^[1-9]$/.test(k3) && S.tabs[+k3 - 1]) {
-        e3.preventDefault();
-        openTab2(S.tabs[+k3 - 1].ref);
-        return;
-      }
-      if (e3.key === "Tab" && e3.ctrlKey) {
-        e3.preventDefault();
-        stepTab(e3.shiftKey ? -1 : 1);
-        return;
-      }
-    }
-    if (e3.key === "Escape" && !e3.defaultPrevented && e3.target.closest?.("#composer") && !$(".tt-slash")) {
-      e3.preventDefault();
-      e3.target.blur?.();
-      setComposer(false);
-      return;
-    }
-    if ((e3.metaKey || e3.ctrlKey) && e3.key.toLowerCase() === "k") {
-      e3.preventDefault();
-      openPalette();
-      return;
-    }
-    if (e3.metaKey || e3.ctrlKey || e3.altKey || typing(e3.target) || $(".palette, .dlg-bg")) return;
-    if (e3.key === "j") kbStep(1);
-    else if (e3.key === "k") kbStep(-1);
-    else if (e3.key === "]") kbStep(1, openThreads);
-    else if (e3.key === "[") kbStep(-1, openThreads);
-    else if (e3.key === "?") showHelp();
-    else if (e3.key === "n") {
-      e3.preventDefault();
-      openNewPr();
-    } else if (e3.key === "c" && S.view === "pr" && document.getElementById("composer")) {
-      e3.preventDefault();
-      setComposer(true, true);
-    } else if (e3.key === "f" && $(".split")) flipSides();
-    else if (e3.key === "s" && S.bundle) {
-      $("#split")?.click();
-    } else if (e3.key === "d" && S.bundle) {
-      const b2 = $(`[data-dmode="${S.diffMode === "split" ? "unified" : "split"}"]`);
-      if (b2) b2.click();
-      else {
-        S.diffMode = S.diffMode === "split" ? "unified" : "split";
-        localStorage.setItem("diffmode", S.diffMode);
-      }
-    } else if (e3.key === "r") {
-      const cur = kbCur(), host = cur?.closest(".thread")?.querySelector(".reply .tt");
-      if (!host) {
-        if (document.getElementById("composer")) {
-          e3.preventDefault();
-          setComposer(true, true);
-        }
-        return;
-      }
-      e3.preventDefault();
-      const key = host.dataset.draft;
-      scrollDraft(key);
-      focusDraft(key);
-    }
-  });
 
   // src/app/actions.ts
   var peopleList = () => {
@@ -6200,9 +6291,6 @@ ${ev.currentTarget.dataset.code}
     else render();
   });
 
-  // src/components/ToTop.tsx
-  var ToTop = ({ hidden, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: "Back to top", "aria-label": "Back to top", hidden, onClick, children: I2("chevron-up") });
-
   // src/app/boot.tsx
   var q2 = new URLSearchParams(location.search);
   if (q2.get("mode")) S.mode = q2.get("mode");
@@ -6265,40 +6353,5 @@ ${ev.currentTarget.dataset.code}
     setTimeout(checkUpdate, 6e3);
     setInterval(checkUpdate, 6 * 3600 * 1e3);
   }
-  (() => {
-    let target = null, lastTop = 0, atEnd = false;
-    const draw = (hidden) => setSlot("totop", /* @__PURE__ */ u3(ToTop, { hidden, onClick: () => (target && document.contains(target) ? target : $(".main"))?.scrollTo({ top: 0, behavior: "smooth" }) }));
-    let shown2 = false;
-    draw(true);
-    document.addEventListener("scroll", (e3) => {
-      const el = e3.target;
-      if (!(el instanceof Element) || !el.matches(".main, .pane-body")) return;
-      target = el;
-      if (shown2 !== el.scrollTop >= 600) {
-        shown2 = !shown2;
-        draw(!shown2);
-      }
-      const c3 = document.getElementById("composer");
-      if (!c3 || !el.contains(c3)) return;
-      const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop;
-      lastTop = el.scrollTop;
-      if (dist < 24 && !atEnd) {
-        atEnd = true;
-        if (!composerOpen()) setComposer(true, false);
-      }
-      if (dist > c3.offsetHeight + 60) {
-        atEnd = false;
-        if (up && composerOpen() && !(S.draft.comment || "").trim()) {
-          c3.contains(document.activeElement) && document.activeElement.blur();
-          setComposer(false);
-        }
-      }
-    }, true);
-    document.addEventListener("keydown", (e3) => {
-      if (e3.key === "Home" && !e3.target.closest?.("input, textarea, select, [contenteditable]") && target) {
-        e3.preventDefault();
-        target.scrollTo({ top: 0, behavior: "smooth" });
-      }
-    });
-  })();
+  paintToTop();
 })();

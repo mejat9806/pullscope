@@ -18,6 +18,7 @@ import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
 import type { ShellProps } from '../components/Shell';
+import { scrolled } from './scrolling';
 import { batch, setGate, setShell, shellProps } from './frame';
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
@@ -137,7 +138,7 @@ export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new U
 // #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
 export { setDragging } from './frame';
 // The page scrolls where the state says: every move is a numbered request that the shown page applies.
-export function scrollMain(top: number) { S.mainTop = top; S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top }; repaintShell({ scroll: S.scrollReq }); }
+export function scrollMain(top: number, smooth = false) { S.mainTop = top; S.scrollReq = { n: (S.scrollReq?.n || 0) + 1, top, smooth }; repaintShell({ scroll: S.scrollReq }); }
 export const repaintShell = (patch: Partial<ShellProps>) => { const cur = shellProps(); if (cur) setShell({ ...cur, ...patch }); };
 
 const liveView = (): VNode | null => {
@@ -174,7 +175,7 @@ export function render() {
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
   batch(() => {
     paintTop();
-    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live }, onPage: followLink, kept });
+    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, scroll: S.scrollReq, active: { key, children: live }, onPage: followLink, onScroll: (e) => scrolled('main', e.currentTarget as HTMLElement), kept });
     paintSide(); paintDlg(); paintNotes();
   });
   S.stash = null;

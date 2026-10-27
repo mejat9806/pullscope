@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
 import { ErrLine } from './Actions';
 import { FoldBtn } from './Comments';
+import { useReveal, useScroller } from './req';
 import type { FoldFn } from './Comments';
 import { Av, I, SP } from './ui';
 
@@ -80,7 +81,7 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
 }
 
 function SideFold({ k, folded, onFold }: { k: string; folded: boolean; onFold: (k: string, def: boolean) => void }) {
-  return <button class="fold-btn" data-fold={k} data-def="0" title="Hide section" onClick={(e) => { e.stopPropagation(); onFold(k, false); }}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
+  return <button ref={useReveal<HTMLButtonElement>(k)} class="fold-btn" data-fold={k} data-def="0" title="Hide section" onClick={(e) => { e.stopPropagation(); onFold(k, false); }}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
 }
 
 export interface CpRow { i: number; on: boolean; title: string; by: string; when: string; sha: string; hidden: boolean }
@@ -117,8 +118,8 @@ export function FilesBar(p: FilesBarProps & { on?: FilesHandlers }) {
 
 export interface FileHeadProps { name: string; folded: boolean; closed: boolean; add: number; del: number; sq: string[]; children?: ComponentChildren }
 export function FileBox(p: FileHeadProps & { on?: FilesHandlers }) {
-  const { on } = p;
-  return <div class={`file${p.folded ? ' folded' : ''}`}><div class="file-head" data-fold={`f:${p.name}`} onClick={on && ((e) => on.fold(e, `f:${p.name}`, false))}><span class="tgl">{I(p.closed ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+{p.add}</span>{SP}<span class="d">−{p.del}</span></span><span class="sq">{p.sq.map((c) => <i class={c}></i>)}</span><span class="path">{p.name}</span></div>{p.children}</div>;
+  const { on } = p, rv = useReveal<HTMLDivElement>(`f:${p.name}`);
+  return <div class={`file${p.folded ? ' folded' : ''}`}><div ref={rv} class="file-head" data-fold={`f:${p.name}`} onClick={on && ((e) => on.fold(e, `f:${p.name}`, false))}><span class="tgl">{I(p.closed ? 'chevron-right' : 'chevron-down')}</span><span class="stat"><span class="a">+{p.add}</span>{SP}<span class="d">−{p.del}</span></span><span class="sq">{p.sq.map((c) => <i class={c}></i>)}</span><span class="path">{p.name}</span></div>{p.children}</div>;
 }
 
 export function CommitsList({ rows }: { rows: ComponentChildren[] }) {
@@ -126,7 +127,7 @@ export function CommitsList({ rows }: { rows: ComponentChildren[] }) {
 }
 
 export interface CmRow { sha: string; on: boolean; author: Person | null | undefined; initial: string; title: string; sub: string; n: number }
-export interface SplitHandlers { hide: (k: string, v: boolean) => void; flip: () => void; pick: (sha: string) => void; gutter: (e: MouseEvent) => void; fold: FoldFn }
+export interface SplitHandlers { hide: (k: string, v: boolean) => void; flip: () => void; pick: (sha: string) => void; gutter: (e: MouseEvent) => void; fold: FoldFn; scroll: (id: string, e: Event) => void }
 function CmItem({ c, on }: { c: CmRow; on?: SplitHandlers }) {
   return <div class={`cm ${c.on ? 'on' : ''}`} data-sha={c.sha} onClick={on && (() => on.pick(c.sha))}><span class="cm-av">{c.author ? Av(c.author, 24) : <i>{c.initial}</i>}</span><span class="cm-t"><b>{c.title}</b><i>{c.sub}</i></span>{c.n ? <span class="cm-n">{I('comment')}{c.n}</span> : ''}<code>{c.sha.slice(0, 7)}</code></div>;
 }
@@ -140,8 +141,8 @@ function Rail({ k, label, ic, on }: { k: string; label: string; ic: string; on?:
   return <button class="pane-rail" data-show={k} title={`Show ${label}`} onClick={on && (() => on.hide(k, false))}>{I(ic)}<span>{label}</span></button>;
 }
 export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
-  const { on } = p;
-  const left = p.hl ? <Rail k="l" label="Commits" ic="git-commit" on={on} /> : <section class="pane pane-l"><div class={`fold-sec${p.foldList ? ' folded' : ''}`}><div class="pane-h">{I('git-commit')}<span>Commits</span><span class="counter">{p.count}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><FoldBtn k="cm-list" title="Collapse commit list" def={false} folded={p.foldList} onFold={on?.fold} /><button class="fold-btn" data-hide="l" title="Hide this panel" onClick={on && (() => on.hide('l', true))}>{I('x')}</button></div><div class="cm-list"><div class={`cm all ${p.allOn ? 'on' : ''}`} data-sha="" onClick={on && (() => on.pick(''))}><span class="cm-av"><i>{I('diff')}</i></span><span class="cm-t"><b>All changes</b><i>{p.allSub}</i></span></div>{p.rows.map((c) => <CmItem c={c} on={on} />)}</div></div><div class={`fold-sec${p.foldDiff ? ' folded' : ''}`}><div class="pane-h sub">{I('file-diff')}<span>{p.subTitle}</span><span class="sp"></span><FoldBtn k="cm-diff" title="Collapse changes" def={false} folded={p.foldDiff} onFold={on?.fold} /></div><div class="pane-body">{p.diff}</div></div></section>;
-  const right = p.hr ? <Rail k="r" label="Conversation" ic="comment-discussion" on={on} /> : <section class="pane pane-r"><div class="pane-h">{I('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><button class="fold-btn" data-hide="r" title="Hide this panel" onClick={on && (() => on.hide('r', true))}>{I('x')}</button></div><div class="pane-body">{p.right}</div></section>;
+  const { on } = p, pl = useScroller('l'), pr = useScroller('r');
+  const left = p.hl ? <Rail k="l" label="Commits" ic="git-commit" on={on} /> : <section class="pane pane-l"><div class={`fold-sec${p.foldList ? ' folded' : ''}`}><div class="pane-h">{I('git-commit')}<span>Commits</span><span class="counter">{p.count}</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><FoldBtn k="cm-list" title="Collapse commit list" def={false} folded={p.foldList} onFold={on?.fold} /><button class="fold-btn" data-hide="l" title="Hide this panel" onClick={on && (() => on.hide('l', true))}>{I('x')}</button></div><div class="cm-list"><div class={`cm all ${p.allOn ? 'on' : ''}`} data-sha="" onClick={on && (() => on.pick(''))}><span class="cm-av"><i>{I('diff')}</i></span><span class="cm-t"><b>All changes</b><i>{p.allSub}</i></span></div>{p.rows.map((c) => <CmItem c={c} on={on} />)}</div></div><div class={`fold-sec${p.foldDiff ? ' folded' : ''}`}><div class="pane-h sub">{I('file-diff')}<span>{p.subTitle}</span><span class="sp"></span><FoldBtn k="cm-diff" title="Collapse changes" def={false} folded={p.foldDiff} onFold={on?.fold} /></div><div class="pane-body" ref={pl} onScroll={on && ((e) => on.scroll('l', e))}>{p.diff}</div></div></section>;
+  const right = p.hr ? <Rail k="r" label="Conversation" ic="comment-discussion" on={on} /> : <section class="pane pane-r"><div class="pane-h">{I('comment-discussion')}<span>Conversation</span><span class="sp"></span><button class="fold-btn flip-btn" data-flip="" title="Swap sides (F)" onClick={on?.flip}>⇄</button><button class="fold-btn" data-hide="r" title="Hide this panel" onClick={on && (() => on.hide('r', true))}>{I('x')}</button></div><div class="pane-body" ref={pr} onScroll={on && ((e) => on.scroll('r', e))}>{p.right}</div></section>;
   return <div class={`split ${p.hl ? 'hl' : ''} ${p.hr ? 'hr' : ''} ${p.flip ? 'flip' : ''}`}>{left}{p.hl || p.hr ? '' : <div class="gutter" id="gutter" title="Drag to resize" onMouseDown={on?.gutter}></div>}{right}</div>;
 }

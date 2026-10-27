@@ -1,6 +1,7 @@
 import type { AcRow, BpGroup, BpRow, BranchInfo, PrListItem, RepoSummary } from '../types';
 import { $, S, tauri } from './core';
 import { openPr } from './nav';
+import { focusTarget } from '../components/req';
 import { OV, paintOv } from './overlay';
 import { render, repaintShell } from './pages';
 import { curRef, openTab } from './tabs';
@@ -41,8 +42,8 @@ export function acDraw() {
 
 export function acPick(r: AcRow) {
   const inp = $<HTMLInputElement>('#addrinput')!; if (!r || !inp) return;
-  if (r.fill) { inp.value = r.fill; inp.focus(); AC.sel = -1; acDraw(); return; }
-  acClose(); inp.blur(); openPr(r.ref!);
+  if (r.fill) { inp.value = r.fill; focusTarget('addr', 'focus'); AC.sel = -1; acDraw(); return; }
+  acClose(); focusTarget('addr', 'blur'); openPr(r.ref!);
 }
 
 document.addEventListener('focusin', (e) => { if ((e.target as HTMLElement).id === 'addrinput') { AC.sel = -1; setTimeout(acDraw, 0); } });
@@ -106,7 +107,7 @@ export function bpOpen(btn: HTMLElement, side: 'repo' | 'base' | 'head', pick: (
   OV.bp = { repoMode, style, cur, age: bpAge, done, groupsFor: (q) => (repoMode ? rpGroups(S.repos || [], q, me) : bpGroups(br!, q, me)) }; paintOv();
 }
 
-export function focusAddr() { const i = $<HTMLInputElement>('#addrinput')!; i?.focus(); i?.select(); }
+export const focusAddr = () => focusTarget('addr', 'select');
 
 export const avUrl = (u: string, n: number) => `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
 

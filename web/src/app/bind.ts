@@ -7,7 +7,7 @@ import { loadPr, qc } from './data';
 import { loadPrs, openPr } from './nav';
 import { render, repaintShell, saveNotes, scrollMain, setDragging, shownPage } from './pages';
 import type { FoldKey } from './timeline';
-import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
+import { curRef, saveTabs, tabSnap } from './tabs';
 
 // Browser-style tabs: leaving a PR tab keeps its page (DOM, scroll, open editors) alive; coming back swaps it in with no redraw.
 S.alive = new Map();
@@ -74,8 +74,3 @@ document.addEventListener('mousedown', (e) => {
 });
 document.addEventListener('dblclick', (e) => { if ((e.target as HTMLElement).closest?.('#sbgrip')) { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; } });
 document.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest?.('#scrim')) { S.nav = false; S.keepScroll = true; render(); S.keepScroll = false; } });
-let scrollRaf = 0;
-document.addEventListener('scroll', (e) => {
-  const mn = e.target as HTMLElement; if (!mn.classList?.contains('main')) return; S.mainTop = mn.scrollTop; if (S.view !== 'pr' || S.restoring || scrollRaf) return;
-  scrollRaf = requestAnimationFrame(() => { scrollRaf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } });
-}, { capture: true, passive: true });

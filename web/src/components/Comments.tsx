@@ -1,5 +1,6 @@
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import { Av, I, SP, When } from './ui';
+import { useReveal } from './req';
 import { flashClass, useFlash } from './flash';
 import type { FlashProps } from './flash';
 
@@ -31,7 +32,7 @@ export function PrHeader({ b, st, ic, label, tab, split, hideSide, splitOk, comm
 
 export type FoldFn = (e: Event, k: string, def: boolean) => void;
 export function FoldBtn({ k, title, def, folded, onFold }: { k: string; title: string; def: boolean; folded: boolean; onFold?: FoldFn }) {
-  return <button class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title} onClick={onFold && ((e) => onFold(e, k, def))}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
+  return <button ref={useReveal<HTMLButtonElement>(k)} class="fold-btn" data-fold={k} data-def={def ? 1 : 0} title={title} onClick={onFold && ((e) => onFold(e, k, def))}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
 }
 
 export interface ReactionDef { k: keyof Reactions; e: string }

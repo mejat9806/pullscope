@@ -7,6 +7,7 @@ import { btnSel, rerender, setBusy } from './actions';
 import { setBell } from './notes';
 import { closePop, openPop } from './dialogs';
 import { avUrl, openExternal, openFromList } from './addressbar';
+import { focusTarget } from '../components/req';
 import { $, S, isDark, isOff, tauri } from './core';
 import { openPr, reload } from './nav';
 import { fastTab, stashCurrent } from './bind';
@@ -44,7 +45,7 @@ const tb: ToolbarHandlers = {
     keep(() => { S.nav = !S.nav; });
   },
   back: () => go(-1), fwd: () => go(1), reload, external: () => openExternal(S.bundle!.pull.html_url), mode,
-  addr: (e) => { e.preventDefault(); openPr($<HTMLInputElement>('#addrinput')!.value); $<HTMLInputElement>('#addrinput')!.blur(); },
+  addr: (e) => { e.preventDefault(); openPr($<HTMLInputElement>('#addrinput')!.value); focusTarget('addr', 'blur'); },
   upd: async () => {
     const u = S.update; if (!u || u.busy) return; u.busy = true; render();
     try { await u.obj.downloadAndInstall(); await window.__TAURI__!.process.relaunch(); }

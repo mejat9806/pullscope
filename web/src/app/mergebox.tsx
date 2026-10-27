@@ -9,6 +9,7 @@ import { S, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
 import { attOn, convOn, diffOn, filesOn, tlOn } from './handlers';
 import { render, repaintShell, setDragging } from './pages';
+import { scrolled } from './scrolling';
 import { CK, Timeline, attentionProps, checkState, timelineModel } from './timeline';
 
 export type MergeModel = { kind: 'merged'; head: string } | { kind: 'closed'; head: string } | { kind: 'open'; p: MergeBoxProps };
@@ -157,7 +158,7 @@ function gutterDrag(e: MouseEvent) {
   setDragging(true); addEventListener('mousemove', mv); addEventListener('mouseup', up);
 }
 
-const splitOn: SplitHandlers = { hide: hideSide, flip: flipSides, pick: (sha) => { selectCommit(sha); }, gutter: gutterDrag, fold: (e, k, def) => convOn.fold(e, k, def) };
+const splitOn: SplitHandlers = { hide: hideSide, flip: flipSides, pick: (sha) => { selectCommit(sha); }, gutter: gutterDrag, fold: (e, k, def) => convOn.fold(e, k, def), scroll: (id, e) => scrolled(id, e.currentTarget as HTMLElement) };
 
 export function splitView(b: Bundle): VNode {
   const cs = commitList(b), sha = S.sel;

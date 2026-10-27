@@ -18,9 +18,12 @@ export function DraftBox({ k, ph, rows }: { k: string; ph: string; rows: number 
   useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined, []);
   const show = (m: 'write' | 'preview') => {
     setMode(m);
-    if (m === 'write') { setTimeout(() => ref.current?.querySelector<HTMLElement>('.tt-content')?.focus(), 0); return; }
+    if (m === 'write') return;
     setPv('loading'); editorMount.preview?.(k).then(setPv);
   };
+  // Back on the Write tab, the editor takes the caret again.
+  const first = useRef(true);
+  useEffect(() => { if (first.current) { first.current = false; return; } if (mode === 'write') ref.current?.querySelector<HTMLElement>('.tt-content')?.focus(); }, [mode]);
   const prev = mode === 'preview';
   return <div class={`tt${prev ? ' previewing' : ''}`} data-draft={k} data-ph={hint} style={`--rows:${rows}`}>
     <div class="tt-tabs"><button class={prev ? '' : 'on'} onClick={() => show('write')}>Write</button><button class={prev ? 'on' : ''} onClick={() => show('preview')}>Preview</button></div>
