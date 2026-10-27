@@ -1,14 +1,17 @@
 import { Crumbs, PrListPage } from '../components/PrList';
 import type { PrListHandlers } from '../components/PrList';
-import { InboxPage, NotesPage } from '../components/Pages';
-import type { InboxHandlers, NotesHandlers } from '../components/Pages';
+import { InboxPage, NewPr, NotesPage } from '../components/Pages';
+import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/Pages';
 import { openAux, openClick, openCtx } from './bind';
-import { rerender } from './actions';
-import { S } from './core';
+import { rerender, saveDrafts, setBusy } from './actions';
+import { bpOpen } from './addressbar';
+import { S, tauri } from './core';
+import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
 import { crumbs } from './home';
-import { openNewPr, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
-import { openRepo } from './nav';
+import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
+import { openPr, openRepo } from './nav';
+import type { NpListKey } from '../types';
 import { prListProps } from './prlist';
 
 const open = { open: openClick, aux: openAux, ctx: openCtx };
@@ -51,4 +54,43 @@ const inbox: InboxHandlers = { ...open, refresh: () => loadInbox(true) };
 
 export function InboxView() {
   return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} extra="" on={crumbs} /><InboxPage p={inboxProps()} on={inbox} /></>;
+}
+
+const np = () => S.np!;
+const npSet = (f: () => void) => { f(); np().key = `${np().repo}|${np().base}|${np().head}`; };
+const val = (e: Event) => (e.target as HTMLInputElement).value;
+
+const newpr: NewPrHandlers = {
+  cancel: () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); },
+  repo: (e) => bpOpen(e.currentTarget as HTMLElement, 'repo', (v) => { npSet(() => { np().repo = v; np().base = ''; np().head = ''; np().cmp = null; np().titleTouched = false; np().title = ''; }); render(); npLoadBranches(np().repo); }, true),
+  repoIn: (e) => { npSet(() => { np().repo = val(e).trim(); np().base = ''; np().head = ''; }); npLoadBranches(np().repo); },
+  base: (e) => bpOpen(e.currentTarget as HTMLElement, 'base', (v) => { npSet(() => { np().base = v; }); npCompare(); }),
+  head: (e) => bpOpen(e.currentTarget as HTMLElement, 'head', (v) => { npSet(() => { np().head = v; np().titleTouched = false; }); npCompare(); }),
+  swap: () => { npSet(() => { [np().base, np().head] = [np().head, np().base]; }); npCompare(); },
+  tpl: (e) => {
+    const n = np(), sel = e.target as HTMLSelectElement, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = sel.value === '' ? '' : t[+sel.value].body;
+    if (cur && cur !== n.tplText.trim() && !confirm('Replace what you have written with this template?')) { sel.value = String(t.findIndex((x) => x.body === n.tplText)); if (sel.value === '-1') sel.value = ''; return; }
+    S.draft.newpr = n.tplText = next; saveDrafts(); bumpNp(); rerender();
+  },
+  title: (e) => { np().title = val(e); np().titleTouched = true; render(); },
+  draft: (e) => { np().draft = (e.target as HTMLInputElement).checked; render(); },
+  add: (k: NpListKey, e) => { if (val(e)) { np()[k].push(val(e)); render(); } },
+  del: (k: NpListKey, v) => { np()[k] = np()[k].filter((x: string) => x !== v); render(); },
+  mile: (e) => { np().milestone = val(e); },
+  issues: (e) => { np().issues = val(e); },
+  create: async (e) => {
+    const n = np(), btn = e.currentTarget as HTMLButtonElement; setBusy(btn, true); n.err = '';
+    try {
+      const nums = [...new Set((n.issues.match(/\d+/g) || []))];
+      const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();
+      const extra = { reviewers: n.reviewers, assignees: n.assignees, labels: n.labels, milestone: n.milestone ? Number(n.milestone) : null };
+      const r = await tauri!.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body, draft: n.draft, extra });
+      const warn = r.warnings?.length ? `Created, but ${r.warnings.join(' · ')}` : '';
+      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
+    } catch (err) { setBusy(btn, false); n.err = String(err).replace(/^Error: /, ''); rerender(); }
+  },
+};
+
+export function NewPrView() {
+  return <><Crumbs repo={np().repo} trail={[{ t: 'New pull request' }]} extra="" on={crumbs} /><NewPr p={newPrProps()} on={newpr} /></>;
 }

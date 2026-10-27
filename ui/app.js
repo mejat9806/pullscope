@@ -1074,70 +1074,6 @@
     return diffHunkTableHtml(rows);
   }
 
-  // src/app/fun.ts
-  var enterTimer;
-  function enterAnim() {
-    qa(".tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area").forEach((el, i3) => {
-      el.style.setProperty("--i", String(Math.min(i3, 14)));
-      el.classList.add("enter-in");
-    });
-    clearTimeout(enterTimer);
-    enterTimer = setTimeout(() => qa(".enter-in").forEach((el) => el.classList.remove("enter-in")), 1800);
-  }
-  document.addEventListener("pointerdown", (e2) => {
-    const b2 = e2.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
-    if (!b2 || b2.disabled) return;
-    const r3 = b2.getBoundingClientRect(), d3 = Math.max(r3.width, r3.height) * 2, rip = document.createElement("span");
-    rip.className = "ripple";
-    rip.style.cssText = `width:${d3}px;height:${d3}px;left:${e2.clientX - r3.left - d3 / 2}px;top:${e2.clientY - r3.top - d3 / 2}px`;
-    if (getComputedStyle(b2).position === "static") b2.style.position = "relative";
-    b2.style.overflow = "hidden";
-    b2.appendChild(rip);
-    setTimeout(() => rip.remove(), 650);
-    if (b2.matches(".reaction, .react-add")) burst(e2.clientX, e2.clientY, b2.textContent.trim().slice(0, 2) || "\u2728", 6);
-  });
-  function burst(x3, y2, ch, n2) {
-    for (let i3 = 0; i3 < n2; i3++) {
-      const p3 = document.createElement("span");
-      p3.className = "burst";
-      p3.textContent = ch;
-      const a3 = Math.PI * 2 * i3 / n2 + Math.random() * 0.6, v2 = 40 + Math.random() * 50;
-      p3.style.cssText = `left:${x3}px;top:${y2}px;--dx:${Math.cos(a3) * v2}px;--dy:${Math.sin(a3) * v2 - 30}px`;
-      document.body.appendChild(p3);
-      setTimeout(() => p3.remove(), 900);
-    }
-  }
-  function confetti() {
-    const c3 = document.createElement("canvas");
-    c3.className = "confetti";
-    c3.width = innerWidth;
-    c3.height = innerHeight;
-    document.body.appendChild(c3);
-    const g2 = c3.getContext("2d"), cols = ["#0969da", "#1f883d", "#8250df", "#f2cc60", "#cf222e", "#ff8fb1"];
-    const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.6, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 14, r: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[Math.random() * cols.length | 0] }));
-    let t2 = 0;
-    (function f4() {
-      g2.clearRect(0, 0, c3.width, c3.height);
-      t2++;
-      ps.forEach((p3) => {
-        p3.vy += 0.35;
-        p3.vx *= 0.99;
-        p3.x += p3.vx;
-        p3.y += p3.vy;
-        p3.a += p3.va;
-        g2.save();
-        g2.translate(p3.x, p3.y);
-        g2.rotate(p3.a);
-        g2.fillStyle = p3.c;
-        g2.globalAlpha = Math.max(0, 1 - t2 / 130);
-        g2.fillRect(-p3.r, -p3.r / 2, p3.r * 2, p3.r);
-        g2.restore();
-      });
-      if (t2 < 130) requestAnimationFrame(f4);
-      else c3.remove();
-    })();
-  }
-
   // src/components/Merge.tsx
   function MergedBox({ head }) {
     return /* @__PURE__ */ u3("div", { class: "TL", children: [
@@ -3131,105 +3067,6 @@
       localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
       rerender();
     }));
-    $3("#npcancel")?.addEventListener("click", () => {
-      S.view = S.bundle ? "pr" : "home";
-      delete S.draft.newpr;
-      render();
-    });
-    const npSet = (f4) => {
-      f4();
-      S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`;
-    };
-    $3("#nprepo")?.addEventListener("click", (e2) => bpOpen(e2.currentTarget, "repo", (v2) => {
-      npSet(() => {
-        S.np.repo = v2;
-        S.np.base = "";
-        S.np.head = "";
-        S.np.cmp = null;
-        S.np.titleTouched = false;
-        S.np.title = "";
-      });
-      render();
-      npLoadBranches(S.np.repo);
-    }, true));
-    $3("#nprepoin")?.addEventListener("change", (e2) => {
-      npSet(() => {
-        S.np.repo = e2.target.value.trim();
-        S.np.base = "";
-        S.np.head = "";
-      });
-      npLoadBranches(S.np.repo);
-    });
-    $3("#npbase")?.addEventListener("click", (e2) => bpOpen(e2.currentTarget, "base", (v2) => {
-      npSet(() => {
-        S.np.base = v2;
-      });
-      npCompare();
-    }));
-    $3("#nphead")?.addEventListener("click", (e2) => bpOpen(e2.currentTarget, "head", (v2) => {
-      npSet(() => {
-        S.np.head = v2;
-        S.np.titleTouched = false;
-      });
-      npCompare();
-    }));
-    $3("#npswap")?.addEventListener("click", () => {
-      npSet(() => {
-        [S.np.base, S.np.head] = [S.np.head, S.np.base];
-      });
-      npCompare();
-    });
-    $3("#nptpl")?.addEventListener("change", (e2) => {
-      const n2 = S.np, t2 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = e2.target.value === "" ? "" : t2[+e2.target.value].body;
-      if (cur && cur !== n2.tplText.trim() && !confirm("Replace what you have written with this template?")) {
-        e2.target.value = String(t2.findIndex((x3) => x3.body === n2.tplText));
-        if (e2.target.value === "-1") e2.target.value = "";
-        return;
-      }
-      S.draft.newpr = n2.tplText = next;
-      saveDrafts();
-      rerender();
-    });
-    $3("#nptitle")?.addEventListener("input", (e2) => {
-      S.np.title = e2.target.value;
-      S.np.titleTouched = true;
-      const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === "object" && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head;
-      const b2 = $3("#npcreate");
-      if (b2 && !b2.classList.contains("is-busy")) b2.disabled = !ok;
-    });
-    $3("#npdraft")?.addEventListener("change", (e2) => {
-      S.np.draft = e2.target.checked;
-      const b2 = $3("#npcreate");
-      if (b2) b2.textContent = S.np.draft ? "Create draft pull request" : "Create pull request";
-    });
-    bindNpMeta();
-    $3("#npcreate")?.addEventListener("click", async (e2) => {
-      const n2 = S.np, btn = e2.currentTarget;
-      setBusy(btn, true);
-      n2.err = "";
-      try {
-        const nums = [...new Set(n2.issues.match(/\d+/g) || [])];
-        const body = ((S.draft.newpr || "").trim() + (nums.length ? `
-
-${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
-        const extra = { reviewers: n2.reviewers, assignees: n2.assignees, labels: n2.labels, milestone: n2.milestone ? Number(n2.milestone) : null };
-        const r3 = await tauri.invoke("create_pr", { repo: n2.repo, base: n2.base, head: n2.head, title: n2.title, body, draft: n2.draft, extra });
-        const warn = r3.warnings?.length ? `Created, but ${r3.warnings.join(" \xB7 ")}` : "";
-        delete S.draft.newpr;
-        saveDrafts();
-        S.np = null;
-        confetti();
-        await openPr(`${n2.repo}#${r3.number}`, { nav: true });
-        if (warn) {
-          S.actErr = { k: "comment", m: warn };
-          rerender();
-        }
-      } catch (err) {
-        setBusy(btn, false);
-        n2.err = String(err).replace(/^Error: /, "");
-        rerender();
-      }
-    });
     $3("#noteall")?.addEventListener("click", () => {
       S.bell = false;
       S.view = "notes";
@@ -3698,16 +3535,16 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       ] })) : /* @__PURE__ */ u3("div", { class: "note-empty np-empty", children: f4 === "unread" ? "You are all caught up." : f4 === "read" ? "Nothing read yet." : "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." }) })
     ] });
   }
-  function NpMeta(p3) {
+  function NpMeta({ p: p3, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "np-box np-metas", id: "npmeta", children: [
       p3.rows.map((r3) => /* @__PURE__ */ u3("div", { class: "np-meta", children: [
         /* @__PURE__ */ u3("label", { class: "np-l", children: r3.name }),
         /* @__PURE__ */ u3("div", { class: "np-chips", children: [
-          r3.chips.map((x3) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x3, title: "Remove", children: [
+          r3.chips.map((x3) => /* @__PURE__ */ u3("span", { class: "np-chip", "data-npdel": r3.k, "data-v": x3, onClick: () => on3.del(r3.k, x3), title: "Remove", children: [
             x3,
             " \xD7"
           ] })),
-          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, children: [
+          r3.free.length ? /* @__PURE__ */ u3("select", { class: "sel np-add", "data-npadd": r3.k, value: "", onChange: (e2) => on3.add(r3.k, e2), children: [
             /* @__PURE__ */ u3("option", { value: "", children: `Add ${r3.name.toLowerCase()}\u2026` }),
             r3.free.map((x3) => /* @__PURE__ */ u3("option", { children: x3 }))
           ] }) : ""
@@ -3716,7 +3553,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       "\n    ",
       /* @__PURE__ */ u3("div", { class: "np-meta", children: [
         /* @__PURE__ */ u3("label", { class: "np-l", children: "Milestone" }),
-        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", children: [
+        /* @__PURE__ */ u3("select", { class: "sel", id: "npmile", onChange: on3.mile, children: [
           /* @__PURE__ */ u3("option", { value: "", children: "None" }),
           p3.milestones.map((x3) => /* @__PURE__ */ u3("option", { value: x3.number, selected: x3.on, children: x3.title }))
         ] })
@@ -3727,12 +3564,11 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           "Linked issues ",
           /* @__PURE__ */ u3("i", { children: "closed when this merges" })
         ] }),
-        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues })
+        /* @__PURE__ */ u3("input", { class: "input", id: "npissues", placeholder: "e.g. 12, 15", value: p3.issues, onInput: on3.issues })
       ] })
     ] });
   }
-  var npMetaHtml = (p3) => html(/* @__PURE__ */ u3(NpMeta, { ...p3 }));
-  function NewPr(p3) {
+  function NewPr({ p: p3, on: on3 }) {
     const c3 = p3.cmp;
     const cmp = c3.kind === "loading" ? /* @__PURE__ */ u3("span", { class: "np-note", children: "Comparing\u2026" }) : c3.kind === "none" ? "" : c3.kind === "err" ? /* @__PURE__ */ u3("span", { class: "np-note err", children: c3.text }) : c3.kind === "ok" ? /* @__PURE__ */ u3("span", { class: "np-note ok", children: [
       I2("git-commit"),
@@ -3760,10 +3596,10 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
             /* @__PURE__ */ u3("label", { class: "np-l", children: "Repository" }),
-            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", children: [
+            p3.hasRepos ? /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nprepo", onClick: on3.repo, children: [
               /* @__PURE__ */ u3("span", { children: p3.repo || "Choose a repository" }),
               I2("chevron-down", 14)
-            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo }),
+            ] }) : /* @__PURE__ */ u3("input", { class: "input", id: "nprepoin", placeholder: "owner/repo", value: p3.repo, onChange: on3.repoIn }),
             "\n    ",
             /* @__PURE__ */ u3("div", { class: "np-branches", children: [
               /* @__PURE__ */ u3("div", { children: [
@@ -3771,20 +3607,20 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
                   "Base ",
                   /* @__PURE__ */ u3("i", { children: "merge into" })
                 ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", disabled: !p3.hasBranches, children: [
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "npbase", "data-bp": "base", onClick: on3.base, disabled: !p3.hasBranches, children: [
                   /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.base || "Choose a branch" : "Loading\u2026" }),
                   I2("chevron-down", 14)
                 ] })
               ] }),
               "\n      ",
-              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", title: "Swap base and head", children: "\u21C4" }),
+              /* @__PURE__ */ u3("button", { class: "tb-btn", id: "npswap", onClick: on3.swap, title: "Swap base and head", children: "\u21C4" }),
               "\n      ",
               /* @__PURE__ */ u3("div", { children: [
                 /* @__PURE__ */ u3("label", { class: "np-l", children: [
                   "Head ",
                   /* @__PURE__ */ u3("i", { children: "changes from" })
                 ] }),
-                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", disabled: !p3.hasBranches, children: [
+                /* @__PURE__ */ u3("button", { type: "button", class: "sel bp-btn", id: "nphead", "data-bp": "head", onClick: on3.head, disabled: !p3.hasBranches, children: [
                   /* @__PURE__ */ u3("span", { children: p3.hasBranches ? p3.head || "Choose a branch" : "Loading\u2026" }),
                   I2("chevron-down", 14)
                 ] })
@@ -3796,24 +3632,24 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
             /* @__PURE__ */ u3("label", { class: "np-l", children: "Title" }),
-            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title })
+            /* @__PURE__ */ u3("input", { class: "input", id: "nptitle", placeholder: "Title", value: p3.title, onInput: on3.title })
           ] }),
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
             /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-            t2 && t2.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", children: [
+            t2 && t2.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", onChange: on3.tpl, children: [
               /* @__PURE__ */ u3("option", { value: "", children: "No template" }),
               t2.map((x3, i3) => /* @__PURE__ */ u3("option", { value: i3, selected: x3.body === p3.tplText, children: [
                 "Template: ",
                 x3.name
               ] }))
             ] }) : "",
-            Raw(p3.draftBox)
+            /* @__PURE__ */ u3("div", { class: "tt", "data-draft": "newpr", "data-ph": "Describe your changes \u2014 type / for blocks", style: "--rows:8" })
           ] }),
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
             /* @__PURE__ */ u3("label", { class: "np-check", children: [
-              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft }),
+              /* @__PURE__ */ u3("input", { type: "checkbox", id: "npdraft", checked: p3.isDraft, onChange: on3.draft }),
               " Create as draft ",
               /* @__PURE__ */ u3("span", { children: "(not ready for review yet)" })
             ] }),
@@ -3821,17 +3657,16 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
             p3.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: p3.err }) : "",
             "\n    ",
             /* @__PURE__ */ u3("div", { class: "np-btns", children: [
-              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", children: "Cancel" }),
-              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
+              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
+              /* @__PURE__ */ u3("button", { class: "btn primary", id: "npcreate", onClick: on3.create, disabled: !p3.ready, children: p3.isDraft ? "Create draft pull request" : "Create pull request" })
             ] })
           ] }),
           "\n  "
         ] }),
-        /* @__PURE__ */ u3("div", { class: "np-side-col", children: Raw(p3.meta) })
+        /* @__PURE__ */ u3("div", { class: "np-side-col", children: p3.meta ? /* @__PURE__ */ u3(NpMeta, { p: p3.meta, on: on3 }) : "" })
       ] })
-    ] });
+    ] }, p3.seq);
   }
-  var newPrHtml = (p3) => html(/* @__PURE__ */ u3(NewPr, { ...p3 }));
   function InboxPage({ p: { loading, err, secs }, on: on3 }) {
     const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
@@ -3938,6 +3773,70 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     ] })
   ] }) }));
 
+  // src/app/fun.ts
+  var enterTimer;
+  function enterAnim() {
+    qa(".tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area").forEach((el, i3) => {
+      el.style.setProperty("--i", String(Math.min(i3, 14)));
+      el.classList.add("enter-in");
+    });
+    clearTimeout(enterTimer);
+    enterTimer = setTimeout(() => qa(".enter-in").forEach((el) => el.classList.remove("enter-in")), 1800);
+  }
+  document.addEventListener("pointerdown", (e2) => {
+    const b2 = e2.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
+    if (!b2 || b2.disabled) return;
+    const r3 = b2.getBoundingClientRect(), d3 = Math.max(r3.width, r3.height) * 2, rip = document.createElement("span");
+    rip.className = "ripple";
+    rip.style.cssText = `width:${d3}px;height:${d3}px;left:${e2.clientX - r3.left - d3 / 2}px;top:${e2.clientY - r3.top - d3 / 2}px`;
+    if (getComputedStyle(b2).position === "static") b2.style.position = "relative";
+    b2.style.overflow = "hidden";
+    b2.appendChild(rip);
+    setTimeout(() => rip.remove(), 650);
+    if (b2.matches(".reaction, .react-add")) burst(e2.clientX, e2.clientY, b2.textContent.trim().slice(0, 2) || "\u2728", 6);
+  });
+  function burst(x3, y2, ch, n2) {
+    for (let i3 = 0; i3 < n2; i3++) {
+      const p3 = document.createElement("span");
+      p3.className = "burst";
+      p3.textContent = ch;
+      const a3 = Math.PI * 2 * i3 / n2 + Math.random() * 0.6, v2 = 40 + Math.random() * 50;
+      p3.style.cssText = `left:${x3}px;top:${y2}px;--dx:${Math.cos(a3) * v2}px;--dy:${Math.sin(a3) * v2 - 30}px`;
+      document.body.appendChild(p3);
+      setTimeout(() => p3.remove(), 900);
+    }
+  }
+  function confetti() {
+    const c3 = document.createElement("canvas");
+    c3.className = "confetti";
+    c3.width = innerWidth;
+    c3.height = innerHeight;
+    document.body.appendChild(c3);
+    const g2 = c3.getContext("2d"), cols = ["#0969da", "#1f883d", "#8250df", "#f2cc60", "#cf222e", "#ff8fb1"];
+    const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight * 0.6, vx: (Math.random() - 0.5) * 18, vy: -8 - Math.random() * 14, r: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - 0.5) * 0.4, c: cols[Math.random() * cols.length | 0] }));
+    let t2 = 0;
+    (function f4() {
+      g2.clearRect(0, 0, c3.width, c3.height);
+      t2++;
+      ps.forEach((p3) => {
+        p3.vy += 0.35;
+        p3.vx *= 0.99;
+        p3.x += p3.vx;
+        p3.y += p3.vy;
+        p3.a += p3.va;
+        g2.save();
+        g2.translate(p3.x, p3.y);
+        g2.rotate(p3.a);
+        g2.fillStyle = p3.c;
+        g2.globalAlpha = Math.max(0, 1 - t2 / 130);
+        g2.fillRect(-p3.r, -p3.r / 2, p3.r * 2, p3.r);
+        g2.restore();
+      });
+      if (t2 < 130) requestAnimationFrame(f4);
+      else c3.remove();
+    })();
+  }
+
   // src/app/views.tsx
   var open = { open: openClick, aux: openAux, ctx: openCtx };
   var typedPf = (e2) => {
@@ -4027,11 +3926,133 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       /* @__PURE__ */ u3(NotesPage, { ...notesProps(), on: notes })
     ] });
   }
-  var inbox = { ...open, refresh: () => loadInbox2(true) };
+  var inbox = { ...open, refresh: () => loadInbox(true) };
   function InboxView() {
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Inbox" }], extra: "", on: crumbs2 }),
       /* @__PURE__ */ u3(InboxPage, { p: inboxProps(), on: inbox })
+    ] });
+  }
+  var np = () => S.np;
+  var npSet = (f4) => {
+    f4();
+    np().key = `${np().repo}|${np().base}|${np().head}`;
+  };
+  var val = (e2) => e2.target.value;
+  var newpr = {
+    cancel: () => {
+      S.view = S.bundle ? "pr" : "home";
+      delete S.draft.newpr;
+      render();
+    },
+    repo: (e2) => bpOpen(e2.currentTarget, "repo", (v2) => {
+      npSet(() => {
+        np().repo = v2;
+        np().base = "";
+        np().head = "";
+        np().cmp = null;
+        np().titleTouched = false;
+        np().title = "";
+      });
+      render();
+      npLoadBranches(np().repo);
+    }, true),
+    repoIn: (e2) => {
+      npSet(() => {
+        np().repo = val(e2).trim();
+        np().base = "";
+        np().head = "";
+      });
+      npLoadBranches(np().repo);
+    },
+    base: (e2) => bpOpen(e2.currentTarget, "base", (v2) => {
+      npSet(() => {
+        np().base = v2;
+      });
+      npCompare();
+    }),
+    head: (e2) => bpOpen(e2.currentTarget, "head", (v2) => {
+      npSet(() => {
+        np().head = v2;
+        np().titleTouched = false;
+      });
+      npCompare();
+    }),
+    swap: () => {
+      npSet(() => {
+        [np().base, np().head] = [np().head, np().base];
+      });
+      npCompare();
+    },
+    tpl: (e2) => {
+      const n2 = np(), sel = e2.target, t2 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = sel.value === "" ? "" : t2[+sel.value].body;
+      if (cur && cur !== n2.tplText.trim() && !confirm("Replace what you have written with this template?")) {
+        sel.value = String(t2.findIndex((x3) => x3.body === n2.tplText));
+        if (sel.value === "-1") sel.value = "";
+        return;
+      }
+      S.draft.newpr = n2.tplText = next;
+      saveDrafts();
+      bumpNp();
+      rerender();
+    },
+    title: (e2) => {
+      np().title = val(e2);
+      np().titleTouched = true;
+      render();
+    },
+    draft: (e2) => {
+      np().draft = e2.target.checked;
+      render();
+    },
+    add: (k3, e2) => {
+      if (val(e2)) {
+        np()[k3].push(val(e2));
+        render();
+      }
+    },
+    del: (k3, v2) => {
+      np()[k3] = np()[k3].filter((x3) => x3 !== v2);
+      render();
+    },
+    mile: (e2) => {
+      np().milestone = val(e2);
+    },
+    issues: (e2) => {
+      np().issues = val(e2);
+    },
+    create: async (e2) => {
+      const n2 = np(), btn = e2.currentTarget;
+      setBusy(btn, true);
+      n2.err = "";
+      try {
+        const nums = [...new Set(n2.issues.match(/\d+/g) || [])];
+        const body = ((S.draft.newpr || "").trim() + (nums.length ? `
+
+${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
+        const extra = { reviewers: n2.reviewers, assignees: n2.assignees, labels: n2.labels, milestone: n2.milestone ? Number(n2.milestone) : null };
+        const r3 = await tauri.invoke("create_pr", { repo: n2.repo, base: n2.base, head: n2.head, title: n2.title, body, draft: n2.draft, extra });
+        const warn = r3.warnings?.length ? `Created, but ${r3.warnings.join(" \xB7 ")}` : "";
+        delete S.draft.newpr;
+        saveDrafts();
+        S.np = null;
+        confetti();
+        await openPr(`${n2.repo}#${r3.number}`, { nav: true });
+        if (warn) {
+          S.actErr = { k: "comment", m: warn };
+          rerender();
+        }
+      } catch (err) {
+        setBusy(btn, false);
+        n2.err = String(err).replace(/^Error: /, "");
+        rerender();
+      }
+    }
+  };
+  function NewPrView() {
+    return /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Crumbs, { repo: np().repo, trail: [{ t: "New pull request" }], extra: "", on: crumbs2 }),
+      /* @__PURE__ */ u3(NewPr, { p: newPrProps(), on: newpr })
     ] });
   }
 
@@ -4374,7 +4395,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     const rows = S.notes.filter((n2) => f4 === "all" || (f4 === "unread" ? !n2.read : n2.read)).map((n2) => ({ id: n2.id, read: !!n2.read, ref: n2.ref, target: n2.target || "", title: n2.title, text: n2.text, when: when(n2.at).replace(/<\/?span[^>]*>/g, "") }));
     return { f: f4, rows, unread, total: S.notes.length };
   }
-  async function loadInbox2(force = false) {
+  async function loadInbox(force = false) {
     S.inbox = S.inbox || { data: null, err: "", loading: true };
     S.inbox.loading = true;
     S.inbox.err = "";
@@ -4390,45 +4411,24 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     S.keepScroll = false;
   }
   var npHuman = (s3) => s3.replace(/^[a-z]+\//i, "").replace(/[-_]+/g, " ").replace(/^./, (c3) => c3.toUpperCase());
-  function newPrPage() {
+  var npSeq = 0;
+  var bumpNp = () => {
+    npSeq++;
+  };
+  function newPrProps() {
     const n2 = S.np, repos = (S.repos || []).filter((r3) => !r3.archived), br = n2.branches[n2.repo];
     const same = !!(n2.base && n2.base === n2.head);
     const c3 = n2.cmp;
     const cmp = c3 === "loading" ? { kind: "loading", text: "", ahead: 0, files: 0, behind: 0 } : !c3 ? { kind: "none", text: "", ahead: 0, files: 0, behind: 0 } : typeof c3 === "string" ? { kind: "err", text: c3, ahead: 0, files: 0, behind: 0 } : c3.ahead_by ? { kind: "ok", text: "", ahead: c3.ahead_by, files: c3.files, behind: c3.behind_by } : { kind: "same", text: "", ahead: 0, files: 0, behind: 0 };
     const ready = !!(n2.title.trim() && n2.repo && n2.base && n2.head && !same && n2.cmp && typeof n2.cmp === "object" && n2.cmp.ahead_by > 0);
-    return newPrHtml({ hasRepos: repos.length > 0, repo: n2.repo, base: n2.base, head: n2.head, hasBranches: !!br, same, cmp, title: n2.title, tpls: n2.tpl[`${n2.repo}|${n2.base}`] ?? null, tplText: n2.tplText, draftBox: draftBox("newpr", "Describe your changes", 8), isDraft: !!n2.draft, err: n2.err || "", ready, meta: npMeta(n2) });
+    return { hasRepos: repos.length > 0, repo: n2.repo, base: n2.base, head: n2.head, hasBranches: !!br, same, cmp, title: n2.title, tpls: n2.tpl[`${n2.repo}|${n2.base}`] ?? null, tplText: n2.tplText, seq: npSeq, isDraft: !!n2.draft, err: n2.err || "", ready, meta: npMetaProps(n2) };
   }
-  function npMetaRefresh() {
-    const el = $("#npmeta");
-    if (!el) return rerender();
-    el.outerHTML = npMeta(S.np);
-    bindNpMeta();
-  }
-  function bindNpMeta() {
-    qa("#npmeta [data-npadd]").forEach((el) => el.addEventListener("change", (e2) => {
-      if (e2.target.value) {
-        S.np[el.dataset.npadd].push(e2.target.value);
-        npMetaRefresh();
-      }
-    }));
-    qa("#npmeta [data-npdel]").forEach((el) => el.addEventListener("click", () => {
-      const k3 = el.dataset.npdel;
-      S.np[k3] = S.np[k3].filter((x3) => x3 !== el.dataset.v);
-      npMetaRefresh();
-    }));
-    $("#npmile")?.addEventListener("change", (e2) => {
-      S.np.milestone = e2.target.value;
-    });
-    $("#npissues")?.addEventListener("input", (e2) => {
-      S.np.issues = e2.target.value;
-    });
-  }
-  function npMeta(n2) {
+  function npMetaProps(n2) {
     const m2 = n2.meta?.[n2.repo];
-    if (!m2) return "";
+    if (!m2) return null;
     const ppl = m2.people.map((x3) => x3.login), me = S.me || "";
     const row = (k3, name, list) => ({ k: k3, name, chips: n2[k3].slice(), free: list.filter((x3) => !n2[k3].includes(x3)) });
-    return npMetaHtml({ rows: [row("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me)), row("assignees", "Assignees", ppl), row("labels", "Labels", m2.labels.map((x3) => x3.name))], milestones: m2.milestones.map((x3) => ({ number: x3.number, title: x3.title, on: String(n2.milestone) === String(x3.number) })), issues: n2.issues });
+    return { rows: [row("reviewers", "Reviewers", ppl.filter((x3) => x3 !== me)), row("assignees", "Assignees", ppl), row("labels", "Labels", m2.labels.map((x3) => x3.name))], milestones: m2.milestones.map((x3) => ({ number: x3.number, title: x3.title, on: String(n2.milestone) === String(x3.number) })), issues: n2.issues };
   }
   async function npLoadMeta(repo) {
     const n2 = S.np;
@@ -4507,6 +4507,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   }
   function openNewPr(repo, head) {
     const cur = typeof repo === "string" && repo || S.bundle?.pull.base.repo.full_name || S.repo || "";
+    bumpNp();
     S.view = "newpr";
     S.nav = false;
     S.np = { repo: cur, base: "", head: typeof head === "string" && head || "", branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: "", issues: "", cmp: null, title: "", titleTouched: false, draft: false, err: "", key: "", tpl: {}, tplText: "" };
@@ -4524,7 +4525,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     render();
     if (!S.inbox?.data || !qc.fresh("inbox", 45e3)) {
       qc.set("inbox", 1);
-      loadInbox2();
+      loadInbox();
     }
   }
   function inboxProps() {
@@ -4539,8 +4540,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function page() {
     const b2 = S.bundle;
     if (S.loading) return skeletonHtml();
-    if (S.view === "newpr") return crumbs(S.np?.repo, [{ t: "New pull request" }]) + newPrPage();
-    if (S.view === "inbox" || S.view === "notes" || S.view === "repo") return "";
+    if (S.view === "inbox" || S.view === "newpr" || S.view === "notes" || S.view === "repo") return "";
     if (S.view === "home" || !b2) return "";
     if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return splitPageHtml(repoHeader(b2.pull) + prHeader(b2), splitView(b2));
     const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : attention(b2) + timeline(b2);
@@ -4561,6 +4561,7 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     if (S.view === "inbox") return /* @__PURE__ */ u3(InboxView, {});
     if (S.view === "notes") return /* @__PURE__ */ u3(NotesView, {});
     if (S.view === "repo") return /* @__PURE__ */ u3(RepoView, {});
+    if (S.view === "newpr") return S.np ? /* @__PURE__ */ u3(NewPrView, {}) : null;
     return (S.view === "home" || !S.bundle) && S.view !== "newpr" ? /* @__PURE__ */ u3(HomeView, {}) : null;
   };
   function paintPage(host, live) {
@@ -4609,7 +4610,10 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
     if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) {
       if (side) paintSide(side);
       const pg = $("#page");
-      if (live && pg) paintPage(pg, live);
+      if (live && pg) {
+        paintPage(pg, live);
+        mountEditors();
+      }
       return;
     }
     (S.eds || []).forEach((e2) => e2.destroy());
@@ -5599,6 +5603,33 @@ ${q3}
     render();
     S.keepScroll = false;
   };
+  var mounted = /* @__PURE__ */ new WeakSet();
+  function mountEditors() {
+    qa(".tt[data-draft]").forEach((host) => {
+      if (mounted.has(host)) return;
+      mounted.add(host);
+      const key = host.dataset.draft;
+      if (!window.createEditor) {
+        host.innerHTML = '<div class="act-err">Editor failed to load.</div>';
+        return;
+      }
+      const send = () => (key === "comment" ? $("#docomment") : key === "lc" ? $("#lcadd") : key === "newpr" ? $("#npcreate") : key.startsWith("reply-") ? $(`[data-sendreply="${key.slice(6)}"]`) : $("#revsubmit"))?.click();
+      const mount = () => {
+        (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || "", placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => {
+          S.draft[key] = md;
+          saveDrafts();
+        }, onSubmit: send }));
+        addPreview(host, key);
+      };
+      const io = new IntersectionObserver((en) => {
+        if (en.some((x3) => x3.isIntersecting)) {
+          io.disconnect();
+          if (host.isConnected) mount();
+        }
+      }, { rootMargin: "300px" });
+      io.observe(host);
+    });
+  }
   function bindWrite() {
     qa(".cm-btn").forEach((btn) => btn.addEventListener("click", (e2) => {
       e2.stopPropagation();
@@ -5621,28 +5652,7 @@ ${q3}
       document.body.appendChild(pop);
       setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
     }));
-    qa(".tt[data-draft]").forEach((host) => {
-      const key = host.dataset.draft;
-      if (!window.createEditor) {
-        host.innerHTML = '<div class="act-err">Editor failed to load.</div>';
-        return;
-      }
-      const send = () => (key === "comment" ? $("#docomment") : key === "lc" ? $("#lcadd") : key === "newpr" ? $("#npcreate") : key.startsWith("reply-") ? $(`[data-sendreply="${key.slice(6)}"]`) : $("#revsubmit"))?.click();
-      const mount = () => {
-        (S.eds ||= []).push(window.createEditor(host, { value: S.draft[key] || "", placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => {
-          S.draft[key] = md;
-          saveDrafts();
-        }, onSubmit: send }));
-        addPreview(host, key);
-      };
-      const io = new IntersectionObserver((en) => {
-        if (en.some((x3) => x3.isIntersecting)) {
-          io.disconnect();
-          if (host.isConnected) mount();
-        }
-      }, { rootMargin: "300px" });
-      io.observe(host);
-    });
+    mountEditors();
     qa("[data-rerequest]").forEach((b2) => b2.addEventListener("click", async (e2) => {
       e2.stopPropagation();
       b2.disabled = true;

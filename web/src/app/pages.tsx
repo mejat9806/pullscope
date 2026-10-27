@@ -1,21 +1,22 @@
 import type { BranchInfo, Bundle, InboxItem, InboxState, NewPr, NpListKey } from '../types';
-import { draftBox, rerender, saveDrafts, setBusy } from './actions';
+import { mountEditors, rerender, saveDrafts, setBusy } from './actions';
 import { bind, bindTokenDialog, tokDlgHtml, tokenDialog } from './bind';
 import { prHeader } from './comments';
 import { $, S, applyMode, icon, syncUnread, tauri, when, qa } from './core';
 import { notePanel, pushBanners, qc, seen } from './data';
 import { commitsView, filesView, sidebar, splitView } from './mergebox';
 import { loadRepos } from './nav';
-import { crumbs, repoHeader } from './prlist';
+import { repoHeader } from './prlist';
 import { paintSide } from './side';
 import { HomeView } from './home';
-import { InboxView, NotesView, RepoView } from './views';
+import { InboxView, NewPrView, NotesView, RepoView } from './views';
 import { render as paint } from 'preact';
 import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
 import { attention, checksView, timeline } from './timeline';
 import type { InboxProps } from '../components/Pages';
-import { gateHtmlStr, landingHtml, newPrHtml, npMetaHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
+import type { NewPrProps, NpMetaProps } from '../components/Pages';
+import { gateHtmlStr, landingHtml, prPageHtml, skeletonHtml, splitPageHtml } from '../components/Pages';
 
 export function landing() {
   return landingHtml(pushBanners(), S.error ? String(S.error) : '', icon('git-pull-request', 24).replace('width="24" height="24"', 'width="40" height="40"'));
@@ -44,32 +45,25 @@ export async function loadInbox(force = false) {
 // ---- New pull request ----
 export const npHuman = (s: string) => s.replace(/^[a-z]+\//i, '').replace(/[-_]+/g, ' ').replace(/^./, (c) => c.toUpperCase());
 
-export function newPrPage() {
+export let npSeq = 0;
+export const bumpNp = () => { npSeq++; };
+
+export function newPrProps(): NewPrProps {
   const n = S.np!, repos = (S.repos || []).filter((r) => !r.archived), br = n.branches[n.repo];
   const same = !!(n.base && n.base === n.head);
   const c = n.cmp;
   const cmp = c === 'loading' ? { kind: 'loading' as const, text: '', ahead: 0, files: 0, behind: 0 } : !c ? { kind: 'none' as const, text: '', ahead: 0, files: 0, behind: 0 } : typeof c === 'string' ? { kind: 'err' as const, text: c, ahead: 0, files: 0, behind: 0 }
     : c.ahead_by ? { kind: 'ok' as const, text: '', ahead: c.ahead_by, files: c.files, behind: c.behind_by } : { kind: 'same' as const, text: '', ahead: 0, files: 0, behind: 0 };
   const ready = !!(n.title.trim() && n.repo && n.base && n.head && !same && n.cmp && typeof n.cmp === 'object' && n.cmp.ahead_by > 0);
-  return newPrHtml({ hasRepos: repos.length > 0, repo: n.repo, base: n.base, head: n.head, hasBranches: !!br, same, cmp, title: n.title, tpls: n.tpl[`${n.repo}|${n.base}`] ?? null, tplText: n.tplText, draftBox: draftBox('newpr', 'Describe your changes', 8), isDraft: !!n.draft, err: n.err || '', ready, meta: npMeta(n) });
+  return ({ hasRepos: repos.length > 0, repo: n.repo, base: n.base, head: n.head, hasBranches: !!br, same, cmp, title: n.title, tpls: n.tpl[`${n.repo}|${n.base}`] ?? null, tplText: n.tplText, seq: npSeq, isDraft: !!n.draft, err: n.err || '', ready, meta: npMetaProps(n) });
 }
 
 // Reviewers / assignees / labels / milestone / linked issues pickers
-// Reviewers, assignees and labels redraw only their own box, so the page (and the description editor) stay where they are.
-export function npMetaRefresh() { const el = $('#npmeta')!; if (!el) return rerender(); el.outerHTML = npMeta(S.np!); bindNpMeta(); }
-
-export function bindNpMeta() {
-  qa('#npmeta [data-npadd]').forEach((el) => el.addEventListener('change', (e) => { if ((e.target as HTMLInputElement).value) { S.np![el.dataset.npadd as NpListKey].push((e.target as HTMLInputElement).value); npMetaRefresh(); } }));
-  qa('#npmeta [data-npdel]').forEach((el) => el.addEventListener('click', () => { const k = el.dataset.npdel as NpListKey; S.np![k] = S.np![k].filter((x: string) => x !== el.dataset.v); npMetaRefresh(); }));
-  $<HTMLSelectElement>('#npmile')?.addEventListener('change', (e) => { S.np!.milestone = (e.target as HTMLInputElement).value; });
-  $<HTMLInputElement>('#npissues')?.addEventListener('input', (e) => { S.np!.issues = (e.target as HTMLInputElement).value; });
-}
-
-export function npMeta(n: NewPr) {
-  const m = n.meta?.[n.repo]; if (!m) return '';
+export function npMetaProps(n: NewPr): NpMetaProps | null {
+  const m = n.meta?.[n.repo]; if (!m) return null;
   const ppl = m.people.map((x) => x.login), me = S.me || '';
   const row = (k: NpListKey, name: string, list: string[]) => ({ k, name, chips: n[k].slice() as string[], free: list.filter((x) => !n[k].includes(x)) });
-  return npMetaHtml({ rows: [row('reviewers', 'Reviewers', ppl.filter((x) => x !== me)), row('assignees', 'Assignees', ppl), row('labels', 'Labels', m.labels.map((x) => x.name))], milestones: m.milestones.map((x) => ({ number: x.number, title: x.title, on: String(n.milestone) === String(x.number) })), issues: n.issues });
+  return ({ rows: [row('reviewers', 'Reviewers', ppl.filter((x) => x !== me)), row('assignees', 'Assignees', ppl), row('labels', 'Labels', m.labels.map((x) => x.name))], milestones: m.milestones.map((x) => ({ number: x.number, title: x.title, on: String(n.milestone) === String(x.number) })), issues: n.issues });
 }
 
 export async function npLoadMeta(repo: string) {
@@ -121,7 +115,7 @@ export async function npCompare() {
 
 export function openNewPr(repo?: string, head?: string) {
   const cur = (typeof repo === 'string' && repo) || S.bundle?.pull.base.repo.full_name || S.repo || '';
-  S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: '', issues: '', cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '', tpl: {}, tplText: '' };
+  bumpNp(); S.view = 'newpr'; S.nav = false; S.np = { repo: cur, base: '', head: (typeof head === 'string' && head) || '', branches: {}, meta: {}, reviewers: [], assignees: [], labels: [], milestone: '', issues: '', cmp: null, title: '', titleTouched: false, draft: false, err: '', key: '', tpl: {}, tplText: '' };
   delete S.draft.newpr; render();
   if (tauri && !S.repos) loadRepos().then(() => { if (!S.np!.repo && S.repos?.[0]) S.np!.repo = S.repos[0].full_name; npLoadBranches(S.np!.repo); }); else npLoadBranches(cur);
 }
@@ -140,8 +134,7 @@ export function inboxProps(): InboxProps {
 export function page() {
   const b = S.bundle;
   if (S.loading) return skeletonHtml();
-  if (S.view === 'newpr') return crumbs(S.np!?.repo, [{ t: 'New pull request' }]) + newPrPage();
-  if (S.view === 'inbox' || S.view === 'notes' || S.view === 'repo') return '';
+  if (S.view === 'inbox' || S.view === 'newpr' || S.view === 'notes' || S.view === 'repo') return '';
   if (S.view === 'home' || !b) return '';
   if (S.split && S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline') return splitPageHtml(repoHeader(b.pull) + prHeader(b), splitView(b));
   const body = S.tab === 'files' ? filesView(b) : S.tab === 'commits' ? commitsView(b) : S.tab === 'checks' ? checksView(b) : S.tab === 'timeline' ? `<div class="rail">${timeline(b)}</div>` : attention(b) + timeline(b);
@@ -168,6 +161,7 @@ const liveView = (): VNode | null => {
   if (S.view === 'inbox') return <InboxView />;
   if (S.view === 'notes') return <NotesView />;
   if (S.view === 'repo') return <RepoView />;
+  if (S.view === 'newpr') return S.np ? <NewPrView /> : null;
   return (S.view === 'home' || !S.bundle) && S.view !== 'newpr' ? <HomeView /> : null;
 };
 
@@ -195,7 +189,7 @@ export function render() {
   { const mn = $('.main')!; if (mn) { const top = mn.getBoundingClientRect().top; for (const el of mn.querySelectorAll('[id]')) { const r = el.getBoundingClientRect(); if (r.bottom > top + 4) { anchor = { id: el.id, off: r.top - top }; break; } } } }
   const inner = true ? [...qa('.pane-body, .cm-list, .sb-list')].map((e) => [e.parentElement!.className + e.className, e.scrollTop]) : [];
   const key = html + (live ? '\0live' : '');
-  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) paintPage(pg, live); return; }
+  if (key === S.lastHtml && rest.firstElementChild && !S.fadeMain) { if (side) paintSide(side); const pg = $('#page'); if (live && pg) { paintPage(pg, live); mountEditors(); } return; }
   (S.eds || []).forEach((e) => e.destroy()); S.eds = [];
   rest.innerHTML = html; S.lastHtml = key; paintSide($('#side')!); if (live) paintPage($('#page')!, live);
   qa('.sb-list').forEach((e) => { const m = inner.find(([k]) => k === e.parentElement!.className + e.className); if (m) e.scrollTop = m[1] as number; });

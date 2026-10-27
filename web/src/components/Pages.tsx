@@ -1,5 +1,5 @@
 import type { ComponentChildren } from 'preact';
-import type { Inbox, InboxItem, NpListKey, Template } from '../types';
+import type { NpListKey, Template } from '../types';
 import { html, Raw } from './html';
 import { I, SP } from './ui';
 
@@ -24,38 +24,41 @@ export interface NpMetaProps {
   rows: { k: NpListKey; name: string; chips: string[]; free: string[] }[];
   milestones: { number: number; title: string; on: boolean }[]; issues: string;
 }
-export function NpMeta(p: NpMetaProps) {
-  return <div class="np-box np-metas" id="npmeta">{p.rows.map((r) => <div class="np-meta"><label class="np-l">{r.name}</label><div class="np-chips">{r.chips.map((x) => <span class="np-chip" data-npdel={r.k} data-v={x} title="Remove">{x} ×</span>)}{r.free.length ? <select class="sel np-add" data-npadd={r.k}><option value="">{`Add ${r.name.toLowerCase()}…`}</option>{r.free.map((x) => <option>{x}</option>)}</select> : ''}</div></div>)}{'\n    '}
-    <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile"><option value="">None</option>{p.milestones.map((x) => <option value={x.number} selected={x.on}>{x.title}</option>)}</select></div>{'\n    '}
-    <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value={p.issues} /></div></div>;
+export interface NpMetaHandlers { add: (k: NpListKey, e: Event) => void; del: (k: NpListKey, v: string) => void; mile: (e: Event) => void; issues: (e: Event) => void }
+export function NpMeta({ p, on }: { p: NpMetaProps; on: NpMetaHandlers }) {
+  return <div class="np-box np-metas" id="npmeta">{p.rows.map((r) => <div class="np-meta"><label class="np-l">{r.name}</label><div class="np-chips">{r.chips.map((x) => <span class="np-chip" data-npdel={r.k} data-v={x} onClick={() => on.del(r.k, x)} title="Remove">{x} ×</span>)}{r.free.length ? <select class="sel np-add" data-npadd={r.k} value="" onChange={(e) => on.add(r.k, e)}><option value="">{`Add ${r.name.toLowerCase()}…`}</option>{r.free.map((x) => <option>{x}</option>)}</select> : ''}</div></div>)}{'\n    '}
+    <div class="np-meta"><label class="np-l">Milestone</label><select class="sel" id="npmile" onChange={on.mile}><option value="">None</option>{p.milestones.map((x) => <option value={x.number} selected={x.on}>{x.title}</option>)}</select></div>{'\n    '}
+    <div class="np-meta"><label class="np-l">Linked issues <i>closed when this merges</i></label><input class="input" id="npissues" placeholder="e.g. 12, 15" value={p.issues} onInput={on.issues} /></div></div>;
 }
-export const npMetaHtml = (p: NpMetaProps) => html(<NpMeta {...p} />);
 
 export interface NewPrProps {
   hasRepos: boolean; repo: string; base: string; head: string; hasBranches: boolean; same: boolean;
   cmp: { kind: 'none' | 'loading' | 'err' | 'ok' | 'same'; text: string; ahead: number; files: number; behind: number };
-  title: string; tpls: Template[] | null; tplText: string; draftBox: string; isDraft: boolean; err: string; ready: boolean; meta: string;
+  title: string; tpls: Template[] | null; tplText: string; seq: number; isDraft: boolean; err: string; ready: boolean; meta: NpMetaProps | null;
 }
-export function NewPr(p: NewPrProps) {
+export interface NewPrHandlers extends NpMetaHandlers {
+  cancel: () => void; repo: (e: MouseEvent) => void; repoIn: (e: Event) => void; base: (e: MouseEvent) => void; head: (e: MouseEvent) => void; swap: () => void;
+  tpl: (e: Event) => void; title: (e: Event) => void; draft: (e: Event) => void; create: (e: MouseEvent) => void;
+}
+export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
   const c = p.cmp;
   const cmp = c.kind === 'loading' ? <span class="np-note">Comparing…</span> : c.kind === 'none' ? '' : c.kind === 'err' ? <span class="np-note err">{c.text}</span>
     : c.kind === 'ok' ? <span class="np-note ok">{I('git-commit')}{SP}{c.ahead} commit{c.ahead === 1 ? '' : 's'} · {c.files} file{c.files === 1 ? '' : 's'} changed{c.behind ? ` · ${c.behind} behind ${p.base}` : ''}</span> : <span class="np-note err">These branches are identical — there is nothing to compare.</span>;
   const t = p.tpls;
-  return <div class="notes-page np-new"><div class="np-head"><h1>{I('git-pull-request')}{SP}New pull request</h1></div>{'\n  '}
+  return <div class="notes-page np-new" key={p.seq}><div class="np-head"><h1>{I('git-pull-request')}{SP}New pull request</h1></div>{'\n  '}
     <div class="np-card"><div class="np-main-col">{'\n    '}
-      <div class="np-box"><label class="np-l">Repository</label>{p.hasRepos ? <button type="button" class="sel bp-btn" id="nprepo"><span>{p.repo || 'Choose a repository'}</span>{I('chevron-down', 14)}</button> : <input class="input" id="nprepoin" placeholder="owner/repo" value={p.repo} />}{'\n    '}
-        <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" disabled={!p.hasBranches}><span>{p.hasBranches ? p.base || 'Choose a branch' : 'Loading…'}</span>{I('chevron-down', 14)}</button></div>{'\n      '}
-          <button class="tb-btn" id="npswap" title="Swap base and head">⇄</button>{'\n      '}
-          <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" disabled={!p.hasBranches}><span>{p.hasBranches ? p.head || 'Choose a branch' : 'Loading…'}</span>{I('chevron-down', 14)}</button></div></div>{'\n    '}
+      <div class="np-box"><label class="np-l">Repository</label>{p.hasRepos ? <button type="button" class="sel bp-btn" id="nprepo" onClick={on.repo}><span>{p.repo || 'Choose a repository'}</span>{I('chevron-down', 14)}</button> : <input class="input" id="nprepoin" placeholder="owner/repo" value={p.repo} onChange={on.repoIn} />}{'\n    '}
+        <div class="np-branches"><div><label class="np-l">Base <i>merge into</i></label><button type="button" class="sel bp-btn" id="npbase" data-bp="base" onClick={on.base} disabled={!p.hasBranches}><span>{p.hasBranches ? p.base || 'Choose a branch' : 'Loading…'}</span>{I('chevron-down', 14)}</button></div>{'\n      '}
+          <button class="tb-btn" id="npswap" onClick={on.swap} title="Swap base and head">⇄</button>{'\n      '}
+          <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" onClick={on.head} disabled={!p.hasBranches}><span>{p.hasBranches ? p.head || 'Choose a branch' : 'Loading…'}</span>{I('chevron-down', 14)}</button></div></div>{'\n    '}
         <div class="np-cmp">{p.same ? <span class="np-note err">Base and head are the same branch.</span> : cmp}</div></div>{'\n    '}
-      <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value={p.title} /></div>{'\n    '}
-      <div class="np-box"><label class="np-l">Description</label>{t && t.length > 1 ? <select class="sel np-tpl" id="nptpl"><option value="">No template</option>{t.map((x, i) => <option value={i} selected={x.body === p.tplText}>Template: {x.name}</option>)}</select> : ''}{Raw(p.draftBox)}</div>{'\n    '}
-      <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" checked={p.isDraft} /> Create as draft <span>(not ready for review yet)</span></label>{'\n    '}
+      <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value={p.title} onInput={on.title} /></div>{'\n    '}
+      <div class="np-box"><label class="np-l">Description</label>{t && t.length > 1 ? <select class="sel np-tpl" id="nptpl" onChange={on.tpl}><option value="">No template</option>{t.map((x, i) => <option value={i} selected={x.body === p.tplText}>Template: {x.name}</option>)}</select> : ''}<div class="tt" data-draft="newpr" data-ph="Describe your changes — type / for blocks" style="--rows:8"></div></div>{'\n    '}
+      <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" checked={p.isDraft} onChange={on.draft} /> Create as draft <span>(not ready for review yet)</span></label>{'\n    '}
         {p.err ? <div class="act-err">{p.err}</div> : ''}{'\n    '}
-        <div class="np-btns"><button class="btn" id="npcancel">Cancel</button><button class="btn primary" id="npcreate" disabled={!p.ready}>{p.isDraft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>{'\n  '}
-    </div><div class="np-side-col">{Raw(p.meta)}</div></div></div>;
+        <div class="np-btns"><button class="btn" id="npcancel" onClick={on.cancel}>Cancel</button><button class="btn primary" id="npcreate" onClick={on.create} disabled={!p.ready}>{p.isDraft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>{'\n  '}
+    </div><div class="np-side-col">{p.meta ? <NpMeta p={p.meta} on={on} /> : ''}</div></div></div>;
 }
-export const newPrHtml = (p: NewPrProps) => html(<NewPr {...p} />);
 
 export interface IbRow { ref: string; avatar: string; title: string; sub: string; fresh: boolean; comments: number }
 export interface InboxProps { loading: boolean; err: string; secs: { title: string; sub: string; rows: IbRow[] }[] | null }

@@ -1,12 +1,11 @@
-import { bindWrite, drafts, rerender, saveDrafts, setBusy } from './actions';
-import { bindSticky, bpOpen, focusAddr, openExternal, openFromList } from './addressbar';
+import { bindWrite, drafts, rerender, saveDrafts } from './actions';
+import { bindSticky, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
 import { $, KEY_RECENT, S, esc, icon, qa as qaAll, tauri } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
-import { confetti } from './fun';
 import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
 import { loadPrs, loadRepos, openPr, openRepo, reload } from './nav';
-import { bindNpMeta, loadInbox, npCompare, npLoadBranches, openNewPr, render, saveNotes } from './pages';
+import { openNewPr, render, saveNotes } from './pages';
 import { repaintSide } from './side';
 import { go } from './render';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
@@ -94,32 +93,6 @@ export function bind() {
   qa('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab!; render(); $('.main')!.scrollTop = 0; }));
   qa('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare!.split('@'); openNewPr(repo, br); }));
   qa('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss!] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
-  $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
-  const npSet = (f: () => void) => { f(); S.np!.key = `${S.np!.repo}|${S.np!.base}|${S.np!.head}`; };
-  $('#nprepo')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'repo', (v) => { npSet(() => { S.np!.repo = v; S.np!.base = ''; S.np!.head = ''; S.np!.cmp = null; S.np!.titleTouched = false; S.np!.title = ''; }); render(); npLoadBranches(S.np!.repo); }, true));
-  $<HTMLInputElement>('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np!.repo = (e.target as HTMLInputElement).value.trim(); S.np!.base = ''; S.np!.head = ''; }); npLoadBranches(S.np!.repo); });
-  $('#npbase')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'base', (v) => { npSet(() => { S.np!.base = v; }); npCompare(); }));
-  $('#nphead')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'head', (v) => { npSet(() => { S.np!.head = v; S.np!.titleTouched = false; }); npCompare(); }));
-  $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np!.base, S.np!.head] = [S.np!.head, S.np!.base]; }); npCompare(); });
-  $<HTMLSelectElement>('#nptpl')?.addEventListener('change', (e) => {
-    const n = S.np, t = n!.tpl[`${n!.repo}|${n!.base}`] || [], cur = (S.draft.newpr || '').trim(), next = (e.target as HTMLInputElement).value === '' ? '' : t[+(e.target as HTMLInputElement).value].body;
-    if (cur && cur !== n!.tplText.trim() && !confirm('Replace what you have written with this template?')) { (e.target as HTMLInputElement).value = String(t.findIndex((x) => x.body === n!.tplText)); if ((e.target as HTMLInputElement).value === '-1') (e.target as HTMLInputElement).value = ''; return; }
-    S.draft.newpr = n!.tplText = next; saveDrafts(); rerender();
-  });
-  $<HTMLInputElement>('#nptitle')?.addEventListener('input', (e) => { S.np!.title = (e.target as HTMLInputElement).value; S.np!.titleTouched = true; const ok = S.np!.title.trim() && S.np!.cmp && typeof S.np!.cmp === 'object' && S.np!.cmp.ahead_by > 0 && S.np!.base !== S.np!.head; const b = $<HTMLButtonElement>('#npcreate')!; if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
-  $<HTMLInputElement>('#npdraft')?.addEventListener('change', (e) => { S.np!.draft = (e.target as HTMLInputElement).checked; const b = $('#npcreate')!; if (b) b.textContent = S.np!.draft ? 'Create draft pull request' : 'Create pull request'; });
-  bindNpMeta();
-  $('#npcreate')?.addEventListener('click', async (e) => {
-    const n = S.np, btn = e.currentTarget as HTMLButtonElement; setBusy(btn, true); n!.err = '';
-    try {
-      const nums = [...new Set((n!.issues.match(/\d+/g) || []))];
-      const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();
-      const extra = { reviewers: n!.reviewers, assignees: n!.assignees, labels: n!.labels, milestone: n!.milestone ? Number(n!.milestone) : null };
-      const r = await tauri!.invoke('create_pr', { repo: n!.repo, base: n!.base, head: n!.head, title: n!.title, body, draft: n!.draft, extra });
-      const warn = r.warnings?.length ? `Created, but ${r.warnings.join(' · ')}` : '';
-      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n!.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
-    } catch (err) { setBusy(btn!, false); n!.err = String(err).replace(/^Error: /, ''); rerender(); }
-  });
   $('#noteall')?.addEventListener('click', () => { S.bell = false; S.view = 'notes'; S.nav = false; render(); });
   qa('[data-nf]').forEach((b) => b.addEventListener('click', () => { S.nf = b.dataset.nf; S.keepScroll = true; render(); S.keepScroll = false; }));
   qa('[data-nread]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const n = S.notes.find((x) => String(x.id) === b.dataset.nread); if (n) { n.read = !n.read; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; } }));

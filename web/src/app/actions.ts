@@ -233,6 +233,22 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) 
 
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
+const mounted = new WeakSet<Element>();
+
+// Editors are mounted once per host, so a live page can call this after every repaint.
+export function mountEditors() {
+  qa('.tt[data-draft]').forEach((host) => {
+    if (mounted.has(host)) return; mounted.add(host);
+    const key = host.dataset.draft;
+    if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
+    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key!.startsWith('reply-') ? $(`[data-sendreply="${key!.slice(6)}"]`) : $('#revsubmit'))?.click();
+    const mount = () => { (S.eds ||= []).push(window.createEditor!(host, { value: S.draft[key!] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key!] = md; saveDrafts(); }, onSubmit: send })); addPreview(host, key!); };
+    // Editors are heavy: build each one only when its box is near the viewport.
+    const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
+    io.observe(host);
+  });
+}
+
 export function bindWrite() {
   qa('.cm-btn').forEach((btn) => btn.addEventListener('click', (e) => {
     e.stopPropagation(); $('.react-pop')?.remove();
@@ -244,15 +260,7 @@ export function bindWrite() {
     pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (h) { pop.remove(); cmAction(+btn.dataset.cm!, btn.dataset.root as unknown as HTMLElement, h); } };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
   }));
-  qa('.tt[data-draft]').forEach((host) => {
-    const key = host.dataset.draft;
-    if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return; }
-    const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key!.startsWith('reply-') ? $(`[data-sendreply="${key!.slice(6)}"]`) : $('#revsubmit'))?.click();
-    const mount = () => { (S.eds ||= []).push(window.createEditor!(host, { value: S.draft[key!] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key!] = md; saveDrafts(); }, onSubmit: send })); addPreview(host, key!); };
-    // Editors are heavy: build each one only when its box is near the viewport.
-    const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); if (host.isConnected) mount(); } }, { rootMargin: '300px' });
-    io.observe(host);
-  });
+  mountEditors();
   qa<HTMLElement & { disabled?: boolean }>('[data-rerequest]').forEach((b) => b.addEventListener('click', async (e) => {
     e.stopPropagation(); b.disabled = true; b.classList.add('spin');
     const r = await act('rerequest', { body: b.dataset.rerequest }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
