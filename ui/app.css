@@ -124,8 +124,8 @@ body { background: var(--canvas); font-family: "Inter", -apple-system, "system-u
 .pane-l { flex: 0 0 calc(var(--lw) - 9px); }
 .pane-r { flex: 1; }
 .gutter::after { content: ""; position: absolute; left: 7px; top: 50%; width: 4px; height: 44px; margin-top: -22px; border-radius: 4px; background: var(--borderColor-default); transition: background .15s; }
-.gutter:hover::after, body.dragging .gutter::after { background: var(--fgColor-accent); }
-body.dragging { cursor: col-resize; user-select: none; }
+.gutter:hover::after, #frame.dragging .gutter::after { background: var(--fgColor-accent); }
+#frame.dragging { cursor: col-resize; user-select: none; }
 .pane-h { flex: none; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; font-weight: 700; font-size: 13px; background: var(--bgColor-muted); border-bottom: 1px solid var(--borderColor-default); }
 .pane-h .octicon { color: var(--fgColor-accent); }
 .pane-h.sub { border-top: 1px solid var(--borderColor-default); }
@@ -350,8 +350,8 @@ body.dragging { cursor: col-resize; user-select: none; }
 /* Resizable sidebar */
 .sb-grip { flex: 0 0 6px; margin: 0 -3px; position: relative; z-index: 5; cursor: col-resize; }
 .sb-grip::after { content: ""; position: absolute; left: 2px; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .15s; }
-.sb-grip:hover::after, body.dragging .sb-grip::after { background: var(--fgColor-accent); }
-body.dragging { user-select: none; }
+.sb-grip:hover::after, #frame.dragging .sb-grip::after { background: var(--fgColor-accent); }
+#frame.dragging { user-select: none; }
 @media (min-width: 901px) { .shell .sidebar { width: var(--sbw, 260px); } }
 @media (max-width: 900px) { .sb-grip { display: none; } }
 
@@ -389,16 +389,16 @@ a.ck-row[href]:hover { background: var(--bgColor-muted); text-decoration: none; 
 .pr-tabs { position: sticky; top: 0; z-index: 12; }
 .pr-tabs .mini { display: none; font-size: 13px; font-weight: 600; max-width: 28%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 12px; color: var(--fgColor-default); }
 .pr-tabs .mini b { color: var(--fgColor-accent); }
-.pr-tabs.stuck { border-radius: 0 0 14px 14px; box-shadow: 0 6px 20px rgba(0,0,0,.14); margin-top: -1px; }
-.pr-tabs.stuck .mini { display: block; }
-.pr-tabs.stuck nav a { height: 40px; }
-@media (max-width: 900px) { .pr-tabs.stuck .mini { display: none; } }
+.main.stuck .pr-tabs { border-radius: 0 0 14px 14px; box-shadow: 0 6px 20px rgba(0,0,0,.14); margin-top: -1px; }
+.main.stuck .pr-tabs .mini { display: block; }
+.main.stuck .pr-tabs nav a { height: 40px; }
+@media (max-width: 900px) { .main.stuck .pr-tabs .mini { display: none; } }
 .pr-page.is-split .pr-tabs { position: relative; }
 .who-bar { top: 0; }
-.pr-tabs.stuck { flex-wrap: nowrap; }
-.pr-tabs.stuck .diffstat, .pr-tabs.stuck .split-btn span { display: none; }
-.pr-tabs.stuck .mini { max-width: 22%; flex: 0 1 auto; }
-.pr-tabs.stuck nav { overflow: hidden; }
+.main.stuck .pr-tabs { flex-wrap: nowrap; }
+.main.stuck .pr-tabs .diffstat, .main.stuck .pr-tabs .split-btn span { display: none; }
+.main.stuck .pr-tabs .mini { max-width: 22%; flex: 0 1 auto; }
+.main.stuck .pr-tabs nav { overflow: hidden; }
 
 /* Never let the tab bar outgrow the page */
 .pr-tabs { min-width: 0; box-sizing: border-box; }
@@ -445,7 +445,7 @@ a.ck-row[href]:hover { background: var(--bgColor-muted); text-decoration: none; 
 
 /* ---- Animations ---- */
 @keyframes riseIn { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
-.enter-in { animation: riseIn .55s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+.entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area) { animation: riseIn .55s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 55ms); }
 .tl-comment .cbox, .TLI, .thread, .merge-card, .sb-item, .reaction { transition: transform .25s cubic-bezier(.3,1.4,.5,1), box-shadow .25s, background .2s, border-color .2s; }
 .tl-comment .cbox:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(31,35,40,.14); }
 .thread:hover { box-shadow: 0 6px 20px rgba(31,35,40,.1); }
@@ -473,7 +473,7 @@ a.ck-row[href]:hover { background: var(--bgColor-muted); text-decoration: none; 
 .flash { animation: flashRow 1.6s ease-out, popIn .5s; } @keyframes flashRow { 0% { box-shadow: 0 0 0 0 rgba(9,105,218,.6); } 40% { box-shadow: 0 0 0 10px rgba(9,105,218,.18); } 100% { box-shadow: 0 0 0 0 transparent; } }
 .cm-btn { transition: transform .3s cubic-bezier(.3,1.8,.5,1), background .2s; } .cm-btn:hover { transform: rotate(90deg) scale(1.2); }
 .pr-title-area h1 .num, .pr-title .num { display: inline-block; animation: numBob 3s ease-in-out infinite; } @keyframes numBob { 50% { transform: translateY(-3px) rotate(-3deg); } }
-@media (prefers-reduced-motion: reduce) { .enter-in, .state-pill, .state-pill::after, .bell .dot, .num { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area), .state-pill, .state-pill::after, .bell .dot, .num { animation: none !important; } }
 
 /* Skeleton loading + refresh bar */
 .skel { max-width: 960px; margin: 0 auto; padding: 24px 20px; }
@@ -490,10 +490,10 @@ a.ck-row[href]:hover { background: var(--bgColor-muted); text-decoration: none; 
 /* header: no gap between the title card and the tab bar */
 .pr-tabs { margin-top: 0; }
 .pr-title-area { padding-bottom: 16px !important; }
-.pr-tabs.stuck { margin-top: 0; }
+.main.stuck .pr-tabs { margin-top: 0; }
 .pr-tabs { padding-bottom: 14px; margin-bottom: 24px; }
-.pr-tabs.stuck { padding-bottom: 0; }
-.pr-tabs { row-gap: 12px; } .pr-tabs.stuck { row-gap: 0; }
+.main.stuck .pr-tabs { padding-bottom: 0; }
+.pr-tabs { row-gap: 12px; } .main.stuck .pr-tabs { row-gap: 0; }
 
 /* Notifications page */
 .notes-page { max-width: 820px; margin: 0 auto; padding: 24px 20px 60px; }
@@ -573,7 +573,7 @@ code, pre, .mono, .branch, .sha, .tt code, .tt pre { font-family: "SF Mono", ui-
 .pr-title { font-size: 30px; line-height: 36px; font-weight: 700; letter-spacing: -.025em; }
 .pr-title .num { font-weight: 400; color: var(--fgColor-muted); animation: none !important; }
 .pr-tabs { border: 0; border-top: .5px solid var(--borderColor-muted); border-radius: 0 0 14px 14px; box-shadow: 0 0 0 .5px var(--borderColor-default); padding: 0 20px 14px; }
-.pr-tabs.stuck { background: var(--canvas); padding-bottom: 0; border-radius: 0 0 14px 14px; }
+.main.stuck .pr-tabs { background: var(--canvas); padding-bottom: 0; border-radius: 0 0 14px 14px; }
 .pr-tabs nav a { height: 44px; font-weight: 500; font-size: 14px; gap: 7px; } .pr-tabs nav a.sel { border-bottom-width: 2px; font-weight: 600; }
 .counter { background: rgba(120, 120, 128, .16); border-radius: 10px; font-weight: 500; }
 .state-pill { border-radius: 20px; text-transform: none; letter-spacing: 0; font-weight: 600; font-size: 13px; height: 28px; padding: 0 12px; animation: none !important; } .state-pill::after { display: none; }
@@ -606,7 +606,7 @@ input, select, .sel, .input { border-radius: 8px; border: 0; box-shadow: 0 0 0 .
 .notes-page .np-row.new { border-left: 0; } .np-tabs button.sel { border-bottom-color: var(--fgColor-accent); }
 
 /* calmer motion */
-.enter-in { animation-duration: .4s; } .sb-item:hover { transform: none; } .cm-btn:hover { transform: none; background: rgba(120, 120, 128, .16); }
+.entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area) { animation-duration: .4s; } .sb-item:hover { transform: none; } .cm-btn:hover { transform: none; background: rgba(120, 120, 128, .16); }
 .tl-comment .cbox, .TLI, .thread, .merge-card, .sb-item, .reaction { transition: box-shadow .2s, background .2s, transform .2s; }
 
 /* Jump-to-comment highlight: a calm tint plus an accent edge that fade away together. */
@@ -794,7 +794,7 @@ button.mb-h { cursor: pointer; } button.mb-h:hover { background: var(--bgColor-n
 .tt-tabs button.on { color: var(--fgColor-default); font-weight: 600; border-bottom-color: var(--fgColor-accent); }
 .tt-preview { padding: 14px 16px; min-height: calc(var(--rows, 4) * 22px); font-size: 14px; cursor: default; }
 .tt-preview .empty { color: var(--fgColor-muted); } .tt .pv-raw { white-space: pre-wrap; }
-.tt-body[hidden], .tt-bar[hidden], .tt-preview[hidden] { display: none !important; }
+.tt-body[hidden], .tt-bar[hidden], .tt-preview[hidden] { display: none !important; } .tt.previewing .tt-body, .tt.previewing .tt-bar { display: none !important; }
 /* The sticky "Show" bar must cover the pane's top padding, or comments scroll through the gap above it. */
 .pane-body .who-bar { top: -12px; margin: -12px -16px 0; padding: 20px 16px 12px; }
 
@@ -888,7 +888,7 @@ nav.crumbs .stale { margin-left: 8px; }
 .gate-card .gate-err { display: flex; align-items: center; gap: 6px; color: var(--fgColor-danger); font-weight: 600; }
 .gate-card .btns { margin-top: 10px; } .gate-card small { color: var(--fgColor-muted); margin-top: 8px; }
 .ptab.drag { z-index: 5; box-shadow: 0 6px 18px rgba(0,0,0,.35); opacity: 1; cursor: grabbing; transition: none; }
-body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
+#frame.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .ck-req { margin-left: 6px; padding: 0 6px; font-size: 10.5px; font-weight: 600; line-height: 16px; border: .5px solid var(--borderColor-default); color: var(--fgColor-muted); border-radius: 10px; vertical-align: middle; white-space: nowrap; }
 .lazy-more { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 24px; color: var(--fgColor-muted); font-size: 13px; }
 .upd { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; padding: 4px 10px; font-size: 12px; font-weight: 600; border: 0; background: var(--bgColor-success-emphasis, #1f883d); color: #fff; cursor: pointer; white-space: nowrap; }
@@ -897,10 +897,10 @@ body.dragging .ptab:not(.drag) { transition: transform .12s ease; }
 .diff-ph { background: repeating-linear-gradient(transparent 0 19px, var(--borderColor-muted, rgba(128,128,128,.12)) 19px 20px); opacity: .5; }
 
 /* Stuck PR tab bar: when the window is not wide, drop the title and counts so every tab stays whole */
-@media (max-width: 1300px) { .pr-tabs.stuck .mini { display: none; } .pr-tabs.stuck nav a .counter, .pr-tabs.stuck nav a svg { display: none; } }
-.pr-tabs.stuck nav { overflow: hidden; flex: 1 1 auto; min-width: 0; gap: 0; }
-.pr-tabs.stuck nav a { padding-left: 8px; padding-right: 8px; gap: 5px; white-space: nowrap; }
-.pr-tabs.stuck .tools { flex: 0 0 auto; }
+@media (max-width: 1300px) { .main.stuck .pr-tabs .mini { display: none; } .main.stuck .pr-tabs nav a .counter, .main.stuck .pr-tabs nav a svg { display: none; } }
+.main.stuck .pr-tabs nav { overflow: hidden; flex: 1 1 auto; min-width: 0; gap: 0; }
+.main.stuck .pr-tabs nav a { padding-left: 8px; padding-right: 8px; gap: 5px; white-space: nowrap; }
+.main.stuck .pr-tabs .tools { flex: 0 0 auto; }
 
 .dchunk { content-visibility: auto; }
 .dchunk > table.diff, table.diff { width: 100%; table-layout: fixed; }
@@ -1004,3 +1004,9 @@ table.diff { contain: layout paint; }
 .composer.collapsed .cbar-x { display: none; }
 .composer.collapsed .composer-h b { display: none; }
 .composer-h .cbar-x svg { transition: transform .2s; }
+
+/* entrance stagger: each block waits for its position among its siblings */
+.entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(1) { --i: 0; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(2) { --i: 1; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(3) { --i: 2; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(4) { --i: 3; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(5) { --i: 4; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(6) { --i: 5; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(7) { --i: 6; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(8) { --i: 7; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(9) { --i: 8; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(10) { --i: 9; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(11) { --i: 10; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(12) { --i: 11; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(13) { --i: 12; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(14) { --i: 13; } .entering :is(.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area):nth-child(n+15) { --i: 14; }
+
+.tt-ed { display: contents; }
+.rerequest.is-busy { opacity: 1; } .rerequest.is-busy svg { animation: rspin .8s linear infinite; }

@@ -5,7 +5,7 @@ import { isFolded } from './comments';
 import { $, KEY_RECENT, S } from './core';
 import { loadPr, qc } from './data';
 import { loadPrs, openPr } from './nav';
-import { render, saveNotes, shownPage } from './pages';
+import { render, repaintShell, saveNotes, setDragging, shownPage } from './pages';
 import type { FoldKey } from './timeline';
 import { curRef, saveTabs, tabIdx, tabSnap } from './tabs';
 
@@ -67,10 +67,10 @@ export function foldAllConv(keys: FoldKey[]) {
 // Shell chrome that is not part of any Preact tree: the sidebar grip, the mobile scrim and the scroll memory of the main pane. Delegated once on the document.
 document.addEventListener('mousedown', (e) => {
   if (!(e.target as HTMLElement).closest?.('#sbgrip')) return;
-  e.preventDefault(); const sh = $('.shell'), x0 = e.clientX, w0 = S.sbw;
-  const mv = (ev: MouseEvent) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); sh!.style.setProperty('--sbw', S.sbw + 'px'); };
-  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('sbw', String(Math.round(S.sbw))); };
-  document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  e.preventDefault(); const x0 = e.clientX, w0 = S.sbw;
+  const mv = (ev: MouseEvent) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); repaintShell({ sbw: S.sbw }); };
+  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false); localStorage.setItem('sbw', String(Math.round(S.sbw))); };
+  setDragging(true); addEventListener('mousemove', mv); addEventListener('mouseup', up);
 });
 document.addEventListener('dblclick', (e) => { if ((e.target as HTMLElement).closest?.('#sbgrip')) { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; } });
 document.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest?.('#scrim')) { S.nav = false; S.keepScroll = true; render(); S.keepScroll = false; } });

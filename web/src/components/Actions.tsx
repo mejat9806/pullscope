@@ -1,14 +1,28 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { I } from './ui';
 
 
 export const ErrLine = ({ m }: { m: string }) => (m ? <div class="act-err">{m}</div> : null);
 // The rich editor is a foreign widget: the component owns its host and builds the editor (lazily, when near the viewport) on mount and destroys it on unmount.
-export const editorMount: { fn: ((host: HTMLElement, key: string) => () => void) | null } = { fn: null };
+type Preview = { html: string } | { raw: string; err: string } | null;
+export const editorMount: { fn: ((host: HTMLElement, key: string, ph: string) => () => void) | null; preview: ((key: string) => Promise<Preview>) | null } = { fn: null, preview: null };
+// `.tt-ed` is the editor's own host (it paints its toolbar and body there); the Write/Preview tabs and the preview pane are Preact.
 export function DraftBox({ k, ph, rows }: { k: string; ph: string; rows: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k) : undefined, []);
-  return <div class="tt" ref={ref} data-draft={k} data-ph={`${ph} — type / for blocks`} style={`--rows:${rows}`}></div>;
+  const [mode, setMode] = useState<'write' | 'preview'>('write'), [pv, setPv] = useState<Preview | 'loading'>(null);
+  const hint = `${ph} — type / for blocks`;
+  useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined, []);
+  const show = (m: 'write' | 'preview') => {
+    setMode(m);
+    if (m === 'write') { setTimeout(() => ref.current?.querySelector<HTMLElement>('.tt-content')?.focus(), 0); return; }
+    setPv('loading'); editorMount.preview?.(k).then(setPv);
+  };
+  const prev = mode === 'preview';
+  return <div class={`tt${prev ? ' previewing' : ''}`} data-draft={k} data-ph={hint} style={`--rows:${rows}`}>
+    <div class="tt-tabs"><button class={prev ? '' : 'on'} onClick={() => show('write')}>Write</button><button class={prev ? 'on' : ''} onClick={() => show('preview')}>Preview</button></div>
+    <div class="tt-ed" ref={ref}></div>
+    {prev ? <div class="tt-preview markdown-body">{pv === 'loading' ? <span class="empty">Loading preview…</span> : !pv ? <span class="empty">Nothing to preview</span> : 'html' in pv ? <div dangerouslySetInnerHTML={{ __html: pv.html }} /> : <><pre class="pv-raw">{pv.raw}</pre><div class="act-err">Couldn't render the preview ({pv.err}). Showing the raw Markdown.</div></>}</div> : null}
+  </div>;
 }
 
 export interface ComposerHandlers { toggle: () => void; key: (e: KeyboardEvent) => void; send: () => void; close: () => void }

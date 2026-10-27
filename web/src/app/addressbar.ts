@@ -2,7 +2,7 @@ import type { AcRow, BpGroup, BpRow, BranchInfo, PrListItem, RepoSummary } from 
 import { $, S, tauri } from './core';
 import { openPr } from './nav';
 import { OV, paintOv } from './overlay';
-import { render } from './pages';
+import { render, repaintShell } from './pages';
 import { curRef, openTab } from './tabs';
 
 // ---- Address bar autocomplete: open tabs and recent PRs, then repositories, then that repo's PR numbers ----
@@ -130,5 +130,5 @@ export function bindSticky() {
   const ta = $('.pr-title-area'), tb = $('.pr-tabs');
   if (ta && ta === stuckOn && S.ios?.length) return;
   stuckOn = ta;
-  if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => tb.classList.toggle('stuck', !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios!.push(io); }
+  if (ta && tb && !$('.is-split')) { const io = new IntersectionObserver(([en]) => { const v = !en.isIntersecting && en.boundingClientRect.bottom < 0; if (!!S.stuck !== v) { S.stuck = v; repaintShell({ stuck: v }); } }, { root: $('.main'), threshold: 0 }); io.observe(ta); S.ios!.push(io); }
 }

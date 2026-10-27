@@ -3,7 +3,7 @@ import { editorMount } from '../components/Actions';
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { $, S, esc, load, tauri } from './core';
+import { $, S, load, tauri } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { closePop, openPop } from './dialogs';
@@ -69,28 +69,14 @@ export function editPrDialog() {
 
 
 // Write / Preview tabs on a rich editor; the preview is rendered by GitHub so it matches what gets posted.
-export function addPreview(host: HTMLElement, key: string) {
-  const tabs = document.createElement('div'); tabs.className = 'tt-tabs';
-  tabs.innerHTML = '<button class="on" data-pv="write">Write</button><button data-pv="preview">Preview</button>';
-  const pv = document.createElement('div'); pv.className = 'tt-preview markdown-body'; pv.hidden = true;
-  host.prepend(tabs); host.append(pv);
-  const show = async (mode: string) => {
-    tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.pv === mode));
-    const prev = mode === 'preview';
-    host.querySelectorAll<HTMLElement>('.tt-bar, .tt-body').forEach((el) => { el.hidden = prev; });
-    pv.hidden = !prev; host.classList.toggle('previewing', prev);
-    if (!prev) { $('.tt-content', host)?.focus(); return; }
-    const md = (S.draft[key!] || '').trim();
-    if (!md) { pv.innerHTML = '<span class="empty">Nothing to preview</span>'; return; }
-    pv.innerHTML = '<span class="empty">Loading preview…</span>';
-    try {
-      if (!tauri) throw new Error('offline');
-      const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
-      const html = await tauri!.invoke('render_markdown', { text: md, repo });
-      if (!pv.hidden) pv.innerHTML = html;
-    } catch (e) { if (!pv.hidden) pv.innerHTML = `<pre class="pv-raw"></pre><div class="act-err">Couldn't render the preview (${esc(String(e).replace(/^Error: /, ''))}). Showing the raw Markdown.</div>`, $('.pv-raw', pv)!.textContent = md; }
-  };
-  tabs.addEventListener('click', (e) => { const m = (e.target as HTMLElement).closest<HTMLElement>('[data-pv]')?.dataset.pv; if (m) show(m); });
+// Markdown preview of a draft, rendered by the backend; falls back to the raw text with the reason when that is not possible.
+export async function previewDraft(key: string): Promise<{ html: string } | { raw: string; err: string } | null> {
+  const md = (S.draft[key] || '').trim(); if (!md) return null;
+  try {
+    if (!tauri) throw new Error('offline');
+    const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
+    return { html: await tauri!.invoke('render_markdown', { text: md, repo }) };
+  } catch (e) { return { raw: md, err: String(e).replace(/^Error: /, '') }; }
 }
 
 
@@ -222,10 +208,12 @@ export function addLocal(kind: string, r: ReviewComment | TimelineEvent, rootId?
 }
 
 export async function rerequestReview(e: Event, login: string) {
-  const b = e.currentTarget as HTMLElement & { disabled?: boolean };
-  e.stopPropagation(); b.disabled = true; b.classList.add('spin');
-  const r = await act('rerequest', { body: login }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
-  await refreshPr();
+  const b = e.currentTarget as HTMLElement;
+  e.stopPropagation(); const sel = btnSel(b); setBusy(sel, true);
+  try {
+    const r = await act('rerequest', { body: login }, 'rerequest'); if (r === undefined) { alert(S.actErr?.m || 'Could not re-request review.'); return; }
+    await refreshPr();
+  } finally { setBusy(sel, false); }
 }
 // Merge box, merge actions and composer handlers: shared by the live PR page and by the imperatively bound copies (split view).
 export const composerOpen = () => S.busy === 'comment' || S.cOpen === true;
@@ -314,11 +302,12 @@ export const focusLastEditor = (ms: number) => setTimeout(() => [...live.keys()]
 export function syncDraft(key: string) { live.forEach((k, ed) => { if (k === key) ed.setMarkdown?.(S.draft[key] || ''); }); }
 
 // Called by every DraftBox when it mounts: builds the editor once its box is near the viewport; the returned function tears it down.
-editorMount.fn = (host, key) => {
+editorMount.preview = previewDraft;
+editorMount.fn = (host, key, ph) => {
   if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return () => {}; }
   const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? $(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
   let ed: EditorHandle | null = null, gone = false;
-  const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: host.dataset.ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); addPreview(host, key); };
+  const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); };
   // Editors are heavy: build each one only when its box is near the viewport.
   const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); mount(); } }, { rootMargin: '300px' });
   io.observe(host);

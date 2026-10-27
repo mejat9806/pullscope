@@ -8,7 +8,7 @@ import { isFolded } from './comments';
 import { S, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
 import { attOn, convOn, diffOn, filesOn, tlOn } from './handlers';
-import { render } from './pages';
+import { render, repaintShell, setDragging } from './pages';
 import { CK, Timeline, attentionProps, checkState, timelineModel } from './timeline';
 
 export type MergeModel = { kind: 'merged'; head: string } | { kind: 'closed'; head: string } | { kind: 'open'; p: MergeBoxProps };
@@ -151,10 +151,10 @@ export function flipSides() { S.flip = !S.flip; localStorage.setItem('flip', S.f
 const hideSide = (k: string, v: boolean) => { S.hide[k] = v; localStorage.setItem('hide', JSON.stringify(S.hide)); rerender(); };
 
 function gutterDrag(e: MouseEvent) {
-  e.preventDefault(); const sp = $('.split')!, r = sp.getBoundingClientRect();
-  const mv = (ev: MouseEvent) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
-  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('lw', String(Math.round(S.lw))); };
-  document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
+  e.preventDefault(); const r = $('.split')!.getBoundingClientRect();
+  const mv = (ev: MouseEvent) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); repaintShell({ lw: S.lw }); };
+  const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false); localStorage.setItem('lw', String(Math.round(S.lw))); };
+  setDragging(true); addEventListener('mousemove', mv); addEventListener('mouseup', up);
 }
 
 const splitOn: SplitHandlers = { hide: hideSide, flip: flipSides, pick: (sha) => { selectCommit(sha); }, gutter: gutterDrag, fold: (e, k, def) => convOn.fold(e, k, def) };

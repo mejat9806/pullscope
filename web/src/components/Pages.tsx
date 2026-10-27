@@ -1,3 +1,4 @@
+import { DraftBox } from './Actions';
 import type { ComponentChildren } from 'preact';
 import type { NpListKey, Template } from '../types';
 import { I, SP } from './ui';
@@ -50,7 +51,7 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
           <div><label class="np-l">Head <i>changes from</i></label><button type="button" class="sel bp-btn" id="nphead" data-bp="head" onClick={on.head} disabled={!p.hasBranches}><span>{p.hasBranches ? p.head || 'Choose a branch' : 'Loading…'}</span>{I('chevron-down', 14)}</button></div></div>{'\n    '}
         <div class="np-cmp">{p.same ? <span class="np-note err">Base and head are the same branch.</span> : cmp}</div></div>{'\n    '}
       <div class="np-box"><label class="np-l">Title</label><input class="input" id="nptitle" placeholder="Title" value={p.title} onInput={on.title} /></div>{'\n    '}
-      <div class="np-box"><label class="np-l">Description</label>{t && t.length > 1 ? <select class="sel np-tpl" id="nptpl" onChange={on.tpl}><option value="">No template</option>{t.map((x, i) => <option value={i} selected={x.body === p.tplText}>Template: {x.name}</option>)}</select> : ''}<div class="tt" data-draft="newpr" data-ph="Describe your changes — type / for blocks" style="--rows:8"></div></div>{'\n    '}
+      <div class="np-box"><label class="np-l">Description</label>{t && t.length > 1 ? <select class="sel np-tpl" id="nptpl" value={String(t.findIndex((x) => x.body === p.tplText))} onChange={on.tpl}><option value="-1">No template</option>{t.map((x, i) => <option value={i}>Template: {x.name}</option>)}</select> : ''}<DraftBox k="newpr" ph="Describe your changes" rows={8} /></div>{'\n    '}
       <div class="np-box"><label class="np-check"><input type="checkbox" id="npdraft" checked={p.isDraft} onChange={on.draft} /> Create as draft <span>(not ready for review yet)</span></label>{'\n    '}
         {p.err ? <div class="act-err">{p.err}</div> : ''}{'\n    '}
         <div class="np-btns"><button class="btn" id="npcancel" onClick={on.cancel}>Cancel</button><button class="btn primary" id="npcreate" onClick={on.create} disabled={!p.ready}>{p.isDraft ? 'Create draft pull request' : 'Create pull request'}</button></div></div>{'\n  '}

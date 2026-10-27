@@ -11,7 +11,7 @@ import { $, S, applyMode, isDark, isOff, tauri } from './core';
 import { openPr, reload } from './nav';
 import { fastTab, stashCurrent } from './bind';
 import { tokenDialog } from './token';
-import { openInbox, openNewPr, render } from './pages';
+import { openInbox, openNewPr, render, setDragging } from './pages';
 import { go } from './render';
 import { closeTab, curRef, reopenTab, saveTabs, tabSnap } from './tabs';
 
@@ -24,8 +24,7 @@ const mode = (e: MouseEvent) => {
     const swap = () => { applyMode(); S.themePop = (S.themePop || 0) + 1; keep(() => {}); };
     if (!document.startViewTransition) { swap(); return; }
     const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    document.documentElement.classList.add('vt');
-    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished.finally(() => document.documentElement.classList.remove('vt')));
+    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished);
 };
 
 const prof = (e: MouseEvent) => {
@@ -63,12 +62,12 @@ const tabDown = (e: MouseEvent, from: number) => {
   const mids = [...el.parentElement!.querySelectorAll<HTMLElement>('.ptab')].map((t) => { const r = t.getBoundingClientRect(); return r.left + r.width / 2; });
   const mv = (ev: MouseEvent) => {
     if (!moved && Math.abs(ev.clientX - x0) < 6) return;
-    if (!moved) { moved = true; document.body.classList.add('dragging'); }
+    if (!moved) { moved = true; setDragging(true); }
     to = mids.reduce((best, m, i) => (ev.clientX > m ? i : best), 0);
     S.drag = { from, to, dx: ev.clientX - x0, w }; paintTop($('#top')!);
   };
   const up = () => {
-    removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging');
+    removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false);
     if (!moved) return;
     el.addEventListener('click', (c) => c.stopImmediatePropagation(), { capture: true, once: true });
     S.drag = null;

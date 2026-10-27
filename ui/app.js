@@ -491,11 +491,37 @@
 
   // src/components/Actions.tsx
   var ErrLine = ({ m: m3 }) => m3 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m3 }) : null;
-  var editorMount = { fn: null };
+  var editorMount = { fn: null, preview: null };
   function DraftBox({ k: k3, ph, rows }) {
     const ref = A2(null);
-    h2(() => editorMount.fn ? editorMount.fn(ref.current, k3) : void 0, []);
-    return /* @__PURE__ */ u3("div", { class: "tt", ref, "data-draft": k3, "data-ph": `${ph} \u2014 type / for blocks`, style: `--rows:${rows}` });
+    const [mode2, setMode] = d2("write"), [pv, setPv] = d2(null);
+    const hint = `${ph} \u2014 type / for blocks`;
+    h2(() => editorMount.fn ? editorMount.fn(ref.current, k3, hint) : void 0, []);
+    const show = (m3) => {
+      setMode(m3);
+      if (m3 === "write") {
+        setTimeout(() => ref.current?.querySelector(".tt-content")?.focus(), 0);
+        return;
+      }
+      setPv("loading");
+      editorMount.preview?.(k3).then(setPv);
+    };
+    const prev = mode2 === "preview";
+    return /* @__PURE__ */ u3("div", { class: `tt${prev ? " previewing" : ""}`, "data-draft": k3, "data-ph": hint, style: `--rows:${rows}`, children: [
+      /* @__PURE__ */ u3("div", { class: "tt-tabs", children: [
+        /* @__PURE__ */ u3("button", { class: prev ? "" : "on", onClick: () => show("write"), children: "Write" }),
+        /* @__PURE__ */ u3("button", { class: prev ? "on" : "", onClick: () => show("preview"), children: "Preview" })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "tt-ed", ref }),
+      prev ? /* @__PURE__ */ u3("div", { class: "tt-preview markdown-body", children: pv === "loading" ? /* @__PURE__ */ u3("span", { class: "empty", children: "Loading preview\u2026" }) : !pv ? /* @__PURE__ */ u3("span", { class: "empty", children: "Nothing to preview" }) : "html" in pv ? /* @__PURE__ */ u3("div", { dangerouslySetInnerHTML: { __html: pv.html } }) : /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("pre", { class: "pv-raw", children: pv.raw }),
+        /* @__PURE__ */ u3("div", { class: "act-err", children: [
+          "Couldn't render the preview (",
+          pv.err,
+          "). Showing the raw Markdown."
+        ] })
+      ] }) }) : null
+    ] });
   }
   function Composer(p3) {
     const { on: on3 } = p3;
@@ -1299,7 +1325,7 @@
       ] }),
       /* @__PURE__ */ u3("div", { class: "pane-body", children: p3.right })
     ] });
-    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, style: `--lw:${p3.lw}%`, children: [
+    return /* @__PURE__ */ u3("div", { class: `split ${p3.hl ? "hl" : ""} ${p3.hr ? "hr" : ""} ${p3.flip ? "flip" : ""}`, children: [
       left,
       p3.hl || p3.hr ? "" : /* @__PURE__ */ u3("div", { class: "gutter", id: "gutter", title: "Drag to resize", onMouseDown: on3?.gutter }),
       right
@@ -2638,18 +2664,18 @@
   };
   function gutterDrag(e3) {
     e3.preventDefault();
-    const sp = $(".split"), r3 = sp.getBoundingClientRect();
+    const r3 = $(".split").getBoundingClientRect();
     const mv = (ev) => {
       S.lw = Math.max(25, Math.min(75, (S.flip ? r3.right - ev.clientX : ev.clientX - r3.left) / r3.width * 100));
-      sp.style.setProperty("--lw", S.lw + "%");
+      repaintShell({ lw: S.lw });
     };
     const up = () => {
       removeEventListener("mousemove", mv);
       removeEventListener("mouseup", up);
-      document.body.classList.remove("dragging");
+      setDragging(false);
       localStorage.setItem("lw", String(Math.round(S.lw)));
     };
-    document.body.classList.add("dragging");
+    setDragging(true);
     addEventListener("mousemove", mv);
     addEventListener("mouseup", up);
   }
@@ -2973,18 +2999,18 @@
   document.addEventListener("mousedown", (e3) => {
     if (!e3.target.closest?.("#sbgrip")) return;
     e3.preventDefault();
-    const sh = $(".shell"), x0 = e3.clientX, w0 = S.sbw;
+    const x0 = e3.clientX, w0 = S.sbw;
     const mv = (ev) => {
       S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
-      sh.style.setProperty("--sbw", S.sbw + "px");
+      repaintShell({ sbw: S.sbw });
     };
     const up = () => {
       removeEventListener("mousemove", mv);
       removeEventListener("mouseup", up);
-      document.body.classList.remove("dragging");
+      setDragging(false);
       localStorage.setItem("sbw", String(Math.round(S.sbw)));
     };
-    document.body.classList.add("dragging");
+    setDragging(true);
     addEventListener("mousemove", mv);
     addEventListener("mouseup", up);
   });
@@ -3358,8 +3384,7 @@
       return;
     }
     const end = Math.hypot(Math.max(x2, innerWidth - x2), Math.max(y3, innerHeight - y3));
-    document.documentElement.classList.add("vt");
-    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x2}px ${y3}px)`, `circle(${end}px at ${x2}px ${y3}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished.finally(() => document.documentElement.classList.remove("vt")));
+    document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x2}px ${y3}px)`, `circle(${end}px at ${x2}px ${y3}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished);
   };
   var prof = (e3) => {
     e3.stopPropagation();
@@ -3458,7 +3483,7 @@
       if (!moved && Math.abs(ev.clientX - x0) < 6) return;
       if (!moved) {
         moved = true;
-        document.body.classList.add("dragging");
+        setDragging(true);
       }
       to = mids.reduce((best, m3, i3) => ev.clientX > m3 ? i3 : best, 0);
       S.drag = { from, to, dx: ev.clientX - x0, w: w3 };
@@ -3467,7 +3492,7 @@
     const up = () => {
       removeEventListener("mousemove", mv);
       removeEventListener("mouseup", up);
-      document.body.classList.remove("dragging");
+      setDragging(false);
       if (!moved) return;
       el.addEventListener("click", (c3) => c3.stopImmediatePropagation(), { capture: true, once: true });
       S.drag = null;
@@ -4298,14 +4323,14 @@
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
             /* @__PURE__ */ u3("label", { class: "np-l", children: "Description" }),
-            t3 && t3.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", onChange: on3.tpl, children: [
-              /* @__PURE__ */ u3("option", { value: "", children: "No template" }),
-              t3.map((x2, i3) => /* @__PURE__ */ u3("option", { value: i3, selected: x2.body === p3.tplText, children: [
+            t3 && t3.length > 1 ? /* @__PURE__ */ u3("select", { class: "sel np-tpl", id: "nptpl", value: String(t3.findIndex((x2) => x2.body === p3.tplText)), onChange: on3.tpl, children: [
+              /* @__PURE__ */ u3("option", { value: "-1", children: "No template" }),
+              t3.map((x2, i3) => /* @__PURE__ */ u3("option", { value: i3, children: [
                 "Template: ",
                 x2.name
               ] }))
             ] }) : "",
-            /* @__PURE__ */ u3("div", { class: "tt", "data-draft": "newpr", "data-ph": "Describe your changes \u2014 type / for blocks", style: "--rows:8" })
+            /* @__PURE__ */ u3(DraftBox, { k: "newpr", ph: "Describe your changes", rows: 8 })
           ] }),
           "\n    ",
           /* @__PURE__ */ u3("div", { class: "np-box", children: [
@@ -4436,12 +4461,13 @@
   // src/app/fun.ts
   var enterTimer;
   function enterAnim() {
-    qa(".tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area").forEach((el, i3) => {
-      el.style.setProperty("--i", String(Math.min(i3, 14)));
-      el.classList.add("enter-in");
-    });
+    S.enter = true;
+    repaintShell({ enter: true });
     clearTimeout(enterTimer);
-    enterTimer = setTimeout(() => qa(".enter-in").forEach((el) => el.classList.remove("enter-in")), 1800);
+    enterTimer = setTimeout(() => {
+      S.enter = false;
+      repaintShell({ enter: false });
+    }, 1800);
   }
   document.addEventListener("pointerdown", (e3) => {
     const b2 = e3.target.closest(".btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add");
@@ -4606,16 +4632,16 @@
       npCompare();
     },
     tpl: (e3) => {
-      const n2 = np(), sel = e3.target, t3 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = sel.value === "" ? "" : t3[+sel.value].body;
+      const n2 = np(), sel = e3.target, t3 = n2.tpl[`${n2.repo}|${n2.base}`] || [], cur = (S.draft.newpr || "").trim(), next = sel.value === "-1" ? "" : t3[+sel.value].body;
       if (cur && cur !== n2.tplText.trim() && !confirm("Replace what you have written with this template?")) {
-        sel.value = String(t3.findIndex((x2) => x2.body === n2.tplText));
-        if (sel.value === "-1") sel.value = "";
+        rerender();
         return;
       }
       S.draft.newpr = n2.tplText = next;
       saveDrafts();
       bumpNp();
       rerender();
+      syncDraft("newpr");
     },
     title: (e3) => {
       np().title = val(e3);
@@ -4734,11 +4760,11 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
 
   // src/components/Shell.tsx
   var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
-    /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}`, style: `--sbw:${p3.sbw}px`, children: [
+    /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
       /* @__PURE__ */ u3("div", { id: "side", style: "display:contents" }),
       /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
       /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3("div", { class: `main${p3.fade ? " tab-in" : ""}`, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: k3.children }) }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3("div", { class: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: k3.children }) }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
     ] }),
     /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents" }),
     /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents" })
@@ -4894,16 +4920,28 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
+  var Frame = (p3) => /* @__PURE__ */ u3("div", { id: "frame", class: p3.dragging ? "dragging" : "", style: "display:contents", children: [
+    /* @__PURE__ */ u3("div", { id: "top", style: "display:contents" }),
+    /* @__PURE__ */ u3("div", { id: "rest", style: "display:contents" })
+  ] });
+  var paintFrame = () => R(/* @__PURE__ */ u3(Frame, { dragging: !!S.dragging }), $("#app"));
+  function setDragging(on3) {
+    S.dragging = on3;
+    paintFrame();
+  }
   function hosts() {
-    const app = $("#app");
-    if (!app.querySelector(":scope > #top")) {
-      app.innerHTML = "";
-      R(/* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("div", { id: "top", style: "display:contents" }),
-        /* @__PURE__ */ u3("div", { id: "rest", style: "display:contents" })
-      ] }), app);
+    if (!$("#app > #frame")) {
+      $("#app").innerHTML = "";
+      paintFrame();
     }
     return { top: $("#top"), rest: $("#rest") };
+  }
+  var lastShell = null;
+  function repaintShell(patch) {
+    if (lastShell) {
+      lastShell = { ...lastShell, ...patch };
+      R(/* @__PURE__ */ u3(Shell, { ...lastShell }), $("#rest"));
+    }
   }
   var liveView = () => {
     if (S.loading) return /* @__PURE__ */ u3(Skeleton, {});
@@ -4946,7 +4984,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const key = S.loading ? "loading" : S.view === "pr" && S.bundle ? "pr:" + ref : S.view || "home";
     if (S.view === "pr" && S.bundle && !S.loading && live2) shown = { ref, vnode: live2 };
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
-    R(/* @__PURE__ */ u3(Shell, { nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, fade: !!S.fadeMain, active: { key, children: live2 }, onPage: followLink, kept }), rest);
+    lastShell = { nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, kept };
+    R(/* @__PURE__ */ u3(Shell, { ...lastShell }), rest);
     paintSide($("#side"));
     paintDlg();
     paintNotes();
@@ -5174,7 +5213,13 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     if (ta && ta === stuckOn && S.ios?.length) return;
     stuckOn = ta;
     if (ta && tb2 && !$(".is-split")) {
-      const io = new IntersectionObserver(([en]) => tb2.classList.toggle("stuck", !en.isIntersecting && en.boundingClientRect.bottom < 0), { root: $(".main"), threshold: 0 });
+      const io = new IntersectionObserver(([en]) => {
+        const v3 = !en.isIntersecting && en.boundingClientRect.bottom < 0;
+        if (!!S.stuck !== v3) {
+          S.stuck = v3;
+          repaintShell({ stuck: v3 });
+        }
+      }, { root: $(".main"), threshold: 0 });
       io.observe(ta);
       S.ios.push(io);
     }
@@ -5454,46 +5499,16 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     } };
     render();
   }
-  function addPreview(host2, key) {
-    const tabs = document.createElement("div");
-    tabs.className = "tt-tabs";
-    tabs.innerHTML = '<button class="on" data-pv="write">Write</button><button data-pv="preview">Preview</button>';
-    const pv = document.createElement("div");
-    pv.className = "tt-preview markdown-body";
-    pv.hidden = true;
-    host2.prepend(tabs);
-    host2.append(pv);
-    const show = async (mode2) => {
-      tabs.querySelectorAll("button").forEach((b2) => b2.classList.toggle("on", b2.dataset.pv === mode2));
-      const prev = mode2 === "preview";
-      host2.querySelectorAll(".tt-bar, .tt-body").forEach((el) => {
-        el.hidden = prev;
-      });
-      pv.hidden = !prev;
-      host2.classList.toggle("previewing", prev);
-      if (!prev) {
-        $(".tt-content", host2)?.focus();
-        return;
-      }
-      const md = (S.draft[key] || "").trim();
-      if (!md) {
-        pv.innerHTML = '<span class="empty">Nothing to preview</span>';
-        return;
-      }
-      pv.innerHTML = '<span class="empty">Loading preview\u2026</span>';
-      try {
-        if (!tauri) throw new Error("offline");
-        const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
-        const html = await tauri.invoke("render_markdown", { text: md, repo });
-        if (!pv.hidden) pv.innerHTML = html;
-      } catch (e3) {
-        if (!pv.hidden) pv.innerHTML = `<pre class="pv-raw"></pre><div class="act-err">Couldn't render the preview (${esc(String(e3).replace(/^Error: /, ""))}). Showing the raw Markdown.</div>`, $(".pv-raw", pv).textContent = md;
-      }
-    };
-    tabs.addEventListener("click", (e3) => {
-      const m3 = e3.target.closest("[data-pv]")?.dataset.pv;
-      if (m3) show(m3);
-    });
+  async function previewDraft(key) {
+    const md = (S.draft[key] || "").trim();
+    if (!md) return null;
+    try {
+      if (!tauri) throw new Error("offline");
+      const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
+      return { html: await tauri.invoke("render_markdown", { text: md, repo }) };
+    } catch (e3) {
+      return { raw: md, err: String(e3).replace(/^Error: /, "") };
+    }
   }
   function confirmDlg(title, text, label, danger, fn) {
     S.dlg = { k: "confirm", title, text, label, danger, ok: async () => {
@@ -5686,16 +5701,18 @@ ${q3}
   async function rerequestReview(e3, login) {
     const b2 = e3.currentTarget;
     e3.stopPropagation();
-    b2.disabled = true;
-    b2.classList.add("spin");
-    const r3 = await act("rerequest", { body: login }, "rerequest");
-    if (r3 === void 0) {
-      b2.disabled = false;
-      b2.classList.remove("spin");
-      alert(S.actErr?.m || "Could not re-request review.");
-      return;
+    const sel = btnSel(b2);
+    setBusy(sel, true);
+    try {
+      const r3 = await act("rerequest", { body: login }, "rerequest");
+      if (r3 === void 0) {
+        alert(S.actErr?.m || "Could not re-request review.");
+        return;
+      }
+      await refreshPr();
+    } finally {
+      setBusy(sel, false);
     }
-    await refreshPr();
   }
   var composerOpen = () => S.busy === "comment" || S.cOpen === true;
   function toggleComposer() {
@@ -5889,7 +5906,8 @@ ${ev.currentTarget.dataset.code}
       if (k3 === key) ed.setMarkdown?.(S.draft[key] || "");
     });
   }
-  editorMount.fn = (host2, key) => {
+  editorMount.preview = previewDraft;
+  editorMount.fn = (host2, key, ph) => {
     if (!window.createEditor) {
       host2.innerHTML = '<div class="act-err">Editor failed to load.</div>';
       return () => {
@@ -5899,12 +5917,11 @@ ${ev.currentTarget.dataset.code}
     let ed = null, gone = false;
     const mount = () => {
       if (gone) return;
-      ed = window.createEditor(host2, { value: S.draft[key] || "", placeholder: host2.dataset.ph, people: peopleList(), onChange: (md) => {
+      ed = window.createEditor(host2, { value: S.draft[key] || "", placeholder: ph, people: peopleList(), onChange: (md) => {
         S.draft[key] = md;
         saveDrafts();
       }, onSubmit: send });
       live.set(ed, key);
-      addPreview(host2, key);
     };
     const io = new IntersectionObserver((en) => {
       if (en.some((x2) => x2.isIntersecting)) {

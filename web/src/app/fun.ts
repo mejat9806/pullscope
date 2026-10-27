@@ -1,10 +1,11 @@
-import { qa } from './core';
+import { S } from './core';
+import { repaintShell } from './pages';
 import { fxAdd } from './overlay';
 // ---- Fun: entrance stagger, ripples, confetti (the effects are state in overlay.tsx) ----
 let enterTimer: number | undefined;
 export function enterAnim() {
-  qa('.tl-comment, .TLI, .thread, .sb-item, .merge-card, .composer, .pr-title-area').forEach((el, i) => { el.style.setProperty('--i', String(Math.min(i, 14))); el.classList.add('enter-in'); });
-  clearTimeout(enterTimer); enterTimer = setTimeout(() => qa('.enter-in').forEach((el) => el.classList.remove('enter-in')), 1800);
+  S.enter = true; repaintShell({ enter: true });
+  clearTimeout(enterTimer); enterTimer = setTimeout(() => { S.enter = false; repaintShell({ enter: false }); }, 1800);
 }
 
 document.addEventListener('pointerdown', (e) => {

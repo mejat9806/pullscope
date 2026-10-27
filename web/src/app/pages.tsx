@@ -18,7 +18,7 @@ import { clearTop, paintTop } from './top';
 import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
-import { Shell } from '../components/Shell';
+import { Shell, type ShellProps } from '../components/Shell';
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
 
@@ -135,11 +135,19 @@ export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new U
 
 
 // #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
+// The frame carries the `dragging` class while a tab, the sidebar grip or the split gutter is being dragged.
+const Frame = (p: { dragging: boolean }) => <div id="frame" class={p.dragging ? 'dragging' : ''} style="display:contents"><div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div></div>;
+const paintFrame = () => paint(<Frame dragging={!!S.dragging} />, $('#app')!);
+export function setDragging(on: boolean) { S.dragging = on; paintFrame(); }
+
 function hosts() {
-  const app = $('#app')!;
-  if (!app.querySelector(':scope > #top')) { app.innerHTML = ''; paint(<><div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div></>, app); }
+  if (!$('#app > #frame')) { $('#app')!.innerHTML = ''; paintFrame(); }
   return { top: $('#top')!, rest: $('#rest')! };
 }
+
+// Shell props as last drawn, so the sidebar grip and the split gutter can repaint just the shell while dragging.
+let lastShell: ShellProps | null = null;
+export function repaintShell(patch: Partial<ShellProps>) { if (lastShell) { lastShell = { ...lastShell, ...patch }; paint(<Shell {...lastShell} />, $('#rest')!); } }
 
 const liveView = (): VNode | null => {
   if (S.loading) return <Skeleton />;
@@ -176,7 +184,8 @@ export function render() {
   const key = S.loading ? 'loading' : S.view === 'pr' && S.bundle ? 'pr:' + ref : S.view || 'home';
   if (S.view === 'pr' && S.bundle && !S.loading && live) shown = { ref, vnode: live };
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
-  paint(<Shell nav={!!S.nav} navHidden={!!S.hide.nav} sbw={S.sbw} fade={!!S.fadeMain} active={{ key, children: live }} onPage={followLink} kept={kept} />, rest);
+  lastShell = { nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, kept };
+  paint(<Shell {...lastShell} />, rest);
   paintSide($('#side')!); paintDlg(); paintNotes();
   S.stash = null;
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = []; bindSticky();

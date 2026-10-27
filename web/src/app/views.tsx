@@ -3,7 +3,7 @@ import type { PrListHandlers } from '../components/PrList';
 import { InboxPage, NewPr, NotesPage } from '../components/Pages';
 import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/Pages';
 import { openAux, openClick, openCtx } from './bind';
-import { btnSel, rerender, saveDrafts, setBusy } from './actions';
+import { btnSel, rerender, saveDrafts, setBusy, syncDraft } from './actions';
 import { bpOpen } from './addressbar';
 import { S, tauri } from './core';
 import { confetti } from './fun';
@@ -68,9 +68,9 @@ const newpr: NewPrHandlers = {
   head: (e) => bpOpen(e.currentTarget as HTMLElement, 'head', (v) => { npSet(() => { np().head = v; np().titleTouched = false; }); npCompare(); }),
   swap: () => { npSet(() => { [np().base, np().head] = [np().head, np().base]; }); npCompare(); },
   tpl: (e) => {
-    const n = np(), sel = e.target as HTMLSelectElement, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = sel.value === '' ? '' : t[+sel.value].body;
-    if (cur && cur !== n.tplText.trim() && !confirm('Replace what you have written with this template?')) { sel.value = String(t.findIndex((x) => x.body === n.tplText)); if (sel.value === '-1') sel.value = ''; return; }
-    S.draft.newpr = n.tplText = next; saveDrafts(); bumpNp(); rerender();
+    const n = np(), sel = e.target as HTMLSelectElement, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = sel.value === '-1' ? '' : t[+sel.value].body;
+    if (cur && cur !== n.tplText.trim() && !confirm('Replace what you have written with this template?')) { rerender(); return; }
+    S.draft.newpr = n.tplText = next; saveDrafts(); bumpNp(); rerender(); syncDraft('newpr');
   },
   title: (e) => { np().title = val(e); np().titleTouched = true; render(); },
   draft: (e) => { np().draft = (e.target as HTMLInputElement).checked; render(); },
