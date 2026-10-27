@@ -925,9 +925,9 @@ const errLine = (k) => (S.actErr && S.actErr.k === k ? `<div class="act-err">${e
 
 function composer(b) {
   const p = b.pull, closed = p.state === 'closed', busy = S.busy === 'comment';
-  const open = busy || (S.cOpen ?? !!(S.draft.comment || '').trim());
+  const open = busy || S.cOpen === true, dr = (S.draft.comment || '').trim();
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
-  return `<div class="composer dock${open ? '' : ' collapsed'}" id="composer"><div class="composer-h" id="cbar" role="button" tabindex="0" title="Write a comment (C)">${icon('comment')}<b>Add a comment</b><span class="cbar-ph">Write a comment…</span><kbd>C</kbd><span class="cbar-x">${icon('chevron-down')}</span></div>
+  return `<div class="composer dock${open ? '' : ' collapsed'}" id="composer"><div class="composer-h" id="cbar" role="button" tabindex="0" title="Write a comment (C)">${icon('comment')}<b>Add a comment</b><span class="cbar-ph">${dr ? `Draft: ${esc(dr.replace(/\s+/g, ' ').slice(0, 60))}` : 'Write a comment…'}</span><kbd>C</kbd><span class="cbar-x">${icon('chevron-down')}</span></div>
   <div class="composer-body">${draftBox('comment', 'Write a comment… (Markdown supported)')}${errLine('comment')}
   <div class="composer-f"><span class="hint">⌘↵ to send · Esc to collapse</span><span style="flex:1"></span>
   ${p.merged ? '' : `<button class="btn ghost" id="doclose">${closed ? 'Reopen pull request' : 'Close pull request'}</button>`}
@@ -1974,11 +1974,16 @@ if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 
 
 // Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
 (() => {
-  let target = null, btn = null;
+  let target = null, btn = null, lastTop = 0, atEnd = false, auto = false;
   const ensure = () => { if (btn) return btn; btn = document.createElement('button'); btn.id = 'totop'; btn.title = 'Back to top'; btn.setAttribute('aria-label', 'Back to top'); btn.innerHTML = icon('chevron-up'); btn.hidden = true; btn.onclick = () => { (target && document.contains(target) ? target : document.querySelector('.main'))?.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(btn); return btn; };
   document.addEventListener('scroll', (e) => {
     const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;
     target = el; ensure().hidden = el.scrollTop < 600;
+    // The comment bar opens by itself when you reach the end of the thread, and folds away again when you scroll back up.
+    const c = document.getElementById('composer'); if (!c || !el.contains(c)) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop; lastTop = el.scrollTop;
+    if (dist < 24 && !atEnd) { atEnd = true; if (c.classList.contains('collapsed')) { setComposer(true, false); auto = true; } }
+    if (dist > 400) { atEnd = false; if (up) { if (auto && !c.classList.contains('collapsed') && !c.contains(document.activeElement) && !(S.draft.comment || '').trim()) setComposer(false); auto = false; } }
   }, true);
   document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !e.target.closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
 })();
