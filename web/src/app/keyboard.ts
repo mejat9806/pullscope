@@ -1,5 +1,6 @@
-import { rerender } from './actions';
+import { focusDraft, rerender } from './actions';
 import { $, S, qa } from './core';
+import { scrollDraft } from '../components/Actions';
 import { flipSides } from './mergebox';
 import { openNewPr } from './pages';
 import { openPalette, showHelp } from './palette';
@@ -14,7 +15,6 @@ export const kbItems = () => [...qa('.main .tl-comment, .main .tc')].filter((e) 
 export function kbGo(el: HTMLElement) {
   if (!el) return;
   S.kbId = el.id; rerender();
-  document.getElementById(el.id)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 export const kbCur = () => (S.kbId && document.getElementById(S.kbId)) || null;
@@ -31,7 +31,7 @@ export const openThreads = () => [...qa<HTMLElement>('.main .thread')].filter((t
 export function setComposer(open: boolean, focus?: boolean) {
   const el = document.getElementById('composer'); if (!el) return false;
   S.cOpen = open; rerender();
-  if (open && focus) { let tries = 0; const t = setInterval(() => { const pm = $('.ProseMirror', document.getElementById('composer') || el); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 25) clearInterval(t); }, 60); }
+  if (open && focus) focusDraft('comment');
   return true;
 }
 
@@ -59,8 +59,7 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 's' && S.bundle) { $('#split')?.click(); }
   else if (e.key === 'd' && S.bundle) { const b = $(`[data-dmode="${S.diffMode === 'split' ? 'unified' : 'split'}"]`)!; if (b) b.click(); else { S.diffMode = S.diffMode === 'split' ? 'unified' : 'split'; localStorage.setItem('diffmode', S.diffMode); } }
   else if (e.key === 'r') {
-    const cur = kbCur(), host = cur?.closest<HTMLElement>('.thread')?.querySelector('.reply .tt');
-    if (!host) { if (document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); } return; } e.preventDefault(); host.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    let tries = 0; const t = setInterval(() => { const pm = $('.ProseMirror', host); if (pm) { pm.focus(); clearInterval(t); } else if (++tries > 20) clearInterval(t); }, 80);
+    const cur = kbCur(), host = cur?.closest<HTMLElement>('.thread')?.querySelector<HTMLElement>('.reply .tt');
+    if (!host) { if (document.getElementById('composer')) { e.preventDefault(); setComposer(true, true); } return; } e.preventDefault(); const key = host.dataset.draft!; scrollDraft(key); focusDraft(key);
   }
 });

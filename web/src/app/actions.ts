@@ -1,9 +1,9 @@
 import { options } from 'preact';
-import { editorMount } from '../components/Actions';
+import { editorMount, scrollDraft } from '../components/Actions';
 import type { ComposerProps, MergeActProps } from '../components/Actions';
 import type { ActArgs, Bundle, CommentLike, ReviewComment, TimelineEvent } from '../types';
 import { openExternal } from './addressbar';
-import { $, S, load, tauri } from './core';
+import { $, S, load, setFlash, tauri } from './core';
 import { qc } from './data';
 import { pendKey, pendList, savePending, sugOf } from './diff';
 import { closePop, openPop } from './dialogs';
@@ -193,7 +193,7 @@ export function cmAction(id: number, root: HTMLElement, how: string) {
   const key = root ? 'reply-' + root : 'comment', q = (c.body || '').split('\n').map((l) => '> ' + l).join('\n');
   S.draft[key] = (S.draft[key] ? S.draft[key] + '\n\n' : '') + `@${((c as CommentLike).user || (c as CommentLike).actor || {} as { login?: string }).login || ''}\n\n${q}\n\n`;
   saveDrafts(); S.keepScroll = true; render(); S.keepScroll = false; syncDraft(key);
-  setTimeout(() => $(`[data-draft="${key}"]`)?.scrollIntoView({ block: 'center' }), 50);
+  setTimeout(() => scrollDraft(key), 50);
 }
 
 // Show a just-posted comment from the API reply instead of re-fetching the whole PR.
@@ -203,7 +203,7 @@ export function addLocal(kind: string, r: ReviewComment | TimelineEvent, rootId?
   else { const root = b.review_comments.find((c) => c.id === rootId); if (!root) return false; b.review_comments.push({ ...r, pull_request_review_id: root.pull_request_review_id, path: root.path, diff_hunk: root.diff_hunk, position: root.position, original_position: root.original_position } as ReviewComment); }
   qc.set(`${prRef().repo}#${prRef().number}`, b); qc.invalidate(`${prRef().repo}#${prRef().number}`); qc.m.get(`${prRef().repo}#${prRef().number}`)!.at = Date.now() - 20000;
   S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false;
-  const el = document.getElementById('c-' + r.id); if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash', 'pop-in'); }
+  const el = document.getElementById('c-' + r.id); if (el) { setFlash('c-' + r.id, { block: 'start', pop: true }); S.keepScroll = true; render(); S.keepScroll = false; }
   return true;
 }
 
@@ -281,11 +281,11 @@ export async function sendReply(id: string) {
 
 // Diff view handlers: shared by the live files tab and the imperatively bound copies.
 export function setDiffMode(m: string) { S.diffMode = m; localStorage.setItem('diffmode', m); rerender(); }
-export function lcOpen(e: Event) { e.stopPropagation(); S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc; rerender(); focusLastEditor(200); }
+export function lcOpen(e: Event) { e.stopPropagation(); S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc; rerender(); focusDraft('lc'); }
 export function lcCancel() { S.lcOpen = ''; delete S.draft.lc; saveDrafts(); rerender(); }
 export function lcSuggest(ev: Event) {
   const cur = (S.draft.lc || '').trimEnd(); S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`; saveDrafts();
-  rerender(); focusLastEditor(150);
+  rerender(); focusDraft('lc');
 }
 export function lcAdd() {
   const body = (S.draft.lc || '').trim(); if (!body || !S.lcOpen) return;
@@ -298,7 +298,9 @@ export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = fa
 
 // Live editors, so a new draft can be pushed into one and the newest can be focused.
 const live = new Map<EditorHandle, string>();
-export const focusLastEditor = (ms: number) => setTimeout(() => [...live.keys()].at(-1)?.focus?.(), ms);
+// Focus an editor by its draft key; when it has not been built yet (it mounts lazily) the request waits for it.
+const wantFocus = new Set<string>();
+export function focusDraft(key: string) { const ed = [...live].find(([, k]) => k === key)?.[0]; if (ed) ed.focus?.(); else wantFocus.add(key); }
 export function syncDraft(key: string) { live.forEach((k, ed) => { if (k === key) ed.setMarkdown?.(S.draft[key] || ''); }); }
 
 // Called by every DraftBox when it mounts: builds the editor once its box is near the viewport; the returned function tears it down.
@@ -307,7 +309,7 @@ editorMount.fn = (host, key, ph) => {
   if (!window.createEditor) { host.innerHTML = '<div class="act-err">Editor failed to load.</div>'; return () => {}; }
   const send = () => (key === 'comment' ? $('#docomment') : key === 'lc' ? $('#lcadd') : key === 'newpr' ? $('#npcreate') : key.startsWith('reply-') ? $(`[data-sendreply="${key.slice(6)}"]`) : $('#revsubmit'))?.click();
   let ed: EditorHandle | null = null, gone = false;
-  const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); };
+  const mount = () => { if (gone) return; ed = window.createEditor!(host, { value: S.draft[key] || '', placeholder: ph, people: peopleList(), onChange: (md) => { S.draft[key] = md; saveDrafts(); }, onSubmit: send }); live.set(ed, key); if (wantFocus.delete(key)) ed.focus?.(); };
   // Editors are heavy: build each one only when its box is near the viewport.
   const io = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { io.disconnect(); mount(); } }, { rootMargin: '300px' });
   io.observe(host);

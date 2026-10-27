@@ -86,3 +86,8 @@ export const KEY_RECENT = 'recent';
 
 export const compact = (n?: number | null) => (n == null ? null : n < 1000 ? String(n) : n >= 5000 ? Math.floor(n / 1000) + 'k+' : (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k');
 
+
+// The comment to highlight is state (S.flash): the comment components draw the class and scroll themselves into view.
+export const flashLive = () => !!S.flash && Date.now() < S.flashUntil!;
+export const flashFor = (id: string) => (S.flash && S.flash.id === id && flashLive() ? { n: S.flash.n, block: S.flash.block, smooth: S.flash.smooth, pop: S.flash.pop } : undefined);
+export const setFlash = (id: string, o: { block: 'start' | 'center'; smooth?: boolean; pop?: boolean }) => { S.flash = { id, n: (S.flash?.n || 0) + 1, ...o }; S.flashUntil = Date.now() + 2500; };

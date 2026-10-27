@@ -1,21 +1,20 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { NotePanel } from '../components/NotePanel';
 import type { NoteHandlers } from '../components/NotePanel';
 import { pollNotes } from './data';
 import { openAux, openClick, openCtx } from './bind';
-import { $, S, whenParts } from './core';
+import { S, whenParts } from './core';
 import { paintTop } from './top';
 import { render, saveNotes } from './pages';
 
 // The notifications drawer is state (S.bell, S.notes) painted into its own host; opening or closing never redraws the page underneath.
 export function paintNotes() {
-  const h = $('#notehost'); if (!h) return;
-  paint(<NotePanel open={S.bell} rows={S.notes.map((n) => ({ id: n.id, ref: n.ref, target: n.target || '', read: !!n.read, title: n.title, text: n.text, when: whenParts(n.at).text }))} on={noteOn} />, h);
+  setSlot('notes', <NotePanel open={S.bell} rows={S.notes.map((n) => ({ id: n.id, ref: n.ref, target: n.target || '', read: !!n.read, title: n.title, text: n.text, when: whenParts(n.at).text }))} on={noteOn} />);
 }
 
 export function setBell(open: boolean) {
   S.bell = open;
-  if (!open && S.notes.some((n) => !n.read)) { S.notes.forEach((n) => { n.read = true; }); saveNotes(); const top = $('#top'); if (top) paintTop(top); }
+  if (!open && S.notes.some((n) => !n.read)) { S.notes.forEach((n) => { n.read = true; }); saveNotes(); paintTop(); }
   paintNotes();
 }
 

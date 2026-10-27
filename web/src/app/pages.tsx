@@ -5,20 +5,20 @@ import { paintDlg } from './dialogs';
 import { tokenDialog } from './token';
 import { curRef } from './tabs';
 import { bindSticky, openExternal } from './addressbar';
-import { $, S, applyMode, syncUnread, tauri, when } from './core';
+import { $, S, syncUnread, tauri, when } from './core';
 import { qc, seen } from './data';
 import { loadRepos, openPr } from './nav';
 import { paintSide } from './side';
 import { HomeView } from './home';
 import { InboxView, NewPrView, NotesView, RepoView } from './views';
 import { PrView } from './pr';
-import { render as paint } from 'preact';
 import type { VNode } from 'preact';
 import { clearTop, paintTop } from './top';
 import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
-import { Shell, type ShellProps } from '../components/Shell';
+import type { ShellProps } from '../components/Shell';
+import { batch, setGate, setShell, shellProps } from './frame';
 
 export const saveNotes = () => localStorage.setItem('notes', JSON.stringify(S.notes));
 
@@ -135,19 +135,8 @@ export const needSignIn = () => (tauri && S.authChecked && !S.hasToken) || new U
 
 
 // #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
-// The frame carries the `dragging` class while a tab, the sidebar grip or the split gutter is being dragged.
-const Frame = (p: { dragging: boolean }) => <div id="frame" class={p.dragging ? 'dragging' : ''} style="display:contents"><div id="top" style="display:contents"></div><div id="rest" style="display:contents"></div></div>;
-const paintFrame = () => paint(<Frame dragging={!!S.dragging} />, $('#app')!);
-export function setDragging(on: boolean) { S.dragging = on; paintFrame(); }
-
-function hosts() {
-  if (!$('#app > #frame')) { $('#app')!.innerHTML = ''; paintFrame(); }
-  return { top: $('#top')!, rest: $('#rest')! };
-}
-
-// Shell props as last drawn, so the sidebar grip and the split gutter can repaint just the shell while dragging.
-let lastShell: ShellProps | null = null;
-export function repaintShell(patch: Partial<ShellProps>) { if (lastShell) { lastShell = { ...lastShell, ...patch }; paint(<Shell {...lastShell} />, $('#rest')!); } }
+export { setDragging } from './frame';
+export const repaintShell = (patch: Partial<ShellProps>) => { const cur = shellProps(); if (cur) setShell({ ...cur, ...patch }); };
 
 const liveView = (): VNode | null => {
   if (S.loading) return <Skeleton />;
@@ -172,26 +161,23 @@ let shown: { ref: string; vnode: VNode } | null = null;
 export const shownPage = () => shown;
 
 export function render() {
-  applyMode();
-  const { top, rest } = hosts();
   if (needSignIn()) {
     shown = null;
-    clearTop(top); paint(<><Gate err={S.gateErr ? String(S.gateErr) : ''} go={() => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); }} tok={tokenDialog} /><div id="dlg" style="display:contents"></div></>, rest); paintDlg();
+    batch(() => { clearTop(); setGate(<Gate err={S.gateErr ? String(S.gateErr) : ''} go={() => { tokenDialog(); setTimeout(() => $('#oauthgo')?.click(), 50); }} tok={tokenDialog} />); paintDlg(); });
     return;
   }
-  paintTop(top);
   const stash = S.stash, live = stash ? stash.vnode : liveView(), ref = curRef();
   const key = S.loading ? 'loading' : S.view === 'pr' && S.bundle ? 'pr:' + ref : S.view || 'home';
   if (S.view === 'pr' && S.bundle && !S.loading && live) shown = { ref, vnode: live };
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
-  lastShell = { nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, kept };
-  paint(<Shell {...lastShell} />, rest);
-  paintSide($('#side')!); paintDlg(); paintNotes();
+  batch(() => {
+    paintTop();
+    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, kept });
+    paintSide(); paintDlg(); paintNotes();
+  });
   S.stash = null;
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = []; bindSticky();
   if (S.fadeMain) S.fadeMain = false;
   syncUnread();
-  // A re-render (fresh data arriving) must not wipe the highlight of the comment we just jumped to.
-  if (S.flashId && Date.now() < S.flashUntil!) document.getElementById('c-' + S.flashId)?.classList.add('flash'); else S.flashId = '';
   document.title = S.bundle ? `${S.bundle.pull.title} · ${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : 'GitHub PR View';
 }

@@ -1,15 +1,15 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { CmPop, CommitsDialog, ConfirmDialog, CtxPop, DeleteCommentDialog, EditCommentDialog, EditPrDialog, HideCommentDialog, ReactPop, ReviewDialog, TokenDialog } from '../components/Dialogs';
 import { ProfPop } from '../components/Overlays';
 import type { CpHandlers } from '../components/Merge';
 import { closeDlg, errMsg } from './actions';
-import { $, REACTS, S } from './core';
+import { REACTS, S } from './core';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { pendList } from './diff';
 import { oauthGo, tokenSave } from './token';
 
 // Dialogs and popups are plain state (S.dlg / S.pop) painted by Preact: dialogs into #dlg (repainted with every page render), popups into their own host on <body>.
-export const paintDlg = () => { const h = $('#dlg'); if (h) paint(<Dialogs />, h); };
+export const paintDlg = () => setSlot('dlg', <Dialogs />);
 
 const cpOn: CpHandlers = {
   close: () => closeDlg(),
@@ -43,8 +43,7 @@ function Pops() {
   return <ReactPop x={p.x} y={p.y} reacts={REACTS as [string, string][]} pick={p.pick} />;
 }
 
-let popHost: HTMLElement | null = null;
-const paintPop = () => { if (!popHost) { popHost = document.createElement('div'); popHost.id = 'pop'; popHost.style.display = 'contents'; document.body.appendChild(popHost); } paint(<Pops />, popHost); };
+const paintPop = () => setSlot('pop', <Pops />);
 export function openPop(p: NonNullable<typeof S.pop>) { S.pop = p; paintPop(); }
 export function closePop() { if (!S.pop) return; S.pop = null; paintPop(); }
 // Whatever opens a popup stops its own click, so any later click (inside or outside) dismisses it.

@@ -1,4 +1,4 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { AcPop, BpPop, FxLayer } from '../components/Overlays';
 import type { AcPopProps, BpPopProps, Fx } from '../components/Overlays';
 
@@ -6,11 +6,7 @@ import type { AcPopProps, BpPopProps, Fx } from '../components/Overlays';
 // They are plain state, painted into one host on <body>.
 export const OV: { ac: AcPopProps | null; bp: BpPopProps | null; fx: Fx[] } = { ac: null, bp: null, fx: [] };
 
-let host: HTMLElement | null = null;
-export function paintOv() {
-  if (!host) { host = document.createElement('div'); host.id = 'ovl'; host.style.display = 'contents'; document.body.appendChild(host); }
-  paint(<>{OV.ac && <AcPop {...OV.ac} />}{OV.bp && <BpPop {...OV.bp} />}<FxLayer items={OV.fx} drop={fxDrop} /></>, host);
-}
+export const paintOv = () => setSlot('ovl', <>{OV.ac && <AcPop {...OV.ac} />}{OV.bp && <BpPop {...OV.bp} />}<FxLayer items={OV.fx} drop={fxDrop} /></>);
 
 let fxId = 0;
 export function fxDrop(id: number) { OV.fx = OV.fx.filter((f) => f.id !== id); paintOv(); }

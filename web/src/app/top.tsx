@@ -1,4 +1,4 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { TabStrip } from '../components/TabStrip';
 import type { TabHandlers } from '../components/TabStrip';
 import { Toolbar } from '../components/Toolbar';
@@ -7,7 +7,7 @@ import { btnSel, rerender, setBusy } from './actions';
 import { setBell } from './notes';
 import { closePop, openPop } from './dialogs';
 import { avUrl, openExternal, openFromList } from './addressbar';
-import { $, S, applyMode, isDark, isOff, tauri } from './core';
+import { $, S, isDark, isOff, tauri } from './core';
 import { openPr, reload } from './nav';
 import { fastTab, stashCurrent } from './bind';
 import { tokenDialog } from './token';
@@ -21,7 +21,7 @@ const mode = (e: MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
     S.mode = isDark() ? 'light' : 'dark'; localStorage.setItem('mode', S.mode);
     // The switch, its label and the page colours all come from S.mode; the view transition just wraps the repaint.
-    const swap = () => { applyMode(); S.themePop = (S.themePop || 0) + 1; keep(() => {}); };
+    const swap = () => { S.themePop = (S.themePop || 0) + 1; keep(() => {}); };
     if (!document.startViewTransition) { swap(); return; }
     const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
     document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished);
@@ -64,7 +64,7 @@ const tabDown = (e: MouseEvent, from: number) => {
     if (!moved && Math.abs(ev.clientX - x0) < 6) return;
     if (!moved) { moved = true; setDragging(true); }
     to = mids.reduce((best, m, i) => (ev.clientX > m ? i : best), 0);
-    S.drag = { from, to, dx: ev.clientX - x0, w }; paintTop($('#top')!);
+    S.drag = { from, to, dx: ev.clientX - x0, w }; paintTop();
   };
   const up = () => {
     removeEventListener('mousemove', mv); removeEventListener('mouseup', up); setDragging(false);
@@ -102,5 +102,5 @@ export function Top() {
   );
 }
 
-export const paintTop = (host: HTMLElement) => paint(<Top />, host);
-export const clearTop = (host: HTMLElement) => paint(null, host);
+export const paintTop = () => setSlot('top', <Top />);
+export const clearTop = () => setSlot('top', null);

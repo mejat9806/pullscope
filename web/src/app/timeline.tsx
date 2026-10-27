@@ -11,7 +11,7 @@ import type { Bundle, Check, CommentLike, Person, TimelineEvent } from '../types
 import { composerProps, mergeActProps } from './actions';
 import { commentBoxProps, isFolded } from './comments';
 import type { CommentBoxProps, ConvHandlers } from '../components/Comments';
-import { S } from './core';
+import { S, setFlash } from './core';
 import { reviewBlockProps } from './diff';
 import type { ReviewBlockProps } from '../components/Diff';
 import { mergeModel } from './mergebox';
@@ -160,7 +160,7 @@ export function jumpUnresolved() {
   localStorage.setItem('fold', JSON.stringify(S.fold));
   S.keepScroll = true; render(); S.keepScroll = false;
   const el = document.getElementById('c-' + c.id);
-  if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  if (el) { setFlash('c-' + c.id, { block: 'center', smooth: true }); S.keepScroll = true; render(); S.keepScroll = false; }
 }
 
 

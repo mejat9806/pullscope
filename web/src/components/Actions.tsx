@@ -7,9 +7,13 @@ export const ErrLine = ({ m }: { m: string }) => (m ? <div class="act-err">{m}</
 type Preview = { html: string } | { raw: string; err: string } | null;
 export const editorMount: { fn: ((host: HTMLElement, key: string, ph: string) => () => void) | null; preview: ((key: string) => Promise<Preview>) | null } = { fn: null, preview: null };
 // `.tt-ed` is the editor's own host (it paints its toolbar and body there); the Write/Preview tabs and the preview pane are Preact.
+// Draft boxes listen for "scroll me into view" requests by their key.
+const scrollers = new Set<(key: string) => void>();
+export const scrollDraft = (key: string) => scrollers.forEach((f) => f(key));
 export function DraftBox({ k, ph, rows }: { k: string; ph: string; rows: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'write' | 'preview'>('write'), [pv, setPv] = useState<Preview | 'loading'>(null);
+  useEffect(() => { const f = (key: string) => { if (key === k) ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }; scrollers.add(f); return () => { scrollers.delete(f); }; }, [k]);
   const hint = `${ph} — type / for blocks`;
   useEffect(() => editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined, []);
   const show = (m: 'write' | 'preview') => {

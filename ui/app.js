@@ -67,6 +67,12 @@
     d3.setAttribute("data-t", dark ? "dark" : "light");
   }
   var KEY_RECENT = "recent";
+  var flashLive = () => !!S.flash && Date.now() < S.flashUntil;
+  var flashFor = (id) => S.flash && S.flash.id === id && flashLive() ? { n: S.flash.n, block: S.flash.block, smooth: S.flash.smooth, pop: S.flash.pop } : void 0;
+  var setFlash = (id, o3) => {
+    S.flash = { id, n: (S.flash?.n || 0) + 1, ...o3 };
+    S.flashUntil = Date.now() + 2500;
+  };
 
   // node_modules/preact/dist/preact.module.js
   var n;
@@ -139,8 +145,8 @@
     }
   }
   function L(n2, l3, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-    var s3, h3, p3, v3, y3, _2, g2 = t3 && t3.__k || w, m3 = l3.length;
-    for (f4 = T(u4, l3, g2, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g2[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+    var s3, h3, p3, v3, y3, _3, g2 = t3 && t3.__k || w, m3 = l3.length;
+    for (f4 = T(u4, l3, g2, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g2[p3.__i] || d, p3.__i = s3, _3 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _3 ? f4 = _3 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
     return u4.__e = y3, f4;
   }
   function T(n2, l3, u4, t3, i3) {
@@ -201,7 +207,7 @@
     };
   }
   function q(n2, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-    var s3, h3, p3, v3, y3, d3, _2, k3, x2, M, I3, P2, A3, H2, T3, j3, F = u4.type;
+    var s3, h3, p3, v3, y3, d3, _3, k3, x2, M, I3, P2, A3, H2, T3, j3, F = u4.type;
     if (void 0 !== u4.constructor) return null;
     128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
     n: if ("function" == typeof F) {
@@ -216,14 +222,14 @@
             break n;
           }
           null != p3.componentWillUpdate && p3.componentWillUpdate(x2, p3.__s, P2), M && null != p3.componentDidUpdate && p3.__h.push(function() {
-            p3.componentDidUpdate(y3, d3, _2);
+            p3.componentDidUpdate(y3, d3, _3);
           });
         }
         if (p3.context = P2, p3.props = x2, p3.__P = n2, p3.__e = false, A3 = l.__r, H2 = 0, M) p3.state = p3.__s, p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), w.push.apply(p3.__h, p3._sb), p3._sb = [];
         else do {
           p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), p3.state = p3.__s;
         } while (p3.__d && ++H2 < 25);
-        p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_2 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S2 && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
+        p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_3 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S2 && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
       } catch (n3) {
         if (e3.length = h3, u4.__v = null, c3 || null != o3) {
           if (n3.then) {
@@ -255,7 +261,7 @@
     return "object" != typeof n2 || null == n2 || n2.__b > 0 ? n2 : g(n2) ? n2.map(E) : void 0 !== n2.constructor ? null : m({}, n2);
   }
   function G(u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-    var s3, h3, p3, v3, y3, w3, _2, m3 = i3.props || d, k3 = t3.props, x2 = t3.type;
+    var s3, h3, p3, v3, y3, w3, _3, m3 = i3.props || d, k3 = t3.props, x2 = t3.type;
     if ("svg" == x2 ? o3 = "http://www.w3.org/2000/svg" : "math" == x2 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
       for (s3 = 0; s3 < e3.length; s3++) if ((y3 = e3[s3]) && "setAttribute" in y3 == !!x2 && (x2 ? y3.localName == x2 : 3 == y3.nodeType)) {
         u4 = y3, e3[s3] = null;
@@ -270,10 +276,10 @@
     else {
       if (e3 = "textarea" == x2 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y3 = u4.attributes[s3]).name] = y3.value;
       for (s3 in m3) y3 = m3[s3], "dangerouslySetInnerHTML" == s3 ? p3 = y3 : "children" == s3 || s3 in k3 || "value" == s3 && "defaultValue" in k3 || "checked" == s3 && "defaultChecked" in k3 || N(u4, s3, null, y3, o3);
-      for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _2 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
+      for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _3 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
       if (h3) c3 || p3 && (h3.__html == p3.__html || h3.__html == u4.innerHTML) || (u4.innerHTML = h3.__html), t3.__k = [];
       else if (p3 && (u4.innerHTML = ""), L("template" == t3.type ? u4.content : u4, g(v3) ? v3 : [v3], t3, i3, r3, "foreignObject" == x2 ? "http://www.w3.org/1999/xhtml" : o3, e3, f4, e3 ? e3[0] : i3.__k && $2(i3, 0), c3, a3), null != e3) for (s3 = e3.length; s3--; ) b(e3[s3]);
-      c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _2 && _2 != u4[s3] && N(u4, s3, _2, m3[s3], o3));
+      c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _3 && _3 != u4[s3] && N(u4, s3, _3, m3[s3], o3));
     }
     return u4;
   }
@@ -384,6 +390,10 @@
     var i3 = s2(t2++, 3);
     !c2.__s && C2(i3.__H, u4) && (i3.__ = n2, i3.u = u4, r2.__H.__h.push(i3));
   }
+  function _2(n2, u4) {
+    var i3 = s2(t2++, 4);
+    !c2.__s && C2(i3.__H, u4) && (i3.__ = n2, i3.u = u4, r2.__h.push(i3));
+  }
   function A2(n2) {
     return o2 = 5, T2(function() {
       return { current: n2 };
@@ -492,9 +502,20 @@
   // src/components/Actions.tsx
   var ErrLine = ({ m: m3 }) => m3 ? /* @__PURE__ */ u3("div", { class: "act-err", children: m3 }) : null;
   var editorMount = { fn: null, preview: null };
+  var scrollers = /* @__PURE__ */ new Set();
+  var scrollDraft = (key) => scrollers.forEach((f4) => f4(key));
   function DraftBox({ k: k3, ph, rows }) {
     const ref = A2(null);
     const [mode2, setMode] = d2("write"), [pv, setPv] = d2(null);
+    h2(() => {
+      const f4 = (key) => {
+        if (key === k3) ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      };
+      scrollers.add(f4);
+      return () => {
+        scrollers.delete(f4);
+      };
+    }, [k3]);
     const hint = `${ph} \u2014 type / for blocks`;
     h2(() => editorMount.fn ? editorMount.fn(ref.current, k3, hint) : void 0, []);
     const show = (m3) => {
@@ -566,6 +587,78 @@
       /* @__PURE__ */ u3(ErrLine, { m: p3.err }),
       /* @__PURE__ */ u3(ErrLine, { m: p3.errAuto })
     ] });
+  }
+
+  // src/components/Shell.tsx
+  var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
+    /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
+      /* @__PURE__ */ u3("div", { id: "side", style: "display:contents", children: p3.side }),
+      /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
+      /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3("div", { class: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: k3.children }) }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+    ] }),
+    /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: p3.dlg }),
+    /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents", children: p3.notes })
+  ] });
+
+  // src/app/frame.tsx
+  var slots = { top: null, side: null, dlg: null, notes: null, pop: null, pal: null, ovl: null, totop: null };
+  var gate = null;
+  var shell = null;
+  var held = 0;
+  var started = false;
+  var Frame = () => {
+    _2(() => {
+      applyMode();
+    });
+    return /* @__PURE__ */ u3("div", { id: "frame", class: S.dragging ? "dragging" : "", style: "display:contents", children: [
+      /* @__PURE__ */ u3("div", { id: "top", style: "display:contents", children: slots.top }),
+      /* @__PURE__ */ u3("div", { id: "rest", style: "display:contents", children: gate ? /* @__PURE__ */ u3(S2, { children: [
+        gate,
+        /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: slots.dlg })
+      ] }) : shell ? /* @__PURE__ */ u3(Shell, { ...shell, side: slots.side, dlg: slots.dlg, notes: slots.notes }) : null }),
+      /* @__PURE__ */ u3("div", { id: "pop", style: "display:contents", children: slots.pop }),
+      /* @__PURE__ */ u3("div", { id: "pal", style: "display:contents", children: slots.pal }),
+      /* @__PURE__ */ u3("div", { id: "ovl", style: "display:contents", children: slots.ovl }),
+      /* @__PURE__ */ u3("div", { style: "display:contents", children: slots.totop })
+    ] });
+  };
+  function repaint() {
+    if (held) return;
+    const app = document.getElementById("app");
+    if (!started) {
+      app.innerHTML = "";
+      started = true;
+    }
+    R(/* @__PURE__ */ u3(Frame, {}), app);
+  }
+  var setSlot = (name, v3) => {
+    slots[name] = v3;
+    repaint();
+  };
+  function batch(fn) {
+    held++;
+    try {
+      fn();
+    } finally {
+      held--;
+      repaint();
+    }
+  }
+  var setGate = (v3) => {
+    gate = v3;
+    shell = v3 ? null : shell;
+    repaint();
+  };
+  var setShell = (p3) => {
+    shell = p3;
+    gate = null;
+    repaint();
+  };
+  var shellProps = () => shell;
+  function setDragging(on3) {
+    S.dragging = on3;
+    repaint();
   }
 
   // src/components/Overlays.tsx
@@ -714,20 +807,11 @@
 
   // src/app/overlay.tsx
   var OV = { ac: null, bp: null, fx: [] };
-  var host = null;
-  function paintOv() {
-    if (!host) {
-      host = document.createElement("div");
-      host.id = "ovl";
-      host.style.display = "contents";
-      document.body.appendChild(host);
-    }
-    R(/* @__PURE__ */ u3(S2, { children: [
-      OV.ac && /* @__PURE__ */ u3(AcPop, { ...OV.ac }),
-      OV.bp && /* @__PURE__ */ u3(BpPop, { ...OV.bp }),
-      /* @__PURE__ */ u3(FxLayer, { items: OV.fx, drop: fxDrop })
-    ] }), host);
-  }
+  var paintOv = () => setSlot("ovl", /* @__PURE__ */ u3(S2, { children: [
+    OV.ac && /* @__PURE__ */ u3(AcPop, { ...OV.ac }),
+    OV.bp && /* @__PURE__ */ u3(BpPop, { ...OV.bp }),
+    /* @__PURE__ */ u3(FxLayer, { items: OV.fx, drop: fxDrop })
+  ] }));
   var fxId = 0;
   function fxDrop(id) {
     OV.fx = OV.fx.filter((f4) => f4.id !== id);
@@ -762,6 +846,19 @@
       ] })
     ] })) : /* @__PURE__ */ u3("div", { class: "note-empty", children: "No notifications yet. New comments, commits and reviews on PRs you opened will show up here." })
   ] });
+
+  // src/components/flash.ts
+  var flashClass = (f4) => f4 ? ` flash${f4.pop ? " pop-in" : ""}` : "";
+  function useFlash(f4, kb) {
+    const ref = A2(null);
+    h2(() => {
+      if (f4) ref.current?.scrollIntoView({ block: f4.block, behavior: f4.smooth ? "smooth" : "auto" });
+    }, [f4?.n]);
+    h2(() => {
+      if (kb) ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, [kb]);
+    return ref;
+  }
 
   // src/components/Comments.tsx
   var NL = "\n  ";
@@ -877,9 +974,10 @@
       add
     ] }) : null;
   }
-  function CommentBox({ kb, c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
+  function CommentBox({ kb, flash, c: c3, assoc, bodyHtml, folded: folded2, reactions, flush, on: on3 }) {
     const u4 = c3.user || c3.actor, k3 = "c:" + c3.id;
-    return /* @__PURE__ */ u3("div", { class: `tl-comment${folded2 ? " folded" : ""}${kb ? " kb" : ""}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
+    const ref = useFlash(flash, kb);
+    return /* @__PURE__ */ u3("div", { ref, class: `tl-comment${folded2 ? " folded" : ""}${kb ? " kb" : ""}${flashClass(flash)}`, id: `c-${c3.id ?? ""}`, style: flush ? "margin-bottom:0" : void 0, children: [
       /* @__PURE__ */ u3("div", { class: "avatar-col", children: /* @__PURE__ */ u3("a", { href: u4?.html_url, children: Av(u4, 40) }) }),
       NL,
       /* @__PURE__ */ u3("div", { class: "cbox", children: [
@@ -1765,7 +1863,7 @@
     });
   });
   function commentBoxProps(c3, { isPr = false, flush = false } = {}) {
-    return { kb: S.kbId === "c-" + c3.id, c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
+    return { kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id), c: c3, assoc: ASSOC[c3.author_association ?? ""], bodyHtml: c3.body_html && c3.body_html.trim() ? liveTasks(c3.body_html) : "", folded: isFolded("c:" + c3.id), reactions: reactionProps(c3.reactions, isPr ? "pr" : "issue_comment", c3.id), flush };
   }
   function hunkRows(hunk) {
     const rows = [];
@@ -1801,8 +1899,8 @@
     ] });
   }
   function Tc(p3) {
-    const { on: on3 } = p3;
-    return /* @__PURE__ */ u3("div", { class: `tc${p3.kb ? " kb" : ""}`, id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
+    const { on: on3 } = p3, ref = useFlash(p3.flash, p3.kb);
+    return /* @__PURE__ */ u3("div", { ref, class: `tc${p3.kb ? " kb" : ""}${flashClass(p3.flash)}`, id: p3.anchorId ? `c-${p3.id}` : void 0, children: [
       /* @__PURE__ */ u3("a", { href: p3.user?.html_url || "#", children: Av(p3.user, 24) }),
       /* @__PURE__ */ u3("div", { style: "flex:1;min-width:0", children: [
         /* @__PURE__ */ u3("div", { children: [
@@ -1956,7 +2054,7 @@
   function diffTable(patch, path, canComment, on3) {
     const open2 = S.lcOpen && String(S.lcOpen).includes(path);
     if (open2) return diffTableBuild(patch, path, canComment, on3);
-    const key = `${(S.busySels || []).join(",")}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
+    const key = `${(S.busySels || []).join(",")}|${S.flash?.id}${S.flash?.n}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
     if (hit && hit.patch === patch) return hit.node;
     const node = diffTableBuild(patch, path, canComment, on3);
     diffCache.set(key, { patch, node });
@@ -2102,7 +2200,7 @@
       resolved: isRes(list),
       tid: (b2.thread_ids || {})[list[0].id] ? b2.thread_ids[list[0].id] : null,
       hunk: hunkRows(list[0].diff_hunk || ""),
-      cards: list.map((c3) => ({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, bodyHtml: c3.body_html || "", reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: suggestProps(c3, b2, list), anchorId: true, kb: S.kbId === "c-" + c3.id })),
+      cards: list.map((c3) => ({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, bodyHtml: c3.body_html || "", reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: suggestProps(c3, b2, list), anchorId: true, kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id) })),
       reply: { rid: list[0].id, ph: "Reply\u2026", err: errMsg("reply-" + list[0].id) }
     }));
     const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}` } : null;
@@ -2334,10 +2432,10 @@
     S.keepScroll = false;
     const el = document.getElementById("c-" + c3.id);
     if (el) {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-      el.classList.remove("flash");
-      void el.offsetWidth;
-      el.classList.add("flash");
+      setFlash("c-" + c3.id, { block: "center", smooth: true });
+      S.keepScroll = true;
+      render();
+      S.keepScroll = false;
     }
   }
   var foldKeys = (m3) => m3.rows.flatMap((r3) => r3.t === "comment" ? [{ k: "c:" + r3.p.c.id, def: false }] : r3.t === "review" ? [{ k: r3.p.k, def: r3.p.allRes }, ...r3.p.threads.map((t3) => ({ k: t3.k, def: t3.def }))] : []);
@@ -2638,7 +2736,7 @@
       /* @__PURE__ */ u3(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename), on: filesOn }),
       files.map((f4) => {
         const t3 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t3 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t3 * 5));
-        const sq = Array.from({ length: 5 }, (_2, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
+        const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
         return /* @__PURE__ */ u3(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, on: filesOn, children: !shown2(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
       })
     ] });
@@ -2790,10 +2888,7 @@
   }
 
   // src/app/dialogs.tsx
-  var paintDlg = () => {
-    const h3 = $("#dlg");
-    if (h3) R(/* @__PURE__ */ u3(Dialogs, {}), h3);
-  };
+  var paintDlg = () => setSlot("dlg", /* @__PURE__ */ u3(Dialogs, {}));
   var cpOn = {
     close: () => closeDlg(),
     all: () => setFr(null),
@@ -2855,16 +2950,7 @@
     if (p3.k === "prof") return /* @__PURE__ */ u3(ProfPop, { ...p3 });
     return /* @__PURE__ */ u3(ReactPop, { x: p3.x, y: p3.y, reacts: REACTS, pick: p3.pick });
   }
-  var popHost = null;
-  var paintPop = () => {
-    if (!popHost) {
-      popHost = document.createElement("div");
-      popHost.id = "pop";
-      popHost.style.display = "contents";
-      document.body.appendChild(popHost);
-    }
-    R(/* @__PURE__ */ u3(Pops, {}), popHost);
-  };
+  var paintPop = () => setSlot("pop", /* @__PURE__ */ u3(Pops, {}));
   function openPop(p3) {
     S.pop = p3;
     paintPop();
@@ -3374,7 +3460,6 @@
     S.mode = isDark() ? "light" : "dark";
     localStorage.setItem("mode", S.mode);
     const swap = () => {
-      applyMode();
       S.themePop = (S.themePop || 0) + 1;
       keep2(() => {
       });
@@ -3487,7 +3572,7 @@
       }
       to = mids.reduce((best, m3, i3) => ev.clientX > m3 ? i3 : best, 0);
       S.drag = { from, to, dx: ev.clientX - x0, w: w3 };
-      paintTop($("#top"));
+      paintTop();
     };
     const up = () => {
       removeEventListener("mousemove", mv);
@@ -3572,14 +3657,12 @@
       /* @__PURE__ */ u3(TabStrip, { tabs: S.tabs, cur: S.tabPending || curRef(), recents: S.recent.filter((r3) => !open2.has(r3.ref)).slice(0, 8), menu: S.tabMenu, menuAt: S.tabMenuAt || null, drag: S.drag || null, closedFirst: S.closed.length ? S.closed[0].ref : null, on: ts })
     ] });
   }
-  var paintTop = (host2) => R(/* @__PURE__ */ u3(Top, {}), host2);
-  var clearTop = (host2) => R(null, host2);
+  var paintTop = () => setSlot("top", /* @__PURE__ */ u3(Top, {}));
+  var clearTop = () => setSlot("top", null);
 
   // src/app/notes.tsx
   function paintNotes() {
-    const h3 = $("#notehost");
-    if (!h3) return;
-    R(/* @__PURE__ */ u3(NotePanel, { open: S.bell, rows: S.notes.map((n2) => ({ id: n2.id, ref: n2.ref, target: n2.target || "", read: !!n2.read, title: n2.title, text: n2.text, when: whenParts(n2.at).text })), on: noteOn }), h3);
+    setSlot("notes", /* @__PURE__ */ u3(NotePanel, { open: S.bell, rows: S.notes.map((n2) => ({ id: n2.id, ref: n2.ref, target: n2.target || "", read: !!n2.read, title: n2.title, text: n2.text, when: whenParts(n2.at).text })), on: noteOn }));
   }
   function setBell(open2) {
     S.bell = open2;
@@ -3588,8 +3671,7 @@
         n2.read = true;
       });
       saveNotes();
-      const top = $("#top");
-      if (top) paintTop(top);
+      paintTop();
     }
     paintNotes();
   }
@@ -3859,11 +3941,8 @@
   function Side() {
     return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on, children: /* @__PURE__ */ u3(List, {}) });
   }
-  var paintSide = (host2) => R(/* @__PURE__ */ u3(Side, {}), host2);
-  var repaintSide = () => {
-    const h3 = $("#side");
-    if (h3) paintSide(h3);
-  };
+  var paintSide = () => setSlot("side", /* @__PURE__ */ u3(Side, {}));
+  var repaintSide = paintSide;
 
   // src/components/Home.tsx
   var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
@@ -4758,18 +4837,6 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     ] }) : body, side, on: { show: () => hide("side", false) } });
   }
 
-  // src/components/Shell.tsx
-  var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
-    /* @__PURE__ */ u3("div", { class: `shell ${p3.nav ? "nav-open" : ""} ${p3.navHidden ? "nav-hidden" : ""}${p3.enter ? " entering" : ""}`, style: `--sbw:${p3.sbw}px;--lw:${p3.lw}%`, children: [
-      /* @__PURE__ */ u3("div", { id: "side", style: "display:contents" }),
-      /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset" }),
-      /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim" }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3("div", { class: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: k3.children }) }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
-    ] }),
-    /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents" }),
-    /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents" })
-  ] });
-
   // src/app/pages.tsx
   var saveNotes = () => localStorage.setItem("notes", JSON.stringify(S.notes));
   function notesProps() {
@@ -4920,29 +4987,10 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
-  var Frame = (p3) => /* @__PURE__ */ u3("div", { id: "frame", class: p3.dragging ? "dragging" : "", style: "display:contents", children: [
-    /* @__PURE__ */ u3("div", { id: "top", style: "display:contents" }),
-    /* @__PURE__ */ u3("div", { id: "rest", style: "display:contents" })
-  ] });
-  var paintFrame = () => R(/* @__PURE__ */ u3(Frame, { dragging: !!S.dragging }), $("#app"));
-  function setDragging(on3) {
-    S.dragging = on3;
-    paintFrame();
-  }
-  function hosts() {
-    if (!$("#app > #frame")) {
-      $("#app").innerHTML = "";
-      paintFrame();
-    }
-    return { top: $("#top"), rest: $("#rest") };
-  }
-  var lastShell = null;
-  function repaintShell(patch) {
-    if (lastShell) {
-      lastShell = { ...lastShell, ...patch };
-      R(/* @__PURE__ */ u3(Shell, { ...lastShell }), $("#rest"));
-    }
-  }
+  var repaintShell = (patch) => {
+    const cur = shellProps();
+    if (cur) setShell({ ...cur, ...patch });
+  };
   var liveView = () => {
     if (S.loading) return /* @__PURE__ */ u3(Skeleton, {});
     if (S.view === "inbox") return /* @__PURE__ */ u3(InboxView, {});
@@ -4964,39 +5012,35 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   var shown = null;
   var shownPage = () => shown;
   function render() {
-    applyMode();
-    const { top, rest } = hosts();
     if (needSignIn()) {
       shown = null;
-      clearTop(top);
-      R(/* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3(Gate, { err: S.gateErr ? String(S.gateErr) : "", go: () => {
+      batch(() => {
+        clearTop();
+        setGate(/* @__PURE__ */ u3(Gate, { err: S.gateErr ? String(S.gateErr) : "", go: () => {
           tokenDialog();
           setTimeout(() => $("#oauthgo")?.click(), 50);
-        }, tok: tokenDialog }),
-        /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents" })
-      ] }), rest);
-      paintDlg();
+        }, tok: tokenDialog }));
+        paintDlg();
+      });
       return;
     }
-    paintTop(top);
     const stash = S.stash, live2 = stash ? stash.vnode : liveView(), ref = curRef();
     const key = S.loading ? "loading" : S.view === "pr" && S.bundle ? "pr:" + ref : S.view || "home";
     if (S.view === "pr" && S.bundle && !S.loading && live2) shown = { ref, vnode: live2 };
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
-    lastShell = { nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, kept };
-    R(/* @__PURE__ */ u3(Shell, { ...lastShell }), rest);
-    paintSide($("#side"));
-    paintDlg();
-    paintNotes();
+    batch(() => {
+      paintTop();
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, kept });
+      paintSide();
+      paintDlg();
+      paintNotes();
+    });
     S.stash = null;
     (S.ios || []).forEach((o3) => o3.disconnect());
     S.ios = [];
     bindSticky();
     if (S.fadeMain) S.fadeMain = false;
     syncUnread();
-    if (S.flashId && Date.now() < S.flashUntil) document.getElementById("c-" + S.flashId)?.classList.add("flash");
-    else S.flashId = "";
     document.title = S.bundle ? `${S.bundle.pull.title} \xB7 ${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : "GitHub PR View";
   }
 
@@ -5226,16 +5270,6 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   }
 
   // src/app/palette.tsx
-  var palHost = () => {
-    let h3 = document.getElementById("pal");
-    if (!h3) {
-      h3 = document.createElement("div");
-      h3.id = "pal";
-      h3.style.display = "contents";
-      document.body.appendChild(h3);
-    }
-    return h3;
-  };
   var rowsFor = (raw) => {
     const q3 = raw.trim().toLowerCase();
     const rows = S.recent.filter((r3) => !q3 || `${r3.ref} ${r3.title}`.toLowerCase().includes(q3)).slice(0, 8).map((r3) => ({ ref: r3.ref, label: r3.title, sub: r3.ref }));
@@ -5257,11 +5291,11 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   function paintPal() {
     const p3 = S.pal;
     if (!p3) {
-      R(null, palHost());
+      setSlot("pal", null);
       return;
     }
     if (p3.k === "help") {
-      R(/* @__PURE__ */ u3(HelpDialog, { close: closePal }), palHost());
+      setSlot("pal", /* @__PURE__ */ u3(HelpDialog, { close: closePal }));
       return;
     }
     const rows = rowsFor(p3.q), sel = Math.min(p3.sel, Math.max(0, rows.length - 1));
@@ -5277,11 +5311,11 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
         e3.preventDefault();
       } else if (e3.key === "Enter") go2(rows[sel]);
     };
-    R(/* @__PURE__ */ u3(Palette, { q: p3.q, rows, sel, onQ: (v3) => {
+    setSlot("pal", /* @__PURE__ */ u3(Palette, { q: p3.q, rows, sel, onQ: (v3) => {
       p3.q = v3;
       p3.sel = 0;
       paintPal();
-    }, onKey, pick: (i3) => go2(rows[i3]), close: closePal }), palHost());
+    }, onKey, pick: (i3) => go2(rows[i3]), close: closePal }));
   }
   function openPalette() {
     if (S.pal) return;
@@ -5304,7 +5338,6 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     if (!el) return;
     S.kbId = el.id;
     rerender();
-    document.getElementById(el.id)?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
   var kbCur = () => S.kbId && document.getElementById(S.kbId) || null;
   function kbStep(dir, pick = kbItems) {
@@ -5320,16 +5353,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     if (!el) return false;
     S.cOpen = open2;
     rerender();
-    if (open2 && focus) {
-      let tries = 0;
-      const t3 = setInterval(() => {
-        const pm = $(".ProseMirror", document.getElementById("composer") || el);
-        if (pm) {
-          pm.focus();
-          clearInterval(t3);
-        } else if (++tries > 25) clearInterval(t3);
-      }, 60);
-    }
+    if (open2 && focus) focusDraft("comment");
     return true;
   }
   document.addEventListener("mousedown", (e3) => {
@@ -5408,8 +5432,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
         localStorage.setItem("diffmode", S.diffMode);
       }
     } else if (e3.key === "r") {
-      const cur = kbCur(), host2 = cur?.closest(".thread")?.querySelector(".reply .tt");
-      if (!host2) {
+      const cur = kbCur(), host = cur?.closest(".thread")?.querySelector(".reply .tt");
+      if (!host) {
         if (document.getElementById("composer")) {
           e3.preventDefault();
           setComposer(true, true);
@@ -5417,15 +5441,9 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
         return;
       }
       e3.preventDefault();
-      host2.scrollIntoView({ block: "center", behavior: "smooth" });
-      let tries = 0;
-      const t3 = setInterval(() => {
-        const pm = $(".ProseMirror", host2);
-        if (pm) {
-          pm.focus();
-          clearInterval(t3);
-        } else if (++tries > 20) clearInterval(t3);
-      }, 80);
+      const key = host.dataset.draft;
+      scrollDraft(key);
+      focusDraft(key);
     }
   });
 
@@ -5673,7 +5691,7 @@ ${q3}
     render();
     S.keepScroll = false;
     syncDraft(key);
-    setTimeout(() => $(`[data-draft="${key}"]`)?.scrollIntoView({ block: "center" }), 50);
+    setTimeout(() => scrollDraft(key), 50);
   }
   function addLocal(kind, r3, rootId) {
     const b2 = S.bundle;
@@ -5693,8 +5711,10 @@ ${q3}
     S.keepScroll = false;
     const el = document.getElementById("c-" + r3.id);
     if (el) {
-      el.scrollIntoView({ block: "start" });
-      el.classList.add("flash", "pop-in");
+      setFlash("c-" + r3.id, { block: "start", pop: true });
+      S.keepScroll = true;
+      render();
+      S.keepScroll = false;
     }
     return true;
   }
@@ -5860,7 +5880,7 @@ ${q3}
     e3.stopPropagation();
     S.lcOpen = e3.currentTarget.dataset.lc;
     rerender();
-    focusLastEditor(200);
+    focusDraft("lc");
   }
   function lcCancel() {
     S.lcOpen = "";
@@ -5876,7 +5896,7 @@ ${ev.currentTarget.dataset.code}
 `;
     saveDrafts();
     rerender();
-    focusLastEditor(150);
+    focusDraft("lc");
   }
   function lcAdd() {
     const body = (S.draft.lc || "").trim();
@@ -5900,16 +5920,21 @@ ${ev.currentTarget.dataset.code}
     S.keepScroll = false;
   };
   var live = /* @__PURE__ */ new Map();
-  var focusLastEditor = (ms) => setTimeout(() => [...live.keys()].at(-1)?.focus?.(), ms);
+  var wantFocus = /* @__PURE__ */ new Set();
+  function focusDraft(key) {
+    const ed = [...live].find(([, k3]) => k3 === key)?.[0];
+    if (ed) ed.focus?.();
+    else wantFocus.add(key);
+  }
   function syncDraft(key) {
     live.forEach((k3, ed) => {
       if (k3 === key) ed.setMarkdown?.(S.draft[key] || "");
     });
   }
   editorMount.preview = previewDraft;
-  editorMount.fn = (host2, key, ph) => {
+  editorMount.fn = (host, key, ph) => {
     if (!window.createEditor) {
-      host2.innerHTML = '<div class="act-err">Editor failed to load.</div>';
+      host.innerHTML = '<div class="act-err">Editor failed to load.</div>';
       return () => {
       };
     }
@@ -5917,11 +5942,12 @@ ${ev.currentTarget.dataset.code}
     let ed = null, gone = false;
     const mount = () => {
       if (gone) return;
-      ed = window.createEditor(host2, { value: S.draft[key] || "", placeholder: ph, people: peopleList(), onChange: (md) => {
+      ed = window.createEditor(host, { value: S.draft[key] || "", placeholder: ph, people: peopleList(), onChange: (md) => {
         S.draft[key] = md;
         saveDrafts();
       }, onSubmit: send });
       live.set(ed, key);
+      if (wantFocus.delete(key)) ed.focus?.();
     };
     const io = new IntersectionObserver((en) => {
       if (en.some((x2) => x2.isIntersecting)) {
@@ -5929,7 +5955,7 @@ ${ev.currentTarget.dataset.code}
         mount();
       }
     }, { rootMargin: "300px" });
-    io.observe(host2);
+    io.observe(host);
     return () => {
       gone = true;
       io.disconnect();
@@ -6058,11 +6084,11 @@ ${ev.currentTarget.dataset.code}
       }
       const el = document.getElementById("c-" + S.focus);
       if (!el) return false;
-      S.flashId = S.focus;
-      S.flashUntil = Date.now() + 2500;
+      setFlash(S.focus, { block: "start" });
       S.focus = "";
-      el.scrollIntoView({ block: "start" });
-      el.classList.add("flash");
+      S.keepScroll = true;
+      render();
+      S.keepScroll = false;
       return true;
     };
     const focused = focusNow();
@@ -6121,7 +6147,7 @@ ${ev.currentTarget.dataset.code}
         S.restoring = false;
       }, 250);
     }
-    if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
+    if (!keepTab && !stale && !focused && !flashLive() && !tabSwitch) enterAnim();
     if (S.bundle && !stale && !keepTab && !focused) $(".main").scrollTop = 0;
     if (S.bundle && S.focus) {
       const id = S.focus;
@@ -6132,10 +6158,10 @@ ${ev.currentTarget.dataset.code}
       }
       const el = document.getElementById("c-" + id);
       if (el) {
-        S.flashId = id;
-        S.flashUntil = Date.now() + 2500;
-        el.scrollIntoView({ block: "start" });
-        el.classList.add("flash");
+        setFlash(id, { block: "start" });
+        S.keepScroll = true;
+        render();
+        S.keepScroll = false;
       }
     }
   }
@@ -6228,10 +6254,7 @@ ${ev.currentTarget.dataset.code}
   }
   (() => {
     let target = null, lastTop = 0, atEnd = false;
-    const host2 = document.createElement("div");
-    host2.style.display = "contents";
-    document.body.appendChild(host2);
-    const draw = (hidden) => R(/* @__PURE__ */ u3(ToTop, { hidden, onClick: () => (target && document.contains(target) ? target : $(".main"))?.scrollTo({ top: 0, behavior: "smooth" }) }), host2);
+    const draw = (hidden) => setSlot("totop", /* @__PURE__ */ u3(ToTop, { hidden, onClick: () => (target && document.contains(target) ? target : $(".main"))?.scrollTo({ top: 0, behavior: "smooth" }) }));
     let shown2 = false;
     draw(true);
     document.addEventListener("scroll", (e3) => {

@@ -1,4 +1,4 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { PrGroups, RcItem, RecentList, RepoList, SideHead, Sidebar } from '../components/Sidebar';
 import type { RcRow, SideHandlers } from '../components/Sidebar';
 import type { Cmp, PrListItem } from '../types';
@@ -69,5 +69,5 @@ export function Side() {
   return <Sidebar sideTab={S.sideTab} hasRepo={!!S.repo} hasToken={S.hasToken} on={on}><List /></Sidebar>;
 }
 
-export const paintSide = (host: HTMLElement) => paint(<Side />, host);
-export const repaintSide = () => { const h = $('#side'); if (h) paintSide(h); };
+export const paintSide = () => setSlot('side', <Side />);
+export const repaintSide = paintSide;

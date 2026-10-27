@@ -1,11 +1,10 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { HelpDialog, Palette } from '../components/Dialogs';
 import type { PalRow } from '../types';
 import { S } from './core';
 import { openPr } from './nav';
 
 // The quick-open palette and the shortcuts sheet are plain state (S.pal), painted into their own host on <body>.
-const palHost = () => { let h = document.getElementById('pal'); if (!h) { h = document.createElement('div'); h.id = 'pal'; h.style.display = 'contents'; document.body.appendChild(h); } return h; };
 
 const rowsFor = (raw: string): PalRow[] => {
   const q = raw.trim().toLowerCase();
@@ -19,8 +18,8 @@ function go(r: { ref: string } | undefined) { closePal(); if (r) { S.nav = false
 
 function paintPal() {
   const p = S.pal;
-  if (!p) { paint(null, palHost()); return; }
-  if (p.k === 'help') { paint(<HelpDialog close={closePal} />, palHost()); return; }
+  if (!p) { setSlot('pal', null); return; }
+  if (p.k === 'help') { setSlot('pal', <HelpDialog close={closePal} />); return; }
   const rows = rowsFor(p.q), sel = Math.min(p.sel, Math.max(0, rows.length - 1));
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') closePal();
@@ -28,7 +27,7 @@ function paintPal() {
     else if (e.key === 'ArrowUp') { p.sel = Math.max(0, sel - 1); paintPal(); e.preventDefault(); }
     else if (e.key === 'Enter') go(rows[sel]);
   };
-  paint(<Palette q={p.q} rows={rows} sel={sel} onQ={(v) => { p.q = v; p.sel = 0; paintPal(); }} onKey={onKey} pick={(i) => go(rows[i])} close={closePal} />, palHost());
+  setSlot('pal', <Palette q={p.q} rows={rows} sel={sel} onQ={(v) => { p.q = v; p.sel = 0; paintPal(); }} onKey={onKey} pick={(i) => go(rows[i])} close={closePal} />);
 }
 
 export function openPalette() { if (S.pal) return; S.pal = { k: 'pal', q: '', sel: 0 }; paintPal(); }

@@ -2,7 +2,7 @@ import type { Bundle, PendingComment, ReviewComment, TimelineEvent } from '../ty
 import type { VNode } from 'preact';
 import { errMsg } from './actions';
 import { hunkRows, isFolded, reactionProps } from './comments';
-import { S, esc, load, whenParts } from './core';
+import { S, esc, flashFor, load, whenParts } from './core';
 import { b0open } from './mergebox';
 import { LcCards, LcEdit, ReviewBlock, ThreadRow } from '../components/Diff';
 import type { LcHandlers, ReviewBlockProps, SugProps, TcProps, ThreadRowProps } from '../components/Diff';
@@ -70,7 +70,7 @@ export const diffCache = new Map<string, { patch: string; node: VNode }>();
 export function diffTable(patch: string, path: string, canComment: boolean, on: DiffHandlers): VNode {
   const open = S.lcOpen && String(S.lcOpen).includes(path);
   if (open) return diffTableBuild(patch, path, canComment, on);
-  const key = `${(S.busySels || []).join(',')}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + JSON.stringify(c.reactions || {}) + ((S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle!.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
+  const key = `${(S.busySels || []).join(',')}|${S.flash?.id}${S.flash?.n}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c) => c.path === path))}|${threadsFor(path).map((c) => c.id + ':' + (c.updated_at || '') + JSON.stringify(c.reactions || {}) + ((S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : '') + (isFolded('t:' + c.id, (S.bundle!.resolved_ids || []).includes(c.id)) ? 'f' : '')).join(',')}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`, hit = diffCache.get(key);
   if (hit && hit.patch === patch) return hit.node;
   const node = diffTableBuild(patch, path, canComment, on);
   diffCache.set(key, { patch, node });
@@ -136,7 +136,7 @@ export function reviewBlockProps(e: TimelineEvent, b: Bundle): ReviewBlockProps 
   const threads = lists.map((list) => ({
     folded: isFolded('t:' + list[0].id, isRes(list)), k: 't:' + list[0].id, def: isRes(list), path: list[0].path, resolved: isRes(list), tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
     hunk: hunkRows(list[0].diff_hunk || ''),
-    cards: list.map((c): TcProps => ({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, bodyHtml: c.body_html || '', reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: suggestProps(c, b, list), anchorId: true, kb: S.kbId === 'c-' + c.id })),
+    cards: list.map((c): TcProps => ({ user: c.user, login: c.user.login, at: c.created_at, id: c.id, root: list[0].id, withMenu: true, bodyHtml: c.body_html || '', reactions: reactionProps(c.reactions, 'review_comment', c.id), sug: suggestProps(c, b, list), anchorId: true, kb: S.kbId === 'c-' + c.id, flash: flashFor('c-' + c.id) })),
     reply: { rid: list[0].id, ph: 'Reply…', err: errMsg('reply-' + list[0].id) },
   }));
   const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? '' : 's'}${nres ? ` · ${nres} resolved` : ''}` } : null;

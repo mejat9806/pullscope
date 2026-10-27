@@ -1,4 +1,4 @@
-import { render as paint } from 'preact';
+import { setSlot } from './frame';
 import { ToTop } from '../components/ToTop';
 import { loadProfile } from './addressbar';
 import { S, tauri, $ } from './core';
@@ -47,8 +47,7 @@ if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 
 // Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
 (() => {
   let target: HTMLElement | null = null, lastTop = 0, atEnd = false;
-  const host = document.createElement('div'); host.style.display = 'contents'; document.body.appendChild(host);
-  const draw = (hidden: boolean) => paint(<ToTop hidden={hidden} onClick={() => (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' })} />, host);
+  const draw = (hidden: boolean) => setSlot('totop', <ToTop hidden={hidden} onClick={() => (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' })} />);
   let shown = false; draw(true);
   document.addEventListener('scroll', (e) => {
     const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;

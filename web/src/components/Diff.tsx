@@ -1,4 +1,6 @@
 import { DiffHunkTable, FoldBtn, ReactionsBar } from './Comments';
+import { flashClass, useFlash } from './flash';
+import type { FlashProps } from './flash';
 import type { ConvHandlers, HunkRow, ReactionsProps } from './Comments';
 import { DraftBox, ErrLine } from './Actions';
 import { Av, I, SP, When } from './ui';
@@ -11,10 +13,10 @@ export function Sug({ s, on }: { s: SugProps; on?: ConvHandlers }) {
     ? <div class="sug-row"><span class="sug-note">{s.text}</span></div>
     : <div class="sug-row"><button class="btn small primary" data-sug={s.id} disabled={s.disabled} onClick={on && ((e) => on.sug(e, String(s.id)))}>Apply suggestion</button><span class="sug-note">Commits to <code>{s.ref}</code>{s.mine ? '' : ' (fork — needs push access)'}</span></div>;
 }
-export interface TcProps { user: Person | null | undefined; login: string; at: string; id: number | string; root: number | string; withMenu: boolean; bodyHtml: string; reactions: ReactionsProps; sug: SugProps | null; anchorId: boolean; kb?: boolean }
+export interface TcProps { user: Person | null | undefined; login: string; at: string; id: number | string; root: number | string; withMenu: boolean; bodyHtml: string; reactions: ReactionsProps; sug: SugProps | null; anchorId: boolean; kb?: boolean; flash?: FlashProps }
 export function Tc(p: TcProps & { on?: ConvHandlers }) {
-  const { on } = p;
-  return <div class={`tc${p.kb ? ' kb' : ''}`} id={p.anchorId ? `c-${p.id}` : undefined}><a href={p.user?.html_url || '#'}>{Av(p.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">{p.login}</span>{SP}<span>{When(p.at)}</span>{p.withMenu ? <button class="cm-btn" data-cm={p.id} data-root={p.root} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button> : ''}</div><div class="markdown-body" style="margin-top:8px" dangerouslySetInnerHTML={{ __html: p.bodyHtml }} />{p.sug ? <Sug s={p.sug} on={on} /> : ''}<ReactionsBar {...p.reactions} on={on?.react} /></div></div>;
+  const { on } = p, ref = useFlash(p.flash, p.kb);
+  return <div ref={ref} class={`tc${p.kb ? ' kb' : ''}${flashClass(p.flash)}`} id={p.anchorId ? `c-${p.id}` : undefined}><a href={p.user?.html_url || '#'}>{Av(p.user, 24)}</a><div style="flex:1;min-width:0"><div><span class="who">{p.login}</span>{SP}<span>{When(p.at)}</span>{p.withMenu ? <button class="cm-btn" data-cm={p.id} data-root={p.root} title="Comment actions" onClick={on && ((e) => on.menu(e, e.currentTarget as HTMLElement))}>⋯</button> : ''}</div><div class="markdown-body" style="margin-top:8px" dangerouslySetInnerHTML={{ __html: p.bodyHtml }} />{p.sug ? <Sug s={p.sug} on={on} /> : ''}<ReactionsBar {...p.reactions} on={on?.react} /></div></div>;
 }
 
 export interface ThreadRowProps { cols: number; k: string; def: boolean; folded: boolean; side: string; line: number; outdated: boolean; resolved: boolean; cards: TcProps[]; reply: ReplyProps | null; act: { tid: string; res: boolean } | null }

@@ -1,7 +1,7 @@
 import type { CommentBoxProps, HunkRow, PrHeaderProps, ReactionsProps } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import { act, prRef } from './actions';
-import { ASSOC, REACTS, S, tauri } from './core';
+import { ASSOC, REACTS, S, flashFor, tauri } from './core';
 import { qc } from './data';
 
 export function stateOf(p: Pull) {
@@ -58,7 +58,7 @@ document.addEventListener('click', async (e) => {
 });
 
 export function commentBoxProps(c: CommentLike, { isPr = false, flush = false } = {}): CommentBoxProps {
-  return { kb: S.kbId === 'c-' + c.id, c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
+  return { kb: S.kbId === 'c-' + c.id, flash: flashFor('c-' + c.id), c, assoc: ASSOC[c.author_association ?? ''], bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '', folded: isFolded('c:' + c.id), reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!), flush };
 }
 
 

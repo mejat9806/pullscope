@@ -1,6 +1,6 @@
 import { drafts, rerender, saveDrafts } from './actions';
 import { stateOf } from './comments';
-import { $, KEY_RECENT, S, tauri } from './core';
+import { $, KEY_RECENT, S, flashLive, setFlash, tauri } from './core';
 import { loadPr, qc, refreshPushes, remember } from './data';
 import { enterAnim } from './fun';
 import { openNewPr, render } from './pages';
@@ -63,7 +63,7 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
     const el = document.getElementById('c-' + S.focus);
     if (!el) return false;
-    S.flashId = S.focus; S.flashUntil = Date.now() + 2500; S.focus = ''; el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); return true;
+    setFlash(S.focus, { block: 'start' }); S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false; return true;
   };
   const focused = focusNow();
   try {
@@ -80,12 +80,12 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
     if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   } catch (e) { if (stale_()) return; if (!had) S.bundle = null; S.error = String(e).replace(/^Error: /, ''); }
   S.tabPending = ''; S.loading = false; S.refreshing = false; const savedScroll = restore ? (S.tabs[tabIdx()]?.scroll || 0) : 0; S.restoring = !!savedScroll; S.keepScroll = focused || keepTab; render(); S.keepScroll = false;
-  if (savedScroll) { const put = () => { const m = $('.main')!; if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !S.flashId && !tabSwitch) enterAnim();
+  if (savedScroll) { const put = () => { const m = $('.main')!; if (m) m.scrollTop = savedScroll; }; put(); requestAnimationFrame(put); setTimeout(() => { put(); S.restoring = false; }, 250); } if (!keepTab && !stale && !focused && !flashLive() && !tabSwitch) enterAnim();
   if (S.bundle && !stale && !keepTab && !focused) $('.main')!.scrollTop = 0;
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
     const el = document.getElementById('c-' + id);
-    if (el) { S.flashId = id; S.flashUntil = Date.now() + 2500; el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); }
+    if (el) { setFlash(id, { block: 'start' }); S.keepScroll = true; render(); S.keepScroll = false; }
   }
 }
