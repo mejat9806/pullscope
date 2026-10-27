@@ -1,8 +1,8 @@
 import type { Bundle, CommitRow, FileChange, FrRange, Reviewer, User } from '../types';
-import { closedBoxHtml, commitsDialogHtml, commitsListHtml, fcBarHtml, fileBoxHtml, filesBarHtml, mergeBoxHtml, mergedBoxHtml, prSideHtml, splitViewHtml } from '../components/Merge';
-import type { CkGroup } from '../components/Merge';
+import { closedBoxHtml, commitsDialogHtml, commitsListHtml, fcBarHtml, fileBoxHtml, filesBarHtml, mergeBoxHtml, mergedBoxHtml, splitViewHtml } from '../components/Merge';
+import type { CkGroup, PrSideProps } from '../components/Merge';
 import { errLine } from './actions';
-import { foldBtn, folded } from './comments';
+import { foldBtn, folded, isFolded } from './comments';
 import { S, avatar, esc, icon, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
 import { render } from './pages';
@@ -32,7 +32,7 @@ export function mergeBox(b: Bundle) {
 }
 
 
-export function sidebar(b: Bundle) {
+export function sidebarProps(b: Bundle): PrSideProps {
   const p = b.pull;
   const reviewers = new Map<string, Reviewer>();
   p.requested_reviewers.forEach((u) => reviewers.set(u.login, { u, st: 'req' }));
@@ -41,14 +41,11 @@ export function sidebar(b: Bundle) {
   const rv = [...reviewers.values()].map((r) => ({ ...r, canRe: canRe && r.st !== 'req' && r.u.login !== p.user.login }));
   const people = new Map<string, User>();
   [p.user, ...b.timeline.map((e) => e.user || e.actor || e.author)].forEach((u) => u && u.login && !people.has(u.login) && people.set(u.login, u as User));
-  const keys = ['Reviewers', 'Assignees', 'Labels', 'Milestone', 'people'] as const;
-  const fb = (k: string) => foldBtn('sb:' + k, 'Hide section');
-  return prSideHtml({
+  return {
     reviewers: rv, showAll: !!S.showAllReviewers, assignees: p.assignees, labels: p.labels, milestone: p.milestone ?? null,
     people: [...people.values()].slice(0, 30), peopleCount: people.size,
-    fold: { reviewers: folded('sb:Reviewers'), assignees: folded('sb:Assignees'), labels: folded('sb:Labels'), milestone: folded('sb:Milestone'), people: folded('sb:people') },
-    foldBtn: { reviewers: fb(keys[0]), assignees: fb(keys[1]), labels: fb(keys[2]), milestone: fb(keys[3]), people: fb(keys[4]) },
-  });
+    folded: { reviewers: isFolded('sb:Reviewers'), assignees: isFolded('sb:Assignees'), labels: isFolded('sb:Labels'), milestone: isFolded('sb:Milestone'), people: isFolded('sb:people') },
+  };
 }
 
 

@@ -108,7 +108,7 @@ export function unresolvedRoots(b: Bundle) {
   return b.review_comments.filter((c) => !c.in_reply_to_id && !res.has(c.id));
 }
 
-export function attention(b: Bundle) {
+export function attentionProps(b: Bundle) {
   const p = b.pull, rc = b.review_comments, roots = rc.filter((c) => !c.in_reply_to_id), open = unresolvedRoots(b);
   const known = S.hasToken || (b.resolved_ids || []).length > 0;
   const latest = new Map();
@@ -128,8 +128,9 @@ export function attention(b: Bundle) {
   else if (p.mergeable === false || p.mergeable_state === 'dirty') add('bad', 'alert', 'Has conflicts');
   else if (p.mergeable_state === 'clean') add('ok', 'git-merge', 'Ready to merge');
   else if (p.draft) add('', 'git-pull-request-draft', 'Draft');
-  return attentionHtml({ items: it, unres: S.unres, showUnres: roots.length > 0 });
+  return { items: it, unres: S.unres, showUnres: roots.length > 0 };
 }
+export const attention = (b: Bundle) => attentionHtml(attentionProps(b));
 
 export function jumpUnresolved() {
   const b = S.bundle, list = unresolvedRoots(b!); if (!list.length) return;

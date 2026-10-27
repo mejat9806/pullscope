@@ -231,6 +231,12 @@ document.addEventListener('mousedown', (e) => {
 
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && S.bell) setBell(false); });
 
+export async function rerequestReview(e: Event, login: string) {
+  const b = e.currentTarget as HTMLElement & { disabled?: boolean };
+  e.stopPropagation(); b.disabled = true; b.classList.add('spin');
+  const r = await act('rerequest', { body: login }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
+  await refreshPr();
+}
 export const rerender = () => { S.keepScroll = true; render(); S.keepScroll = false; };
 
 const mounted = new WeakSet<Element>();
@@ -262,11 +268,7 @@ export function bindWrite(scope?: HTMLElement) {
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
   }));
   mountEditors();
-  qa<HTMLElement & { disabled?: boolean }>('[data-rerequest]').forEach((b) => b.addEventListener('click', async (e) => {
-    e.stopPropagation(); b.disabled = true; b.classList.add('spin');
-    const r = await act('rerequest', { body: b.dataset.rerequest }, 'rerequest'); if (r === undefined) { b.disabled = false; b.classList.remove('spin'); alert(S.actErr?.m || 'Could not re-request review.'); return; }
-    await refreshPr();
-  }));
+  qa<HTMLElement>('[data-rerequest]').forEach((b) => b.addEventListener('click', (e) => rerequestReview(e, b.dataset.rerequest!)));
   qa('[data-thread]').forEach((btn) => btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     // Optimistic: flip the thread locally right away, sync with GitHub in the background, undo on failure.

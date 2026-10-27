@@ -83,7 +83,8 @@ export function Checks({ head, summary, headIcon, rows }: ChecksProps) {
 export const checksHtml = (p: ChecksProps) => html(<Checks {...p} />);
 
 export interface AttItem { k: string; ic: string; text: string; id?: string; title?: string; dataTab?: string }
-export function Attention({ items, unres, showUnres }: { items: AttItem[]; unres: boolean; showUnres: boolean }) {
-  return <div class="attn">{items.map((it) => <button class={`att-i ${it.k}`} id={it.id} title={it.title} data-tab={it.dataTab}>{I(it.ic)}<span>{it.text}</span></button>)}{showUnres ? <><span class="sp"></span><button class={`att-tog ${unres ? 'on' : ''}`} id="unres" title="Hide everything except review threads that are still open">{I('comment')}Unresolved only</button></> : ''}</div>;
+export interface AttentionHandlers { next: () => void; unres: () => void; tab: (k: string) => void }
+export function Attention({ items, unres, showUnres, on }: { items: AttItem[]; unres: boolean; showUnres: boolean; on?: AttentionHandlers }) {
+  return <div class="attn">{items.map((it) => <button class={`att-i ${it.k}`} id={it.id} title={it.title} data-tab={it.dataTab} onClick={on && (it.id === 'nextun' ? on.next : it.dataTab ? () => on.tab(it.dataTab!) : undefined)}>{I(it.ic)}<span>{it.text}</span></button>)}{showUnres ? <><span class="sp"></span><button class={`att-tog ${unres ? 'on' : ''}`} id="unres" title="Hide everything except review threads that are still open" onClick={on?.unres}>{I('comment')}Unresolved only</button></> : ''}</div>;
 }
 export const attentionHtml = (p: Parameters<typeof Attention>[0]) => html(<Attention {...p} />);

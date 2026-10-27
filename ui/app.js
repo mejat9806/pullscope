@@ -1217,7 +1217,7 @@
     ] });
   }
   var mergeBoxHtml = (p3) => html(/* @__PURE__ */ u3(MergeBox, { ...p3 }));
-  function ReviewerRow({ r: r3 }) {
+  function ReviewerRow({ r: r3, on: on3 }) {
     const ic = r3.st === "req" && r3.prev ? /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: I2("sync") }),
       I2(r3.prev === "approved" ? "check" : r3.prev === "changes_requested" ? "file-diff" : "comment")
@@ -1226,15 +1226,15 @@
       /* @__PURE__ */ u3("a", { href: r3.u.html_url, children: Av(r3.u, 20) }),
       /* @__PURE__ */ u3("a", { class: "nm", href: r3.u.html_url, children: r3.u.login }),
       /* @__PURE__ */ u3("span", { class: `st ${r3.st === "approved" ? "ok" : r3.st === "changes_requested" ? "bad" : ""}`, children: ic }),
-      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, children: I2("sync") }) : ""
+      r3.canRe ? /* @__PURE__ */ u3("button", { class: "rerequest", "data-rerequest": r3.u.login, title: `Ask ${r3.u.login} to review again`, onClick: (e2) => on3.rerequest(e2, r3.u.login ?? ""), children: I2("sync") }) : ""
     ] });
   }
   function PrSide(p3) {
-    const rv = p3.reviewers, more = rv.length - 3;
+    const { on: on3 } = p3, rv = p3.reviewers, more = rv.length - 3;
     const rvSection = rv.length ? /* @__PURE__ */ u3(S2, { children: [
-      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3 })),
+      rv.slice(0, 3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })),
       more > 0 ? /* @__PURE__ */ u3(S2, { children: [
-        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", children: [
+        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
           /* @__PURE__ */ u3("span", { children: [
             "+",
             more,
@@ -1243,44 +1243,46 @@
           ] }),
           I2(p3.showAll ? "chevron-up" : "chevron-down")
         ] }),
-        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3 })) : ""
+        p3.showAll ? rv.slice(3).map((r3) => /* @__PURE__ */ u3(ReviewerRow, { r: r3, on: on3 })) : ""
       ] }) : ""
     ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
-    const head2 = (t2, fb) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-      Raw(fb),
+    const fb = (k3, n2) => /* @__PURE__ */ u3(SideFold, { k: "sb:" + n2, folded: p3.folded[k3], onFold: on3.fold });
+    const head2 = (k3, t2) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
+      fb(k3, t2 === "people" ? "people" : t2),
       /* @__PURE__ */ u3("span", { children: t2 }),
       I2("gear", 16, "gear")
     ] });
+    const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
     return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
-      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.reviewers}`, children: [
+      /* @__PURE__ */ u3("div", { class: box("reviewers"), children: [
         /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-          Raw(p3.foldBtn.reviewers),
+          fb("reviewers", "Reviewers"),
           /* @__PURE__ */ u3("span", { children: "Reviewers" })
         ] }),
         rvSection
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.assignees}`, children: [
-        head2("Assignees", p3.foldBtn.assignees),
+      /* @__PURE__ */ u3("div", { class: box("assignees"), children: [
+        head2("assignees", "Assignees"),
         p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
           /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
           /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
         ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.labels}`, children: [
-        head2("Labels", p3.foldBtn.labels),
+      /* @__PURE__ */ u3("div", { class: box("labels"), children: [
+        head2("labels", "Labels"),
         p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.milestone}`, children: [
-        head2("Milestone", p3.foldBtn.milestone),
+      /* @__PURE__ */ u3("div", { class: box("milestone"), children: [
+        head2("milestone", "Milestone"),
         p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
       ] }),
       "\n  ",
-      /* @__PURE__ */ u3("div", { class: `sb-item${p3.fold.people}`, children: [
+      /* @__PURE__ */ u3("div", { class: box("people"), children: [
         /* @__PURE__ */ u3("div", { class: "sb-head", children: [
-          Raw(p3.foldBtn.people),
+          fb("people", "people"),
           /* @__PURE__ */ u3("span", { children: [
             p3.peopleCount,
             " participant",
@@ -1291,7 +1293,12 @@
       ] })
     ] });
   }
-  var prSideHtml = (p3) => html(/* @__PURE__ */ u3(PrSide, { ...p3 }));
+  function SideFold({ k: k3, folded: folded2, onFold }) {
+    return /* @__PURE__ */ u3("button", { class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e2) => {
+      e2.stopPropagation();
+      onFold(k3, false);
+    }, children: I2(folded2 ? "chevron-right" : "chevron-down") });
+  }
   function CommitsDialog(p3) {
     return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg cp-dlg", children: [
       /* @__PURE__ */ u3("div", { class: "cp-h", children: [
@@ -1956,15 +1963,15 @@
     ] });
   }
   var checksHtml = (p3) => html(/* @__PURE__ */ u3(Checks, { ...p3 }));
-  function Attention({ items, unres, showUnres }) {
+  function Attention({ items, unres, showUnres, on: on3 }) {
     return /* @__PURE__ */ u3("div", { class: "attn", children: [
-      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, children: [
+      items.map((it) => /* @__PURE__ */ u3("button", { class: `att-i ${it.k}`, id: it.id, title: it.title, "data-tab": it.dataTab, onClick: on3 && (it.id === "nextun" ? on3.next : it.dataTab ? () => on3.tab(it.dataTab) : void 0), children: [
         I2(it.ic),
         /* @__PURE__ */ u3("span", { children: it.text })
       ] })),
       showUnres ? /* @__PURE__ */ u3(S2, { children: [
         /* @__PURE__ */ u3("span", { class: "sp" }),
-        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", children: [
+        /* @__PURE__ */ u3("button", { class: `att-tog ${unres ? "on" : ""}`, id: "unres", title: "Hide everything except review threads that are still open", onClick: on3?.unres, children: [
           I2("comment"),
           "Unresolved only"
         ] })
@@ -2135,7 +2142,7 @@
     const res = new Set(b2.resolved_ids || []);
     return b2.review_comments.filter((c3) => !c3.in_reply_to_id && !res.has(c3.id));
   }
-  function attention(b2) {
+  function attentionProps(b2) {
     const p3 = b2.pull, rc = b2.review_comments, roots = rc.filter((c3) => !c3.in_reply_to_id), open2 = unresolvedRoots(b2);
     const known = S.hasToken || (b2.resolved_ids || []).length > 0;
     const latest = /* @__PURE__ */ new Map();
@@ -2160,8 +2167,9 @@
     else if (p3.mergeable === false || p3.mergeable_state === "dirty") add("bad", "alert", "Has conflicts");
     else if (p3.mergeable_state === "clean") add("ok", "git-merge", "Ready to merge");
     else if (p3.draft) add("", "git-pull-request-draft", "Draft");
-    return attentionHtml({ items: it, unres: S.unres, showUnres: roots.length > 0 });
+    return { items: it, unres: S.unres, showUnres: roots.length > 0 };
   }
+  var attention = (b2) => attentionHtml(attentionProps(b2));
   function jumpUnresolved() {
     const b2 = S.bundle, list = unresolvedRoots(b2);
     if (!list.length) return;
@@ -2224,7 +2232,7 @@
       clean
     });
   }
-  function sidebar(b2) {
+  function sidebarProps(b2) {
     const p3 = b2.pull;
     const reviewers = /* @__PURE__ */ new Map();
     p3.requested_reviewers.forEach((u4) => reviewers.set(u4.login, { u: u4, st: "req" }));
@@ -2239,9 +2247,7 @@
     const rv = [...reviewers.values()].map((r3) => ({ ...r3, canRe: canRe && r3.st !== "req" && r3.u.login !== p3.user.login }));
     const people = /* @__PURE__ */ new Map();
     [p3.user, ...b2.timeline.map((e2) => e2.user || e2.actor || e2.author)].forEach((u4) => u4 && u4.login && !people.has(u4.login) && people.set(u4.login, u4));
-    const keys = ["Reviewers", "Assignees", "Labels", "Milestone", "people"];
-    const fb = (k3) => foldBtn("sb:" + k3, "Hide section");
-    return prSideHtml({
+    return {
       reviewers: rv,
       showAll: !!S.showAllReviewers,
       assignees: p3.assignees,
@@ -2249,9 +2255,8 @@
       milestone: p3.milestone ?? null,
       people: [...people.values()].slice(0, 30),
       peopleCount: people.size,
-      fold: { reviewers: folded("sb:Reviewers"), assignees: folded("sb:Assignees"), labels: folded("sb:Labels"), milestone: folded("sb:Milestone"), people: folded("sb:people") },
-      foldBtn: { reviewers: fb(keys[0]), assignees: fb(keys[1]), labels: fb(keys[2]), milestone: fb(keys[3]), people: fb(keys[4]) }
-    });
+      folded: { reviewers: isFolded("sb:Reviewers"), assignees: isFolded("sb:Assignees"), labels: isFolded("sb:Labels"), milestone: isFolded("sb:Milestone"), people: isFolded("sb:people") }
+    };
   }
   var frKey = (cs, r3) => r3.a === r3.b ? cs[r3.a].sha : `${cs[r3.a].parent}..${cs[r3.b].sha}`;
   function frDiff(b2) {
@@ -4104,6 +4109,18 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
       localStorage.setItem("split", S.split ? "1" : "0");
     })
   };
+  var sideOn = {
+    fold: (k3, def) => {
+      S.fold[k3] = !isFolded(k3, def);
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+      rerender();
+    },
+    rvtoggle: () => {
+      S.showAllReviewers = !S.showAllReviewers;
+      rerender();
+    },
+    rerequest: rerequestReview
+  };
   function Header() {
     const p3 = S.bundle.pull, r3 = p3.base.repo;
     const extra = /* @__PURE__ */ u3(S2, { children: [
@@ -4118,9 +4135,14 @@ ${nums.map((x3) => `Closes #${x3}`).join("\n")}` : "")).trim();
   function PrView() {
     const b2 = S.bundle;
     if (S.split && S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline") return /* @__PURE__ */ u3(SplitLayout, { header: /* @__PURE__ */ u3(Header, {}), split: /* @__PURE__ */ u3(Island, { html: splitView(b2) }) });
-    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : attention(b2) + timeline(b2);
-    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(Island, { html: sidebar(b2) }), on: { hide: () => hide("side", true) } };
-    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: /* @__PURE__ */ u3(Island, { html: body }), side, on: { show: () => hide("side", false) } });
+    const body = S.tab === "files" ? filesView(b2) : S.tab === "commits" ? commitsView(b2) : S.tab === "checks" ? checksView(b2) : S.tab === "timeline" ? `<div class="rail">${timeline(b2)}</div>` : "";
+    const side = S.tab !== "conversation" ? { kind: "none" } : S.hide.side ? { kind: "rail" } : { kind: "aside", inner: /* @__PURE__ */ u3(PrSide, { ...sidebarProps(b2), on: sideOn }), on: { hide: () => hide("side", true) } };
+    return /* @__PURE__ */ u3(PrLayout, { header: /* @__PURE__ */ u3(Header, {}), body: S.tab === "conversation" ? /* @__PURE__ */ u3(S2, { children: [
+      /* @__PURE__ */ u3(Attention, { ...attentionProps(b2), on: { next: jumpUnresolved, unres: () => keep2(() => {
+        S.unres = !S.unres;
+      }), tab: head.tab } }),
+      /* @__PURE__ */ u3(Island, { html: timeline(b2) })
+    ] }) : /* @__PURE__ */ u3(Island, { html: body }), side, on: { show: () => hide("side", false) } });
   }
 
   // src/components/TabStrip.tsx
@@ -5676,6 +5698,20 @@ ${q3}
   document.addEventListener("keydown", (e2) => {
     if (e2.key === "Escape" && S.bell) setBell(false);
   });
+  async function rerequestReview(e2, login) {
+    const b2 = e2.currentTarget;
+    e2.stopPropagation();
+    b2.disabled = true;
+    b2.classList.add("spin");
+    const r3 = await act("rerequest", { body: login }, "rerequest");
+    if (r3 === void 0) {
+      b2.disabled = false;
+      b2.classList.remove("spin");
+      alert(S.actErr?.m || "Could not re-request review.");
+      return;
+    }
+    await refreshPr();
+  }
   var rerender = () => {
     S.keepScroll = true;
     render();
@@ -5732,19 +5768,7 @@ ${q3}
       setTimeout(() => document.addEventListener("click", () => pop.remove(), { once: true }));
     }));
     mountEditors();
-    qa2("[data-rerequest]").forEach((b2) => b2.addEventListener("click", async (e2) => {
-      e2.stopPropagation();
-      b2.disabled = true;
-      b2.classList.add("spin");
-      const r3 = await act("rerequest", { body: b2.dataset.rerequest }, "rerequest");
-      if (r3 === void 0) {
-        b2.disabled = false;
-        b2.classList.remove("spin");
-        alert(S.actErr?.m || "Could not re-request review.");
-        return;
-      }
-      await refreshPr();
-    }));
+    qa2("[data-rerequest]").forEach((b2) => b2.addEventListener("click", (e2) => rerequestReview(e2, b2.dataset.rerequest)));
     qa2("[data-thread]").forEach((btn) => btn.addEventListener("click", async (e2) => {
       e2.stopPropagation();
       const b2 = S.bundle, node = btn.dataset.thread, root = Object.keys(b2.thread_ids || {}).find((k3) => b2.thread_ids[k3] === node);

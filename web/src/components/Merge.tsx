@@ -46,36 +46,42 @@ export function MergeBox(p: MergeBoxProps) {
 export const mergeBoxHtml = (p: MergeBoxProps) => html(<MergeBox {...p} />);
 
 export interface RvRow { u: Person; st: string; prev?: string; canRe: boolean }
+export type SideKey = 'reviewers' | 'assignees' | 'labels' | 'milestone' | 'people';
+export interface PrSideHandlers { fold: (k: string, def: boolean) => void; rvtoggle: () => void; rerequest: (e: MouseEvent, login: string) => void }
 export interface PrSideProps {
   reviewers: RvRow[]; showAll: boolean;
   assignees: Person[]; labels: { name: string; color: string }[];
   milestone: { title: string; html_url?: string } | null;
   people: Person[]; peopleCount: number;
-  fold: { reviewers: string; assignees: string; labels: string; milestone: string; people: string };
-  foldBtn: { reviewers: string; assignees: string; labels: string; milestone: string; people: string };
+  folded: Record<SideKey, boolean>;
 }
 
-function ReviewerRow({ r }: { r: RvRow }) {
+function ReviewerRow({ r, on }: { r: RvRow; on: PrSideHandlers }) {
   const ic = r.st === 'req' && r.prev
     ? <><span title="Asked to review again" style="margin-right:6px">{I('sync')}</span>{I(r.prev === 'approved' ? 'check' : r.prev === 'changes_requested' ? 'file-diff' : 'comment')}</>
     : I(r.st === 'approved' ? 'check' : r.st === 'changes_requested' ? 'file-diff' : r.st === 'req' ? 'dot-fill' : 'comment');
-  return <div class="reviewer"><a href={r.u.html_url}>{Av(r.u, 20)}</a><a class="nm" href={r.u.html_url}>{r.u.login}</a><span class={`st ${r.st === 'approved' ? 'ok' : r.st === 'changes_requested' ? 'bad' : ''}`}>{ic}</span>{r.canRe ? <button class="rerequest" data-rerequest={r.u.login} title={`Ask ${r.u.login} to review again`}>{I('sync')}</button> : ''}</div>;
+  return <div class="reviewer"><a href={r.u.html_url}>{Av(r.u, 20)}</a><a class="nm" href={r.u.html_url}>{r.u.login}</a><span class={`st ${r.st === 'approved' ? 'ok' : r.st === 'changes_requested' ? 'bad' : ''}`}>{ic}</span>{r.canRe ? <button class="rerequest" data-rerequest={r.u.login} title={`Ask ${r.u.login} to review again`} onClick={(e) => on.rerequest(e, r.u.login ?? "")}>{I('sync')}</button> : ''}</div>;
 }
 
-export function PrSide(p: PrSideProps) {
-  const rv = p.reviewers, more = rv.length - 3;
+export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
+  const { on } = p, rv = p.reviewers, more = rv.length - 3;
   const rvSection = rv.length
-    ? <>{rv.slice(0, 3).map((r) => <ReviewerRow r={r} />)}{more > 0 ? <><button class="sb-toggle" id="rvtoggle"><span>+{more} more reviewer{plural(more)}</span>{I(p.showAll ? 'chevron-up' : 'chevron-down')}</button>{p.showAll ? rv.slice(3).map((r) => <ReviewerRow r={r} />) : ''}</> : ''}</>
+    ? <>{rv.slice(0, 3).map((r) => <ReviewerRow r={r} on={on} />)}{more > 0 ? <><button class="sb-toggle" id="rvtoggle" onClick={on.rvtoggle}><span>+{more} more reviewer{plural(more)}</span>{I(p.showAll ? 'chevron-up' : 'chevron-down')}</button>{p.showAll ? rv.slice(3).map((r) => <ReviewerRow r={r} on={on} />) : ''}</> : ''}</>
     : <div class="sb-none">No reviews</div>;
-  const head = (t: string, fb: string) => <div class="sb-head">{Raw(fb)}<span>{t}</span>{I('gear', 16, 'gear')}</div>;
+  const fb = (k: SideKey, n: string) => <SideFold k={'sb:' + n} folded={p.folded[k]} onFold={on.fold} />;
+  const head = (k: SideKey, t: string) => <div class="sb-head">{fb(k, t === 'people' ? 'people' : t)}<span>{t}</span>{I('gear', 16, 'gear')}</div>;
+  const box = (k: SideKey) => `sb-item${p.folded[k] ? ' folded' : ''}`;
   return <div class="pr-side-inner">
-    <div class={`sb-item${p.fold.reviewers}`}><div class="sb-head">{Raw(p.foldBtn.reviewers)}<span>Reviewers</span></div>{rvSection}</div>{'\n  '}
-    <div class={`sb-item${p.fold.assignees}`}>{head('Assignees', p.foldBtn.assignees)}{p.assignees.length ? p.assignees.map((u) => <div class="reviewer"><a href={u.html_url}>{Av(u, 20)}</a><a class="nm" href={u.html_url}>{u.login}</a></div>) : <span class="sb-none">No one—</span>}</div>{'\n  '}
-    <div class={`sb-item${p.fold.labels}`}>{head('Labels', p.foldBtn.labels)}{p.labels.length ? p.labels.map((l) => <span class="pill-label" style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color}`}>{l.name}</span>) : <span class="sb-none">None yet</span>}</div>{'\n  '}
-    <div class={`sb-item${p.fold.milestone}`}>{head('Milestone', p.foldBtn.milestone)}{p.milestone ? <a class="sb-link" href={p.milestone.html_url}>{p.milestone.title}</a> : <span class="sb-none">No milestone</span>}</div>{'\n  '}
-    <div class={`sb-item${p.fold.people}`}><div class="sb-head">{Raw(p.foldBtn.people)}<span>{p.peopleCount} participant{plural(p.peopleCount)}</span></div><div class="participants">{p.people.map((u) => <a href={u.html_url} title={u.login}>{Av(u, 32)}</a>)}</div></div></div>;
+    <div class={box('reviewers')}><div class="sb-head">{fb('reviewers', 'Reviewers')}<span>Reviewers</span></div>{rvSection}</div>{'\n  '}
+    <div class={box('assignees')}>{head('assignees', 'Assignees')}{p.assignees.length ? p.assignees.map((u) => <div class="reviewer"><a href={u.html_url}>{Av(u, 20)}</a><a class="nm" href={u.html_url}>{u.login}</a></div>) : <span class="sb-none">No one—</span>}</div>{'\n  '}
+    <div class={box('labels')}>{head('labels', 'Labels')}{p.labels.length ? p.labels.map((l) => <span class="pill-label" style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color}`}>{l.name}</span>) : <span class="sb-none">None yet</span>}</div>{'\n  '}
+    <div class={box('milestone')}>{head('milestone', 'Milestone')}{p.milestone ? <a class="sb-link" href={p.milestone.html_url}>{p.milestone.title}</a> : <span class="sb-none">No milestone</span>}</div>{'\n  '}
+    <div class={box('people')}><div class="sb-head">{fb('people', 'people')}<span>{p.peopleCount} participant{plural(p.peopleCount)}</span></div><div class="participants">{p.people.map((u) => <a href={u.html_url} title={u.login}>{Av(u, 32)}</a>)}</div></div></div>;
 }
-export const prSideHtml = (p: PrSideProps) => html(<PrSide {...p} />);
+
+function SideFold({ k, folded, onFold }: { k: string; folded: boolean; onFold: (k: string, def: boolean) => void }) {
+  return <button class="fold-btn" data-fold={k} data-def="0" title="Hide section" onClick={(e) => { e.stopPropagation(); onFold(k, false); }}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;
+}
 
 export interface CpRow { i: number; on: boolean; title: string; by: string; when: string; sha: string }
 export interface CommitsDialogProps {
