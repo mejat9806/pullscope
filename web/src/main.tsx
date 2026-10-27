@@ -1,4 +1,5 @@
 import './app/core';
+import './app/listeners';
 import './app/tabs';
 import './app/prlist';
 import './app/comments';

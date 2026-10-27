@@ -1,3 +1,4 @@
+import type { RepoSummary } from '../types';
 import { S, esc, icon } from './core';
 import { pushBanners } from './data';
 
@@ -18,15 +19,15 @@ export function homePage() {
     const f = (S.repoFilter || '').toLowerCase();
     const vis = S.hmVis || 'all', srt = S.hmSort || 'pushed', grp = S.hmGroup || 'none';
     let list = S.repos.filter((r) => (!owner || r.full_name.startsWith(owner + '/')) && r.full_name.toLowerCase().includes(f) && (vis === 'all' || (vis === 'private') === !!r.private));
-    const nm = (r) => r.full_name.split('/')[1], pushed = (r) => Date.parse(r.pushed_at || 0) || 0;
-    const sorters = { name: (a, b) => nm(a).localeCompare(nm(b)), namez: (a, b) => nm(b).localeCompare(nm(a)), issues: (a, b) => (b.open_issues_count || 0) - (a.open_issues_count || 0) || nm(a).localeCompare(nm(b)), oldest: (a, b) => pushed(a) - pushed(b), owner: (a, b) => a.full_name.localeCompare(b.full_name), ownerz: (a, b) => b.full_name.split('/')[0].localeCompare(a.full_name.split('/')[0]) || nm(a).localeCompare(nm(b)) };
-    if (sorters[srt]) list = [...list].sort(sorters[srt]);
-    const card = (r) => `<a class="hm-card" data-repo="${esc(r.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="hm-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}${r.archived ? ' · archived' : ''}${r.open_issues_count ? ` · ${r.open_issues_count} open` : ''}</i>${r.description ? `<em>${esc(r.description)}</em>` : ''}</span></a>`;
+    const nm = (r: RepoSummary) => r.full_name.split('/')[1], pushed = (r: RepoSummary) => Date.parse(r.pushed_at || '0') || 0;
+    const sorters: Record<string, ((a: RepoSummary, b: RepoSummary) => number) | null> = { name: (a, b) => nm(a).localeCompare(nm(b)), namez: (a, b) => nm(b).localeCompare(nm(a)), issues: (a, b) => (b.open_issues_count || 0) - (a.open_issues_count || 0) || nm(a).localeCompare(nm(b)), oldest: (a, b) => pushed(a) - pushed(b), owner: (a, b) => a.full_name.localeCompare(b.full_name), ownerz: (a, b) => b.full_name.split('/')[0].localeCompare(a.full_name.split('/')[0]) || nm(a).localeCompare(nm(b)) };
+    const sorter = sorters[srt]; if (sorter) list = [...list].sort(sorter);
+    const card = (r: RepoSummary) => `<a class="hm-card" data-repo="${esc(r.full_name)}"><span class="rc-i" style="color:var(--fgColor-muted)">${icon(r.private ? 'lock' : 'repo')}</span><span class="hm-t"><b>${esc(r.full_name.split('/')[1])}</b><i>${esc(r.full_name.split('/')[0])}${r.archived ? ' · archived' : ''}${r.open_issues_count ? ` · ${r.open_issues_count} open` : ''}</i>${r.description ? `<em>${esc(r.description)}</em>` : ''}</span></a>`;
     let grid;
     if (!list.length) grid = '<div class="diff-empty">No matching repositories.</div>';
     else if (grp === 'owner') { const by = new Map(); list.forEach((r) => { const o = r.full_name.split('/')[0]; if (!by.has(o)) by.set(o, []); by.get(o).push(r); }); grid = [...by].map(([o, rs]) => `<h3 class="hm-grp">${esc(o)}<span>${rs.length}</span></h3><div class="hm-grid">${rs.map(card).join('')}</div>`).join(''); }
     else grid = `<div class="hm-grid">${list.map(card).join('')}</div>`;
-    const opt = (v, cur, t) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`;
+    const opt = (v: string, cur: string, t: string) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`;
     body = `<div class="hm-fbar"><input class="input hm-filter" id="hmfilter" placeholder="Find a repository…" value="${esc(S.repoFilter || '')}"><div class="seg-ctl">${['all', 'public', 'private'].map((x) => `<button class="${vis === x ? 'on' : ''}" data-hvis="${x}">${x[0].toUpperCase() + x.slice(1)}</button>`).join('')}</div><select class="input" id="hmsort" title="Sort">${opt('pushed', srt, 'Recently pushed')}${opt('oldest', srt, 'Least recently pushed')}${opt('name', srt, 'Name A–Z')}${opt('namez', srt, 'Name Z–A')}${opt('owner', srt, 'Owner A–Z')}${opt('ownerz', srt, 'Owner Z–A')}${opt('issues', srt, 'Most open issues')}</select><select class="input" id="hmgroup" title="Group">${opt('none', grp, 'No grouping')}${opt('owner', grp, 'Group by owner')}</select></div>` + grid;
   }
   return `<div class="notes-page hm-page"><div class="np-head"><h1>${icon('home')} ${owner ? esc(owner) : 'Home'}</h1></div>

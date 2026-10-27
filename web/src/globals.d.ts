@@ -1,19 +1,13 @@
-// Browser globals the page gets from script tags and the Tauri runtime, plus loose DOM typing for code written against querySelector results.
+// Globals the page gets from script tags (vendor/*.js, icons.js) and the Tauri runtime.
+interface EditorHandle { getMarkdown(): string; setMarkdown?(md: string): void; focus(): void; destroy(): void; el?: HTMLElement }
+interface EditorOptions { value?: string; placeholder?: string; people?: string[]; onChange?: (md: string) => void; onSubmit?: () => void }
+interface TauriCore { invoke<K extends keyof import('./types').Commands>(cmd: K, args?: Record<string, unknown>): Promise<import('./types').Commands[K]> }
+interface TauriEvent { listen<T = unknown>(name: string, cb: (e: { payload: T }) => void): Promise<() => void> }
+interface UpdateHandle { version: string; downloadAndInstall(): Promise<void> }
 interface Window {
-  __TAURI__: any;
-  OCTICONS: Record<string, string>;
-  createEditor: (host: Element, opts?: any) => any;
-  hlLine: any;
-  hljs: any;
-  [k: string]: any;
+  __TAURI__?: { core: TauriCore; event?: TauriEvent; updater?: { check(): Promise<UpdateHandle | null> }; process: { relaunch(): Promise<void> }; window?: { getCurrentWindow?: () => { toggleMaximize?: () => void; startDragging?: () => void } | undefined } };
+  OCTICONS?: Record<string, string>;
+  createEditor?: (host: Element, opts?: EditorOptions) => EditorHandle;
+  hlLine?: (text: string, path: string) => string | null;
+  hljs?: unknown;
 }
-interface EventTarget { closest(sel: string): any; id: string; value: any; dataset: DOMStringMap; classList: DOMTokenList; matches(sel: string): boolean; contains(n: any): boolean; blur(): void; isConnected: boolean; [k: string]: any }
-interface Event { key: string; button: number; metaKey: boolean; ctrlKey: boolean; altKey: boolean; shiftKey: boolean; detail: number; clientX: number; clientY: number; dataTransfer: any; relatedTarget: any; [k: string]: any }
-interface Element {
-  dataset: DOMStringMap; value: any; style: CSSStyleDeclaration; focus(o?: any): void; blur(): void; click(): void; hidden: boolean; checked: boolean; disabled: boolean;
-  innerText: string; offsetHeight: number; offsetWidth: number; offsetTop: number; selectionStart: number; select(): void; setSelectionRange(a: number, b: number): void; scrollTo(o?: any): void; title: string; href: string; src: string; open: boolean; type: string; name: string; placeholder: string;
-  addEventListener(type: string, listener: (e: any) => any, opts?: any): void; [k: string]: any;
-}
-interface ParentNode { querySelector(sel: string): any; querySelectorAll(sel: string): NodeListOf<any> }
-interface Document { querySelector(sel: string): any; querySelectorAll(sel: string): NodeListOf<any>; activeElement: any }
-interface HTMLElement { [k: string]: any }

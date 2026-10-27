@@ -1,3 +1,4 @@
+import type { Cmp, PrListItem, Pull } from '../types';
 import { folded, isFolded } from './comments';
 import { S, esc, icon, when } from './core';
 import { pushBanners } from './data';
@@ -6,34 +7,35 @@ export const PSORT = { updated: 'Recently updated', created: 'Newest', oldest: '
 
 export const PGROUP = { none: 'No grouping', status: 'Status', author: 'Author', label: 'Label', base: 'Base branch' };
 
-export const prStatus = (p) => (p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open');
+export const prStatus = (p: PrListItem) => (p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : p.draft ? 'draft' : 'open');
 
 export const PICON = { open: 'git-pull-request', draft: 'git-pull-request-draft', merged: 'git-merge', closed: 'git-pull-request-closed' };
 
 export function prSide() {
   const cur = S.bundle && S.view === 'pr' ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}` : '';
   const f = S.pf.toLowerCase();
-  const sel = (id, opts, v) => `<select class="input sb-sel" id="${id}">${Object.entries(opts).map(([k, t]) => `<option value="${k}"${k === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
+  const sel = (id: string, opts: Record<string, string>, v: string) => `<select class="input sb-sel" id="${id}">${Object.entries(opts).map(([k, t]) => `<option value="${k}"${k === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
   const head = `<div class="sb-repo"><button class="fold-btn" data-side="repos" title="All repositories">${icon('chevron-left')}</button><b title="${esc(S.repo)}">${esc(S.repo)}</b></div>
   <div class="seg sb-seg">${['open', 'closed', 'all'].map((s) => `<button data-sps="${s}" class="${S.prState === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div>
   <input class="input sb-filter" id="prfilter" placeholder="Filter by title, #, author, label…" value="${esc(S.pf)}">
   <div class="sb-ctl"><label>Sort${sel('prsort', PSORT, S.psort)}</label><label>Group${sel('prgroup', PGROUP, S.pgroup)}</label></div>`;
   if (!S.prs) return head + '<div class="sb-empty">Loading pull requests…</div>';
   const list = S.prs.filter((p) => !f || `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map((l) => l.name).join(' ')}`.toLowerCase().includes(f));
-  const by = { updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number }[S.psort];
+  const sorts: Record<string, Cmp> = { updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number };
+  const by = sorts[S.psort];
   list.sort(by);
-  const row = (p) => { const st = prStatus(p), ref = `${S.repo}#${p.number}`; return `<a class="rc ${ref === cur ? 'on' : ''}" data-open="${esc(ref)}"><span class="rc-i ${st}">${icon(PICON[st])}</span><span class="rc-t"><b>${esc(p.title)}</b><i>#${p.number} · ${esc(p.user.login)} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}</i></span></a>`; };
+  const row = (p: PrListItem) => { const st = prStatus(p), ref = `${S.repo}#${p.number}`; return `<a class="rc ${ref === cur ? 'on' : ''}" data-open="${esc(ref)}"><span class="rc-i ${st}">${icon(PICON[st])}</span><span class="rc-t"><b>${esc(p.title)}</b><i>#${p.number} · ${esc(p.user.login)} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}</i></span></a>`; };
   if (!list.length) return head + `<div class="sb-empty">${S.pf ? 'No matches.' : 'No pull requests.'}</div>`;
   if (S.pgroup === 'none') return head + `<div class="sb-count">${list.length} pull request${list.length === 1 ? '' : 's'}</div>` + list.map(row).join('');
-  const groups = new Map(), put = (k, p) => (groups.get(k) || groups.set(k, []).get(k)).push(p);
+  const groups = new Map<string, PrListItem[]>(), put = (k: string, p: PrListItem) => (groups.get(k) || groups.set(k, []).get(k)!).push(p);
   list.forEach((p) => {
     if (S.pgroup === 'status') put({ open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' }[prStatus(p)], p);
     else if (S.pgroup === 'author') put(p.user.login, p);
     else if (S.pgroup === 'base') put(p.base?.ref || '—', p);
     else if ((p.labels || []).length) p.labels.forEach((l) => put(l.name, p)); else put('No label', p);
   });
-  const order = S.pgroup === 'status' ? ['Open', 'Draft', 'Merged', 'Closed'] : [...groups.keys()].sort((a: any, b: any) => (a === 'No label') - (b === 'No label') || a.localeCompare(b));
-  return head + order.filter((k) => groups.has(k)).map((k) => { const key = 'pg:' + S.pgroup + ':' + k; return `<div class="pg${folded(key)}"><div class="pg-h" data-fold="${esc(key)}">${icon(isFolded(key) ? 'chevron-right' : 'chevron-down')}<span>${esc(k)}</span><i>${groups.get(k).length}</i></div><div class="pg-b">${groups.get(k).map(row).join('')}</div></div>`; }).join('');
+  const order = S.pgroup === 'status' ? ['Open', 'Draft', 'Merged', 'Closed'] : [...groups.keys()].sort((a, b) => +(a === 'No label') - +(b === 'No label') || a.localeCompare(b));
+  return head + order.filter((k) => groups.has(k)).map((k) => { const key = 'pg:' + S.pgroup + ':' + k; return `<div class="pg${folded(key)}"><div class="pg-h" data-fold="${esc(key)}">${icon(isFolded(key) ? 'chevron-right' : 'chevron-down')}<span>${esc(k)}</span><i>${groups.get(k)!.length}</i></div><div class="pg-b">${groups.get(k)!.map(row).join('')}</div></div>`; }).join('');
 }
 
 
@@ -42,19 +44,20 @@ export function prFiltered() {
   const list = (S.prs || []).filter((p) => (!f || `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map((l) => l.name).join(' ')}`.toLowerCase().includes(f))
     && (!S.pAuthor || p.user.login === S.pAuthor) && (!S.pLabel || (p.labels || []).some((l) => l.name === S.pLabel))
     && (!S.pStatus || prStatus(p) === S.pStatus));
-  return list.sort({ updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number }[S.psort]);
+  const cmps: Record<string, Cmp> = { updated: (a, b) => b.updated_at.localeCompare(a.updated_at), created: (a, b) => b.created_at.localeCompare(a.created_at), oldest: (a, b) => a.created_at.localeCompare(b.created_at), number: (a, b) => b.number - a.number, title: (a, b) => a.title.localeCompare(b.title), author: (a, b) => a.user.login.localeCompare(b.user.login) || b.number - a.number };
+  return list.sort(cmps[S.psort]);
 }
 
 export function prFilterBar() {
   if (!S.prs) return '';
-  const authors = ([...new Set(S.prs.map((p) => p.user.login))] as string[]).sort((a, b) => a.localeCompare(b));
+  const authors = [...new Set(S.prs.map((p) => p.user.login))].sort((a, b) => a.localeCompare(b));
   const labels = [...new Set(S.prs.flatMap((p) => (p.labels || []).map((l) => l.name)))].sort((a, b) => a.localeCompare(b));
-  const opt = (arr, v, all) => `<option value="">${all}</option>` + arr.map((x) => `<option value="${esc(x)}"${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
+  const opt = (arr: string[], v: string, all: string) => `<option value="">${all}</option>` + arr.map((x) => `<option value="${esc(x)}"${x === v ? ' selected' : ''}>${esc(x)}</option>`).join('');
   const sts = { open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' };
   const n = prFiltered().length, active = S.pf || S.pAuthor || S.pLabel || S.pStatus;
   return `<div class="prl-filters"><span class="pf-search">${icon('search')}<input class="input" id="mainfilter" placeholder="Filter by title, #, author, branch, label…" value="${esc(S.pf)}" spellcheck="false"></span>
-  <select class="input" id="pfauthor">${opt(authors, S.pAuthor, 'Author: all')}</select>
-  <select class="input" id="pflabel">${opt(labels, S.pLabel, 'Label: all')}</select>
+  <select class="input" id="pfauthor">${opt(authors, S.pAuthor!, 'Author: all')}</select>
+  <select class="input" id="pflabel">${opt(labels, S.pLabel!, 'Label: all')}</select>
   <select class="input" id="pfstatus"><option value="">Status: any</option>${Object.entries(sts).map(([k, t]) => `<option value="${k}"${k === S.pStatus ? ' selected' : ''}>${t}</option>`).join('')}</select>
   <select class="input" id="pfsort">${Object.entries(PSORT).map(([k, t]) => `<option value="${k}"${k === S.psort ? ' selected' : ''}>Sort: ${t}</option>`).join('')}</select>
   <span class="pf-count">${n} of ${S.prs.length}</span>${active ? '<button class="btn" id="pfclear">Clear</button>' : ''}</div>`;
@@ -63,7 +66,7 @@ export function prFilterBar() {
 export function prList() {
   const head = `<div class="prl-head"><div><span class="repo-ic">${icon('repo', 16)}</span> <b>${esc(S.repo)}</b></div><div class="seg">${['open', 'closed', 'all'].map((s) => `<button data-ps="${s}" class="${S.prState === s ? 'on' : ''}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div></div>`;
   let body;
-  const pb = pushBanners(S.repo);
+  const pb = pushBanners(S.repo!);
   if (S.error) body = `<div class="err" style="padding:16px">${esc(S.error)}</div>`;
   else if (!S.prs) body = '<div class="spinner" style="margin:48px auto">Loading pull requests…</div>';
   else body = prFiltered().map((p) => {
@@ -76,7 +79,7 @@ export function prList() {
 
 
 // Breadcrumbs for every page: Home › (owner / repo) › … ; the last item is the current page.
-export function crumbs(repo, trail = [], extra = '') {
+export function crumbs(repo: string, trail: { t: string; repo?: string }[] = [], extra = '') {
   const sep = `<span class="crumb-sep">${icon('chevron-right', 12)}</span>`;
   const homeCur = !repo && !trail.length;
   const parts = [homeCur ? `<span class="crumb cur home">${icon('home', 14)}<span>Home</span></span>` : `<a class="crumb" data-home="1" title="Home">${icon('home', 14)}<span>Home</span></a>`];
@@ -88,7 +91,7 @@ export function crumbs(repo, trail = [], extra = '') {
   return `<nav class="repoline crumbs" aria-label="Breadcrumb">${parts.join(sep)}${extra}</nav>`;
 }
 
-export function repoHeader(p) {
+export function repoHeader(p: Pull) {
   const r = p.base.repo;
   return crumbs(r.full_name, [{ t: 'Pull requests', repo: r.full_name }, { t: `#${p.number}` }], `<a class="crumb gh" href="${esc(r.html_url)}" data-ext title="Open on GitHub">${icon('link-external', 12)}</a>${S.refreshing ? '<span class="stale">Refreshing…</span>' : ''}`);
 }

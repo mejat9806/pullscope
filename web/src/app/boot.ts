@@ -1,5 +1,6 @@
+import type { Check } from '../types';
 import { loadProfile } from './addressbar';
-import { S, icon, tauri } from './core';
+import { S, icon, tauri, $ } from './core';
 import { pollNotes, qc } from './data';
 import { setComposer } from './keyboard';
 import { loadRepos, openPr } from './nav';
@@ -7,18 +8,18 @@ import { render } from './pages';
 
 export const q = new URLSearchParams(location.search);
 
-if (q.get('mode')) S.mode = q.get('mode');
+if (q.get('mode')) S.mode = q.get('mode')!;
 
-if (q.get('tab')) S.tab = q.get('tab');
+if (q.get('tab')) S.tab = q.get('tab')!;
 
 if (q.get('split')) S.split = q.get('split') === '1';
 
-if (tauri) tauri.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
+if (tauri) tauri!.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 
 render();
 
-if (q.get('fixture')) openPr(q.get('fixture')).then(() => { if (q.get('tab')) { S.tab = q.get('tab'); render(); } });
-else if (tauri) tauri.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });
+if (q.get('fixture')) openPr(q.get('fixture')!).then(() => { if (q.get('tab')) { S.tab = q.get('tab')!; render(); } });
+else if (tauri) tauri!.invoke('initial_arg').then((arg) => { if (arg) openPr(arg); else { S.view = 'home'; render(); } });
 
 
 setInterval(pollNotes, 60000);
@@ -43,16 +44,16 @@ if (tauri) { setTimeout(checkUpdate, 6000); setInterval(checkUpdate, 6 * 3600 * 
 
 // Scroll-to-top: a round button appears once you are well down the page (or a split-view pane) and takes you back up.
 (() => {
-  let target = null, btn = null, lastTop = 0, atEnd = false, auto = false;
-  const ensure = () => { if (btn) return btn; btn = document.createElement('button'); btn.id = 'totop'; btn.title = 'Back to top'; btn.setAttribute('aria-label', 'Back to top'); btn.innerHTML = icon('chevron-up'); btn.hidden = true; btn.onclick = () => { (target && document.contains(target) ? target : document.querySelector('.main'))?.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(btn); return btn; };
+  let target: HTMLElement | null = null, btn: HTMLButtonElement | null = null, lastTop = 0, atEnd = false, auto = false;
+  const ensure = () => { if (btn) return btn; btn = document.createElement('button'); btn.id = 'totop'; btn.title = 'Back to top'; btn.setAttribute('aria-label', 'Back to top'); btn.innerHTML = icon('chevron-up'); btn.hidden = true; btn.onclick = () => { (target && document.contains(target) ? target : $('.main'))?.scrollTo({ top: 0, behavior: 'smooth' }); }; document.body.appendChild(btn); return btn; };
   document.addEventListener('scroll', (e) => {
     const el = e.target; if (!(el instanceof Element) || !el.matches('.main, .pane-body')) return;
-    target = el; ensure().hidden = el.scrollTop < 600;
+    target = el as HTMLElement; ensure().hidden = el.scrollTop < 600;
     // The comment bar opens by itself when you reach the end of the thread, and folds away again when you scroll back up.
     const c = document.getElementById('composer'); if (!c || !el.contains(c)) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop; lastTop = el.scrollTop;
     if (dist < 24 && !atEnd) { atEnd = true; if (c.classList.contains('collapsed')) { setComposer(true, false); auto = true; } }
-    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && !c.classList.contains('collapsed') && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && document.activeElement.blur(); setComposer(false); } }
+    if (dist > c.offsetHeight + 60) { atEnd = false; if (up && !c.classList.contains('collapsed') && !(S.draft.comment || '').trim()) { c.contains(document.activeElement) && (document.activeElement as HTMLElement).blur(); setComposer(false); } }
   }, true);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !e.target.closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Home' && !(e.target as HTMLElement).closest?.('input, textarea, select, [contenteditable]') && target) { e.preventDefault(); target.scrollTo({ top: 0, behavior: 'smooth' }); } });
 })();

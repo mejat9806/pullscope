@@ -5,7 +5,7 @@
   "scripts": {
     "build": "esbuild src/main.tsx --bundle --format=iife --target=es2022 --jsx=automatic --jsx-import-source=preact --outfile=../ui/app.js",
     "watch": "npm run build -- --watch",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit && sh no-any.sh"
   },
   "dependencies": {
     "preact": "^10.24.3"

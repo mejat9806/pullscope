@@ -1,7 +1,7 @@
 import { bindWrite, drafts, rerender, saveDrafts, setBell, setBusy } from './actions';
 import { avUrl, bindSticky, bpOpen, focusAddr, openExternal, openFromList } from './addressbar';
 import { isFolded } from './comments';
-import { $, KEY_RECENT, S, applyMode, esc, icon, isDark, tauri } from './core';
+import { $, KEY_RECENT, S, applyMode, esc, icon, isDark, tauri, qa } from './core';
 import { loadPr, pollNotes, pushDis, qc } from './data';
 import { confetti } from './fun';
 import { commitList, commitsDialog, flipSides, openCommits, selectCommit, setFr, sinceReview } from './mergebox';
@@ -19,12 +19,12 @@ export const aliveKey = () => [S.diffMode, S.split, JSON.stringify(S.hide), S.sb
 export function stashCurrent() { S.openSeq = (S.openSeq || 0) + 1;
   const ref = S.view === 'pr' && S.bundle ? curRef() : '', m = $('.main');
   if (!ref || !m || !m.firstElementChild || !S.tabs.some((t) => t.ref === ref)) return;
-  S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
+  S.alive.set(ref, { el: m, eds: S.eds || [], bundle: S.bundle!, tab: S.tab, key: aliveKey(), scroll: m.scrollTop });
   S.eds = [];
-  while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value);
+  while (S.alive.size > 6) S.alive.delete(S.alive.keys().next().value!);
 }
 
-export function fastTab(ref) { S.openSeq = (S.openSeq || 0) + 1;
+export function fastTab(ref: string) { S.openSeq = (S.openSeq || 0) + 1;
   const a = S.alive.get(ref); if (!a) return false;
   const mem = qc.peek(ref);
   if (!mem || mem.data !== a.bundle || a.key !== aliveKey()) { S.alive.delete(ref); return false; }
@@ -36,11 +36,11 @@ export function fastTab(ref) { S.openSeq = (S.openSeq || 0) + 1;
   if (S.repo !== p.base.repo.full_name) { S.repo = p.base.repo.full_name; S.sideTab = 'prs'; setTimeout(loadPrs, 0); }
   if (S.draftRef !== ref) { saveDrafts(); S.draftRef = ref; S.draft = { ...(drafts[ref] || {}) }; }
   S.mainStub = true; render(); S.mainStub = false;
-  $('.main').replaceWith(a.el);
+  $('.main')!.replaceWith(a.el);
   a.el.scrollTop = a.scroll; S.eds = a.eds;
   bindSticky();
   // Quietly check for newer data; only redraw if something actually changed.
-  if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref)).then((d) => {
+  if (!qc.fresh(ref)) qc.fetch(ref, () => loadPr(ref))!.then((d) => {
     if (JSON.stringify(d) === JSON.stringify(a.bundle)) { qc.m.set(ref, { data: a.bundle, at: Date.now() }); return; }
     if (curRef() === ref) openPr(ref, { keepTab: true, nav: true });
   }).catch(() => {});
@@ -49,96 +49,96 @@ export function fastTab(ref) { S.openSeq = (S.openSeq || 0) + 1;
 
 export function bind() {
   bindWrite();
-  document.querySelectorAll('[data-side]').forEach((el) => el.addEventListener('click', () => { S.sideTab = el.dataset.side; render(); }));
-  $('#mainfilter')?.addEventListener('input', (e) => { S.pf = e.target.value; const p = e.target.selectionStart; render(); const n = $('#mainfilter'); n.focus(); n.setSelectionRange(p, p); });
-  [['#pfauthor', 'pAuthor'], ['#pflabel', 'pLabel'], ['#pfstatus', 'pStatus']].forEach(([id, k]) => $(id)?.addEventListener('change', (e) => { S[k] = e.target.value; render(); }));
-  $('#pfsort')?.addEventListener('change', (e) => { S.psort = e.target.value; localStorage.setItem('psort', S.psort); render(); });
+  qa('[data-side]').forEach((el) => el.addEventListener('click', () => { S.sideTab = el.dataset.side!; render(); }));
+  $<HTMLInputElement>('#mainfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#mainfilter')!; n.focus(); n.setSelectionRange(p, p); });
+  ([['#pfauthor', 'pAuthor'], ['#pflabel', 'pLabel'], ['#pfstatus', 'pStatus']] as const).forEach(([id, k]) => $(id)?.addEventListener('change', (e) => { S[k] = (e.target as HTMLInputElement).value; render(); }));
+  $<HTMLSelectElement>('#pfsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
   $('#pfclear')?.addEventListener('click', () => { S.pf = S.pAuthor = S.pLabel = S.pStatus = ''; render(); });
-  $('#prfilter')?.addEventListener('input', (e) => { S.pf = e.target.value; const p = e.target.selectionStart; render(); const n = $('#prfilter'); n.focus(); n.setSelectionRange(p, p); });
-  $('#prsort')?.addEventListener('change', (e) => { S.psort = e.target.value; localStorage.setItem('psort', S.psort); render(); });
-  $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = e.target.value; localStorage.setItem('pgroup', S.pgroup); render(); });
-  document.querySelectorAll('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps; loadPrs(); }));
+  $<HTMLInputElement>('#prfilter')?.addEventListener('input', (e) => { S.pf = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#prfilter')!; n.focus(); n.setSelectionRange(p, p); });
+  $('#prsort')?.addEventListener('change', (e) => { S.psort = (e.target as HTMLInputElement).value; localStorage.setItem('psort', S.psort); render(); });
+  $('#prgroup')?.addEventListener('change', (e) => { S.pgroup = (e.target as HTMLInputElement).value; localStorage.setItem('pgroup', S.pgroup); render(); });
+  qa('[data-sps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.sps!; loadPrs(); }));
   $('#upd')?.addEventListener('click', async () => {
     const u = S.update; if (!u || u.busy) return; u.busy = true; render();
-    try { await u.obj.downloadAndInstall(); await window.__TAURI__.process.relaunch(); }
-    catch (e) { u.busy = false; S.actErr = 'Update failed: ' + String(e); render(); }
+    try { await u.obj.downloadAndInstall(); await window.__TAURI__!.process.relaunch(); }
+    catch (e) { u.busy = false; S.actErr = { k: 'update', m: 'Update failed: ' + String(e) }; render(); }
   });
   $('#addtoken')?.addEventListener('click', tokenDialog);
-  document.querySelectorAll('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
-  $('#hmsort')?.addEventListener('change', (e) => { S.hmSort = e.target.value; render(); });
-  $('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = e.target.value; render(); });
+  qa('[data-hvis]').forEach((b) => b.addEventListener('click', () => { S.hmVis = b.dataset.hvis; render(); }));
+  $<HTMLSelectElement>('#hmsort')?.addEventListener('change', (e) => { S.hmSort = (e.target as HTMLInputElement).value; render(); });
+  $<HTMLSelectElement>('#hmgroup')?.addEventListener('change', (e) => { S.hmGroup = (e.target as HTMLInputElement).value; render(); });
   $('#fcbtn')?.addEventListener('click', openCommits);
   $('#fcall')?.addEventListener('click', () => setFr(null));
-  document.querySelectorAll('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
+  qa('[data-fstep]').forEach((el) => el.addEventListener('click', () => { const cs = commitList(S.bundle!), i = (S.fr?.a ?? 0) + Number(el.dataset.fstep); if (cs[i]) setFr({ a: i, b: i }); }));
   if ($('.cp-dlg')) {
     const close = () => { S.dialog = ''; S.cpick = null; render(); };
-    $('#cpx').onclick = close; $('#cpcancel').onclick = close; $('#cpall').onclick = () => setFr(null);
-    $('#dlgbg').addEventListener('mousedown', (e) => { if (e.target.id === 'dlgbg') close(); });
-    $('#cpsince') && ($('#cpsince').onclick = () => { const sr = sinceReview(S.bundle); if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle).length - 1 }); });
-    $('#cpsave').onclick = () => { if (S.cpick) setFr({ ...S.cpick }); };
-    const filt = () => { const q = ($('#cpq').value || '').toLowerCase(); S.cfilter = q; document.querySelectorAll('.cp-row').forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); };
-    $('#cpq').addEventListener('input', filt); filt();
-    document.querySelectorAll('.cp-row').forEach((row) => row.addEventListener('click', (e) => {
+    $('#cpx')!.onclick = close; $('#cpcancel')!.onclick = close; $('#cpall')!.onclick = () => setFr(null);
+    $('#dlgbg')!.addEventListener('mousedown', (e) => { if ((e.target as HTMLElement).id === 'dlgbg') close(); });
+    $('#cpsince') && ($('#cpsince')!.onclick = () => { const sr = sinceReview(S.bundle!); if (sr?.n) setFr({ a: sr.at + 1, b: commitList(S.bundle!).length - 1 }); });
+    $('#cpsave')!.onclick = () => { if (S.cpick) setFr({ ...S.cpick }); };
+    const filt = () => { const q = ($<HTMLInputElement>('#cpq')!.value || '').toLowerCase(); S.cfilter = q; qa('.cp-row').forEach((r) => { r.hidden = !!q && !r.textContent.toLowerCase().includes(q); }); };
+    $<HTMLInputElement>('#cpq')!.addEventListener('input', filt); filt();
+    qa('.cp-row').forEach((row) => row.addEventListener('click', (e) => {
       e.preventDefault(); const i = Number(row.dataset.cp), p = S.cpick;
       S.cpick = !p || (p.a !== p.b) ? { a: i, b: i } : { a: Math.min(p.a, i), b: Math.max(p.b, i) };
-      const keep = $('#cplist').scrollTop; S.dialog = commitsDialog(); render(); const l = $('#cplist'); if (l) l.scrollTop = keep;
+      const keep = $('#cplist')!.scrollTop; S.dialog = commitsDialog(); render(); const l = $('#cplist')!; if (l) l.scrollTop = keep;
     }));
   }
-  $('#fsort')?.addEventListener('change', (e) => { S.fileSort = e.target.value; rerender(); });
-  $('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmrfilter'); n.focus(); n.setSelectionRange(p, p); });
-  document.querySelectorAll('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
-  $('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#hmfilter'); n.focus(); n.setSelectionRange(p, p); });
-  $('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = e.target.value; const p = e.target.selectionStart; render(); const n = $('#repofilter'); n.focus(); n.setSelectionRange(p, p); });
-  document.querySelectorAll('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
-  document.querySelectorAll('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
-  document.querySelectorAll('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
-  document.querySelectorAll('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo)));
-  document.querySelectorAll('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps; openRepo(S.repo, { nav: true }); }));
+  $<HTMLSelectElement>('#fsort')?.addEventListener('change', (e) => { S.fileSort = (e.target as HTMLInputElement).value; rerender(); });
+  $<HTMLInputElement>('#hmrfilter')?.addEventListener('input', (e) => { S.recentFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmrfilter')!; n.focus(); n.setSelectionRange(p, p); });
+  qa('[data-rstate]').forEach((b) => b.addEventListener('click', () => { S.recentState = b.dataset.rstate; render(); }));
+  $<HTMLInputElement>('#hmfilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#hmfilter')!; n.focus(); n.setSelectionRange(p, p); });
+  $<HTMLInputElement>('#repofilter')?.addEventListener('input', (e) => { S.repoFilter = (e.target as HTMLInputElement).value; const p = (e.target as HTMLInputElement).selectionStart; render(); const n = $<HTMLInputElement>('#repofilter')!; n.focus(); n.setSelectionRange(p, p); });
+  qa('[data-home]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = ''; S.nav = false; render(); }));
+  qa('[data-owner]').forEach((el) => el.addEventListener('click', () => { S.view = 'home'; S.homeOwner = el.dataset.owner; S.homeTab = 'repos'; S.nav = false; render(); if (S.hasToken && !S.repos) loadRepos(); }));
+  qa('[data-htab]').forEach((el) => el.addEventListener('click', () => { S.homeTab = el.dataset.htab; render(); }));
+  qa('[data-repo]').forEach((el) => el.addEventListener('click', () => openRepo(el.dataset.repo!)));
+  qa('[data-ps]').forEach((el) => el.addEventListener('click', () => { S.prState = el.dataset.ps!; openRepo(S.repo!, { nav: true }); }));
   $('#back')?.addEventListener('click', () => go(-1));
   $('#fwd')?.addEventListener('click', () => go(1));
   $('#reload')?.addEventListener('click', reload);
-  $('#external')?.addEventListener('click', () => openExternal(S.bundle.pull.html_url));
+  $('#external')?.addEventListener('click', () => openExternal(S.bundle!.pull.html_url));
   $('#mode')?.addEventListener('click', (e) => {
-    const btn = e.currentTarget, r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const btn = e.currentTarget as HTMLElement, r = btn.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
     S.mode = isDark() ? 'light' : 'dark'; localStorage.setItem('mode', S.mode);
-    const swap = () => { applyMode(); btn.classList.toggle('dark', isDark()); btn.setAttribute('aria-checked', isDark()); btn.title = `Switch to ${isDark() ? 'light' : 'dark'} mode`; };
-    btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop');
+    const swap = () => { applyMode(); btn!.classList.toggle('dark', isDark()); btn!.setAttribute('aria-checked', String(isDark())); btn!.title = `Switch to ${isDark() ? 'light' : 'dark'} mode`; };
+    btn!.classList.remove('pop'); void btn!.offsetWidth; btn!.classList.add('pop');
     if (!document.startViewTransition) { swap(); return; }
     const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
     document.documentElement.classList.add('vt');
     document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished.finally(() => document.documentElement.classList.remove('vt')));
   });
-  $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($('#addrinput').value); $('#addrinput').blur(); });
+  $('#addr')?.addEventListener('submit', (e) => { e.preventDefault(); openPr($<HTMLInputElement>('#addrinput')!.value); $<HTMLInputElement>('#addrinput')!.blur(); });
   $('#signin')?.addEventListener('click', tokenDialog);
   $('#profbtn')?.addEventListener('click', (e) => {
-    e.stopPropagation(); const had = document.querySelector('.prof-pop'); document.querySelector('.react-pop')?.remove(); if (had) return;
+    e.stopPropagation(); const had = $('.prof-pop')!; $('.react-pop')?.remove(); if (had) return;
     const pr = S.profile, pop = document.createElement('div'); pop.className = 'react-pop cm-pop prof-pop';
-    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr.avatar_url, 80))}" alt=""><div><b>${esc(pr.name || pr.login)}</b><i>@${esc(pr.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="out" class="danger">Sign out</button>`;
-    const r = e.currentTarget.getBoundingClientRect(); pop.style.right = Math.max(8, innerWidth - r.right) + 'px'; pop.style.top = r.bottom + 6 + 'px';
+    pop.innerHTML = `<div class="pp-h"><img src="${esc(avUrl(pr!.avatar_url!, 80))}" alt=""><div><b>${esc(pr!.name || pr!.login)}</b><i>@${esc(pr!.login)}</i></div></div><button data-h="profile">${icon('link-external')} Your GitHub profile</button><button data-h="token">${icon('key')} Access token…</button><button data-h="out" class="danger">Sign out</button>`;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); pop.style.right = Math.max(8, innerWidth - r.right) + 'px'; pop.style.top = r.bottom + 6 + 'px';
     pop.onclick = async (ev) => {
-      const h = ev.target.closest('[data-h]')?.dataset.h; if (!h) return; pop.remove();
-      if (h === 'profile') openExternal(pr.html_url); else if (h === 'token') tokenDialog();
+      const h = (ev.target as HTMLElement).closest<HTMLElement>('[data-h]')?.dataset.h; if (!h) return; pop.remove();
+      if (h === 'profile') openExternal(pr!.html_url!); else if (h === 'token') tokenDialog();
       else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
     };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
   });
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if (e.target.closest('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open, true); } else openFromList(el.dataset.open, false); }));
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open, true); } }));
-  document.querySelectorAll('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
-    e.preventDefault(); e.stopPropagation(); document.querySelector('.react-pop')?.remove();
+  qa('[data-open]').forEach((el) => el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('[data-rm], .np-act, .np-dot')) return; S.nav = false; S.focus = el.dataset.target || ''; const nn = el.dataset.note && S.notes.find((x) => String(x.id) === el.dataset.note); if (nn) { nn.read = true; saveNotes(); } if (e.metaKey || e.ctrlKey) { e.preventDefault(); openFromList(el.dataset.open!, true); } else openFromList(el.dataset.open!, false); }));
+  qa('[data-open]').forEach((el) => el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); openFromList(el.dataset.open!, true); } }));
+  qa('[data-open]').forEach((el) => el.addEventListener('contextmenu', (e) => {
+    e.preventDefault(); e.stopPropagation(); $('.react-pop')?.remove();
     const ref = el.dataset.open, pop = document.createElement('div'); pop.className = 'react-pop cm-pop';
     pop.innerHTML = '<button data-h="new">Open in new tab</button><button data-h="here">Open</button><button data-h="link">Copy link</button>';
     pop.style.left = Math.min(e.clientX, innerWidth - 180) + 'px'; pop.style.top = Math.min(e.clientY, innerHeight - 120) + 'px';
-    pop.onclick = (ev) => { const h = ev.target.dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref, true); else if (h === 'here') openFromList(ref, false); else { const m = ref.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m ? `https://github.com/${m[1]}/pull/${m[2]}` : ref).catch(() => {}); } };
+    pop.onclick = (ev) => { const h = (ev.target as HTMLElement).dataset.h; if (!h) return; pop.remove(); if (h === 'new') openFromList(ref!, true); else if (h === 'here') openFromList(ref!, false); else { const m = ref!.match(/^(.+)#(\d+)$/); navigator.clipboard?.writeText(m! ? `https://github.com/${m[1]}/pull/${m[2]}` : ref!).catch(() => {}); } };
     document.body.appendChild(pop); setTimeout(() => document.addEventListener('click', () => pop.remove(), { once: true }));
   }));
-  document.querySelectorAll('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if (e.target.closest('.pt-x')) return; const t = S.tabs[+el.dataset.tab]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab); } }); });
+  qa('.ptab').forEach((el) => { el.addEventListener('click', (e) => { if ((e.target as HTMLElement).closest<HTMLElement>('.pt-x')) return; const t = S.tabs[+el.dataset.tab!]; if (t.ref !== curRef()) { if (fastTab(t.ref)) return; stashCurrent(); tabSnap(); S.fadeMain = true; S.tabMenu = false; openPr(t.ref, { nav: true, restore: t.tab }); } }); el.addEventListener('auxclick', (e) => { if (e.button === 1) { e.preventDefault(); closeTab(+el.dataset.tab!); } }); });
   // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop).
-  document.querySelectorAll('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
-    if (e.button !== 0 || e.target.closest('.pt-x')) return;
-    const from = +el.dataset.tab, x0 = e.clientX; let moved = false, to = from;
-    const strip = el.parentElement, tabs = [...strip.querySelectorAll('.ptab')];
-    const mv = (ev) => {
+  qa('.ptab').forEach((el) => el.addEventListener('mousedown', (e) => {
+    if (e.button !== 0 || (e.target as HTMLElement).closest<HTMLElement>('.pt-x')) return;
+    const from = +el.dataset.tab!, x0 = e.clientX; let moved = false, to = from;
+    const strip = el.parentElement, tabs = [...strip!.querySelectorAll<HTMLElement>('.ptab')];
+    const mv = (ev: MouseEvent) => {
       if (!moved && Math.abs(ev.clientX - x0) < 6) return;
       if (!moved) { moved = true; el.classList.add('drag'); document.body.classList.add('dragging'); }
       el.style.transform = `translateX(${ev.clientX - x0}px)`;
@@ -154,44 +154,44 @@ export function bind() {
     };
     addEventListener('mousemove', mv); addEventListener('mouseup', up);
   }));
-  document.querySelectorAll('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx); }));
+  qa('.pt-x').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); closeTab(+el.dataset.tabx!); }));
   { const m = $('.pt-menu'), a = $('#tabadd'); if (m && a) { const r = a.getBoundingClientRect(); m.style.top = r.bottom + 4 + 'px'; m.style.left = Math.min(r.left, innerWidth - 350) + 'px'; m.style.marginTop = '0'; } }
   $('#tabadd')?.addEventListener('click', (e) => { e.stopPropagation(); S.tabMenu = !S.tabMenu; rerender(); });
-  document.querySelectorAll('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openFromList(el.dataset.tabnew, true)));
+  qa('[data-tabnew]').forEach((el) => el.addEventListener('click', () => openFromList(el.dataset.tabnew!, true)));
   $('[data-tabhome]')?.addEventListener('click', () => { S.tabMenu = false; S.view = 'home'; render(); });
   $('[data-tabreopen]')?.addEventListener('click', () => { S.tabMenu = false; reopenTab(); });
-  document.querySelectorAll('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
-  document.querySelectorAll('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab; render(); $('.main').scrollTop = 0; }));
+  qa('[data-rm]').forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); S.recent = S.recent.filter((r) => r.ref !== el.dataset.rm); localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent)); S.keepScroll = true; render(); S.keepScroll = false; }));
+  qa('[data-tab]:not(.ptab)').forEach((a) => a.addEventListener('click', () => { S.tab = a.dataset.tab!; render(); $('.main')!.scrollTop = 0; }));
   $('#bell')?.addEventListener('click', (e) => { e.stopPropagation(); setBell(!S.bell); });
-  $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget, true); S.offline = navigator.onLine === false; reload(); });
-  document.querySelectorAll('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare.split('@'); openNewPr(repo, br); }));
-  document.querySelectorAll('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
+  $('#retry')?.addEventListener('click', (ev) => { setBusy(ev.currentTarget as HTMLElement, true); S.offline = navigator.onLine === false; reload(); });
+  qa('[data-compare]').forEach((b) => b.addEventListener('click', () => { const [repo, br] = b.dataset.compare!.split('@'); openNewPr(repo, br); }));
+  qa('[data-pdismiss]').forEach((b) => b.addEventListener('click', () => { pushDis[b.dataset.pdismiss!] = 1; localStorage.setItem('pushdismiss', JSON.stringify(pushDis)); rerender(); }));
   $('#newprbtn')?.addEventListener('click', () => openNewPr());
   $('#npcancel')?.addEventListener('click', () => { S.view = S.bundle ? 'pr' : 'home'; delete S.draft.newpr; render(); });
-  const npSet = (f) => { f(); S.np.key = `${S.np.repo}|${S.np.base}|${S.np.head}`; };
-  $('#nprepo')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'repo', (v) => { npSet(() => { S.np.repo = v; S.np.base = ''; S.np.head = ''; S.np.cmp = null; S.np.titleTouched = false; S.np.title = ''; }); render(); npLoadBranches(S.np.repo); }, true));
-  $('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np.repo = e.target.value.trim(); S.np.base = ''; S.np.head = ''; }); npLoadBranches(S.np.repo); });
-  $('#npbase')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'base', (v) => { npSet(() => { S.np.base = v; }); npCompare(); }));
-  $('#nphead')?.addEventListener('click', (e) => bpOpen(e.currentTarget, 'head', (v) => { npSet(() => { S.np.head = v; S.np.titleTouched = false; }); npCompare(); }));
-  $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np.base, S.np.head] = [S.np.head, S.np.base]; }); npCompare(); });
-  $('#nptpl')?.addEventListener('change', (e) => {
-    const n = S.np, t = n.tpl[`${n.repo}|${n.base}`] || [], cur = (S.draft.newpr || '').trim(), next = e.target.value === '' ? '' : t[+e.target.value].body;
-    if (cur && cur !== n.tplText.trim() && !confirm('Replace what you have written with this template?')) { e.target.value = String(t.findIndex((x) => x.body === n.tplText)); if (e.target.value === '-1') e.target.value = ''; return; }
-    S.draft.newpr = n.tplText = next; saveDrafts(); rerender();
+  const npSet = (f: () => void) => { f(); S.np!.key = `${S.np!.repo}|${S.np!.base}|${S.np!.head}`; };
+  $('#nprepo')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'repo', (v) => { npSet(() => { S.np!.repo = v; S.np!.base = ''; S.np!.head = ''; S.np!.cmp = null; S.np!.titleTouched = false; S.np!.title = ''; }); render(); npLoadBranches(S.np!.repo); }, true));
+  $<HTMLInputElement>('#nprepoin')?.addEventListener('change', (e) => { npSet(() => { S.np!.repo = (e.target as HTMLInputElement).value.trim(); S.np!.base = ''; S.np!.head = ''; }); npLoadBranches(S.np!.repo); });
+  $('#npbase')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'base', (v) => { npSet(() => { S.np!.base = v; }); npCompare(); }));
+  $('#nphead')?.addEventListener('click', (e) => bpOpen(e.currentTarget as HTMLElement, 'head', (v) => { npSet(() => { S.np!.head = v; S.np!.titleTouched = false; }); npCompare(); }));
+  $('#npswap')?.addEventListener('click', () => { npSet(() => { [S.np!.base, S.np!.head] = [S.np!.head, S.np!.base]; }); npCompare(); });
+  $<HTMLSelectElement>('#nptpl')?.addEventListener('change', (e) => {
+    const n = S.np, t = n!.tpl[`${n!.repo}|${n!.base}`] || [], cur = (S.draft.newpr || '').trim(), next = (e.target as HTMLInputElement).value === '' ? '' : t[+(e.target as HTMLInputElement).value].body;
+    if (cur && cur !== n!.tplText.trim() && !confirm('Replace what you have written with this template?')) { (e.target as HTMLInputElement).value = String(t.findIndex((x) => x.body === n!.tplText)); if ((e.target as HTMLInputElement).value === '-1') (e.target as HTMLInputElement).value = ''; return; }
+    S.draft.newpr = n!.tplText = next; saveDrafts(); rerender();
   });
-  $('#nptitle')?.addEventListener('input', (e) => { S.np.title = e.target.value; S.np.titleTouched = true; const ok = S.np.title.trim() && S.np.cmp && typeof S.np.cmp === 'object' && S.np.cmp.ahead_by > 0 && S.np.base !== S.np.head; const b = $('#npcreate'); if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
-  $('#npdraft')?.addEventListener('change', (e) => { S.np.draft = e.target.checked; const b = $('#npcreate'); if (b) b.textContent = S.np.draft ? 'Create draft pull request' : 'Create pull request'; });
+  $<HTMLInputElement>('#nptitle')?.addEventListener('input', (e) => { S.np!.title = (e.target as HTMLInputElement).value; S.np!.titleTouched = true; const ok = S.np!.title.trim() && S.np!.cmp && typeof S.np!.cmp === 'object' && S.np!.cmp.ahead_by > 0 && S.np!.base !== S.np!.head; const b = $<HTMLButtonElement>('#npcreate')!; if (b && !b.classList.contains('is-busy')) b.disabled = !ok; });
+  $<HTMLInputElement>('#npdraft')?.addEventListener('change', (e) => { S.np!.draft = (e.target as HTMLInputElement).checked; const b = $('#npcreate')!; if (b) b.textContent = S.np!.draft ? 'Create draft pull request' : 'Create pull request'; });
   bindNpMeta();
   $('#npcreate')?.addEventListener('click', async (e) => {
-    const n = S.np, btn = e.currentTarget; setBusy(btn, true); n.err = '';
+    const n = S.np, btn = e.currentTarget as HTMLButtonElement; setBusy(btn, true); n!.err = '';
     try {
-      const nums = [...new Set((n.issues.match(/\d+/g) || []))];
+      const nums = [...new Set((n!.issues.match(/\d+/g) || []))];
       const body = ((S.draft.newpr || '').trim() + (nums.length ? `\n\n${nums.map((x) => `Closes #${x}`).join('\n')}` : '')).trim();
-      const extra = { reviewers: n.reviewers, assignees: n.assignees, labels: n.labels, milestone: n.milestone ? Number(n.milestone) : null };
-      const r = await tauri.invoke('create_pr', { repo: n.repo, base: n.base, head: n.head, title: n.title, body, draft: n.draft, extra });
+      const extra = { reviewers: n!.reviewers, assignees: n!.assignees, labels: n!.labels, milestone: n!.milestone ? Number(n!.milestone) : null };
+      const r = await tauri!.invoke('create_pr', { repo: n!.repo, base: n!.base, head: n!.head, title: n!.title, body, draft: n!.draft, extra });
       const warn = r.warnings?.length ? `Created, but ${r.warnings.join(' · ')}` : '';
-      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
-    } catch (err) { setBusy(btn, false); n.err = String(err).replace(/^Error: /, ''); rerender(); }
+      delete S.draft.newpr; saveDrafts(); S.np = null; confetti(); await openPr(`${n!.repo}#${r.number}`, { nav: true }); if (warn) { S.actErr = { k: 'comment', m: warn }; rerender(); }
+    } catch (err) { setBusy(btn!, false); n!.err = String(err).replace(/^Error: /, ''); rerender(); }
   });
   $('#inboxbtn')?.addEventListener('click', openInbox);
   $('#ibrefresh')?.addEventListener('click', () => loadInbox(true));
@@ -199,46 +199,46 @@ export function bind() {
   $('#npcheck')?.addEventListener('click', () => pollNotes());
   $('#npreadall')?.addEventListener('click', () => { S.notes.forEach((n) => (n.read = true)); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
   $('#npclear')?.addEventListener('click', () => { S.notes = []; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; });
-  document.querySelectorAll('[data-nf]').forEach((b) => b.addEventListener('click', () => { S.nf = b.dataset.nf; S.keepScroll = true; render(); S.keepScroll = false; }));
-  document.querySelectorAll('[data-nread]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const n = S.notes.find((x) => String(x.id) === b.dataset.nread); if (n) { n.read = !n.read; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; } }));
-  document.querySelectorAll('[data-ndel]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.notes = S.notes.filter((x) => String(x.id) !== b.dataset.ndel); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; }));
+  qa('[data-nf]').forEach((b) => b.addEventListener('click', () => { S.nf = b.dataset.nf; S.keepScroll = true; render(); S.keepScroll = false; }));
+  qa('[data-nread]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); const n = S.notes.find((x) => String(x.id) === b.dataset.nread); if (n) { n.read = !n.read; saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; } }));
+  qa('[data-ndel]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); S.notes = S.notes.filter((x) => String(x.id) !== b.dataset.ndel); saveNotes(); S.keepScroll = true; render(); S.keepScroll = false; }));
   $('#notecheck')?.addEventListener('click', () => pollNotes());
   $('#noteclear')?.addEventListener('click', () => { S.notes = []; localStorage.setItem('notes', '[]'); S.keepScroll = true; render(); S.keepScroll = false; });
-  document.querySelectorAll('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
-  const keep = (fn) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
+  qa('.note-panel [data-open]').forEach((el) => el.addEventListener('click', () => { S.bell = false; S.notes.forEach((n) => (n.read = true)); localStorage.setItem('notes', JSON.stringify(S.notes)); }));
+  const keep = (fn: () => void) => { S.keepScroll = true; fn(); render(); S.keepScroll = false; };
   // Folding only flips a class and the chevron: no redraw, so the scroll position and images stay put.
-  { const els = [...document.querySelectorAll('.TL [data-fold]')], l = $('#foldallconv span'); if (l && els.length && els.every((x) => isFolded(x.dataset.fold, x.dataset.def === '1'))) l.textContent = 'Expand all conversations'; }
+  { const els = [...qa('.TL [data-fold]')], l = $('#foldallconv span'); if (l && els.length && els.every((x) => isFolded(x.dataset.fold!, x.dataset.def === '1'))) l.textContent = 'Expand all conversations'; }
   $('#foldallconv')?.addEventListener('click', () => {
-    const els = [...document.querySelectorAll('.TL [data-fold]')]; if (!els.length) return;
-    const now = els.some((x) => !isFolded(x.dataset.fold, x.dataset.def === '1'));
+    const els = [...qa('.TL [data-fold]')]; if (!els.length) return;
+    const now = els.some((x) => !isFolded(x.dataset.fold!, x.dataset.def === '1'));
     els.forEach((x) => {
-      S.fold[x.dataset.fold] = now;
-      const box = x.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
-      const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
+      S.fold[x.dataset.fold!] = now;
+      const box = x.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
+      const svg = $('svg', x); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
     try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ }
-    $('#foldallconv span').textContent = now ? 'Expand all conversations' : 'Collapse all conversations';
+    $('#foldallconv span')!.textContent = now ? 'Expand all conversations' : 'Collapse all conversations';
   });
-  document.querySelectorAll('[data-fold]').forEach((el) => el.addEventListener('click', (e) => {
-    e.stopPropagation(); if (e.target.closest('a')) return;
-    const k = el.dataset.fold, now = !isFolded(k, el.dataset.def === '1'); S.fold[k] = now; localStorage.setItem('fold', JSON.stringify(S.fold));
-    document.querySelectorAll('[data-fold]').forEach((x) => {
+  qa('[data-fold]').forEach((el) => el.addEventListener('click', (e) => {
+    e.stopPropagation(); if ((e.target as HTMLElement).closest<HTMLElement>('a')) return;
+    const k = el.dataset.fold, now = !isFolded(k!, el.dataset.def === '1'); S.fold[k!] = now; localStorage.setItem('fold', JSON.stringify(S.fold));
+    qa('[data-fold]').forEach((x) => {
       if (x.dataset.fold !== k) return;
-      const box = x.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
-      const svg = x.querySelector('svg'); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
+      const box = x.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'); if (box) box.classList.toggle('folded', now);
+      const svg = $('svg', x); if (svg) svg.outerHTML = icon(now ? 'chevron-right' : 'chevron-down');
     });
-    if (!now && k.startsWith('f:')) { const fb = el.closest('.file'); if (fb && !fb.querySelector('table.diff, .diff-empty')) { rerender(); return; } }
+    if (!now && k!.startsWith('f:')) { const fb = el.closest<HTMLElement>('.file'); if (fb && !$('table.diff, .diff-empty', fb)) { rerender(); return; } }
     if (now) return;
     // Opened: make sure the block is on screen (only scroll when part of it is cut off).
-    const box = el.closest('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
+    const box = el.closest<HTMLElement>('.fold-sec, .thread, .TLI, .tl-comment, .file, .pg, .sb-item, .pane'), main = $('.main'); if (!box || !main || !main.contains(box)) return;
     const r = box.getBoundingClientRect(), m = main.getBoundingClientRect();
     if (r.bottom > m.bottom - 8 || r.top < m.top) box.scrollIntoView({ block: r.height > m.height * 0.85 ? 'start' : 'center', behavior: 'smooth' });
   }));
-  document.querySelectorAll('[data-foldall]').forEach((el) => el.addEventListener('click', () => keep(() => { el.dataset.files.split('\n').forEach((n) => { S.fold['f:' + n] = el.dataset.foldall === 'close'; }); localStorage.setItem('fold', JSON.stringify(S.fold)); })));
-  document.querySelectorAll('[data-hide]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.hide] = true; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
-  document.querySelectorAll('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
-  document.querySelectorAll('[data-who]').forEach((el) => el.addEventListener('click', () => keep(() => { const w = el.dataset.who; S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; })));
-  document.querySelectorAll('[data-whoclear]').forEach((el) => el.addEventListener('click', () => keep(() => { S.who = []; })));
+  qa('[data-foldall]').forEach((el) => el.addEventListener('click', () => keep(() => { el.dataset.files!.split('\n').forEach((n) => { S.fold['f:' + n] = el.dataset.foldall === 'close'; }); localStorage.setItem('fold', JSON.stringify(S.fold)); })));
+  qa('[data-hide]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.hide!] = true; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
+  qa('[data-show]').forEach((el) => el.addEventListener('click', () => keep(() => { S.hide[el.dataset.show!] = false; localStorage.setItem('hide', JSON.stringify(S.hide)); })));
+  qa('[data-who]').forEach((el) => el.addEventListener('click', () => keep(() => { const w = el.dataset.who!; S.who = S.who.includes(w) ? S.who.filter((x) => x !== w) : [...S.who, w]; })));
+  qa('[data-whoclear]').forEach((el) => el.addEventListener('click', () => keep(() => { S.who = []; })));
   $('#navbtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     if (matchMedia('(min-width: 901px)').matches) { S.hide.nav = !S.hide.nav; try { localStorage.setItem('hide', JSON.stringify(S.hide)); } catch { /* storage full */ } $('.shell')?.classList.toggle('nav-hidden', S.hide.nav); return; }
@@ -246,36 +246,36 @@ export function bind() {
   });
   $('#scrim')?.addEventListener('click', () => keep(() => { S.nav = false; }));
   $('#nextun')?.addEventListener('click', jumpUnresolved);
-  $('#crange')?.addEventListener('change', (e) => keep(() => { S.range = e.target.value; if (S.range === 'custom' && !S.rFrom && !S.rTo) { const d = (t) => new Date(t - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); S.rTo = d(Date.now()); S.rFrom = d(Date.now() - 7 * 864e5); } }));
-  $('#cfrom')?.addEventListener('change', (e) => keep(() => { S.rFrom = e.target.value; }));
-  $('#cto')?.addEventListener('change', (e) => keep(() => { S.rTo = e.target.value; }));
+  $<HTMLSelectElement>('#crange')?.addEventListener('change', (e) => keep(() => { S.range = (e.target as HTMLInputElement).value; if (S.range === 'custom' && !S.rFrom && !S.rTo) { const d = (t: number) => new Date(t - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10); S.rTo = d(Date.now()); S.rFrom = d(Date.now() - 7 * 864e5); } }));
+  $<HTMLInputElement>('#cfrom')?.addEventListener('change', (e) => keep(() => { S.rFrom = (e.target as HTMLInputElement).value; }));
+  $<HTMLInputElement>('#cto')?.addEventListener('change', (e) => keep(() => { S.rTo = (e.target as HTMLInputElement).value; }));
   $('#csort')?.addEventListener('click', () => keep(() => { S.sort = S.sort === 'desc' ? 'asc' : 'desc'; localStorage.setItem('csort', S.sort); }));
   $('#unres')?.addEventListener('click', () => keep(() => { S.unres = !S.unres; }));
   (S.ios || []).forEach((o) => o.disconnect()); S.ios = [];
-  { const mn = $('.main'); if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
+  { const mn = $('.main')!; if (mn && S.view === 'pr') { let raf = 0; mn.addEventListener('scroll', () => { if (S.restoring || raf) return; raf = requestAnimationFrame(() => { raf = 0; const t = S.tabs[tabIdx()]; if (t) { t.scroll = mn.scrollTop; t.tab = S.tab; } }); }, { passive: true }); } }
   bindSticky();
   $('#sidetoggle')?.addEventListener('click', () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }));
-  document.querySelectorAll('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
+  qa('[data-flip]').forEach((b) => b.addEventListener('click', flipSides));
   $('#split')?.addEventListener('click', () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }));
-  document.querySelectorAll('[data-sha]').forEach((el) => el.addEventListener('click', () => selectCommit(el.dataset.sha)));
+  qa('[data-sha]').forEach((el) => el.addEventListener('click', () => selectCommit(el.dataset.sha!)));
   $('#sbgrip')?.addEventListener('mousedown', (e) => {
     e.preventDefault(); const sh = $('.shell'), x0 = e.clientX, w0 = S.sbw;
-    const mv = (ev) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); sh.style.setProperty('--sbw', S.sbw + 'px'); };
+    const mv = (ev: MouseEvent) => { S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0)); sh!.style.setProperty('--sbw', S.sbw + 'px'); };
     const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('sbw', String(Math.round(S.sbw))); };
     document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
   });
   $('#sbgrip')?.addEventListener('dblclick', () => { S.sbw = 260; localStorage.setItem('sbw', '260'); S.keepScroll = true; render(); S.keepScroll = false; });
   $('#gutter')?.addEventListener('mousedown', (e) => {
-    e.preventDefault(); const sp = $('.split'), r = sp.getBoundingClientRect();
-    const mv = (ev) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); sp.style.setProperty('--lw', S.lw + '%'); };
+    e.preventDefault(); const sp = $('.split'), r = sp!.getBoundingClientRect();
+    const mv = (ev: MouseEvent) => { S.lw = Math.max(25, Math.min(75, ((S.flip ? r.right - ev.clientX : ev.clientX - r.left) / r.width) * 100)); sp!.style.setProperty('--lw', S.lw + '%'); };
     const up = () => { removeEventListener('mousemove', mv); removeEventListener('mouseup', up); document.body.classList.remove('dragging'); localStorage.setItem('lw', String(Math.round(S.lw))); };
     document.body.classList.add('dragging'); addEventListener('mousemove', mv); addEventListener('mouseup', up);
   });
   $('#rvtoggle')?.addEventListener('click', () => { S.showAllReviewers = !S.showAllReviewers; S.keepScroll = true; render(); S.keepScroll = false; });
-  $('#copybranch')?.addEventListener('click', () => navigator.clipboard?.writeText(S.bundle.pull.head.ref));
-  document.querySelectorAll('a[href]').forEach((a) => a.addEventListener('click', (e) => {
+  $('#copybranch')?.addEventListener('click', () => navigator.clipboard?.writeText(S.bundle!.pull.head.ref));
+  qa('a[href]').forEach((a) => a.addEventListener('click', (e) => {
     e.preventDefault(); const h = a.getAttribute('href');
-    if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h)) openPr(h); else if (/^https?:\/\//.test(h)) openExternal(h);
+    if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h!)) openPr(h!); else if (/^https?:\/\//.test(h!)) openExternal(h!);
   }));
 }
 
@@ -300,21 +300,21 @@ export function tokenDialog() {
 export const tokDlgHtml = () => `<div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo">Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">${S.oauthHtml || ''}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&amp;description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" placeholder="ghp_…" style="width:100%;box-sizing:border-box"><div class="btns"><button class="btn" id="tokcancel">Cancel</button><button class="btn primary" id="toksave">Save</button></div></div></div>`;
 
 export function bindTokenDialog() {
-  if (!$('#tokeninput')) return;
-  $('#tokcancel').onclick = () => { S.oauthLive = false; S.dialog = ''; render(); };
-  $('#toksave').onclick = async () => { const v = $('#tokeninput').value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); S.authChecked = true; if (S.hasToken) { S.gateErr = ''; loadRepos(); } else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
-  $('#oauthgo').onclick = async () => {
-    const show = (h) => { S.oauthHtml = h; if (S.dialog) { render(); } };
-    $('#oauthgo').disabled = true; S.oauthLive = true; const me = S.oauthRun = (S.oauthRun || 0) + 1;
+  if (!$<HTMLInputElement>('#tokeninput')) return;
+  $('#tokcancel')!.onclick = () => { S.oauthLive = false; S.dialog = ''; render(); };
+  $('#toksave')!.onclick = async () => { const v = $<HTMLInputElement>('#tokeninput')!.value; try { await tauri?.invoke('set_token', { token: v }); S.hasToken = !!v.trim(); S.authChecked = true; if (S.hasToken) { S.gateErr = ''; loadRepos(); } else { S.repos = null; } } catch (e) { alert(e); } S.oauthLive = false; S.dialog = ''; render(); };
+  $('#oauthgo')!.onclick = async () => {
+    const show = (h: string) => { S.oauthHtml = h; if (S.dialog) { render(); } };
+    $<HTMLButtonElement>('#oauthgo')!.disabled = true; S.oauthLive = true; const me = S.oauthRun = (S.oauthRun || 0) + 1;
     try {
-      const d = await tauri.invoke('device_start');
+      const d = await tauri!.invoke('device_start');
       show(`<div class="oauth-code"><span>Enter this code on GitHub</span><b>${esc(d.user_code)}</b><small>Waiting for approval…</small></div>`);
-      tauri.invoke('open_external', { url: d.verification_uri }).catch(() => {});
+      tauri!.invoke('open_external', { url: d.verification_uri }).catch(() => {});
       let wait = (d.interval || 5) * 1000; const until = Date.now() + (d.expires_in || 900) * 1000;
       while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
         await new Promise((r) => setTimeout(r, wait));
         if (!S.oauthLive || S.oauthRun !== me) return;
-        const st = await tauri.invoke('device_poll', { deviceCode: d.device_code });
+        const st = await tauri!.invoke('device_poll', { deviceCode: d.device_code });
         if (st === 'slow_down') wait += 5000;
         if (st === 'ok') { S.oauthLive = false; S.hasToken = true; S.gateErr = ''; S.dialog = ''; loadRepos(); return; }
       }
