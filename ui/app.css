@@ -1047,3 +1047,10 @@ table.diff { contain: layout paint; }
 .gear-btn { background: none; border: 0; color: var(--fgColor-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: inline-flex; } .gear-btn:hover { background: var(--bgColor-neutral-muted); color: var(--fgColor-default); }
 .sb-item > .ro-grip { right: 6px; top: 6px; } .sb-item .sb-head { padding-right: 34px; }
 .mt-av { border-radius: 50%; } .mt-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+/* Inbox: pin, snooze, selection and saved views. */
+.ib-row { position: relative; } .ib-row.sel { outline: 2px solid var(--fgColor-accent); outline-offset: -2px; background: var(--bgColor-accent-muted); }
+.ib-row.pinned .ib-t b::before { content: '★ '; color: var(--fgColor-attention, #d29922); }
+.ib-acts { display: inline-flex; gap: 4px; margin-left: auto; opacity: 0; transition: opacity .12s; } .ib-row:hover .ib-acts, .ib-row.sel .ib-acts { opacity: 1; }
+.ib-acts button { background: none; border: 1px solid var(--borderColor-muted); color: var(--fgColor-muted); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; } .ib-acts button:hover, .ib-acts button.on { color: var(--fgColor-default); background: var(--bgColor-neutral-muted); }
+.ib-snz { font-size: 12px; color: var(--fgColor-muted); white-space: nowrap; }
+.ib-views { display: inline-flex; gap: 8px; align-items: center; margin-left: auto; } .ib-views input { height: 30px; }

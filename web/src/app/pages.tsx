@@ -19,6 +19,7 @@ import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
 import type { ShellProps } from '../components/Shell';
 import { roCls } from './reorder';
+import { ibPins, ibViews, isSnoozed, snoozeLabel } from './inboxtools';
 import { scrollBtn, scrolled } from './scrolling';
 import { request } from '../components/req';
 import { batch, beginDrag, setDragging, setGate, setShell, shellProps } from './frame';
@@ -136,16 +137,24 @@ const ibCmp = (k: string): ((a: InboxItem, b: InboxItem) => number) => {
   }
 };
 export const ibSecKey = (title: string) => 'ib:' + title;
-export const IB_TITLES = ['Review requested', 'Ready to merge', 'Mentioned', 'Participated', 'Your pull requests', 'Recently closed or merged'];
+export const IB_TITLES = ['Pinned', 'Review requested', 'Ready to merge', 'Mentioned', 'Participated', 'Your pull requests', 'Recently closed or merged', 'Snoozed'];
 // The section order is the user's: saved as a list of titles, with any section not in it kept in its default place.
-export const ibOrder = () => { const saved = S.ibOrder || []; return [...saved.filter((t) => IB_TITLES.includes(t)), ...IB_TITLES.filter((t) => !saved.includes(t))]; };
+export const ibOrder = () => { const saved = S.ibOrder || []; return [...(saved.includes('Pinned') ? [] : ['Pinned']), ...saved.filter((t) => IB_TITLES.includes(t)), ...IB_TITLES.filter((t) => !saved.includes(t) && t !== 'Pinned')]; };
 export function inboxProps(): InboxProps {
   const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data, q = (S.ibQ || '').toLowerCase(), cmp = ibCmp(S.ibSort || 'updated');
-  const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0 }; };
-  const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x) => !q || `${x.title} ${x.repo} ${x.user} #${x.number}`.toLowerCase().includes(q)).sort(cmp).map(row) });
-  const all = d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []), sec('Participated', 'Open PRs you commented on or reviewed', d.participated || []), sec('Your pull requests', 'Open PRs you opened', d.mine), sec('Recently closed or merged', 'PRs you were involved in', d.closed || [])] : null;
+  const pins = ibPins();
+  const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0, updated: p.updated_at, pinned: pins.includes(ref), snz: snoozeLabel(ref), sel: S.ibSel === ref, snzOpen: S.ibSnzOpen === ref }; };
+  const refOf = (x: InboxItem) => `${x.repo}#${x.number}`, match = (x: InboxItem) => !q || `${x.title} ${x.repo} ${x.user} #${x.number}`.toLowerCase().includes(q);
+  const lists: [string, string, InboxItem[]][] = d ? [['Review requested', 'Waiting on you', d.requested], ['Ready to merge', 'Your approved pull requests', d.ready], ['Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []], ['Participated', 'Open PRs you commented on or reviewed', d.participated || []], ['Your pull requests', 'Open PRs you opened', d.mine], ['Recently closed or merged', 'PRs you were involved in', d.closed || []]] : [];
+  // Snoozed PRs leave every list; pinned ones move up into their own section.
+  const everything = new Map<string, InboxItem>(); lists.forEach(([, , l]) => l.forEach((x) => everything.has(refOf(x)) || everything.set(refOf(x), x)));
+  const snoozed = [...everything.values()].filter((x) => isSnoozed(refOf(x), x.updated_at)), hidden = new Set(snoozed.map(refOf));
+  const pinned = [...everything.values()].filter((x) => pins.includes(refOf(x)) && !hidden.has(refOf(x)));
+  const taken = new Set([...hidden, ...pinned.map(refOf)]);
+  const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter(match).sort(cmp).map(row) });
+  const all = d ? [...(pinned.length ? [sec('Pinned', 'Kept on top', pinned)] : []), ...lists.map(([t, s, l]) => sec(t, s, l.filter((x) => !taken.has(refOf(x))))), ...(snoozed.length ? [sec('Snoozed', 'Hidden until their time is up or they have new activity', snoozed)] : [])] : null;
   const order = ibOrder();
-  return ({ loading: !!I.loading, err: I.err || '', sort: S.ibSort || 'updated', sorts: IB_SORTS, q: S.ibQ || '', custom: !!S.ibOrder?.length, secs: all ? all.sort((x, y) => order.indexOf(x.title) - order.indexOf(y.title)).map((x, i, l) => ({ ...x, first: i === 0, last: i === l.length - 1, ro: roCls('ib', x.title) })) : null });
+  return ({ loading: !!I.loading, err: I.err || '', sort: S.ibSort || 'updated', sorts: IB_SORTS, q: S.ibQ || '', custom: !!S.ibOrder?.length, views: ibViews().map((v) => v.name), view: S.ibView || '', naming: !!S.ibNaming, secs: all ? all.sort((x, y) => order.indexOf(x.title) - order.indexOf(y.title)).map((x, i, l) => ({ ...x, first: i === 0, last: i === l.length - 1, ro: roCls('ib', x.title) })) : null });
 }
 
 

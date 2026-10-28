@@ -1,3 +1,4 @@
+import { inboxKey } from './inboxtools';
 import { focusDraft, rerender, scrollDraft, setDiffMode } from './actions';
 import { toggleSplit } from './pr';
 import { $, S, qa } from './core';
@@ -50,6 +51,7 @@ export function shortcut(e: KeyboardEvent) {
   if (e.key === 'Escape' && !e.defaultPrevented && (e.target as HTMLElement).closest?.('#composer') && !$('.tt-slash')) { e.preventDefault(); (e.target as HTMLElement).blur?.(); setComposer(false); return; }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); return; }
   if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target) || $('.palette, .dlg-bg')) return;
+  if (S.view === 'inbox' && inboxKey(e)) return;
   if (e.key === 'j') kbStep(1); else if (e.key === 'k') kbStep(-1);
   else if (e.key === ']') kbStep(1, openThreads!); else if (e.key === '[') kbStep(-1, openThreads!);
   else if (e.key === '?') showHelp();

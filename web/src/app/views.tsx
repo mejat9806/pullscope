@@ -6,6 +6,7 @@ import { openAux, openClick, openCtx } from './bind';
 import { rerender, saveDrafts, setBusy, syncDraft } from './actions';
 import { bpOpen } from './addressbar';
 import { roGrip, roMove } from './reorder';
+import { ibPin, ibSnooze, viewApply, viewDelete, viewSave } from './inboxtools';
 import { S, tauri } from './core';
 import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
@@ -63,6 +64,8 @@ const inbox: InboxHandlers = {
   move: (t, by) => { const o = ibOrder(), i = o.indexOf(t), j = i + by; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; roMove(IB_SEL, t, () => ibSave(o)); },
   grip: ibGrip,
   resetOrder: () => ibSave([]),
+  pin: ibPin, snooze: ibSnooze, snoozeMenu: (r) => { S.ibSnzOpen = S.ibSnzOpen === r ? '' : r; render(); },
+  viewApply, viewSave, viewDelete, viewNaming: (on) => { S.ibNaming = on; render(); },
   foldAll: (closed) => { IB_TITLES.forEach((t) => { S.fold[ibSecKey(t)] = closed; }); foldSave(); },
 };
 
