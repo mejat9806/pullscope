@@ -14,7 +14,7 @@ import {
 } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
 import { appState, isDark, isOff, tauri } from './core';
-import { closePop, openPop } from './dialogs';
+import { closePop, openPop, paintDlg } from './dialogs';
 import { beginDrag, setSlot } from './frame';
 import { openPr, reload } from './nav';
 import { setBell } from './notes';
@@ -77,13 +77,6 @@ const mode = (event: MouseEvent) => {
   );
 };
 
-const dense = () => document.documentElement.classList.contains('dense');
-
-document.documentElement.classList.toggle(
-  'dense',
-  localStorage.getItem('dense') === '1',
-);
-
 const prof = (event: MouseEvent) => {
   event.stopPropagation();
 
@@ -102,7 +95,6 @@ const prof = (event: MouseEvent) => {
     top: rect.bottom + 6,
     name: pr.name || pr.login,
     ver: appState.ver,
-    dense: dense(),
     login: pr.login,
     avatar: avUrl(pr.avatar_url!, 80),
     pick: async hash => {
@@ -114,14 +106,9 @@ const prof = (event: MouseEvent) => {
         tokenDialog();
       } else if (hash === 'repos') {
         repoPickOpen();
-      } else if (hash === 'dense') {
-        document.documentElement.classList.toggle('dense', !dense());
-
-        try {
-          localStorage.setItem('dense', dense() ? '1' : '0');
-        } catch {
-          /* ignore */
-        }
+      } else if (hash === 'appearance') {
+        appState.dlg = { k: 'appearance' };
+        paintDlg();
       } else {
         try {
           await tauri?.invoke('set_token', { token: '' });

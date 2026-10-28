@@ -2,7 +2,7 @@
 html { font-size: 16px; }
 body {
   margin: 0; font-size: 14px; line-height: 1.5;
-  font-family: -apple-system, "system-ui", "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family: var(--ui-font, -apple-system, "system-ui", "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif), "Apple Color Emoji", "Segoe UI Emoji";
   color: var(--fgColor-default); background: var(--bgColor-default);
   -webkit-font-smoothing: antialiased;
 }
@@ -97,8 +97,8 @@ html, body { height: 100%; overflow: hidden; }
 .assoc { display: inline-block; font-size: 12px; font-weight: 500; line-height: 18px; padding: 0 7px; border: 1px solid var(--borderColor-default); border-radius: 2em; color: var(--fgColor-muted); }
 .kebab { background: none; border: 0; color: var(--fgColor-muted); padding: 6px 8px; border-radius: 6px; cursor: pointer; display: inline-flex; }
 .kebab:hover { background: var(--bgColor-neutral-muted); }
-.cbody { padding: 16px; font-size: 14px; word-wrap: break-word; }
-.cbody .markdown-body, .markdown-body { font-size: 14px; line-height: 1.5; color: var(--fgColor-default); background: transparent; font-family: inherit; }
+.cbody { padding: 16px; font-size: calc(14px * var(--text-scale, 1)); word-wrap: break-word; }
+.cbody .markdown-body, .markdown-body { font-size: calc(14px * var(--text-scale, 1)); line-height: 1.5; color: var(--fgColor-default); background: transparent; font-family: inherit; }
 .cbody .markdown-body > *:last-child { margin-bottom: 0 !important; }
 .cbody .markdown-body > *:first-child { margin-top: 0 !important; }
 .cbody .empty { color: var(--fgColor-muted); font-style: italic; }
@@ -117,7 +117,7 @@ html, body { height: 100%; overflow: hidden; }
 .TLI-badge.success { background: var(--bgColor-success-emphasis); color: #fff; }
 .TLI-badge.danger { background: var(--bgColor-danger-emphasis); color: #fff; }
 .TLI-badge.opened { background: var(--bgColor-success-emphasis); color: #fff; }
-.TLI-body { min-width: 0; max-width: 100%; margin-top: 0; min-height: 32px; flex: auto; color: var(--fgColor-muted); font-size: 14px; display: flex; flex-direction: column; justify-content: center; }
+.TLI-body { min-width: 0; max-width: 100%; margin-top: 0; min-height: 32px; flex: auto; color: var(--fgColor-muted); font-size: calc(14px * var(--text-scale, 1)); display: flex; flex-direction: column; justify-content: center; }
 .TLI-body .row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; line-height: 24px; }
 .TLI-body a.actor, .TLI-body a.actor-b { color: var(--fgColor-default); font-weight: 600; }
 .TLI-body .time { color: var(--fgColor-muted); text-decoration: underline; text-underline-offset: 2px; }
@@ -209,7 +209,7 @@ html, body { height: 100%; overflow: hidden; }
 .file-head .sq i { width: 8px; height: 8px; background: var(--bgColor-neutral-muted); display: block; }
 .file-head .sq i.a { background: var(--bgColor-success-emphasis); } .file-head .sq i.d { background: var(--bgColor-danger-emphasis); }
 .file-head .tgl { background: none; border: 0; color: var(--fgColor-muted); cursor: pointer; padding: 4px; border-radius: 6px; display: inline-flex; }
-table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 12px; line-height: 20px; tab-size: 8; }
+table.diff { width: 100%; border-collapse: collapse; table-layout: fixed; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: var(--code-size, 12px); line-height: calc(var(--code-size, 12px) + 8px); tab-size: 8; }
 table.diff td { padding: 0; vertical-align: top; }
 td.num { width: 50px; min-width: 50px; padding: 0 10px; text-align: right; color: var(--fgColor-muted); user-select: none; white-space: nowrap; cursor: default; }
 td.code { padding: 0 10px 0 22px; white-space: pre-wrap; word-wrap: break-word; position: relative; }

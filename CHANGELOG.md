@@ -4,6 +4,13 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Appearance settings** (account menu → *Appearance…*): choose the font (System, Classic, Serif, Rounded, Monospace), the reading text size, the code size in diffs, the whole-window zoom and comfortable or compact lists, with a live preview and a Reset button. Saved on this machine.
+
+### Changed
+- Narrow windows: the toolbar keeps the address bar, new tab, notifications, theme switch and account button and folds the rest away, so nothing is cut off on a phone-sized window; dialogs fit the window width.
+- The *Compact lists* entry moved from the account menu into Appearance.
+
 ## [1.3.2]
 
 ### Added

@@ -1,6 +1,13 @@
+import {
+  CODE_SIZES,
+  FONT_LABELS,
+  FONT_STACKS,
+  TEXT_SIZES,
+} from '../app/appearance';
 import { DraftBox } from './Actions';
 import { CommitsDialog } from './Merge';
 
+import type { Appearance, FontChoice } from '../app/appearance';
 import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
 
@@ -113,6 +120,131 @@ export const EditPrDialog = (
           onClick={otherValue.ok}
         >
           Save
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export interface AppearanceDlgProps {
+  value: Appearance;
+  zoom: number;
+  change: (patch: Partial<Appearance>) => void;
+  zoomTo: (level: number) => void;
+  reset: () => void;
+  close: () => void;
+}
+
+const ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5];
+
+export const AppearanceDialog = (props: AppearanceDlgProps) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide ap-dlg">
+      <h2>Appearance</h2>
+      <div class="ap-row">
+        <span>Font</span>
+        <div class="seg">
+          {(Object.keys(FONT_LABELS) as FontChoice[]).map(font => (
+            <button
+              key={font}
+              class={props.value.font === font ? 'on' : ''}
+              style={`font-family:${FONT_STACKS[font]}`}
+              title={`Use the ${FONT_LABELS[font]} font`}
+              onClick={() => props.change({ font })}
+            >
+              {FONT_LABELS[font]}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="ap-row">
+        <span>Reading text size</span>
+        <div class="seg">
+          {TEXT_SIZES.map(size => (
+            <button
+              key={size}
+              class={props.value.textSize === size ? 'on' : ''}
+              title={`Comments and descriptions at ${size}%`}
+              onClick={() => props.change({ textSize: size })}
+            >
+              {size}%
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="ap-row">
+        <span>Code size</span>
+        <div class="seg">
+          {CODE_SIZES.map(size => (
+            <button
+              key={size}
+              class={props.value.codeSize === size ? 'on' : ''}
+              title={`Diffs and code at ${size}px`}
+              onClick={() => props.change({ codeSize: size })}
+            >
+              {size}px
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="ap-row">
+        <span>Whole interface</span>
+        <div class="seg">
+          {ZOOM_STEPS.map(level => (
+            <button
+              key={level}
+              class={Math.abs(props.zoom - level) < 0.02 ? 'on' : ''}
+              title={`Zoom the whole window to ${Math.round(level * 100)}% (Ctrl/⌘ + and −)`}
+              onClick={() => props.zoomTo(level)}
+            >
+              {Math.round(level * 100)}%
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="ap-row">
+        <span>Lists</span>
+        <div class="seg">
+          <button
+            class={props.value.dense ? '' : 'on'}
+            title="Roomy rows in the Inbox and sidebar"
+            onClick={() => props.change({ dense: false })}
+          >
+            Comfortable
+          </button>
+          <button
+            class={props.value.dense ? 'on' : ''}
+            title="Tighter rows in the Inbox and sidebar"
+            onClick={() => props.change({ dense: true })}
+          >
+            Compact
+          </button>
+        </div>
+      </div>
+      <div class="ap-sample">
+        <b>Preview</b>
+        <p>
+          Looks good to me. One nit: rename <code>cfg</code> to{' '}
+          <code>config</code>.
+        </p>
+        <pre>
+          {'const total = items.reduce((sum, item) => sum + item.price, 0);'}
+        </pre>
+      </div>
+      <div class="btns">
+        <button
+          class="btn"
+          title="Put every appearance setting back to its default"
+          onClick={props.reset}
+        >
+          Reset
+        </button>
+        <button
+          class="btn primary"
+          title="Close the appearance settings"
+          onClick={props.close}
+        >
+          Done
         </button>
       </div>
     </div>

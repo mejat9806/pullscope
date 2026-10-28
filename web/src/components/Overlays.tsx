@@ -11,7 +11,6 @@ export interface ProfPopProps {
   login: string;
   avatar: string;
   ver?: string;
-  dense?: boolean;
   pick: (hash: string) => void;
 }
 
@@ -42,12 +41,11 @@ export const ProfPop = (props: ProfPopProps) => (
       {renderIcon('repo')} Choose repositories…
     </button>
     <button
-      title="Switch between comfortable and compact lists"
-      data-h="dense"
-      onClick={() => props.pick('dense')}
+      title="Change the font, text size and list density"
+      data-h="appearance"
+      onClick={() => props.pick('appearance')}
     >
-      {renderIcon('checklist')}{' '}
-      {props.dense ? 'Comfortable lists' : 'Compact lists'}
+      {renderIcon('sliders')} Appearance…
     </button>
     <button
       title="View or change your GitHub access token"

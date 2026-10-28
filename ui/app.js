@@ -1008,13 +1008,12 @@
         /* @__PURE__ */ u3(
           "button",
           {
-            title: "Switch between comfortable and compact lists",
-            "data-h": "dense",
-            onClick: () => props.pick("dense"),
+            title: "Change the font, text size and list density",
+            "data-h": "appearance",
+            onClick: () => props.pick("appearance"),
             children: [
-              renderIcon("checklist"),
-              " ",
-              props.dense ? "Comfortable lists" : "Compact lists"
+              renderIcon("sliders"),
+              " Appearance\u2026"
             ]
           }
         ),
@@ -2459,6 +2458,68 @@
     }
     return rows;
   }
+
+  // src/app/appearance.ts
+  var FONT_STACKS = {
+    system: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, "Segoe UI", "Noto Sans", sans-serif',
+    classic: '"Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif',
+    serif: '"Iowan Old Style", "Charter", Georgia, "Times New Roman", serif',
+    rounded: 'ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", sans-serif',
+    mono: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace'
+  };
+  var FONT_LABELS = {
+    system: "System",
+    classic: "Classic",
+    serif: "Serif",
+    rounded: "Rounded",
+    mono: "Monospace"
+  };
+  var TEXT_SIZES = [90, 100, 110, 120, 135];
+  var CODE_SIZES = [11, 12, 13, 14, 16];
+  var KEY = "appearance";
+  var DEFAULTS = {
+    font: "system",
+    textSize: 100,
+    codeSize: 12,
+    dense: false
+  };
+  var load2 = () => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(KEY) ?? "null"
+      );
+      const legacyDense = localStorage.getItem("dense") === "1";
+      return {
+        ...DEFAULTS,
+        dense: legacyDense,
+        ...saved,
+        font: saved?.font && saved.font in FONT_STACKS ? saved.font : "system"
+      };
+    } catch {
+      return { ...DEFAULTS };
+    }
+  };
+  var current = load2();
+  var getAppearance = () => ({ ...current });
+  var apply = () => {
+    const root = document.documentElement;
+    root.style.setProperty("--ui-font", FONT_STACKS[current.font]);
+    root.style.setProperty("--text-scale", String(current.textSize / 100));
+    root.style.setProperty("--code-size", `${current.codeSize}px`);
+    root.classList.toggle("dense", current.dense);
+  };
+  var setAppearance = (patch) => {
+    current = { ...current, ...patch };
+    apply();
+    try {
+      localStorage.setItem(KEY, JSON.stringify(current));
+    } catch {
+    }
+  };
+  var resetAppearance = () => {
+    setAppearance({ ...DEFAULTS });
+  };
+  var restoreAppearance = apply;
 
   // src/app/reorder.ts
   var mem = /* @__PURE__ */ new Map();
@@ -3980,6 +4041,127 @@
           id: "epsave",
           onClick: otherValue.ok,
           children: "Save"
+        }
+      )
+    ] })
+  ] }) });
+  var ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5];
+  var AppearanceDialog = (props) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide ap-dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: "Appearance" }),
+    /* @__PURE__ */ u3("div", { class: "ap-row", children: [
+      /* @__PURE__ */ u3("span", { children: "Font" }),
+      /* @__PURE__ */ u3("div", { class: "seg", children: Object.keys(FONT_LABELS).map((font) => /* @__PURE__ */ u3(
+        "button",
+        {
+          class: props.value.font === font ? "on" : "",
+          style: `font-family:${FONT_STACKS[font]}`,
+          title: `Use the ${FONT_LABELS[font]} font`,
+          onClick: () => props.change({ font }),
+          children: FONT_LABELS[font]
+        },
+        font
+      )) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ap-row", children: [
+      /* @__PURE__ */ u3("span", { children: "Reading text size" }),
+      /* @__PURE__ */ u3("div", { class: "seg", children: TEXT_SIZES.map((size) => /* @__PURE__ */ u3(
+        "button",
+        {
+          class: props.value.textSize === size ? "on" : "",
+          title: `Comments and descriptions at ${size}%`,
+          onClick: () => props.change({ textSize: size }),
+          children: [
+            size,
+            "%"
+          ]
+        },
+        size
+      )) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ap-row", children: [
+      /* @__PURE__ */ u3("span", { children: "Code size" }),
+      /* @__PURE__ */ u3("div", { class: "seg", children: CODE_SIZES.map((size) => /* @__PURE__ */ u3(
+        "button",
+        {
+          class: props.value.codeSize === size ? "on" : "",
+          title: `Diffs and code at ${size}px`,
+          onClick: () => props.change({ codeSize: size }),
+          children: [
+            size,
+            "px"
+          ]
+        },
+        size
+      )) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ap-row", children: [
+      /* @__PURE__ */ u3("span", { children: "Whole interface" }),
+      /* @__PURE__ */ u3("div", { class: "seg", children: ZOOM_STEPS.map((level2) => /* @__PURE__ */ u3(
+        "button",
+        {
+          class: Math.abs(props.zoom - level2) < 0.02 ? "on" : "",
+          title: `Zoom the whole window to ${Math.round(level2 * 100)}% (Ctrl/\u2318 + and \u2212)`,
+          onClick: () => props.zoomTo(level2),
+          children: [
+            Math.round(level2 * 100),
+            "%"
+          ]
+        },
+        level2
+      )) })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ap-row", children: [
+      /* @__PURE__ */ u3("span", { children: "Lists" }),
+      /* @__PURE__ */ u3("div", { class: "seg", children: [
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            class: props.value.dense ? "" : "on",
+            title: "Roomy rows in the Inbox and sidebar",
+            onClick: () => props.change({ dense: false }),
+            children: "Comfortable"
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            class: props.value.dense ? "on" : "",
+            title: "Tighter rows in the Inbox and sidebar",
+            onClick: () => props.change({ dense: true }),
+            children: "Compact"
+          }
+        )
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "ap-sample", children: [
+      /* @__PURE__ */ u3("b", { children: "Preview" }),
+      /* @__PURE__ */ u3("p", { children: [
+        "Looks good to me. One nit: rename ",
+        /* @__PURE__ */ u3("code", { children: "cfg" }),
+        " to",
+        " ",
+        /* @__PURE__ */ u3("code", { children: "config" }),
+        "."
+      ] }),
+      /* @__PURE__ */ u3("pre", { children: "const total = items.reduce((sum, item) => sum + item.price, 0);" })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "btn",
+          title: "Put every appearance setting back to its default",
+          onClick: props.reset,
+          children: "Reset"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "btn primary",
+          title: "Close the appearance settings",
+          onClick: props.close,
+          children: "Done"
         }
       )
     ] })
@@ -8421,6 +8603,55 @@ ${pull.html_url}`;
     }
   }
 
+  // src/app/zoom.ts
+  var MIN = 0.5;
+  var MAX = 2.5;
+  var KEY2 = "zoom";
+  var level = 1;
+  var getZoom = () => level;
+  var view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
+  var setZoom = (zoom) => {
+    level = Math.min(MAX, Math.max(MIN, Math.round(zoom * 100) / 100));
+    view()?.setZoom(level).catch(() => {
+    });
+    try {
+      localStorage.setItem(KEY2, String(level));
+    } catch {
+    }
+  };
+  var restoreZoom = () => {
+    let saved = 1;
+    try {
+      saved = parseFloat(localStorage.getItem(KEY2) || "1");
+    } catch {
+    }
+    if (saved && saved !== 1) {
+      setZoom(saved);
+    }
+  };
+  var zoomWheel = (event) => {
+    if (!(event.ctrlKey || event.metaKey) || !event.deltaY) {
+      return;
+    }
+    event.preventDefault();
+    setZoom(level * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
+  };
+  var zoomKey = (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) {
+      return;
+    }
+    if (event.key === "=" || event.key === "+") {
+      setZoom(level * 1.1);
+    } else if (event.key === "-") {
+      setZoom(level / 1.1);
+    } else if (event.key === "0") {
+      setZoom(1);
+    } else {
+      return;
+    }
+    event.preventDefault();
+  };
+
   // src/app/dialogs.tsx
   var paintDlg = () => setSlot("dlg", /* @__PURE__ */ u3(Dialogs, {}));
   var cpOn = {
@@ -8455,7 +8686,7 @@ ${pull.html_url}`;
     }
     const close = () => closeDlg();
     const ok = () => {
-      if (dlg.k !== "commits" && dlg.k !== "token" && dlg.k !== "repos" && dlg.k !== "meta") {
+      if (dlg.k !== "commits" && dlg.k !== "token" && dlg.k !== "repos" && dlg.k !== "meta" && dlg.k !== "appearance") {
         dlg.ok();
       }
     };
@@ -8475,6 +8706,28 @@ ${pull.html_url}`;
             go: oauthGo,
             close,
             save: tokenSave
+          }
+        );
+      case "appearance":
+        return /* @__PURE__ */ u3(
+          AppearanceDialog,
+          {
+            value: getAppearance(),
+            zoom: getZoom(),
+            change: (patch) => {
+              setAppearance(patch);
+              paintDlg();
+            },
+            zoomTo: (level2) => {
+              setZoom(level2);
+              paintDlg();
+            },
+            reset: () => {
+              resetAppearance();
+              setZoom(1);
+              paintDlg();
+            },
+            close
           }
         );
       case "repos": {
@@ -9603,11 +9856,6 @@ ${pull.html_url}`;
       ).finished
     );
   };
-  var dense = () => document.documentElement.classList.contains("dense");
-  document.documentElement.classList.toggle(
-    "dense",
-    localStorage.getItem("dense") === "1"
-  );
   var prof = (event) => {
     event.stopPropagation();
     if (appState.pop?.k === "prof") {
@@ -9622,7 +9870,6 @@ ${pull.html_url}`;
       top: rect.bottom + 6,
       name: pr.name || pr.login,
       ver: appState.ver,
-      dense: dense(),
       login: pr.login,
       avatar: avUrl(pr.avatar_url, 80),
       pick: async (hash) => {
@@ -9633,12 +9880,9 @@ ${pull.html_url}`;
           tokenDialog();
         } else if (hash === "repos") {
           repoPickOpen();
-        } else if (hash === "dense") {
-          document.documentElement.classList.toggle("dense", !dense());
-          try {
-            localStorage.setItem("dense", dense() ? "1" : "0");
-          } catch {
-          }
+        } else if (hash === "appearance") {
+          appState.dlg = { k: "appearance" };
+          paintDlg();
         } else {
           try {
             await tauri?.invoke("set_token", { token: "" });
@@ -13112,54 +13356,6 @@ ${ev.currentTarget.dataset.code}
     }
   };
 
-  // src/app/zoom.ts
-  var MIN = 0.5;
-  var MAX = 2.5;
-  var KEY = "zoom";
-  var level = 1;
-  var view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
-  var apply = (zoom) => {
-    level = Math.min(MAX, Math.max(MIN, Math.round(zoom * 100) / 100));
-    view()?.setZoom(level).catch(() => {
-    });
-    try {
-      localStorage.setItem(KEY, String(level));
-    } catch {
-    }
-  };
-  var restoreZoom = () => {
-    let saved = 1;
-    try {
-      saved = parseFloat(localStorage.getItem(KEY) || "1");
-    } catch {
-    }
-    if (saved && saved !== 1) {
-      apply(saved);
-    }
-  };
-  var zoomWheel = (event) => {
-    if (!(event.ctrlKey || event.metaKey) || !event.deltaY) {
-      return;
-    }
-    event.preventDefault();
-    apply(level * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
-  };
-  var zoomKey = (event) => {
-    if (!(event.ctrlKey || event.metaKey) || event.altKey) {
-      return;
-    }
-    if (event.key === "=" || event.key === "+") {
-      apply(level * 1.1);
-    } else if (event.key === "-") {
-      apply(level / 1.1);
-    } else if (event.key === "0") {
-      apply(1);
-    } else {
-      return;
-    }
-    event.preventDefault();
-  };
-
   // src/app/boot.tsx
   var urlParams = new URLSearchParams(location.search);
   if (urlParams.get("mode")) {
@@ -13187,6 +13383,7 @@ ${ev.currentTarget.dataset.code}
     });
   }
   restoreZoom();
+  restoreAppearance();
   window.__TAURI__?.app?.getVersion?.().then((value) => {
     appState.ver = value;
   }).catch(() => {

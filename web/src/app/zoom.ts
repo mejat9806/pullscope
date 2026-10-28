@@ -5,9 +5,11 @@ const KEY = 'zoom';
 
 let level = 1;
 
+export const getZoom = () => level;
+
 const view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
 
-const apply = (zoom: number) => {
+export const setZoom = (zoom: number) => {
   level = Math.min(MAX, Math.max(MIN, Math.round(zoom * 100) / 100));
 
   view()
@@ -33,7 +35,7 @@ export const restoreZoom = () => {
   }
 
   if (saved && saved !== 1) {
-    apply(saved);
+    setZoom(saved);
   }
 };
 
@@ -43,7 +45,7 @@ export const zoomWheel = (event: WheelEvent) => {
   }
 
   event.preventDefault();
-  apply(level * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
+  setZoom(level * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
 };
 
 export const zoomKey = (event: KeyboardEvent) => {
@@ -52,11 +54,11 @@ export const zoomKey = (event: KeyboardEvent) => {
   }
 
   if (event.key === '=' || event.key === '+') {
-    apply(level * 1.1);
+    setZoom(level * 1.1);
   } else if (event.key === '-') {
-    apply(level / 1.1);
+    setZoom(level / 1.1);
   } else if (event.key === '0') {
-    apply(1);
+    setZoom(1);
   } else {
     return;
   }

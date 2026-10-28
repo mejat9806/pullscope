@@ -1,4 +1,5 @@
 import {
+  AppearanceDialog,
   CmPop,
   CommitsDialog,
   ConfirmDialog,
@@ -15,6 +16,7 @@ import {
 } from '../components/Dialogs';
 import { ProfPop } from '../components/Overlays';
 import { closeDlg, errMsg } from './actions';
+import { getAppearance, resetAppearance, setAppearance } from './appearance';
 import { appState, isOwnPr, REACTS } from './core';
 import { pendList } from './diff';
 import { setSlot } from './frame';
@@ -22,6 +24,7 @@ import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { metaSave } from './meta';
 import { repoPickSave } from './repopick';
 import { oauthGo, tokenSave } from './token';
+import { getZoom, setZoom } from './zoom';
 
 import type { CpHandlers } from '../components/Merge';
 
@@ -74,7 +77,8 @@ export function Dialogs() {
       dlg.k !== 'commits' &&
       dlg.k !== 'token' &&
       dlg.k !== 'repos' &&
-      dlg.k !== 'meta'
+      dlg.k !== 'meta' &&
+      dlg.k !== 'appearance'
     ) {
       dlg.ok();
     }
@@ -97,6 +101,27 @@ export function Dialogs() {
           go={oauthGo}
           close={close}
           save={tokenSave}
+        />
+      );
+    case 'appearance':
+      return (
+        <AppearanceDialog
+          value={getAppearance()}
+          zoom={getZoom()}
+          change={patch => {
+            setAppearance(patch);
+            paintDlg();
+          }}
+          zoomTo={level => {
+            setZoom(level);
+            paintDlg();
+          }}
+          reset={() => {
+            resetAppearance();
+            setZoom(1);
+            paintDlg();
+          }}
+          close={close}
         />
       );
     case 'repos': {

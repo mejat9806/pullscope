@@ -754,6 +754,7 @@ export type Dlg =
   | { k: 'token' }
   | { k: 'repos' }
   | { k: 'meta' }
+  | { k: 'appearance' }
   | { k: 'review'; ev: string; ok: () => void | Promise<void> }
   | { k: 'editpr'; title: string; ok: () => void | Promise<void> }
   | {
@@ -789,6 +790,5 @@ export type Pop =
       login: string;
       avatar: string;
       ver?: string;
-      dense?: boolean;
       pick: (hash: string) => void;
     };

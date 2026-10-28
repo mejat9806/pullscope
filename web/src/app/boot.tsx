@@ -1,5 +1,6 @@
 import { noteClick } from './actions';
 import { bpAway, loadProfile } from './addressbar';
+import { restoreAppearance } from './appearance';
 import { appState, tauri } from './core';
 import { pollNotes, qc } from './data';
 import { closePop } from './dialogs';
@@ -50,6 +51,7 @@ if (tauri) {
 }
 
 restoreZoom();
+restoreAppearance();
 
 window.__TAURI__?.app
   ?.getVersion?.()

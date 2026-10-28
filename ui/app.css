@@ -22,7 +22,8 @@ html[data-t=dark][data-color-mode] {
   --shadow: 0 0 0 1px rgba(255, 255, 255, .02), 0 6px 20px rgba(0, 0, 0, .35);
   --d-add-line: rgba(46, 160, 67, .12); --d-add-num: rgba(46, 160, 67, .3); --d-del-line: rgba(248, 81, 73, .1); --d-del-num: rgba(248, 81, 73, .3); --d-hunk-line: rgba(56, 139, 253, .1); --d-hunk-num: rgba(56, 139, 253, .3);
 }
-body { background: var(--canvas); font-family: "Inter", -apple-system, "system-ui", "Segoe UI", sans-serif; }
+body { background: var(--canvas); font-family: var(--ui-font, "Inter", -apple-system, "system-ui", "Segoe UI", sans-serif); }
+button, input, select, textarea { font-family: inherit; }
 
 /* chrome */
 .toolbar { background: var(--bgColor-default); border-bottom: 1px solid var(--borderColor-default); }
@@ -552,7 +553,7 @@ html[data-t=dark][data-color-mode] {
   --glass: rgba(28, 28, 30, .72);
   --d-add-line: rgba(48, 209, 88, .12); --d-add-num: rgba(48, 209, 88, .28); --d-del-line: rgba(255, 69, 58, .12); --d-del-num: rgba(255, 69, 58, .3); --d-hunk-line: rgba(10, 132, 255, .12); --d-hunk-num: rgba(10, 132, 255, .3);
 }
-html, body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -.011em; font-size: 14px; }
+html, body { font-family: var(--ui-font, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif); -webkit-font-smoothing: antialiased; letter-spacing: -.011em; font-size: 14px; }
 code, pre, .mono, .branch, .sha, .tt code, .tt pre { font-family: "SF Mono", ui-monospace, Menlo, monospace; }
 :focus-visible { outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--fgColor-accent) 35%, transparent); border-radius: 8px; }
 ::selection { background: color-mix(in srgb, var(--fgColor-accent) 28%, transparent); }
@@ -1063,3 +1064,27 @@ table.diff { contain: layout paint; }
 .reviewer .st.wait { color: var(--fgColor-attention); }
 .reviewer .rv-act, .reviewer .st { width: 24px; height: 24px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 .reviewer .rv-act .again { color: var(--fgColor-attention); display: inline-flex; }
+
+/* Appearance dialog */
+.ap-dlg { width: min(560px, calc(100vw - 24px)); }
+.ap-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--borderColor-muted); }
+.ap-row > span { font-size: 13px; font-weight: 600; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: 10px; background: var(--bgColor-neutral-muted); }
+.seg button { border: 0; background: none; color: var(--fgColor-muted); font: inherit; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 8px; cursor: pointer; }
+.seg button:hover { color: var(--fgColor-default); }
+.seg button.on { background: var(--bgColor-default); color: var(--fgColor-default); box-shadow: 0 1px 2px #1f23281f; }
+.ap-sample { margin-top: 12px; padding: 12px; border: 1px solid var(--borderColor-default); border-radius: 12px; background: var(--bgColor-muted); }
+.ap-sample p { font-size: calc(14px * var(--text-scale, 1)); color: var(--fgColor-default); margin: 6px 0; }
+.ap-sample pre { margin: 0; font: var(--code-size, 12px)/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
+.dlg-bg { overflow-y: auto; }
+.dlg { max-width: calc(100vw - 24px); box-sizing: border-box; }
+@media (max-width: 640px) { .dlg-bg { padding-top: 6vh; } .dlg.wide, .dlg { width: calc(100vw - 24px); } .ap-row { flex-direction: column; align-items: flex-start; } }
+
+/* Narrow windows: the toolbar keeps the address bar and the essentials, the rest folds away */
+.toolbar .addr { min-width: 0; }
+@media (max-width: 700px) {
+  .toolbar { padding-left: 8px !important; padding-right: 8px; gap: 4px !important; }
+  .toolbar .addr { flex: 1 1 60px; margin: 0; }
+  .toolbar .tb-group { gap: 0; flex: none; }
+  .toolbar #back, .toolbar #fwd, .toolbar #inboxbtn, .toolbar .prof-btn span, .toolbar .prof-btn svg { display: none; }
+}
