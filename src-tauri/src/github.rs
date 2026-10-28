@@ -229,7 +229,7 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
             if x["isRequired"].as_bool() == Some(true) { required.push(if x["name"].is_string() { x["name"].clone() } else { x["context"].clone() }); }
         }
     }
-    Ok(json!({
+    let mut bundle = json!({
         "resolved_ids": resolved,
         "thread_ids": thread_ids,
         "checks": checks,
@@ -240,7 +240,71 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
         "timeline": timeline,
         "files": files?,
         "review_comments": review_comments?,
-    }))
+    });
+    heal_image_links(&mut bundle);
+    Ok(bundle)
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs())
+}
+
+fn jwt_exp(jwt: &str) -> Option<u64> {
+    use base64::Engine;
+    let b = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(jwt.split('.').nth(1)?).ok()?;
+    serde_json::from_slice::<Value>(&b).ok()?["exp"].as_u64()
+}
+
+fn for_each_string(v: &mut Value, f: &mut dyn FnMut(&mut String)) {
+    match v {
+        Value::String(s) => f(s),
+        Value::Array(a) => a.iter_mut().for_each(|x| for_each_string(x, f)),
+        Value::Object(o) => o.values_mut().for_each(|x| for_each_string(x, f)),
+        _ => {}
+    }
+}
+
+/// Every signed image link in `text` as (start, end, path, expiry).
+fn signed_links(text: &str) -> Vec<(usize, usize, String, u64)> {
+    const HOST: &str = "https://private-user-images.githubusercontent.com/";
+    let mut out = vec![];
+    let mut at = 0;
+    while let Some(i) = text[at..].find(HOST) {
+        let start = at + i;
+        let rest = &text[start..];
+        let end = start + rest.find(|c: char| matches!(c, '"' | '\'' | '<' | '>' | ' ' | ')' | '\n')).unwrap_or(rest.len());
+        if let Some((path, jwt)) = text[start..end].split_once("?jwt=") {
+            if let Some(exp) = jwt_exp(jwt) {
+                out.push((start, end, path.to_string(), exp));
+            }
+        }
+        at = end.max(start + HOST.len());
+    }
+    out
+}
+
+/// GitHub can hand back comment HTML whose signed image link is already dead (a quote-reply keeps the link
+/// from when it was posted). The same image is usually signed afresh elsewhere in the PR: swap those in.
+pub fn heal_image_links(v: &mut Value) {
+    let mut best: std::collections::HashMap<String, (u64, String)> = Default::default();
+    for_each_string(v, &mut |s| {
+        for (a, b, path, exp) in signed_links(s) {
+            if best.get(&path).is_none_or(|(e, _)| *e < exp) {
+                best.insert(path, (exp, s[a..b].to_string()));
+            }
+        }
+    });
+    let now = now_secs();
+    for_each_string(v, &mut |s| {
+        let stale: Vec<(String, String)> = signed_links(s)
+            .into_iter()
+            .filter(|(_, _, _, exp)| *exp < now + 60)
+            .filter_map(|(a, b, path, exp)| best.get(&path).filter(|(e, _)| *e > exp.max(now + 60)).map(|(_, fresh)| (s[a..b].to_string(), fresh.clone())))
+            .collect();
+        for (old, fresh) in stale {
+            *s = s.replace(&old, &fresh);
+        }
+    });
 }
 
 fn cache_dir() -> Option<std::path::PathBuf> {
@@ -293,12 +357,10 @@ mod etag {
 
     /// Image links in comment HTML are signed (`?jwt=`) and die within minutes; a cached copy must not outlive them.
     pub(super) fn signed_links_expire_soon(text: &str) -> bool {
-        use base64::Engine;
-        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        let now = super::now_secs();
         text.split("jwt=").skip(1).any(|rest| {
             let jwt: String = rest.chars().take_while(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')).collect();
-            let exp = jwt.split('.').nth(1).and_then(|p| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(p).ok()).and_then(|b| serde_json::from_slice::<Value>(&b).ok()).and_then(|v| v["exp"].as_u64());
-            exp.is_none_or(|e| e < now + 60)
+            super::jwt_exp(&jwt).is_none_or(|e| e < now + 60)
         })
     }
 
@@ -460,6 +522,20 @@ mod tests {
         assert!(etag::signed_links_expire_soon(&format!("<img src=\"https://x/y?jwt={}\">", jwt(now - 5))));
         assert!(!etag::signed_links_expire_soon(&format!("<img src=\"https://x/y?jwt={}\">", jwt(now + 280))));
         assert!(!etag::signed_links_expire_soon("<p>no images</p>"));
+    }
+
+    #[test]
+    fn dead_image_links_are_replaced_by_a_fresh_signing_of_the_same_image() {
+        use base64::Engine;
+        let jwt = |exp: u64| format!("h.{}.s", base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(format!(r#"{{"exp":{exp}}}"#)));
+        let now = now_secs();
+        let img = |exp: u64| format!("<img src=\"https://private-user-images.githubusercontent.com/1/2-abc.png?jwt={}\">", jwt(exp));
+        let other = format!("<img src=\"https://private-user-images.githubusercontent.com/1/9-zzz.png?jwt={}\">", jwt(now - 500));
+        let mut v = json!({ "timeline": [{ "body_html": img(now + 250) }, { "body_html": format!("{}{}", img(now - 900), other) }] });
+        heal_image_links(&mut v);
+        let fixed = v["timeline"][1]["body_html"].as_str().unwrap();
+        assert!(fixed.starts_with(&img(now + 250)));
+        assert!(fixed.ends_with(&other), "an image with no fresh copy is left alone");
     }
 
     #[tokio::test]
