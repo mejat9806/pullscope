@@ -9,7 +9,7 @@ import { S, tauri } from './core';
 import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
 import { crumbs } from './home';
-import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
+import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, IB_TITLES, ibSecKey, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
 import { openPr, openRepo } from './nav';
 import type { NpListKey } from '../types';
 import { prListProps } from './prlist';
@@ -50,7 +50,14 @@ export function NotesView() {
   return <><Crumbs repo="" trail={[{ t: 'Notifications' }]} on={crumbs} /><NotesPage {...notesProps()} on={notes} /></>;
 }
 
-const inbox: InboxHandlers = { ...open, refresh: () => loadInbox(true) };
+const foldSave = () => { try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ } render(); };
+const inbox: InboxHandlers = {
+  ...open, refresh: () => loadInbox(true),
+  sort: (e) => { S.ibSort = (e.target as HTMLSelectElement).value; try { localStorage.setItem('ibsort', S.ibSort); } catch { /* ignore */ } render(); },
+  query: (e) => { S.ibQ = (e.target as HTMLInputElement).value; render(); },
+  fold: (k) => { S.fold[k] = !S.fold[k]; foldSave(); },
+  foldAll: (closed) => { IB_TITLES.forEach((t) => { S.fold[ibSecKey(t)] = closed; }); foldSave(); },
+};
 
 export function InboxView() {
   return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} on={crumbs} /><InboxPage p={inboxProps()} on={inbox} /></>;

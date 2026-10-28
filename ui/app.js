@@ -43,7 +43,7 @@
     } catch {
       return null;
     }
-  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel() };
+  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel(), ibSort: localStorage.getItem("ibsort") || "updated" };
   S.recent = (() => {
     try {
       return JSON.parse(localStorage.getItem("recent") ?? "null") || [];
@@ -3141,31 +3141,35 @@
       ] })
     ] }, p3.seq);
   }
-  function InboxPage({ p: { loading, err, secs }, on: on3 }) {
+  function InboxPage({ p: { loading, err, secs, sort, sorts, q: q3 }, on: on3 }) {
     const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
-      /* @__PURE__ */ u3("h2", { children: [
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: `ib-sec${s3.closed ? " closed" : ""}`, children: [
+      /* @__PURE__ */ u3("h2", { class: "ib-h", onClick: () => on3.fold(s3.key), children: [
+        I2(s3.closed ? "chevron-right" : "chevron-down"),
         s3.title,
         /* @__PURE__ */ u3("span", { children: s3.rows.length })
       ] }),
-      /* @__PURE__ */ u3("p", { children: s3.sub }),
-      s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
-        /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
-        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
-          /* @__PURE__ */ u3("b", { children: r3.title }),
-          /* @__PURE__ */ u3("i", { children: r3.sub })
-        ] }),
-        r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
-        r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
-          I2("comment"),
-          SP,
-          r3.comments
-        ] }) : ""
-      ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: "Nothing here. Nice." })
+      s3.closed ? "" : /* @__PURE__ */ u3(S2, { children: [
+        /* @__PURE__ */ u3("p", { children: s3.sub }),
+        s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+          /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
+          /* @__PURE__ */ u3("span", { class: "ib-t", children: [
+            /* @__PURE__ */ u3("b", { children: r3.title }),
+            /* @__PURE__ */ u3("i", { children: r3.sub })
+          ] }),
+          r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
+          r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
+            I2("comment"),
+            SP,
+            r3.comments
+          ] }) : ""
+        ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: q3 ? "No matches." : "Nothing here. Nice." })
+      ] })
     ] }));
+    const allClosed = !!secs && secs.every((s3) => s3.closed);
     return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
       /* @__PURE__ */ u3("div", { class: "np-head", children: [
         /* @__PURE__ */ u3("h1", { children: [
@@ -3174,6 +3178,14 @@
           "Inbox"
         ] }),
         /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "ib-bar", children: [
+        /* @__PURE__ */ u3("input", { class: "input", placeholder: "Filter by title, repository, author or #\u2026", value: q3, onInput: on3.query }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Sort",
+          /* @__PURE__ */ u3("select", { class: "input", onChange: on3.sort, children: sorts.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === sort, children: t3 })) })
+        ] }),
+        /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.foldAll(!allClosed), disabled: !secs, children: allClosed ? "Expand all" : "Collapse all" })
       ] }),
       body
     ] });
@@ -5126,7 +5138,39 @@
       /* @__PURE__ */ u3(NotesPage, { ...notesProps(), on: notes })
     ] });
   }
-  var inbox = { ...open, refresh: () => loadInbox(true) };
+  var foldSave = () => {
+    try {
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+    } catch {
+    }
+    render();
+  };
+  var inbox = {
+    ...open,
+    refresh: () => loadInbox(true),
+    sort: (e3) => {
+      S.ibSort = e3.target.value;
+      try {
+        localStorage.setItem("ibsort", S.ibSort);
+      } catch {
+      }
+      render();
+    },
+    query: (e3) => {
+      S.ibQ = e3.target.value;
+      render();
+    },
+    fold: (k3) => {
+      S.fold[k3] = !S.fold[k3];
+      foldSave();
+    },
+    foldAll: (closed) => {
+      IB_TITLES.forEach((t3) => {
+        S.fold[ibSecKey(t3)] = closed;
+      });
+      foldSave();
+    }
+  };
   function InboxView() {
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Inbox" }], on: crumbs }),
@@ -5396,14 +5440,34 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       loadInbox();
     }
   }
+  var IB_SORTS = [["updated", "Newest activity"], ["oldest", "Oldest activity"], ["comments", "Most comments"], ["repo", "Repository"], ["author", "Author"], ["title", "Title"]];
+  var ibCmp = (k3) => {
+    const t3 = (x2, y3) => x2.localeCompare(y3, void 0, { sensitivity: "base" }), at = (a3, b2) => b2.updated_at > a3.updated_at ? 1 : b2.updated_at < a3.updated_at ? -1 : 0;
+    switch (k3) {
+      case "oldest":
+        return (a3, b2) => at(b2, a3);
+      case "comments":
+        return (a3, b2) => (b2.comments || 0) - (a3.comments || 0) || at(a3, b2);
+      case "repo":
+        return (a3, b2) => t3(a3.repo, b2.repo) || at(a3, b2);
+      case "author":
+        return (a3, b2) => t3(a3.user, b2.user) || at(a3, b2);
+      case "title":
+        return (a3, b2) => t3(a3.title, b2.title);
+      default:
+        return at;
+    }
+  };
+  var ibSecKey = (title) => "ib:" + title;
+  var IB_TITLES = ["Review requested", "Ready to merge", "Mentioned", "Participated", "Your pull requests", "Recently closed or merged"];
   function inboxProps() {
-    const I3 = S.inbox || { loading: true }, d3 = I3.data;
+    const I3 = S.inbox || { loading: true }, d3 = I3.data, q3 = (S.ibQ || "").toLowerCase(), cmp = ibCmp(S.ibSort || "updated");
     const row2 = (p3) => {
       const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at;
       return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
-    const sec = (title, sub, list) => ({ title, sub, rows: list.map(row2) });
-    return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null };
+    const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3)).sort(cmp).map(row2) });
+    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {

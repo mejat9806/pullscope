@@ -122,11 +122,25 @@ export function openNewPr(repo?: string, head?: string) {
 
 export function openInbox() { S.view = 'inbox'; S.nav = false; render(); if (!S.inbox?.data || !qc.fresh('inbox', 45000)) { qc.set('inbox', 1 as unknown as Bundle); loadInbox(); } }
 
+export const IB_SORTS: [string, string][] = [['updated', 'Newest activity'], ['oldest', 'Oldest activity'], ['comments', 'Most comments'], ['repo', 'Repository'], ['author', 'Author'], ['title', 'Title']];
+const ibCmp = (k: string): ((a: InboxItem, b: InboxItem) => number) => {
+  const t = (x: string, y: string) => x.localeCompare(y, undefined, { sensitivity: 'base' }), at = (a: InboxItem, b: InboxItem) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0);
+  switch (k) {
+    case 'oldest': return (a, b) => at(b, a);
+    case 'comments': return (a, b) => (b.comments || 0) - (a.comments || 0) || at(a, b);
+    case 'repo': return (a, b) => t(a.repo, b.repo) || at(a, b);
+    case 'author': return (a, b) => t(a.user, b.user) || at(a, b);
+    case 'title': return (a, b) => t(a.title, b.title);
+    default: return at;
+  }
+};
+export const ibSecKey = (title: string) => 'ib:' + title;
+export const IB_TITLES = ['Review requested', 'Ready to merge', 'Mentioned', 'Participated', 'Your pull requests', 'Recently closed or merged'];
 export function inboxProps(): InboxProps {
-  const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data;
+  const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data, q = (S.ibQ || '').toLowerCase(), cmp = ibCmp(S.ibSort || 'updated');
   const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0 }; };
-  const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, rows: list.map(row) });
-  return ({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine), sec('Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []), sec('Participated', 'Open PRs you commented on or reviewed', d.participated || []), sec('Recently closed or merged', 'PRs you were involved in', d.closed || [])] : null });
+  const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x) => !q || `${x.title} ${x.repo} ${x.user} #${x.number}`.toLowerCase().includes(q)).sort(cmp).map(row) });
+  return ({ loading: !!I.loading, err: I.err || '', sort: S.ibSort || 'updated', sorts: IB_SORTS, q: S.ibQ || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []), sec('Participated', 'Open PRs you commented on or reviewed', d.participated || []), sec('Your pull requests', 'Open PRs you opened', d.mine), sec('Recently closed or merged', 'PRs you were involved in', d.closed || [])] : null });
 }
 
 
