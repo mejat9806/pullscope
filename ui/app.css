@@ -1031,3 +1031,8 @@ table.diff { contain: layout paint; }
 .rc.ro-over-before::before, .sb-item.ro-over-before::before { top: -1px; height: 3px; box-shadow: none; }
 .rc.ro-over-after::after, .sb-item.ro-over-after::after { bottom: -1px; height: 3px; box-shadow: none; }
 .ro-moved { z-index: 0; }
+/* No glow while dragging: a thin line marks the drop spot and the lifted item just dims. */
+.ro-over-before::before, .ro-over-after::after { box-shadow: none; height: 2px; }
+.ro-over-before::before { top: -3px; } .ro-over-after::after { bottom: -3px; }
+.ro-lift { outline: none; opacity: .5; }
+.ro-moved { animation: none; background: none; box-shadow: none; }
