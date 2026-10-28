@@ -3059,6 +3059,7 @@
       ] })
     ] });
   }
+  var VISIBLE_REVIEWERS = 5;
   function ReviewerRow({ r: rvRow, on: on3 }) {
     const ic = rvRow.st === "req" && rvRow.prev ? /* @__PURE__ */ u3(S, { children: [
       /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: renderIcon("sync") }),
@@ -3068,16 +3069,12 @@
     ] }) : renderIcon(
       rvRow.st === "approved" ? "check" : rvRow.st === "changes_requested" ? "file-diff" : rvRow.st === "req" ? "dot-fill" : "comment"
     );
+    const verdict = rvRow.st === "req" ? rvRow.prev : rvRow.st;
+    const verdictClass = verdict === "approved" ? "ok" : verdict === "changes_requested" ? "bad" : verdict ? "" : "wait";
     return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
       /* @__PURE__ */ u3("a", { href: rvRow.u.html_url, children: Av(rvRow.u, 20) }),
       /* @__PURE__ */ u3("a", { class: "nm", href: rvRow.u.html_url, children: rvRow.u.login }),
-      /* @__PURE__ */ u3(
-        "span",
-        {
-          class: `st ${rvRow.st === "approved" ? "ok" : rvRow.st === "changes_requested" ? "bad" : ""}`,
-          children: ic
-        }
-      ),
+      /* @__PURE__ */ u3("span", { class: `st ${verdictClass}`, children: ic }),
       rvRow.canRe ? /* @__PURE__ */ u3(
         "button",
         {
@@ -3093,9 +3090,9 @@
   function PrSide(props) {
     const { on: on3 } = props;
     const rv = props.reviewers;
-    const more = rv.length - 3;
+    const more = rv.length - VISIBLE_REVIEWERS;
     const rvSection = rv.length ? /* @__PURE__ */ u3(S, { children: [
-      rv.slice(0, 3).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })),
+      rv.slice(0, VISIBLE_REVIEWERS).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })),
       more > 0 ? /* @__PURE__ */ u3(S, { children: [
         /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
           /* @__PURE__ */ u3("span", { children: [
@@ -3106,7 +3103,7 @@
           ] }),
           renderIcon(props.showAll ? "chevron-up" : "chevron-down")
         ] }),
-        props.showAll ? rv.slice(3).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })) : ""
+        props.showAll ? rv.slice(VISIBLE_REVIEWERS).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })) : ""
       ] }) : ""
     ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
     const fb = (sideKey, name) => /* @__PURE__ */ u3(
@@ -6967,7 +6964,20 @@ ${pull.html_url}`;
       }
     });
     const canRe = !pull.merged && pull.state === "open";
-    const rv = [...reviewers.values()].map((reviewer) => ({
+    const rank = (reviewer) => {
+      const verdict = reviewer.st === "req" ? reviewer.prev : reviewer.st;
+      if (reviewer.u.login.endsWith("[bot]")) {
+        return 4;
+      }
+      if (verdict === "changes_requested") {
+        return 0;
+      }
+      if (verdict === "approved") {
+        return 1;
+      }
+      return verdict ? 2 : 3;
+    };
+    const rv = [...reviewers.values()].sort((first, second) => rank(first) - rank(second)).map((reviewer) => ({
       ...reviewer,
       canRe: canRe && reviewer.st !== "req" && reviewer.u.login !== pull.user.login
     }));

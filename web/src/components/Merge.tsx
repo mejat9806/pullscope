@@ -339,6 +339,8 @@ export interface PrSideProps {
   folded: Record<SideKey, boolean>;
 }
 
+const VISIBLE_REVIEWERS = 5;
+
 function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
   const ic =
     rvRow.st === 'req' && rvRow.prev ? (
@@ -366,17 +368,24 @@ function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
       )
     );
 
+  const verdict = rvRow.st === 'req' ? rvRow.prev : rvRow.st;
+
+  const verdictClass =
+    verdict === 'approved'
+      ? 'ok'
+      : verdict === 'changes_requested'
+        ? 'bad'
+        : verdict
+          ? ''
+          : 'wait';
+
   return (
     <div class="reviewer">
       <a href={rvRow.u.html_url}>{Av(rvRow.u, 20)}</a>
       <a class="nm" href={rvRow.u.html_url}>
         {rvRow.u.login}
       </a>
-      <span
-        class={`st ${rvRow.st === 'approved' ? 'ok' : rvRow.st === 'changes_requested' ? 'bad' : ''}`}
-      >
-        {ic}
-      </span>
+      <span class={`st ${verdictClass}`}>{ic}</span>
       {rvRow.canRe ? (
         <button
           class="rerequest"
@@ -396,11 +405,11 @@ function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
 export function PrSide(props: PrSideProps & { on: PrSideHandlers }) {
   const { on } = props;
   const rv = props.reviewers;
-  const more = rv.length - 3;
+  const more = rv.length - VISIBLE_REVIEWERS;
 
   const rvSection = rv.length ? (
     <>
-      {rv.slice(0, 3).map(rvRow => (
+      {rv.slice(0, VISIBLE_REVIEWERS).map(rvRow => (
         <ReviewerRow r={rvRow} on={on} />
       ))}
       {more > 0 ? (
@@ -412,7 +421,9 @@ export function PrSide(props: PrSideProps & { on: PrSideHandlers }) {
             {renderIcon(props.showAll ? 'chevron-up' : 'chevron-down')}
           </button>
           {props.showAll
-            ? rv.slice(3).map(rvRow => <ReviewerRow r={rvRow} on={on} />)
+            ? rv
+                .slice(VISIBLE_REVIEWERS)
+                .map(rvRow => <ReviewerRow r={rvRow} on={on} />)
             : ''}
         </>
       ) : (

@@ -230,11 +230,32 @@ export function sidebarProps(bundle: Bundle): PrSideProps {
 
   const canRe = !pull.merged && pull.state === 'open';
 
-  const rv = [...reviewers.values()].map(reviewer => ({
-    ...reviewer,
-    canRe:
-      canRe && reviewer.st !== 'req' && reviewer.u.login !== pull.user.login,
-  }));
+  // Reviewers with a verdict come first (changes requested, approved, commented), people still to answer after them, bots last.
+  const rank = (reviewer: Reviewer) => {
+    const verdict = reviewer.st === 'req' ? reviewer.prev : reviewer.st;
+
+    if (reviewer.u.login.endsWith('[bot]')) {
+      return 4;
+    }
+
+    if (verdict === 'changes_requested') {
+      return 0;
+    }
+
+    if (verdict === 'approved') {
+      return 1;
+    }
+
+    return verdict ? 2 : 3;
+  };
+
+  const rv = [...reviewers.values()]
+    .sort((first, second) => rank(first) - rank(second))
+    .map(reviewer => ({
+      ...reviewer,
+      canRe:
+        canRe && reviewer.st !== 'req' && reviewer.u.login !== pull.user.login,
+    }));
 
   const people = new Map<string, User>();
 

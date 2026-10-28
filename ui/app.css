@@ -1060,3 +1060,4 @@ table.diff { contain: layout paint; }
 /* Compact lists (profile menu). */
 .dense .ib-row { padding-top: 4px; padding-bottom: 4px; } .dense .ib-row img { width: 20px; height: 20px; } .dense .ib-sec > p { display: none; }
 .dense .rc, .dense .pg .rc { padding-top: 3px; padding-bottom: 3px; } .dense .sb-item { padding-top: 6px; padding-bottom: 6px; }
+.reviewer .st.wait { color: var(--fgColor-attention); }
