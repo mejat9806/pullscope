@@ -5,6 +5,7 @@ import { FoldBtn } from './Comments';
 import { useReveal, useScroller } from './req';
 import type { FoldFn } from './Comments';
 import { Av, I, SP } from './ui';
+import { arrange, roCls } from '../app/reorder';
 
 export function MergedBox({ head }: { head: string }) {
   return <div class="TL"><div class="TLI-break" style="margin-left:0"></div><div class="merge-box"><div class="badge"><span class="state-merged" style="background:var(--bgColor-done-emphasis)">{I('git-merge')}</span></div><div class="merge-card merged-card"><div class="row"><div><h3>Pull request successfully merged and closed</h3><p style="font-size:14px;margin-top:4px">You're all set — the <span class="branch">{head}</span> branch can be safely deleted.</p></div></div></div></div></div>;
@@ -48,7 +49,7 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
 
 export interface RvRow { u: Person; st: string; prev?: string; canRe: boolean }
 export type SideKey = 'reviewers' | 'assignees' | 'labels' | 'milestone' | 'people';
-export interface PrSideHandlers { fold: (k: string, def: boolean) => void; rvtoggle: () => void; rerequest: (e: MouseEvent, login: string) => void }
+export interface PrSideHandlers { fold: (k: string, def: boolean) => void; rvtoggle: () => void; rerequest: (e: MouseEvent, login: string) => void; grip: (e: MouseEvent, key: SideKey) => void }
 export interface PrSideProps {
   reviewers: RvRow[]; showAll: boolean;
   assignees: Person[]; labels: { name: string; color: string }[];
@@ -72,13 +73,17 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
   const fb = (k: SideKey, n: string) => <SideFold k={'sb:' + n} folded={p.folded[k]} onFold={on.fold} />;
   const head = (k: SideKey, t: string) => <div class="sb-head">{fb(k, t === 'people' ? 'people' : t)}<span>{t}</span>{I('gear', 16, 'gear')}</div>;
   const box = (k: SideKey) => `sb-item${p.folded[k] ? ' folded' : ''}`;
-  return <div class="pr-side-inner">
-    <div class={box('reviewers')}><div class="sb-head">{fb('reviewers', 'Reviewers')}<span>Reviewers</span></div>{rvSection}</div>{'\n  '}
-    <div class={box('assignees')}>{head('assignees', 'Assignees')}{p.assignees.length ? p.assignees.map((u) => <div class="reviewer"><a href={u.html_url}>{Av(u, 20)}</a><a class="nm" href={u.html_url}>{u.login}</a></div>) : <span class="sb-none">No one—</span>}</div>{'\n  '}
-    <div class={box('labels')}>{head('labels', 'Labels')}{p.labels.length ? p.labels.map((l) => <span class="pill-label" style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color}`}>{l.name}</span>) : <span class="sb-none">None yet</span>}</div>{'\n  '}
-    <div class={box('milestone')}>{head('milestone', 'Milestone')}{p.milestone ? <a class="sb-link" href={p.milestone.html_url}>{p.milestone.title}</a> : <span class="sb-none">No milestone</span>}</div>{'\n  '}
-    <div class={box('people')}><div class="sb-head">{fb('people', 'people')}<span>{p.peopleCount} participant{plural(p.peopleCount)}</span></div><div class="participants">{p.people.map((u) => <a href={u.html_url} title={u.login}>{Av(u, 32)}</a>)}</div></div></div>;
+  const item = (k: SideKey, node: ComponentChildren) => <div class={box(k) + ' ro-it' + roCls('side', k)} data-t={k}>{node}<i class="ro-grip" title="Drag to reorder" onMouseDown={(e) => on.grip(e, k)}>⋮⋮</i></div>;
+  const secs: Record<SideKey, ComponentChildren> = {
+    reviewers: <><div class="sb-head">{fb('reviewers', 'Reviewers')}<span>Reviewers</span></div>{rvSection}</>,
+    assignees: <>{head('assignees', 'Assignees')}{p.assignees.length ? p.assignees.map((u) => <div class="reviewer"><a href={u.html_url}>{Av(u, 20)}</a><a class="nm" href={u.html_url}>{u.login}</a></div>) : <span class="sb-none">No one—</span>}</>,
+    labels: <>{head('labels', 'Labels')}{p.labels.length ? p.labels.map((l) => <span class="pill-label" style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color}`}>{l.name}</span>) : <span class="sb-none">None yet</span>}</>,
+    milestone: <>{head('milestone', 'Milestone')}{p.milestone ? <a class="sb-link" href={p.milestone.html_url}>{p.milestone.title}</a> : <span class="sb-none">No milestone</span>}</>,
+    people: <><div class="sb-head">{fb('people', 'people')}<span>{p.peopleCount} participant{plural(p.peopleCount)}</span></div><div class="participants">{p.people.map((u) => <a href={u.html_url} title={u.login}>{Av(u, 32)}</a>)}</div></>,
+  };
+  return <div class="pr-side-inner">{arrange(SIDE_KEYS, 'side', (k) => k).map((k) => item(k, secs[k]))}</div>;
 }
+export const SIDE_KEYS: SideKey[] = ['reviewers', 'assignees', 'labels', 'milestone', 'people'];
 
 function SideFold({ k, folded, onFold }: { k: string; folded: boolean; onFold: (k: string, def: boolean) => void }) {
   return <button ref={useReveal<HTMLButtonElement>(k)} class="fold-btn" data-fold={k} data-def="0" title="Hide section" onClick={(e) => { e.stopPropagation(); onFold(k, false); }}>{I(folded ? 'chevron-right' : 'chevron-down')}</button>;

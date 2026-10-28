@@ -1194,6 +1194,88 @@
     ] });
   }
 
+  // src/app/reorder.ts
+  var mem = /* @__PURE__ */ new Map();
+  var savedOrder = (id) => {
+    if (!mem.has(id)) mem.set(id, load("order:" + id, []));
+    return mem.get(id);
+  };
+  var saveOrder = (id, o3) => {
+    mem.set(id, o3);
+    try {
+      if (o3.length) localStorage.setItem("order:" + id, JSON.stringify(o3));
+      else localStorage.removeItem("order:" + id);
+    } catch {
+    }
+    render();
+  };
+  var arrange = (items, id, key) => {
+    const saved = savedOrder(id), rank = (t3) => {
+      const i3 = saved.indexOf(key(t3));
+      return i3 < 0 ? saved.length + items.indexOf(t3) : i3;
+    };
+    return [...items].sort((a3, b2) => rank(a3) - rank(b2));
+  };
+  var roCls = (id, key) => {
+    const r3 = S.ro;
+    if (!r3 || r3.id !== id) return "";
+    return (r3.key === key ? " ro-lift" : "") + (r3.key !== key && r3.over?.title === key ? r3.over.after ? " ro-over-after" : " ro-over-before" : "");
+  };
+  var tops = (sel) => new Map([...document.querySelectorAll(sel)].map((e3) => [e3.dataset.t, e3.getBoundingClientRect().top]));
+  function roMove(sel, key, save) {
+    const before = tops(sel);
+    save();
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(sel).forEach((e3) => {
+      const dy = (before.get(e3.dataset.t) ?? 0) - e3.getBoundingClientRect().top;
+      if (Math.abs(dy) > 1) e3.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (e3.dataset.t === key) {
+        e3.classList.add("ro-moved");
+        setTimeout(() => e3.classList.remove("ro-moved"), 1400);
+      }
+    })));
+  }
+  function roGrip(e3, id, sel, key, order, commit) {
+    e3.preventDefault();
+    e3.stopPropagation();
+    const y0 = e3.clientY;
+    let started = false;
+    const over = (y3) => {
+      const els = [...document.querySelectorAll(sel)].filter((x2) => x2.dataset.t !== key);
+      const hit = els.find((x2) => {
+        const r4 = x2.getBoundingClientRect();
+        return y3 >= r4.top && y3 <= r4.bottom;
+      }) || els.reduce((b2, x2) => !b2 || Math.abs(x2.getBoundingClientRect().top - y3) < Math.abs(b2.getBoundingClientRect().top - y3) ? x2 : b2, null);
+      if (!hit) return null;
+      const r3 = hit.getBoundingClientRect();
+      return { title: hit.dataset.t, after: y3 > r3.top + Math.min(r3.height / 2, 60) };
+    };
+    beginDrag({
+      move: (ev) => {
+        if (!started) {
+          if (Math.abs(ev.clientY - y0) < 5) return;
+          started = true;
+          S.ro = { id, key, over: null };
+          setDragging(true);
+        }
+        const o3 = over(ev.clientY), cur = S.ro?.over;
+        if (o3?.title !== cur?.title || o3?.after !== cur?.after) {
+          S.ro = { id, key, over: o3 };
+          render();
+        }
+      },
+      end: () => {
+        const to = S.ro?.over;
+        setDragging(false);
+        S.ro = null;
+        if (!started) return;
+        if (!to) return render();
+        const o3 = order().filter((x2) => x2 !== key);
+        o3.splice(o3.indexOf(to.title) + (to.after ? 1 : 0), 0, key);
+        roMove(sel, key, () => commit(o3));
+      }
+    });
+  }
+
   // src/components/Merge.tsx
   function MergedBox({ head: head2 }) {
     return /* @__PURE__ */ u3("div", { class: "TL", children: [
@@ -1354,34 +1436,34 @@
       I2("gear", 16, "gear")
     ] });
     const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
-    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: [
-      /* @__PURE__ */ u3("div", { class: box("reviewers"), children: [
+    const item = (k3, node) => /* @__PURE__ */ u3("div", { class: box(k3) + " ro-it" + roCls("side", k3), "data-t": k3, children: [
+      node,
+      /* @__PURE__ */ u3("i", { class: "ro-grip", title: "Drag to reorder", onMouseDown: (e3) => on3.grip(e3, k3), children: "\u22EE\u22EE" })
+    ] });
+    const secs = {
+      reviewers: /* @__PURE__ */ u3(S2, { children: [
         /* @__PURE__ */ u3("div", { class: "sb-head", children: [
           fb("reviewers", "Reviewers"),
           /* @__PURE__ */ u3("span", { children: "Reviewers" })
         ] }),
         rvSection
       ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("assignees"), children: [
+      assignees: /* @__PURE__ */ u3(S2, { children: [
         head2("assignees", "Assignees"),
         p3.assignees.length ? p3.assignees.map((u4) => /* @__PURE__ */ u3("div", { class: "reviewer", children: [
           /* @__PURE__ */ u3("a", { href: u4.html_url, children: Av(u4, 20) }),
           /* @__PURE__ */ u3("a", { class: "nm", href: u4.html_url, children: u4.login })
         ] })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No one\u2014" })
       ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("labels"), children: [
+      labels: /* @__PURE__ */ u3(S2, { children: [
         head2("labels", "Labels"),
         p3.labels.length ? p3.labels.map((l3) => /* @__PURE__ */ u3("span", { class: "pill-label", style: `background:#${l3.color}33;color:#${l3.color};border-color:#${l3.color}`, children: l3.name })) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "None yet" })
       ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("milestone"), children: [
+      milestone: /* @__PURE__ */ u3(S2, { children: [
         head2("milestone", "Milestone"),
         p3.milestone ? /* @__PURE__ */ u3("a", { class: "sb-link", href: p3.milestone.html_url, children: p3.milestone.title }) : /* @__PURE__ */ u3("span", { class: "sb-none", children: "No milestone" })
       ] }),
-      "\n  ",
-      /* @__PURE__ */ u3("div", { class: box("people"), children: [
+      people: /* @__PURE__ */ u3(S2, { children: [
         /* @__PURE__ */ u3("div", { class: "sb-head", children: [
           fb("people", "people"),
           /* @__PURE__ */ u3("span", { children: [
@@ -1392,8 +1474,10 @@
         ] }),
         /* @__PURE__ */ u3("div", { class: "participants", children: p3.people.map((u4) => /* @__PURE__ */ u3("a", { href: u4.html_url, title: u4.login, children: Av(u4, 32) })) })
       ] })
-    ] });
+    };
+    return /* @__PURE__ */ u3("div", { class: "pr-side-inner", children: arrange(SIDE_KEYS, "side", (k3) => k3).map((k3) => item(k3, secs[k3])) });
   }
+  var SIDE_KEYS = ["reviewers", "assignees", "labels", "milestone", "people"];
   function SideFold({ k: k3, folded: folded2, onFold }) {
     return /* @__PURE__ */ u3("button", { ref: useReveal(k3), class: "fold-btn", "data-fold": k3, "data-def": "0", title: "Hide section", onClick: (e3) => {
       e3.stopPropagation();
@@ -3164,7 +3248,7 @@
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { "data-t": s3.title, class: `ib-sec${s3.closed ? " closed" : ""}${s3.lift ? " ib-lift" : ""}${s3.over ? " ib-over-" + s3.over : ""}`, children: [
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { "data-t": s3.title, class: `ib-sec${s3.closed ? " closed" : ""}${s3.ro}`, children: [
       /* @__PURE__ */ u3("h2", { class: "ib-h", onClick: () => on3.fold(s3.key), children: [
         /* @__PURE__ */ u3("i", { class: "ib-grip", title: "Drag to move this section", onClick: (e3) => e3.stopPropagation(), onMouseDown: (e3) => on3.grip(e3, s3.title), children: "\u22EE\u22EE" }),
         I2(s3.closed ? "chevron-right" : "chevron-down"),
@@ -3486,7 +3570,8 @@
       S.showAllReviewers = !S.showAllReviewers;
       rerender();
     },
-    rerequest: rerequestReview
+    rerequest: rerequestReview,
+    grip: (e3, k3) => roGrip(e3, "side", ".pr-side-inner > .ro-it", k3, () => arrange(SIDE_KEYS, "side", (x2) => x2), (o3) => saveOrder("side", o3))
   };
   function Header() {
     const p3 = S.bundle.pull, r3 = p3.base.repo;
@@ -4145,8 +4230,8 @@
     S.openSeq = (S.openSeq || 0) + 1;
     const a3 = S.alive.get(ref);
     if (!a3) return false;
-    const mem = qc.peek(ref);
-    if (!mem || mem.data !== a3.bundle || a3.key !== aliveKey()) {
+    const mem2 = qc.peek(ref);
+    if (!mem2 || mem2.data !== a3.bundle || a3.key !== aliveKey()) {
       S.alive.delete(ref);
       return false;
     }
@@ -4868,12 +4953,13 @@
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter, onInput: on3.repoFilter }),
       /* @__PURE__ */ u3("button", { class: "sb-btn", id: "pickrepos", onClick: on3.pickRepos, children: "Choose repositories\u2026" }),
-      shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
+      shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ro-it ${repo === r3.full_name ? "on" : ""}${roCls("repos", r3.full_name)}`, "data-repo": r3.full_name, "data-t": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
         /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: /* @__PURE__ */ u3(Icon, { n: r3.private ? "lock" : "repo" }) }),
         /* @__PURE__ */ u3("span", { class: "rc-t", children: [
           /* @__PURE__ */ u3("b", { children: r3.full_name.split("/")[1] }),
           /* @__PURE__ */ u3("i", { children: r3.full_name.split("/")[0] })
-        ] })
+        ] }),
+        /* @__PURE__ */ u3("i", { class: "ro-grip", title: "Drag to reorder", onClick: (e3) => e3.stopPropagation(), onMouseDown: (e3) => on3.grip(e3, r3.full_name), children: "\u22EE\u22EE" })
       ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "No matches." })
     ] });
   }
@@ -4984,6 +5070,7 @@
     repo: (name) => openRepo(name),
     addToken: tokenDialog,
     pickRepos: repoPickOpen,
+    grip: (e3, name) => roGrip(e3, "repos", ".rc[data-t]", name, () => arrange(S.repos || [], "repos", (r3) => r3.full_name).map((r3) => r3.full_name), (o3) => saveOrder("repos", o3)),
     open: openClick,
     aux: openAux,
     ctx: openCtx,
@@ -5054,7 +5141,7 @@
     ] });
     if (S.reposErr) return /* @__PURE__ */ u3("div", { class: "sb-empty err", children: S.reposErr });
     if (!S.repos) return /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading repositories\u2026" });
-    return /* @__PURE__ */ u3(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on: on2 });
+    return /* @__PURE__ */ u3(RepoList, { repos: arrange(S.repos, "repos", (r3) => r3.full_name), repo: S.repo, filter: S.repoFilter, on: on2 });
   }
   function Side() {
     return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, on: on2, children: /* @__PURE__ */ u3(List, {}) });
@@ -5193,64 +5280,8 @@
     }
     render();
   };
-  var secTops = () => new Map([...document.querySelectorAll(".ib-sec[data-t]")].map((e3) => [e3.dataset.t, e3.getBoundingClientRect().top]));
-  function ibMove(title, o3) {
-    const before = secTops();
-    ibSave(o3);
-    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(".ib-sec[data-t]").forEach((e3) => {
-      const dy = (before.get(e3.dataset.t) ?? 0) - e3.getBoundingClientRect().top;
-      if (Math.abs(dy) > 1) e3.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
-      if (e3.dataset.t === title) {
-        e3.classList.add("ib-moved");
-        setTimeout(() => e3.classList.remove("ib-moved"), 1400);
-      }
-    })));
-  }
-  function ibGrip(e3, title) {
-    e3.preventDefault();
-    e3.stopPropagation();
-    const y0 = e3.clientY;
-    let started = false;
-    const over = (y3) => {
-      const secs = [...document.querySelectorAll(".ib-sec[data-t]")].filter((x2) => x2.dataset.t !== title);
-      const hit = secs.find((x2) => {
-        const r4 = x2.getBoundingClientRect();
-        return y3 >= r4.top && y3 <= r4.bottom;
-      }) || secs.reduce((b2, x2) => !b2 || Math.abs(x2.getBoundingClientRect().top - y3) < Math.abs(b2.getBoundingClientRect().top - y3) ? x2 : b2, null);
-      if (!hit) return null;
-      const r3 = hit.getBoundingClientRect();
-      return { title: hit.dataset.t, after: y3 > r3.top + Math.min(r3.height / 2, 60) };
-    };
-    beginDrag({
-      move: (ev) => {
-        if (!started) {
-          if (Math.abs(ev.clientY - y0) < 5) return;
-          started = true;
-          S.ibDrag = title;
-          setDragging(true);
-        }
-        const o3 = over(ev.clientY);
-        if (o3?.title !== S.ibOver?.title || o3?.after !== S.ibOver?.after) {
-          S.ibOver = o3;
-          render();
-        }
-      },
-      end: () => {
-        const to = S.ibOver;
-        setDragging(false);
-        const was = started;
-        S.ibDrag = "";
-        S.ibOver = null;
-        if (!was || !to) {
-          if (was) render();
-          return;
-        }
-        const o3 = ibOrder().filter((x2) => x2 !== title);
-        o3.splice(o3.indexOf(to.title) + (to.after ? 1 : 0), 0, title);
-        ibMove(title, o3);
-      }
-    });
-  }
+  var IB_SEL = ".ib-sec[data-t]";
+  var ibGrip = (e3, title) => roGrip(e3, "ib", IB_SEL, title, ibOrder, ibSave);
   var inbox = {
     ...open,
     refresh: () => loadInbox(true),
@@ -5274,7 +5305,7 @@
       const o3 = ibOrder(), i3 = o3.indexOf(t3), j3 = i3 + by;
       if (i3 < 0 || j3 < 0 || j3 >= o3.length) return;
       [o3[i3], o3[j3]] = [o3[j3], o3[i3]];
-      ibMove(t3, o3);
+      roMove(IB_SEL, t3, () => ibSave(o3));
     },
     grip: ibGrip,
     resetOrder: () => ibSave([]),
@@ -5587,7 +5618,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3)).sort(cmp).map(row2) });
     const all = d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null;
     const order = ibOrder();
-    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1, lift: S.ibDrag === x2.title, over: S.ibDrag && S.ibOver?.title === x2.title && S.ibDrag !== x2.title ? S.ibOver.after ? "after" : "before" : "" })) : null };
+    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1, ro: roCls("ib", x2.title) })) : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {
@@ -6546,12 +6577,12 @@ ${ev.currentTarget.dataset.code}
     if (keepTab && S.focus && S.tab === "files") S.focus = "";
     if (keepTab && tauri) await tauri.invoke("invalidate_pr", { url: input }).catch(() => {
     });
-    const mem = qc.peek(input);
-    const disk = mem || (tauri && !keepTab ? await tauri.invoke("cached_pr", { url: input }).then((b2) => b2 && { data: b2 }).catch(() => null) : null);
-    const fresh = !!mem && qc.fresh(input) && !keepTab, stale = !!disk && !fresh;
+    const mem2 = qc.peek(input);
+    const disk = mem2 || (tauri && !keepTab ? await tauri.invoke("cached_pr", { url: input }).then((b2) => b2 && { data: b2 }).catch(() => null) : null);
+    const fresh = !!mem2 && qc.fresh(input) && !keepTab, stale = !!disk && !fresh;
     const had = fresh || stale || keepTab && S.bundle;
     if (fresh) {
-      S.bundle = mem.data;
+      S.bundle = mem2.data;
       S.loading = false;
     } else if (disk) {
       S.bundle = disk.data;
@@ -6582,7 +6613,7 @@ ${ev.currentTarget.dataset.code}
     };
     const focused = focusNow();
     try {
-      const got = hot ? mem.data : await qc.fetch(input, () => loadPr(input));
+      const got = hot ? mem2.data : await qc.fetch(input, () => loadPr(input));
       if (stale_()) return;
       S.bundle = got;
       const p3 = got.pull, ref = `${p3.base.repo.full_name}#${p3.number}`, [st, ic] = stateOf(p3);

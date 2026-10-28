@@ -1,3 +1,4 @@
+import { arrange, roGrip, saveOrder } from './reorder';
 import { setSlot } from './frame';
 import { PrGroups, RcItem, RecentList, RepoList, SideHead, Sidebar } from '../components/Sidebar';
 import type { RcRow, SideHandlers } from '../components/Sidebar';
@@ -23,7 +24,7 @@ const on: SideHandlers = {
   pgroup: (e) => { S.pgroup = (e.target as HTMLSelectElement).value; localStorage.setItem('pgroup', S.pgroup); render(); },
   repoFilter: (e) => typed(e, 'repoFilter'),
   repo: (name) => openRepo(name),
-  addToken: tokenDialog, pickRepos: repoPickOpen,
+  addToken: tokenDialog, pickRepos: repoPickOpen, grip: (e, name) => roGrip(e, 'repos', '.rc[data-t]', name, () => arrange(S.repos || [], 'repos', (r) => r.full_name).map((r) => r.full_name), (o) => saveOrder('repos', o)),
   open: openClick, aux: openAux, ctx: openCtx, rm: rmRecent,
   // Folding only flips state; the page and the sidebar both repaint from it.
   fold: (e, k) => {
@@ -62,7 +63,7 @@ function List() {
   if (!S.hasToken) return <div class="sb-empty">Add an access token to list all your repositories and their pull requests.<br /><br /><button class="sb-btn" id="addtoken" onClick={on.addToken}>Add token</button></div>;
   if (S.reposErr) return <div class="sb-empty err">{S.reposErr}</div>;
   if (!S.repos) return <div class="sb-empty">Loading repositories…</div>;
-  return <RepoList repos={S.repos} repo={S.repo} filter={S.repoFilter} on={on} />;
+  return <RepoList repos={arrange(S.repos, 'repos', (r) => r.full_name)} repo={S.repo} filter={S.repoFilter} on={on} />;
 }
 
 export function Side() {

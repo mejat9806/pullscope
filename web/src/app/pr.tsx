@@ -3,10 +3,11 @@ import { Crumbs } from '../components/PrList';
 import { PrHeader } from '../components/Comments';
 import type { PrHeaderHandlers } from '../components/Comments';
 import { PrLayout, SplitLayout } from '../components/Pages';
-import { PrSide } from '../components/Merge';
+import { PrSide, SIDE_KEYS } from '../components/Merge';
 import type { PrSideHandlers } from '../components/Merge';
 import { Attention } from '../components/Timeline';
 import { I } from '../components/ui';
+import { arrange, roGrip, saveOrder } from './reorder';
 import { editPrDialog, rerender, rerequestReview, reviewDialog } from './actions';
 import { attOn, keep, openTab, tlOn } from './handlers';
 import { S, esc, icon } from './core';
@@ -32,6 +33,7 @@ const sideOn: PrSideHandlers = {
   fold: (k, def) => { S.fold[k] = !isFolded(k, def); localStorage.setItem('fold', JSON.stringify(S.fold)); rerender(); },
   rvtoggle: () => { S.showAllReviewers = !S.showAllReviewers; rerender(); },
   rerequest: rerequestReview,
+  grip: (e, k) => roGrip(e, 'side', '.pr-side-inner > .ro-it', k, () => arrange(SIDE_KEYS, 'side', (x) => x), (o) => saveOrder('side', o)),
 };
 
 function Header() {

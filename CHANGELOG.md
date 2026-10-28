@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+- Rearrange the repository list and the pull request side panel (Reviewers, Labels, …) by dragging the ⋮⋮ grip; the order is remembered.
+
 - Inbox sections now drag by their grip with the mouse; the section slides into place, the drop spot is highlighted and the moved section flashes.
 
 ### Added
