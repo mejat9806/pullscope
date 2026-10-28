@@ -83,8 +83,8 @@ export function PrGroups({ groups, on }: { groups: PrGroup[]; on: SideHandlers }
   ))}</>;
 }
 
-export function Sidebar({ sideTab, hasRepo, hasToken, on, children }: { sideTab: string; hasRepo: boolean; hasToken: boolean; on: SideHandlers; children: ComponentChildren }) {
+export function Sidebar({ sideTab, hasRepo, on, children }: { sideTab: string; hasRepo: boolean; on: SideHandlers; children: ComponentChildren }) {
   return (
-    <aside class="sidebar"><SideTabs active={sideTab} hasRepo={hasRepo} on={on} /><div class="sb-list">{children}</div><div class="sb-foot">{hasToken ? 'Signed in with token' : 'Anonymous · 60 requests/hour'}</div></aside>
+    <aside class="sidebar"><SideTabs active={sideTab} hasRepo={hasRepo} on={on} /><div class="sb-list">{children}</div></aside>
   );
 }

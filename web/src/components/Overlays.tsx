@@ -9,7 +9,7 @@ export const ProfPop = (p: ProfPopProps) => <div class="react-pop cm-pop prof-po
   <button data-h="repos" onClick={() => p.pick('repos')}>{I('repo')} Choose repositories…</button>
   <button data-h="token" onClick={() => p.pick('token')}>{I('key')} Access token…</button>
   <button data-h="out" class="danger" onClick={() => p.pick('out')}>Sign out</button>
-  {p.ver ? <div class="pp-ver">Pullscope v{p.ver}</div> : ''}</div>;
+  <div class="pp-ver">Signed in with token{p.ver ? ` · Pullscope v${p.ver}` : ''}</div></div>;
 
 export interface AcPopProps { rows: AcRow[]; sel: number; left: number; top: number; width: number; pick: (r: AcRow) => void }
 export function AcPop(p: AcPopProps) {

@@ -795,10 +795,10 @@
       " Access token\u2026"
     ] }),
     /* @__PURE__ */ u3("button", { "data-h": "out", class: "danger", onClick: () => p3.pick("out"), children: "Sign out" }),
-    p3.ver ? /* @__PURE__ */ u3("div", { class: "pp-ver", children: [
-      "Pullscope v",
-      p3.ver
-    ] }) : ""
+    /* @__PURE__ */ u3("div", { class: "pp-ver", children: [
+      "Signed in with token",
+      p3.ver ? ` \xB7 Pullscope v${p3.ver}` : ""
+    ] })
   ] });
   function AcPop(p3) {
     const ref = A2(null);
@@ -4859,11 +4859,10 @@
       /* @__PURE__ */ u3("div", { class: "pg-b", children: g2.rows.map((r3) => /* @__PURE__ */ u3(RcItem, { r: r3, on: on3 })) })
     ] })) });
   }
-  function Sidebar({ sideTab, hasRepo, hasToken, on: on3, children }) {
+  function Sidebar({ sideTab, hasRepo, on: on3, children }) {
     return /* @__PURE__ */ u3("aside", { class: "sidebar", children: [
       /* @__PURE__ */ u3(SideTabs, { active: sideTab, hasRepo, on: on3 }),
-      /* @__PURE__ */ u3("div", { class: "sb-list", children }),
-      /* @__PURE__ */ u3("div", { class: "sb-foot", children: hasToken ? "Signed in with token" : "Anonymous \xB7 60 requests/hour" })
+      /* @__PURE__ */ u3("div", { class: "sb-list", children })
     ] });
   }
 
@@ -5007,7 +5006,7 @@
     return /* @__PURE__ */ u3(RepoList, { repos: S.repos, repo: S.repo, filter: S.repoFilter, on: on2 });
   }
   function Side() {
-    return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, hasToken: S.hasToken, on: on2, children: /* @__PURE__ */ u3(List, {}) });
+    return /* @__PURE__ */ u3(Sidebar, { sideTab: S.sideTab, hasRepo: !!S.repo, on: on2, children: /* @__PURE__ */ u3(List, {}) });
   }
   var paintSide = () => setSlot("side", /* @__PURE__ */ u3(Side, {}));
   var repaintSide = paintSide;

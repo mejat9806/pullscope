@@ -66,7 +66,7 @@ function List() {
 }
 
 export function Side() {
-  return <Sidebar sideTab={S.sideTab} hasRepo={!!S.repo} hasToken={S.hasToken} on={on}><List /></Sidebar>;
+  return <Sidebar sideTab={S.sideTab} hasRepo={!!S.repo} on={on}><List /></Sidebar>;
 }
 
 export const paintSide = () => setSlot('side', <Side />);
