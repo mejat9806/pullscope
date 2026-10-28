@@ -1,6 +1,6 @@
 # Pullscope
 
-A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2 (a Rust backend and a plain HTML/CSS/JS frontend), runs on macOS, Windows and Linux, and talks straight to the GitHub API. There is no server in between: your token stays on your machine.
+A fast desktop app for reviewing GitHub pull requests. It is built with Tauri v2 (a Rust backend and a Preact + TypeScript frontend), runs on macOS, Windows and Linux, and talks straight to the GitHub API. There is no server in between: your token stays on your machine.
 
 ![Conversation](docs/screenshots/conversation.png)
 
@@ -18,13 +18,13 @@ Pullscope does not replace GitHub. It reads and writes the same pull requests th
 | What needs your attention | You read the page to find unresolved threads, failing checks and requested changes | **Attention chips** summarise them at the top and jump you to each one |
 | Your review queue | Notifications and the PR list, spread over several pages | An **Inbox** of PRs waiting on you, your approved PRs ready to merge, and your own open PRs |
 | Staying current | You reload the page | The open PR refreshes itself when something changes; a notification and a menu-bar count appear for new commits, comments, reviews and branch pushes |
-| Slow or no network | Page fails to load | Shows the last saved copy and a quiet offline indicator |
+| Slow or no network | Page fails to load | Shows the last saved copy and a quiet offline indicator; GitHub replies are cached by ETag, so unchanged data costs no API rate limit |
 | Opening a PR | Navigate through repo pages | Paste `owner/repo#123` or a URL in the address bar, with autocomplete |
 | Starting a PR | One long form | Searchable repository and branch pickers (your branches first, grouped by prefix, with last-commit age), PR templates filled in for you, reviewers and labels beside the description |
 | Writing a comment | The box is at the very bottom of a long page | A docked comment bar that is always in reach (`C` to open) |
 | Narrowing a long conversation | Hide resolved threads, filter files | Filter by person and by date range, flip the sort order, show unresolved threads only |
 | Long diffs | Can be slow to render | Syntax-highlighted, unified or side by side, loaded progressively |
-| Memory use | A full browser page per PR | One app that keeps a few PRs open and caches them on disk |
+| Memory use | A full browser page per PR | One app that keeps a few PRs open and caches them on disk, with no always-on blur layers and lazy-loaded avatars |
 
 ### What github.com still does better
 
@@ -37,6 +37,7 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 - Syntax-highlighted diffs, unified or side by side, with collapsible files. Long diffs load progressively so big PRs stay fast.
 - **Split view**: commits and their diff beside the conversation, resizable, with a flip button and per-pane collapse.
 - Collapse or expand every conversation, review and thread in one click.
+- **Zoom** the whole interface with `Ctrl/⌘` + mouse wheel or `Ctrl/⌘` + `+` / `-` / `0`; the level is remembered.
 - Filter the conversation by person, by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates) and flip it **newest first / oldest first**. A scroll-to-top button (or `Home`) appears on long threads.
 - **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them.
 
@@ -45,9 +46,10 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 ![Split view](docs/screenshots/split-view.png)
 
 **Review**
-- Line comments with a rich editor (toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions, `:` emoji), saved as a draft review and submitted together.
+- Line comments with a rich editor (toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions, `:` emoji; pasted Markdown, including fenced code, lists and headings, is parsed like on GitHub), saved as a draft review and submitted together.
 - Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
 - A **docked comment bar** stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft).
+- Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.
 - Resolve and unresolve threads, re-request a review, react to comments. A comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
 - Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
 - **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
@@ -64,6 +66,7 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 ![New pull request](docs/screenshots/new-pr.png)
 
 **Stay on top of things**
+- **Choose repositories**: tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
 - **Home**: all your repositories and recently opened PRs as a full page. Breadcrumbs on every page.
 - **Inbox**: PRs waiting on your review, your approved PRs ready to merge, and your own open PRs.
 - Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), an unread count in the menu bar / tray, and a quiet offline indicator that falls back to the last saved copy.
@@ -125,7 +128,9 @@ Writing actions need the desktop app; in the browser preview they are disabled.
 
 Installed builds check for updates on launch and offer a one-click update (signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret). Unit tests run in CI (`cargo test --lib`).
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers for macOS, Windows and Linux and attaches them to a **draft** GitHub Release. Publish the draft from the Releases page.
+Add the changes to the `## [Unreleased]` section of `CHANGELOG.md` as you go. To release, rename that section to the new version, bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock`, and tag.
+
+Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers for macOS, Windows and Linux and attaches them to a **draft** GitHub Release whose notes are the matching `CHANGELOG.md` section. Publish the draft from the Releases page.
 
 ## Project layout
 
@@ -136,6 +141,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers
 | `web/` | Frontend source (TypeScript, Preact, esbuild): `src/app/*` modules, `src/components/*` Preact components, `src/types.ts` domain types |
 | `ui/app.js`, `ui/app.css` | Built frontend bundle (generated from `web/`, committed) and styles |
 | `editor/` | Source of the rich text editor and highlighter bundles |
+| `CHANGELOG.md` | Release notes per version; the tag's section becomes the GitHub release body |
 | `scripts/` | `bundle.sh` builds and installs the macOS app |
 | `swift/` | A separate native SwiftUI app (see below) |
 | `docs/screenshots/` | Images used in this README |
@@ -145,6 +151,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers
 - Re-running checks only works for GitHub Actions; checks from other services open on GitHub instead.
 - Auto-merge only works if the repository has "Allow auto-merge" turned on.
 - Windows and Linux notifications are plain banners; clicking one does not open the PR yet.
+- GitHub allows 5,000 authenticated requests an hour. A 403 "rate limit exceeded" resets within the hour; choosing fewer repositories and the built-in ETag cache keep usage low.
 - GitHub has no push channel for third-party apps, so notifications are polled about once a minute while the app is open.
 - The pieces that talk to GitHub (resolve, apply suggestion, create PR, notifications, re-run) have been exercised by hand on a few repositories; automated tests cover parsing and the HTTP layer only.
 
