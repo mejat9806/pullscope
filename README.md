@@ -68,9 +68,11 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 **Stay on top of things**
 - **Choose repositories**: tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
 - **Rearrange**: drag the ⋮⋮ grip to reorder the Inbox sections, the sidebar's repository list and the blocks of a PR's side panel. The order is remembered.
+- **Viewed files**: tick *Viewed* on a file in the Files tab to fold it away; the files bar shows progress (`5/12 viewed`) and marks or clears every file. A mark is dropped when the file changes.
+- **Copy summary** (button beside the PR title) copies the title, status, size, reviewers and link; **Compact lists** in the profile menu makes rows denser.
 - **Edit PR details**: the gear on a PR's Assignees, Labels and Milestone opens a picker and saves to GitHub (the token needs write access).
 - **Home**: all your repositories and recently opened PRs as a full page. Breadcrumbs on every page.
-- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in. Sections collapse, every section sorts, a filter box narrows them, and you can drag a section by its grip (or use the arrows) to put what matters to you first.
+- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in. Sections collapse, every section sorts, a filter box narrows them, and you can drag a section by its grip (or use the arrows) to put what matters to you first. Hover a row to **pin** it to a *Pinned* section or **snooze** it (until tomorrow, next week or new activity); snoozed PRs wait in a *Snoozed* section. Save a filter and sort as a named **view**. Keyboard: `j`/`k` or arrows move, `Enter` opens, `p` pins, `s` snoozes, `e` folds a section, `/` filters.
 - Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), an unread count in the menu bar / tray, and a quiet offline indicator that falls back to the last saved copy.
 - Keyboard shortcuts (press `?` in the app).
 

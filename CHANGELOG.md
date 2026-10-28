@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.0]
+
 ### Added
 - **Inbox: pin and snooze.** Hover a row for a bookmark (pin it into a *Pinned* section on top) and a clock (snooze until tomorrow, next week or new activity). Snoozed PRs wait in a *Snoozed* section and come back by themselves.
 - **Inbox keyboard control:** `j`/`k` or the arrow keys move, `Enter` opens, `p` pins, `s` snoozes, `e` folds the section, `/` jumps to the filter.
