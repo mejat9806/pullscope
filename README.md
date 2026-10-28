@@ -51,6 +51,8 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 - A **docked comment bar** stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft).
 - Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.
 - The Reviewers list shows people with a verdict first (changes requested, approved, commented), then people who still have to answer, then bots; five show before the fold. A grey refresh button asks someone to review again, and a yellow clock marks someone you already asked.
+
+![Reviewers in the Details panel](docs/screenshots/details-panel.png)
 - Resolve and unresolve threads, re-request a review, react to comments. A comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
 - Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
 - **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
@@ -80,6 +82,8 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 ![Home](docs/screenshots/home.png)
 
 ![Inbox](docs/screenshots/inbox.png)
+
+![Inbox with a pinned PR](docs/screenshots/inbox-pin-snooze.png)
 
 ## Install
 
