@@ -6,7 +6,7 @@ export interface RcRow { ref: string; on: boolean; st: string; icon: string; tit
 
 export interface SideHandlers {
   side: (tab: string) => void; sps: (state: string) => void; pf: (e: Event) => void; psort: (e: Event) => void; pgroup: (e: Event) => void
-  repoFilter: (e: Event) => void; repo: (name: string) => void; addToken: () => void
+  repoFilter: (e: Event) => void; repo: (name: string) => void; addToken: () => void; pickRepos: () => void
   open: (el: HTMLElement, e: MouseEvent) => void; aux: (el: HTMLElement, e: MouseEvent) => void; ctx: (el: HTMLElement, e: MouseEvent) => void
   rm: (e: MouseEvent, ref: string) => void; fold: (e: MouseEvent, key: string) => void
 }
@@ -47,6 +47,7 @@ export function RepoList({ repos, repo, filter, on }: { repos: RepoSummary[]; re
   const f = filter.toLowerCase(), shown = repos.filter((r) => r.full_name.toLowerCase().includes(f));
   return <>
     <input class="input sb-filter" id="repofilter" placeholder="Find a repository…" value={filter} onInput={on.repoFilter} />
+    <button class="sb-btn" id="pickrepos" onClick={on.pickRepos}>Choose repositories…</button>
     {shown.length ? shown.map((r) => (
       <a class={`rc ${repo === r.full_name ? 'on' : ''}`} data-repo={r.full_name} onClick={() => on.repo(r.full_name)}>
         <span class={`rc-i ${r.private ? 'closed' : ''}`} style="color:var(--fgColor-muted)"><Icon n={r.private ? 'lock' : 'repo'} /></span>

@@ -1012,3 +1012,6 @@ table.diff { contain: layout paint; }
 
 .tt-ed { display: contents; }
 .rerequest.is-busy { opacity: 1; } .rerequest.is-busy svg { animation: rspin .8s linear infinite; }
+.rp-bar { display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; } .rp-bar span { flex: 1; color: var(--fgColor-muted); font-size: 12px; }
+.rp-list { max-height: 320px; overflow: auto; border: 1px solid var(--borderColor-muted); border-radius: 6px; } .rp-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; cursor: pointer; } .rp-row:hover { background: var(--bgColor-muted); } .rp-row i { font-style: normal; font-size: 11px; color: var(--fgColor-muted); border: 1px solid var(--borderColor-muted); border-radius: 10px; padding: 0 6px; }
+.prof-pop .pp-ver { padding: 6px 10px 2px; margin-top: 4px; border-top: 1px solid var(--borderColor-muted); font-size: 11px; color: var(--fgColor-muted); }

@@ -3,6 +3,7 @@ import { PrGroups, RcItem, RecentList, RepoList, SideHead, Sidebar } from '../co
 import type { RcRow, SideHandlers } from '../components/Sidebar';
 import type { Cmp, PrListItem } from '../types';
 import { openAux, openClick, openCtx, rmRecent } from './bind';
+import { repoPickOpen } from './repopick';
 import { tokenDialog } from './token';
 import { folded, isFolded } from './comments';
 import { S, when } from './core';
@@ -22,7 +23,7 @@ const on: SideHandlers = {
   pgroup: (e) => { S.pgroup = (e.target as HTMLSelectElement).value; localStorage.setItem('pgroup', S.pgroup); render(); },
   repoFilter: (e) => typed(e, 'repoFilter'),
   repo: (name) => openRepo(name),
-  addToken: tokenDialog,
+  addToken: tokenDialog, pickRepos: repoPickOpen,
   open: openClick, aux: openAux, ctx: openCtx, rm: rmRecent,
   // Folding only flips state; the page and the sidebar both repaint from it.
   fold: (e, k) => {

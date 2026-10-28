@@ -1,11 +1,12 @@
 import { setSlot } from './frame';
-import { CmPop, CommitsDialog, ConfirmDialog, CtxPop, DeleteCommentDialog, EditCommentDialog, EditPrDialog, HideCommentDialog, ReactPop, ReviewDialog, TokenDialog } from '../components/Dialogs';
+import { CmPop, CommitsDialog, ConfirmDialog, CtxPop, DeleteCommentDialog, EditCommentDialog, EditPrDialog, HideCommentDialog, ReactPop, RepoPickDialog, ReviewDialog, TokenDialog } from '../components/Dialogs';
 import { ProfPop } from '../components/Overlays';
 import type { CpHandlers } from '../components/Merge';
 import { closeDlg, errMsg } from './actions';
 import { isOwnPr, REACTS, S } from './core';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { pendList } from './diff';
+import { repoPickSave } from './repopick';
 import { oauthGo, tokenSave } from './token';
 
 // Dialogs and popups are plain state (S.dlg / S.pop) painted by Preact: dialogs into #dlg (repainted with every page render), popups into their own host on <body>.
@@ -22,10 +23,14 @@ const cpOn: CpHandlers = {
 
 export function Dialogs() {
   const d = S.dlg; if (!d) return null;
-  const close = () => closeDlg(), ok = () => { d.k !== 'commits' && d.k !== 'token' && d.ok(); };
+  const close = () => closeDlg(), ok = () => { d.k !== 'commits' && d.k !== 'token' && d.k !== 'repos' && d.ok(); };
   switch (d.k) {
     case 'commits': return <CommitsDialog {...commitsDialogProps()} on={cpOn} />;
     case 'token': return <TokenDialog text={S.tokenText || ''} input={(e) => { S.tokenText = (e.currentTarget as HTMLInputElement).value; }} code={S.oauth?.code || ''} err={S.oauth?.err || ''} go={oauthGo} close={close} save={tokenSave} />;
+    case 'repos': { const rp = S.rpick!; return <RepoPickDialog repos={rp.all} on={new Set(rp.on)} q={rp.q} err={rp.err} close={close} save={repoPickSave}
+      toggle={(n) => { rp.on = rp.on.includes(n) ? rp.on.filter((x) => x !== n) : [...rp.on, n]; paintDlg(); }}
+      all={(on) => { const q = rp.q.toLowerCase(), vis = (rp.all || []).map((r) => r.full_name).filter((n) => n.toLowerCase().includes(q)); rp.on = on ? [...new Set([...rp.on, ...vis])] : rp.on.filter((n) => !vis.includes(n)); paintDlg(); }}
+      input={(e) => { rp.q = (e.currentTarget as HTMLInputElement).value; paintDlg(); }} />; }
     case 'review': { const n = pendList().length; return <ReviewDialog ph={n ? `Leave a review comment (${n} line comment${n === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)'} ev={d.ev} own={isOwnPr()} onEv={(v) => { d.ev = v; paintDlg(); }} err={errMsg('review')} close={close} ok={ok} />; }
     case 'editpr': return <EditPrDialog title={d.title} onTitle={(v) => { d.title = v; }} err={errMsg('editpr')} close={close} ok={ok} />;
     case 'confirm': return <ConfirmDialog title={d.title} text={d.text} label={d.label} danger={d.danger} close={close} ok={ok} />;

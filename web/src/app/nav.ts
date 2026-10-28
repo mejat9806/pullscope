@@ -8,6 +8,7 @@ import { saveTabs, tabIdx, tabPut, tabSnap } from './tabs';
 
 export async function loadRepos() {
   S.reposErr = ''; S.repos = null;
+  if (S.repoSel) { S.repos = S.repoSel; render(); return; }
   try { S.repos = await tauri!.invoke('list_repos'); } catch (e) { S.reposErr = String(e); if (/401|Bad credentials|requires authentication/i.test(S.reposErr)) { S.hasToken = false; S.gateErr = 'GitHub rejected the saved token (expired or revoked). Sign in again.'; } }
   render();
 }

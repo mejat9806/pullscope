@@ -78,20 +78,26 @@ static INBOX: LazyLock<AsyncCache<String, Value>> = LazyLock::new(|| AsyncCache:
 
 /// PRs that need you: review requested, your own open PRs, and your PRs that are approved (ready to merge).
 #[tauri::command]
-async fn inbox(force: Option<bool>) -> Result<serde_json::Value, String> {
+async fn inbox(force: Option<bool>, repos: Option<Vec<String>>) -> Result<serde_json::Value, String> {
     if force == Some(true) { INBOX.invalidate_all(); }
-    INBOX.try_get_with("inbox".to_string(), async {
+    // Only the chosen repositories: the search gets `repo:` terms (GitHub ORs them) and the answer is filtered again, since the query length is limited.
+    let only: Vec<String> = repos.unwrap_or_default().into_iter().filter(|r| valid_repo(r)).map(|r| r.to_lowercase()).collect();
+    let terms: String = if only.is_empty() { String::new() } else { only.iter().map(|r| format!(" repo:{r}")).collect::<String>() };
+    let terms = if terms.len() > 180 { String::new() } else { terms };
+    INBOX.try_get_with(format!("inbox{}", only.join(",")), async {
         let token = github::load_token().ok_or("Add an access token (key button) to see your inbox.")?;
         let c = github::client();
         let run = |q: &str| {
-            let url = format!("https://api.github.com/search/issues?per_page=30&sort=updated&order=desc&q={}", q.replace(' ', "+").replace(':', "%3A").replace('@', "%40"));
+            let q = format!("{q}{terms}"); let only = only.clone();
+            let url = format!("https://api.github.com/search/issues?per_page=30&sort=updated&order=desc&q={}", q.replace(' ', "+").replace(':', "%3A").replace('@', "%40").replace('/', "%2F"));
             let (c, t) = (c.clone(), token.clone());
             async move {
                 let v = github::get(&c, &url, Some(&t)).await?;
-                let items: Vec<Value> = v["items"].as_array().cloned().unwrap_or_default().into_iter().map(|i| {
+                let items: Vec<Value> = v["items"].as_array().cloned().unwrap_or_default().into_iter().filter_map(|i| {
                     let repo = i["repository_url"].as_str().unwrap_or("").rsplit("/repos/").next().unwrap_or("").to_string();
-                    serde_json::json!({ "repo": repo, "number": i["number"], "title": i["title"], "user": i["user"]["login"], "avatar": i["user"]["avatar_url"],
-                        "updated_at": i["updated_at"], "draft": i["draft"], "comments": i["comments"], "url": i["html_url"] })
+                    if !only.is_empty() && !only.contains(&repo.to_lowercase()) { return None; }
+                    Some(serde_json::json!({ "repo": repo, "number": i["number"], "title": i["title"], "user": i["user"]["login"], "avatar": i["user"]["avatar_url"],
+                        "updated_at": i["updated_at"], "draft": i["draft"], "comments": i["comments"], "url": i["html_url"] }))
                 }).collect();
                 Ok::<Vec<Value>, String>(items)
             }

@@ -25,6 +25,16 @@ export const HideCommentDialog = (p: Btns & { reasons: [string, string][]; reaso
 export interface TokenDlgProps { text: string; input: (e: Event) => void; code: string; err: string; go: () => void; close: () => void; save: () => void }
 export const TokenDialog = (p: TokenDlgProps) => <div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo" onClick={p.go}>Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">{p.code ? <div class="oauth-code"><span>Enter this code on GitHub</span><b>{p.code}</b><small>Waiting for approval…</small></div> : p.err ? <div class="err" style="margin:8px 0">{p.err}</div> : ''}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" value={p.text} onInput={p.input} placeholder="ghp_…" style="width:100%;box-sizing:border-box" /><div class="btns"><button class="btn" id="tokcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="toksave" onClick={p.save}>Save</button></div></div></div>;
 
+export interface RepoPickProps { repos: { full_name: string; private: boolean }[] | null; on: Set<string>; q: string; err: string; toggle: (n: string) => void; all: (on: boolean) => void; input: (e: Event) => void; close: () => void; save: () => void }
+export const RepoPickDialog = (p: RepoPickProps) => {
+  const q = p.q.toLowerCase(), shown = (p.repos || []).filter((r) => r.full_name.toLowerCase().includes(q));
+  return <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Choose repositories</h2><p>Only the ticked repositories are listed and fetched (sidebar, inbox, notifications). Tick none, or all, to use every repository. Pasting a pull request link still opens any repository.</p>
+    <input class="input" id="rpq" placeholder="Filter…" value={p.q} onInput={p.input} style="width:100%;box-sizing:border-box;height:34px" />
+    <div class="rp-bar"><span>{p.on.size} selected</span><button class="btn" onClick={() => p.all(true)}>Select shown</button><button class="btn" onClick={() => p.all(false)}>Clear</button></div>
+    <div class="rp-list">{p.repos ? (shown.length ? shown.map((r) => <label class="rp-row"><input type="checkbox" checked={p.on.has(r.full_name)} onChange={() => p.toggle(r.full_name)} /> <b>{r.full_name}</b>{r.private ? <i>private</i> : ''}</label>) : <div class="sb-empty">No matches.</div>) : <div class="sb-empty">Loading repositories…</div>}</div>
+    <Err m={p.err} /><div class="btns"><button class="btn" id="rpcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="rpsave" onClick={p.save}>Save</button></div></div></div>;
+};
+
 export { CommitsDialog };
 export type { CommitsDialogProps, CpHandlers };
 

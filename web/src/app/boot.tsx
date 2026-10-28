@@ -25,7 +25,7 @@ if (q.get('split')) S.split = q.get('split') === '1';
 
 if (tauri) tauri!.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 
-restoreZoom();
+restoreZoom(); window.__TAURI__?.app?.getVersion?.().then((v) => { S.ver = v; }).catch(() => {});
 setGlobals({
   pointerDown: (e) => ripple(e), clickCapture: (e) => noteClick(e), click: () => closePop(), mouseDown: (e) => { menuAway(e); notesAway(e); bpAway(e); },
   key: (e) => { zoomKey(e); shortcut(e); notesKey(e); helpKey(e); homeKey(e); }, wheel: (e) => zoomWheel(e), focus: () => refocus(), online: () => goOnline(), offline: () => goOffline(),

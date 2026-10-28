@@ -5,7 +5,7 @@ import { paintDlg } from './dialogs';
 import { tokenDialog } from './token';
 import { curRef } from './tabs';
 import { bindSticky, openExternal } from './addressbar';
-import { $, S, syncUnread, tauri, when } from './core';
+import { $, S, selNames, syncUnread, tauri, when } from './core';
 import { qc, seen } from './data';
 import { loadRepos, openPr } from './nav';
 import { paintSide } from './side';
@@ -35,7 +35,7 @@ export function notesProps() {
 export async function loadInbox(force = false) {
   S.inbox = S.inbox || { data: null, err: '', loading: true };
   S.inbox!.loading = true; S.inbox!.err = ''; render();
-  try { S.inbox!.data = tauri ? await tauri!.invoke('inbox', { force }) : { requested: [], mine: [], ready: [] }; }
+  try { S.inbox!.data = tauri ? await tauri!.invoke('inbox', { force, repos: selNames() }) : { requested: [], mine: [], ready: [] }; }
   catch (e) { S.inbox!.err = String(e).replace(/^Error: /, ''); }
   S.inbox!.loading = false; S.keepScroll = true; render(); S.keepScroll = false;
 }

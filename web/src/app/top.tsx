@@ -10,6 +10,7 @@ import { winDrag, addrBlur, addrFocus, addrInput, addrKey, addrSubmit, avUrl, op
 import { S, isDark, isOff, tauri } from './core';
 import { openPr, reload } from './nav';
 import { fastTab, stashCurrent } from './bind';
+import { repoPickOpen } from './repopick';
 import { tokenDialog } from './token';
 import { openInbox, openNewPr, render, setDragging } from './pages';
 import { go } from './render';
@@ -30,9 +31,9 @@ const mode = (e: MouseEvent) => {
 const prof = (e: MouseEvent) => {
   e.stopPropagation(); if (S.pop?.k === 'prof') { closePop(); return; }
   const pr = S.profile!, r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  openPop({ k: 'prof', right: Math.max(8, innerWidth - r.right), top: r.bottom + 6, name: pr.name || pr.login, login: pr.login, avatar: avUrl(pr.avatar_url!, 80), pick: async (h) => {
+  openPop({ k: 'prof', right: Math.max(8, innerWidth - r.right), top: r.bottom + 6, name: pr.name || pr.login, ver: S.ver, login: pr.login, avatar: avUrl(pr.avatar_url!, 80), pick: async (h) => {
     closePop();
-    if (h === 'profile') openExternal(pr.html_url!); else if (h === 'token') tokenDialog();
+    if (h === 'profile') openExternal(pr.html_url!); else if (h === 'token') tokenDialog(); else if (h === 'repos') repoPickOpen();
     else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
   } });
 };

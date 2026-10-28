@@ -32,13 +32,18 @@
       return d3;
     }
   };
+  var loadRepoSel = () => {
+    const l3 = load("repoSel", []);
+    return l3.length ? l3 : null;
+  };
+  var selNames = () => (S.repoSel || []).map((r3) => r3.full_name);
   var S = { profile: (() => {
     try {
       return JSON.parse(localStorage.getItem("profile") || "null");
     } catch {
       return null;
     }
-  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {} };
+  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel() };
   S.recent = (() => {
     try {
       return JSON.parse(localStorage.getItem("recent") ?? "null") || [];
@@ -781,11 +786,19 @@
       I2("link-external"),
       " Your GitHub profile"
     ] }),
+    /* @__PURE__ */ u3("button", { "data-h": "repos", onClick: () => p3.pick("repos"), children: [
+      I2("repo"),
+      " Choose repositories\u2026"
+    ] }),
     /* @__PURE__ */ u3("button", { "data-h": "token", onClick: () => p3.pick("token"), children: [
       I2("key"),
       " Access token\u2026"
     ] }),
-    /* @__PURE__ */ u3("button", { "data-h": "out", class: "danger", onClick: () => p3.pick("out"), children: "Sign out" })
+    /* @__PURE__ */ u3("button", { "data-h": "out", class: "danger", onClick: () => p3.pick("out"), children: "Sign out" }),
+    p3.ver ? /* @__PURE__ */ u3("div", { class: "pp-ver", children: [
+      "Pullscope v",
+      p3.ver
+    ] }) : ""
   ] });
   function AcPop(p3) {
     const ref = A2(null);
@@ -1648,6 +1661,33 @@
       /* @__PURE__ */ u3("button", { class: "btn primary", id: "toksave", onClick: p3.save, children: "Save" })
     ] })
   ] }) });
+  var RepoPickDialog = (p3) => {
+    const q3 = p3.q.toLowerCase(), shown2 = (p3.repos || []).filter((r3) => r3.full_name.toLowerCase().includes(q3));
+    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+      /* @__PURE__ */ u3("h2", { children: "Choose repositories" }),
+      /* @__PURE__ */ u3("p", { children: "Only the ticked repositories are listed and fetched (sidebar, inbox, notifications). Tick none, or all, to use every repository. Pasting a pull request link still opens any repository." }),
+      /* @__PURE__ */ u3("input", { class: "input", id: "rpq", placeholder: "Filter\u2026", value: p3.q, onInput: p3.input, style: "width:100%;box-sizing:border-box;height:34px" }),
+      /* @__PURE__ */ u3("div", { class: "rp-bar", children: [
+        /* @__PURE__ */ u3("span", { children: [
+          p3.on.size,
+          " selected"
+        ] }),
+        /* @__PURE__ */ u3("button", { class: "btn", onClick: () => p3.all(true), children: "Select shown" }),
+        /* @__PURE__ */ u3("button", { class: "btn", onClick: () => p3.all(false), children: "Clear" })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "rp-list", children: p3.repos ? shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("label", { class: "rp-row", children: [
+        /* @__PURE__ */ u3("input", { type: "checkbox", checked: p3.on.has(r3.full_name), onChange: () => p3.toggle(r3.full_name) }),
+        " ",
+        /* @__PURE__ */ u3("b", { children: r3.full_name }),
+        r3.private ? /* @__PURE__ */ u3("i", { children: "private" }) : ""
+      ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "No matches." }) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading repositories\u2026" }) }),
+      /* @__PURE__ */ u3(Err, { m: p3.err }),
+      /* @__PURE__ */ u3("div", { class: "btns", children: [
+        /* @__PURE__ */ u3("button", { class: "btn", id: "rpcancel", onClick: p3.close, children: "Cancel" }),
+        /* @__PURE__ */ u3("button", { class: "btn primary", id: "rpsave", onClick: p3.save, children: "Save" })
+      ] })
+    ] }) });
+  };
   var CmPop = ({ x: x2, y: y3, hr, edit, hide: hide2, del, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x2}px;top:${y3}px`, children: [
     /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
     /* @__PURE__ */ u3("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
@@ -3892,6 +3932,45 @@
     if (S.sel === sha) render();
   }
 
+  // src/app/repopick.ts
+  function repoPickOpen() {
+    S.rpick = { all: null, on: (S.repoSel || []).map((r3) => r3.full_name), q: "", err: "" };
+    S.dlg = { k: "repos" };
+    render();
+    tauri?.invoke("list_repos").then((l3) => {
+      if (S.rpick) {
+        S.rpick.all = l3.filter((r3) => !r3.archived);
+        paintDlg();
+      }
+    }).catch((e3) => {
+      if (S.rpick) {
+        S.rpick.err = String(e3).replace(/^Error: /, "");
+        S.rpick.all = [];
+        paintDlg();
+      }
+    });
+  }
+  function repoPickSave() {
+    const p3 = S.rpick;
+    if (!p3?.all) return;
+    const keep4 = new Set(p3.on), chosen = [...p3.all, ...S.repoSel || []].filter((r3, i3, a3) => keep4.has(r3.full_name) && a3.findIndex((x2) => x2.full_name === r3.full_name) === i3);
+    S.repoSel = chosen.length && chosen.length < p3.all.length ? chosen : null;
+    try {
+      if (S.repoSel) localStorage.setItem("repoSel", JSON.stringify(S.repoSel));
+      else localStorage.removeItem("repoSel");
+    } catch {
+    }
+    S.rpick = null;
+    S.dlg = null;
+    S.repo = null;
+    S.sideTab = "repos";
+    S.inbox = null;
+    S.repos = S.repoSel;
+    if (!S.repoSel) loadRepos();
+    else render();
+    if (S.view === "inbox") loadInbox(true);
+  }
+
   // src/app/dialogs.tsx
   var paintDlg = () => setSlot("dlg", /* @__PURE__ */ u3(Dialogs, {}));
   var cpOn = {
@@ -3919,7 +3998,7 @@
     const d3 = S.dlg;
     if (!d3) return null;
     const close = () => closeDlg(), ok = () => {
-      d3.k !== "commits" && d3.k !== "token" && d3.ok();
+      d3.k !== "commits" && d3.k !== "token" && d3.k !== "repos" && d3.ok();
     };
     switch (d3.k) {
       case "commits":
@@ -3928,6 +4007,33 @@
         return /* @__PURE__ */ u3(TokenDialog, { text: S.tokenText || "", input: (e3) => {
           S.tokenText = e3.currentTarget.value;
         }, code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
+      case "repos": {
+        const rp = S.rpick;
+        return /* @__PURE__ */ u3(
+          RepoPickDialog,
+          {
+            repos: rp.all,
+            on: new Set(rp.on),
+            q: rp.q,
+            err: rp.err,
+            close,
+            save: repoPickSave,
+            toggle: (n2) => {
+              rp.on = rp.on.includes(n2) ? rp.on.filter((x2) => x2 !== n2) : [...rp.on, n2];
+              paintDlg();
+            },
+            all: (on3) => {
+              const q3 = rp.q.toLowerCase(), vis = (rp.all || []).map((r3) => r3.full_name).filter((n2) => n2.toLowerCase().includes(q3));
+              rp.on = on3 ? [.../* @__PURE__ */ new Set([...rp.on, ...vis])] : rp.on.filter((n2) => !vis.includes(n2));
+              paintDlg();
+            },
+            input: (e3) => {
+              rp.q = e3.currentTarget.value;
+              paintDlg();
+            }
+          }
+        );
+      }
       case "review": {
         const n2 = pendList().length;
         return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, own: isOwnPr(), onEv: (v3) => {
@@ -4234,7 +4340,7 @@
     if (S.hasToken && Date.now() - (S.watchAt || 0) > 24e4) {
       S.watchAt = Date.now();
       try {
-        const d3 = await tauri.invoke("inbox", { force: false });
+        const d3 = await tauri.invoke("inbox", { force: false, repos: selNames() });
         S.watch = [...d3.mine || [], ...d3.requested || []].map((i3) => `${i3.repo}#${i3.number}`);
       } catch {
       }
@@ -4439,10 +4545,11 @@
       return;
     }
     const pr = S.profile, r3 = e3.currentTarget.getBoundingClientRect();
-    openPop({ k: "prof", right: Math.max(8, innerWidth - r3.right), top: r3.bottom + 6, name: pr.name || pr.login, login: pr.login, avatar: avUrl(pr.avatar_url, 80), pick: async (h3) => {
+    openPop({ k: "prof", right: Math.max(8, innerWidth - r3.right), top: r3.bottom + 6, name: pr.name || pr.login, ver: S.ver, login: pr.login, avatar: avUrl(pr.avatar_url, 80), pick: async (h3) => {
       closePop();
       if (h3 === "profile") openExternal(pr.html_url);
       else if (h3 === "token") tokenDialog();
+      else if (h3 === "repos") repoPickOpen();
       else {
         try {
           await tauri?.invoke("set_token", { token: "" });
@@ -4709,6 +4816,7 @@
     const f4 = filter.toLowerCase(), shown2 = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter, onInput: on3.repoFilter }),
+      /* @__PURE__ */ u3("button", { class: "sb-btn", id: "pickrepos", onClick: on3.pickRepos, children: "Choose repositories\u2026" }),
       shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
         /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: /* @__PURE__ */ u3(Icon, { n: r3.private ? "lock" : "repo" }) }),
         /* @__PURE__ */ u3("span", { class: "rc-t", children: [
@@ -4825,6 +4933,7 @@
     repoFilter: (e3) => typed(e3, "repoFilter"),
     repo: (name) => openRepo(name),
     addToken: tokenDialog,
+    pickRepos: repoPickOpen,
     open: openClick,
     aux: openAux,
     ctx: openCtx,
@@ -5161,7 +5270,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     S.inbox.err = "";
     render();
     try {
-      S.inbox.data = tauri ? await tauri.invoke("inbox", { force }) : { requested: [], mine: [], ready: [] };
+      S.inbox.data = tauri ? await tauri.invoke("inbox", { force, repos: selNames() }) : { requested: [], mine: [], ready: [] };
     } catch (e3) {
       S.inbox.err = String(e3).replace(/^Error: /, "");
     }
@@ -6160,6 +6269,11 @@ ${ev.currentTarget.dataset.code}
   async function loadRepos() {
     S.reposErr = "";
     S.repos = null;
+    if (S.repoSel) {
+      S.repos = S.repoSel;
+      render();
+      return;
+    }
     try {
       S.repos = await tauri.invoke("list_repos");
     } catch (e3) {
@@ -6429,6 +6543,10 @@ ${ev.currentTarget.dataset.code}
     render();
   });
   restoreZoom();
+  window.__TAURI__?.app?.getVersion?.().then((v3) => {
+    S.ver = v3;
+  }).catch(() => {
+  });
   setGlobals({
     pointerDown: (e3) => ripple(e3),
     clickCapture: (e3) => noteClick(e3),

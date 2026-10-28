@@ -1,4 +1,4 @@
-import type { AppState, Note, Person, Profile, Reactions, RecentEntry } from '../types';
+import type { AppState, Note, RepoSummary, Person, Profile, Reactions, RecentEntry } from '../types';
 
 // GitHub pull request page renderer. Data arrives from the Rust backend (Tauri `fetch_pr`),
 // or from a recorded bundle (`?fixture=file.json`) when previewed in a plain browser.
@@ -49,8 +49,11 @@ export const REACTS: [keyof Reactions, string][] = [['+1', '👍'], ['-1', '👎
 
 
 export const load = <T>(k: string, d: T): T => { try { return (JSON.parse(localStorage.getItem(k) ?? 'null') as T | null) ?? d; } catch { return d; } };
+// Repositories the user chose to fetch (null = all). Kept whole, so the sidebar needs no repository-list request at start-up.
+export const loadRepoSel = (): RepoSummary[] | null => { const l = load<RepoSummary[]>('repoSel', []); return l.length ? l : null; };
+export const selNames = (): string[] => (S.repoSel || []).map((r) => r.full_name);
 
-export const S: AppState = { profile: (() => { try { return JSON.parse(localStorage.getItem('profile') || 'null') as Profile | null; } catch { return null; } })(), bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load<Note[]>('notes', []), bell: false, fold: load<Record<string, boolean>>('fold', {}), hide: load<Record<string, boolean>>('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, range: 'all', rFrom: '', rTo: '', sort: localStorage.getItem('csort') === 'desc' ? 'desc' : 'asc', unIdx: 0, nav: false, busy: '', actErr: null, tabs: [], alive: new Map(), tabMenu: false, closed: [], pushes: {} };
+export const S: AppState = { profile: (() => { try { return JSON.parse(localStorage.getItem('profile') || 'null') as Profile | null; } catch { return null; } })(), bundle: null, tab: 'conversation', mode: localStorage.getItem('mode') || 'auto', error: '', loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: 'repos', repos: null, reposErr: '', repoFilter: '', repo: null, prs: null, prState: 'open', split: localStorage.getItem('split') === '1', sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem('lw') || 46), notes: load<Note[]>('notes', []), bell: false, fold: load<Record<string, boolean>>('fold', {}), hide: load<Record<string, boolean>>('hide', {}), draft: {}, sbw: +(localStorage.getItem('sbw') || 260), pf: '', psort: localStorage.getItem('psort') || 'updated', pgroup: localStorage.getItem('pgroup') || 'none', who: [], unres: false, range: 'all', rFrom: '', rTo: '', sort: localStorage.getItem('csort') === 'desc' ? 'desc' : 'asc', unIdx: 0, nav: false, busy: '', actErr: null, tabs: [], alive: new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel() };
 
 S.recent = (() => { try { return (JSON.parse(localStorage.getItem('recent') ?? 'null') as RecentEntry[] | null) || []; } catch { return []; } })();
 
