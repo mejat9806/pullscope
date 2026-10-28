@@ -291,8 +291,23 @@ mod etag {
         Some(dir()?.join(format!("{:016x}.json", h.finish())))
     }
 
+    /// Image links in comment HTML are signed (`?jwt=`) and die within minutes; a cached copy must not outlive them.
+    pub(super) fn signed_links_expire_soon(text: &str) -> bool {
+        use base64::Engine;
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+        text.split("jwt=").skip(1).any(|rest| {
+            let jwt: String = rest.chars().take_while(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')).collect();
+            let exp = jwt.split('.').nth(1).and_then(|p| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(p).ok()).and_then(|b| serde_json::from_slice::<Value>(&b).ok()).and_then(|v| v["exp"].as_u64());
+            exp.is_none_or(|e| e < now + 60)
+        })
+    }
+
     pub fn load(url: &str, token: Option<&str>) -> Option<(String, Value)> {
-        let v: Value = serde_json::from_slice(&std::fs::read(file(url, token)?).ok()?).ok()?;
+        let raw = std::fs::read(file(url, token)?).ok()?;
+        if signed_links_expire_soon(&String::from_utf8_lossy(&raw)) {
+            return None;
+        }
+        let v: Value = serde_json::from_slice(&raw).ok()?;
         Some((v["etag"].as_str()?.to_string(), v["body"].clone()))
     }
 
@@ -435,6 +450,16 @@ mod tests {
         assert_eq!(b["n"], "hi");
         assert_eq!(*seen.lock().unwrap(), vec![false, true]);
         let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn cached_bodies_with_expiring_image_links_are_skipped() {
+        use base64::Engine;
+        let jwt = |exp: u64| format!("h.{}.s", base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(format!(r#"{{"exp":{exp}}}"#)));
+        let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+        assert!(etag::signed_links_expire_soon(&format!("<img src=\"https://x/y?jwt={}\">", jwt(now - 5))));
+        assert!(!etag::signed_links_expire_soon(&format!("<img src=\"https://x/y?jwt={}\">", jwt(now + 280))));
+        assert!(!etag::signed_links_expire_soon("<p>no images</p>"));
     }
 
     #[tokio::test]
