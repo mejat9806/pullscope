@@ -59,7 +59,7 @@ export interface RepoSummary { full_name: string; private: boolean; archived: bo
 export interface PrListItem { closed_at?: string | null; number: number; title: string; state: string; draft?: boolean; merged?: boolean; merged_at?: string | null; user: User; updated_at: string; created_at: string; labels: Label[]; html_url: string; comments?: number; head?: Ref; base?: Ref }
 export interface Push { branch: string; at: string; actor: string | null; repo: string }
 export interface InboxItem { repo: string; number: number; title: string; user: string; avatar: string; updated_at: string; draft: boolean; comments: number; url: string }
-export interface Inbox { requested: InboxItem[]; mine: InboxItem[]; ready: InboxItem[] }
+export interface Inbox { requested: InboxItem[]; mine: InboxItem[]; ready: InboxItem[]; mentioned?: InboxItem[]; participated?: InboxItem[]; closed?: InboxItem[] }
 export interface Dialog { kind: string; [field: string]: unknown }
 export type Mode = 'auto' | 'light' | 'dark';
 export type Drafts = Record<string, string>;

@@ -68,7 +68,7 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 **Stay on top of things**
 - **Choose repositories**: tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
 - **Home**: all your repositories and recently opened PRs as a full page. Breadcrumbs on every page.
-- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, and your own open PRs.
+- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in.
 - Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), an unread count in the menu bar / tray, and a quiet offline indicator that falls back to the last saved copy.
 - Keyboard shortcuts (press `?` in the app).
 

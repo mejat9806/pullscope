@@ -57,7 +57,7 @@ export async function pollNotes() {
   // Watch what matters without having to open it: open tabs, recent PRs, and the PRs you wrote or were asked to review (refreshed every 4 minutes).
   if (S.hasToken && Date.now() - (S.watchAt || 0) > 240000) {
     S.watchAt = Date.now();
-    try { const d = await tauri!.invoke('inbox', { force: false, repos: selNames() }); S.watch = [...(d.mine || []), ...(d.requested || [])].map((i) => `${i.repo}#${i.number}`); } catch { /* keep the previous list */ }
+    try { const d = await tauri!.invoke('inbox', { force: false, repos: selNames(), light: true }); S.watch = [...(d.mine || []), ...(d.requested || [])].map((i) => `${i.repo}#${i.number}`); } catch { /* keep the previous list */ }
   }
   const refs = S.hasToken ? [...new Set([...(cur ? [cur] : []), ...S.tabs.map((t) => t.ref), ...S.recent.slice(0, 8).map((r) => r.ref), ...(S.watch || [])])].slice(0, 40) : (cur ? [cur] : []);
   for (const ref of refs) {

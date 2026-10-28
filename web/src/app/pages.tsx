@@ -126,7 +126,7 @@ export function inboxProps(): InboxProps {
   const I: Partial<InboxState> = S.inbox || { loading: true }, d = I.data;
   const row = (p: InboxItem) => { const ref = `${p.repo}#${p.number}`, was = seen[ref]?.at; return { ref, avatar: p.avatar, title: p.title, sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`, fresh: !!(was && p.updated_at > was), comments: p.comments || 0 }; };
   const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, rows: list.map(row) });
-  return ({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine)] : null });
+  return ({ loading: !!I.loading, err: I.err || '', secs: d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Your pull requests', 'Open PRs you opened', d.mine), sec('Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []), sec('Participated', 'Open PRs you commented on or reviewed', d.participated || []), sec('Recently closed or merged', 'PRs you were involved in', d.closed || [])] : null });
 }
 
 

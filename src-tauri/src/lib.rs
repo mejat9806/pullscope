@@ -78,13 +78,14 @@ static INBOX: LazyLock<AsyncCache<String, Value>> = LazyLock::new(|| AsyncCache:
 
 /// PRs that need you: review requested, your own open PRs, and your PRs that are approved (ready to merge).
 #[tauri::command]
-async fn inbox(force: Option<bool>, repos: Option<Vec<String>>) -> Result<serde_json::Value, String> {
+async fn inbox(force: Option<bool>, repos: Option<Vec<String>>, light: Option<bool>) -> Result<serde_json::Value, String> {
     if force == Some(true) { INBOX.invalidate_all(); }
     // Only the chosen repositories: the search gets `repo:` terms (GitHub ORs them) and the answer is filtered again, since the query length is limited.
     let only: Vec<String> = repos.unwrap_or_default().into_iter().filter(|r| valid_repo(r)).map(|r| r.to_lowercase()).collect();
     let terms: String = if only.is_empty() { String::new() } else { only.iter().map(|r| format!(" repo:{r}")).collect::<String>() };
     let terms = if terms.len() > 180 { String::new() } else { terms };
-    INBOX.try_get_with(format!("inbox{}", only.join(",")), async {
+    let light = light == Some(true);
+    INBOX.try_get_with(format!("inbox{}{}", if light { "!" } else { "" }, only.join(",")), async {
         let token = github::load_token().ok_or("Add an access token (key button) to see your inbox.")?;
         let c = github::client();
         let run = |q: &str| {
@@ -103,7 +104,15 @@ async fn inbox(force: Option<bool>, repos: Option<Vec<String>>) -> Result<serde_
             }
         };
         let (a, b, d) = tokio::join!(run("is:pr is:open archived:false review-requested:@me"), run("is:pr is:open archived:false author:@me"), run("is:pr is:open archived:false author:@me review:approved draft:false"));
-        Ok::<Value, String>(serde_json::json!({ "requested": a?, "mine": b?, "ready": d? }))
+        let (a, b, d) = (a?, b?, d?);
+        if light { return Ok::<Value, String>(serde_json::json!({ "requested": a, "mine": b, "ready": d })); }
+        // Mentioned / participated / recently closed: each list leaves out what an earlier one already shows.
+        let (m, p, x) = tokio::join!(run("is:pr is:open archived:false mentions:@me -author:@me"), run("is:pr is:open archived:false involves:@me -author:@me"), run("is:pr is:closed archived:false involves:@me"));
+        let key = |i: &Value| format!("{}#{}", i["repo"], i["number"]);
+        let mut seen: std::collections::HashSet<String> = a.iter().chain(b.iter()).map(key).collect();
+        let mut fresh = |l: Vec<Value>| -> Vec<Value> { l.into_iter().filter(|i| seen.insert(key(i))).collect() };
+        let (m, p) = (fresh(m?), fresh(p?));
+        Ok::<Value, String>(serde_json::json!({ "requested": a, "mine": b, "ready": d, "mentioned": m, "participated": p, "closed": x? }))
     }).await.map_err(|e: Arc<String>| (*e).clone())
 }
 

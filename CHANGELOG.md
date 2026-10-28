@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- The Inbox has three more sections: **Mentioned** (open PRs where you were @mentioned), **Participated** (open PRs you commented on or reviewed) and **Recently closed or merged** (PRs you were involved in). A PR appears only in the first section that matches. They follow your chosen repositories.
+
 ## [1.1.0]
 
 ### Added

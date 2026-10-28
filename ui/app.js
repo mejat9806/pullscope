@@ -4340,7 +4340,7 @@
     if (S.hasToken && Date.now() - (S.watchAt || 0) > 24e4) {
       S.watchAt = Date.now();
       try {
-        const d3 = await tauri.invoke("inbox", { force: false, repos: selNames() });
+        const d3 = await tauri.invoke("inbox", { force: false, repos: selNames(), light: true });
         S.watch = [...d3.mine || [], ...d3.requested || []].map((i3) => `${i3.repo}#${i3.number}`);
       } catch {
       }
@@ -5403,7 +5403,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
     const sec = (title, sub, list) => ({ title, sub, rows: list.map(row2) });
-    return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine)] : null };
+    return { loading: !!I3.loading, err: I3.err || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {
