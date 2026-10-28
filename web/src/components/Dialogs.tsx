@@ -53,10 +53,20 @@ export const ReviewDialog = (props: ReviewDlgProps & { err: string }) => (
       </div>
       <Err m={props.err} />
       <div class="btns">
-        <button class="btn" id="revcancel" onClick={props.close}>
+        <button
+          title="Close without submitting a review"
+          class="btn"
+          id="revcancel"
+          onClick={props.close}
+        >
           Cancel
         </button>
-        <button class="btn primary" id="revsubmit" onClick={props.ok}>
+        <button
+          title="Send your review to GitHub"
+          class="btn primary"
+          id="revsubmit"
+          onClick={props.ok}
+        >
           Submit review
         </button>
       </div>
@@ -88,10 +98,20 @@ export const EditPrDialog = (
       <DraftBox k="prbody" ph="Describe your changes" rows={8} />
       <Err m={otherValue.err} />
       <div class="btns">
-        <button class="btn" id="epcancel" onClick={otherValue.close}>
+        <button
+          title="Close without saving"
+          class="btn"
+          id="epcancel"
+          onClick={otherValue.close}
+        >
           Cancel
         </button>
-        <button class="btn primary" id="epsave" onClick={otherValue.ok}>
+        <button
+          title="Save the new title and description"
+          class="btn primary"
+          id="epsave"
+          onClick={otherValue.ok}
+        >
           Save
         </button>
       </div>
@@ -107,10 +127,20 @@ export const ConfirmDialog = (
       <h2>{value.title}</h2>
       <p>{value.text}</p>
       <div class="btns">
-        <button class="btn" id="cfcancel" onClick={value.close}>
+        <button
+          title="Close without doing it"
+          class="btn"
+          id="cfcancel"
+          onClick={value.close}
+        >
           Cancel
         </button>
         <button
+          title={
+            value.danger
+              ? 'Confirm this action, it cannot be undone'
+              : 'Confirm'
+          }
           class={`btn ${value.danger ? 'danger' : 'primary'}`}
           id="cfok"
           onClick={value.ok}
@@ -129,10 +159,20 @@ export const EditCommentDialog = (value: Btns & { err: string }) => (
       <DraftBox k="editc" ph="Edit your comment" rows={6} />
       <Err m={value.err} />
       <div class="btns">
-        <button class="btn" id="eccancel" onClick={value.close}>
+        <button
+          title="Close without saving"
+          class="btn"
+          id="eccancel"
+          onClick={value.close}
+        >
           Cancel
         </button>
-        <button class="btn primary" id="ecsave" onClick={value.ok}>
+        <button
+          title="Save your edited comment"
+          class="btn primary"
+          id="ecsave"
+          onClick={value.ok}
+        >
           Save
         </button>
       </div>
@@ -147,10 +187,20 @@ export const DeleteCommentDialog = (value: Btns & { err: string }) => (
       <p style="color:var(--fgColor-muted)">This can't be undone.</p>
       <Err m={value.err} />
       <div class="btns">
-        <button class="btn" id="dccancel" onClick={value.close}>
+        <button
+          title="Keep the comment"
+          class="btn"
+          id="dccancel"
+          onClick={value.close}
+        >
           Cancel
         </button>
-        <button class="btn danger" id="dcdo" onClick={value.ok}>
+        <button
+          title="Delete this comment for good"
+          class="btn danger"
+          id="dcdo"
+          onClick={value.ok}
+        >
           Delete
         </button>
       </div>
@@ -187,10 +237,20 @@ export const HideCommentDialog = (
       </select>
       <Err m={otherValue.err} />
       <div class="btns">
-        <button class="btn" id="hccancel" onClick={otherValue.close}>
+        <button
+          title="Keep the comment visible"
+          class="btn"
+          id="hccancel"
+          onClick={otherValue.close}
+        >
           Cancel
         </button>
-        <button class="btn primary" id="hcdo" onClick={otherValue.ok}>
+        <button
+          title="Hide this comment"
+          class="btn primary"
+          id="hcdo"
+          onClick={otherValue.ok}
+        >
           Hide comment
         </button>
       </div>
@@ -220,7 +280,12 @@ export const TokenDialog = (props: TokenDlgProps) => (
         your OS keychain. Leave empty and save to remove it.
       </p>
       <div class="oauth-row">
-        <button class="btn primary" id="oauthgo" onClick={props.go}>
+        <button
+          title="Sign in with GitHub in your browser"
+          class="btn primary"
+          id="oauthgo"
+          onClick={props.go}
+        >
           Sign in with GitHub
         </button>
         <span>or paste a token below</span>
@@ -255,10 +320,20 @@ export const TokenDialog = (props: TokenDlgProps) => (
         style="width:100%;box-sizing:border-box"
       />
       <div class="btns">
-        <button class="btn" id="tokcancel" onClick={props.close}>
+        <button
+          title="Close without saving"
+          class="btn"
+          id="tokcancel"
+          onClick={props.close}
+        >
           Cancel
         </button>
-        <button class="btn primary" id="toksave" onClick={props.save}>
+        <button
+          title="Save the access token"
+          class="btn primary"
+          id="toksave"
+          onClick={props.save}
+        >
           Save
         </button>
       </div>
@@ -304,10 +379,18 @@ export const RepoPickDialog = (props: RepoPickProps) => {
         />
         <div class="rp-bar">
           <span>{props.on.size} selected</span>
-          <button class="btn" onClick={() => props.all(true)}>
+          <button
+            title="Tick every repository in the list"
+            class="btn"
+            onClick={() => props.all(true)}
+          >
             Select shown
           </button>
-          <button class="btn" onClick={() => props.all(false)}>
+          <button
+            title="Untick all repositories"
+            class="btn"
+            onClick={() => props.all(false)}
+          >
             Clear
           </button>
         </div>
@@ -334,10 +417,20 @@ export const RepoPickDialog = (props: RepoPickProps) => {
         </div>
         <Err m={props.err} />
         <div class="btns">
-          <button class="btn" id="rpcancel" onClick={props.close}>
+          <button
+            title="Close without saving"
+            class="btn"
+            id="rpcancel"
+            onClick={props.close}
+          >
             Cancel
           </button>
-          <button class="btn primary" id="rpsave" onClick={props.save}>
+          <button
+            title="Save the chosen repositories"
+            class="btn primary"
+            id="rpsave"
+            onClick={props.save}
+          >
             Save
           </button>
         </div>
@@ -432,10 +525,15 @@ export const MetaDialog = (props: MetaProps) => {
         </div>
         <Err m={props.err} />
         <div class="btns">
-          <button class="btn" onClick={props.close}>
+          <button
+            title="Close without saving"
+            class="btn"
+            onClick={props.close}
+          >
             Cancel
           </button>
           <button
+            title="Save to GitHub"
             class="btn primary"
             disabled={props.busy || !props.items}
             onClick={props.save}
@@ -470,35 +568,64 @@ export const CmPop = ({
   pick: (hash: string) => void;
 }) => (
   <div class="react-pop cm-pop" style={`left:${left}px;top:${offset}px`}>
-    <button data-h="link" onClick={() => pick('link')}>
+    <button
+      title="Copy a link to this comment"
+      data-h="link"
+      onClick={() => pick('link')}
+    >
       Copy link
     </button>
-    <button data-h="md" onClick={() => pick('md')}>
+    <button
+      title="Copy the comment as Markdown"
+      data-h="md"
+      onClick={() => pick('md')}
+    >
       Copy Markdown
     </button>
-    <button data-h="quote" onClick={() => pick('quote')}>
+    <button
+      title="Start a reply that quotes this comment"
+      data-h="quote"
+      onClick={() => pick('quote')}
+    >
       Quote reply
     </button>
-    <button data-h="issue" onClick={() => pick('issue')}>
+    <button
+      title="Open a new issue that mentions this comment"
+      data-h="issue"
+      onClick={() => pick('issue')}
+    >
       Reference in new issue
     </button>
     {hr ? <hr /> : ''}
     {edit ? (
-      <button data-h="edit" onClick={() => pick('edit')}>
+      <button
+        title="Edit this comment"
+        data-h="edit"
+        onClick={() => pick('edit')}
+      >
         Edit
       </button>
     ) : (
       ''
     )}
     {hide ? (
-      <button data-h="hide" onClick={() => pick('hide')}>
+      <button
+        title="Hide this comment"
+        data-h="hide"
+        onClick={() => pick('hide')}
+      >
         Hide
       </button>
     ) : (
       ''
     )}
     {del ? (
-      <button data-h="del" class="danger" onClick={() => pick('del')}>
+      <button
+        title="Delete this comment"
+        data-h="del"
+        class="danger"
+        onClick={() => pick('del')}
+      >
         Delete
       </button>
     ) : (
@@ -520,7 +647,11 @@ export const ReactPop = ({
 }) => (
   <div class="react-pop" style={`left:${left}px;top:${offset}px`}>
     {reacts.map(([key, em]) => (
-      <button data-c={key} onClick={() => pick(key)}>
+      <button
+        title={`React with ${key}`}
+        data-c={key}
+        onClick={() => pick(key)}
+      >
         {em}
       </button>
     ))}
@@ -537,13 +668,25 @@ export const CtxPop = ({
   pick: (hash: string) => void;
 }) => (
   <div class="react-pop cm-pop" style={`left:${left}px;top:${offset}px`}>
-    <button data-h="new" onClick={() => pick('new')}>
+    <button
+      title="Open this pull request in a new tab"
+      data-h="new"
+      onClick={() => pick('new')}
+    >
       Open in new tab
     </button>
-    <button data-h="here" onClick={() => pick('here')}>
+    <button
+      title="Open this pull request in this tab"
+      data-h="here"
+      onClick={() => pick('here')}
+    >
       Open
     </button>
-    <button data-h="link" onClick={() => pick('link')}>
+    <button
+      title="Copy a link to this pull request"
+      data-h="link"
+      onClick={() => pick('link')}
+    >
       Copy link
     </button>
   </div>

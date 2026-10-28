@@ -47,6 +47,7 @@ export function SideTabs({
   return (
     <div class="sb-tabs">
       <button
+        title="Show the repositories"
         data-side="repos"
         class={cls('repos')}
         onClick={() => on.side('repos')}
@@ -55,6 +56,7 @@ export function SideTabs({
       </button>
       {hasRepo && (
         <button
+          title="Show this repository's pull requests"
           data-side="prs"
           class={cls('prs')}
           onClick={() => on.side('prs')}
@@ -63,6 +65,7 @@ export function SideTabs({
         </button>
       )}
       <button
+        title="Show pull requests you opened recently"
         data-side="recent"
         class={cls('recent')}
         onClick={() => on.side('recent')}
@@ -163,7 +166,12 @@ export function RepoList({
         value={filter}
         onInput={on.repoFilter}
       />
-      <button class="sb-btn" id="pickrepos" onClick={on.pickRepos}>
+      <button
+        title="Choose which repositories Pullscope follows"
+        class="sb-btn"
+        id="pickrepos"
+        onClick={on.pickRepos}
+      >
         Choose repositories…
       </button>
       {shown.length ? (
@@ -256,6 +264,7 @@ export function SideHead({
       <div class="seg sb-seg">
         {['open', 'closed', 'all'].map(text => (
           <button
+            title={`Show ${text} pull requests`}
             data-sps={text}
             class={props.state === text ? 'on' : ''}
             onClick={() => on.sps(text)}

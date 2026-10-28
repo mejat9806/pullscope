@@ -131,6 +131,7 @@ function Sec({
   return (
     <div class="mb-sec">
       <button
+        title="Show or hide the details"
         class={`mb-h ${hashs[0]}`}
         data-mb={key}
         onClick={on && (event => on.toggle(event, key))}
@@ -169,6 +170,7 @@ function CkGroupView({
   return (
     <>
       <button
+        title="Show or hide these checks"
         class="mb-grp"
         data-mb={`g${ckGroup.k}`}
         onClick={on && (event => on.toggle(event, `g${ckGroup.k}`))}
@@ -244,7 +246,12 @@ export function MergeBox(props: MergeBoxProps & { on?: MergeBoxHandlers }) {
                   <b>This pull request is still a work in progress</b>
                   <i>Draft pull requests cannot be merged.</i>
                 </span>
-                <button class="btn primary" id="doready" onClick={on?.ready}>
+                <button
+                  title="Mark this draft as ready for review"
+                  class="btn primary"
+                  id="doready"
+                  onClick={on?.ready}
+                >
                   {props.busyReady ? 'Updating…' : 'Ready for review'}
                 </button>
               </div>
@@ -277,7 +284,12 @@ export function MergeBox(props: MergeBoxProps & { on?: MergeBoxHandlers }) {
                   branch.
                 </i>
               </span>
-              <button class="btn" id="updbranch" onClick={on?.update}>
+              <button
+                title="Bring the latest changes from the base branch into this branch"
+                class="btn"
+                id="updbranch"
+                onClick={on?.update}
+              >
                 {props.busyUpdate ? 'Updating…' : 'Update branch'}
               </button>
             </div>
@@ -342,32 +354,6 @@ export interface PrSideProps {
 const VISIBLE_REVIEWERS = 5;
 
 function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
-  const ic =
-    rvRow.st === 'req' && rvRow.prev ? (
-      <>
-        <span class="again" title="Asked to review again">
-          {renderIcon('clock')}
-        </span>
-        {renderIcon(
-          rvRow.prev === 'approved'
-            ? 'check'
-            : rvRow.prev === 'changes_requested'
-              ? 'file-diff'
-              : 'comment',
-        )}
-      </>
-    ) : (
-      renderIcon(
-        rvRow.st === 'approved'
-          ? 'check'
-          : rvRow.st === 'changes_requested'
-            ? 'file-diff'
-            : rvRow.st === 'req'
-              ? 'dot-fill'
-              : 'comment',
-      )
-    );
-
   const verdict = rvRow.st === 'req' ? rvRow.prev : rvRow.st;
 
   const verdictClass =
@@ -379,25 +365,43 @@ function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
           ? ''
           : 'wait';
 
+  const icon = renderIcon(
+    verdict === 'approved'
+      ? 'check'
+      : verdict === 'changes_requested'
+        ? 'file-diff'
+        : verdict
+          ? 'comment'
+          : 'dot-fill',
+  );
+
+  // The slot before the verdict holds the clock for "asked again" or the re-request button, so the verdict icons line up in every row.
+  const action =
+    rvRow.st === 'req' && rvRow.prev ? (
+      <span class="again" title="Asked to review again">
+        {renderIcon('clock')}
+      </span>
+    ) : rvRow.canRe ? (
+      <button
+        class="rerequest"
+        data-rerequest={rvRow.u.login}
+        title={`Ask ${rvRow.u.login} to review again`}
+        onClick={event => on.rerequest(event, rvRow.u.login ?? '')}
+      >
+        {renderIcon('sync')}
+      </button>
+    ) : (
+      ''
+    );
+
   return (
     <div class="reviewer">
       <a href={rvRow.u.html_url}>{Av(rvRow.u, 20)}</a>
       <a class="nm" href={rvRow.u.html_url}>
         {rvRow.u.login}
       </a>
-      <span class={`st ${verdictClass}`}>{ic}</span>
-      {rvRow.canRe ? (
-        <button
-          class="rerequest"
-          data-rerequest={rvRow.u.login}
-          title={`Ask ${rvRow.u.login} to review again`}
-          onClick={event => on.rerequest(event, rvRow.u.login ?? '')}
-        >
-          {renderIcon('sync')}
-        </button>
-      ) : (
-        ''
-      )}
+      <span class="rv-act">{action}</span>
+      <span class={`st ${verdictClass}`}>{icon}</span>
     </div>
   );
 }
@@ -414,7 +418,14 @@ export function PrSide(props: PrSideProps & { on: PrSideHandlers }) {
       ))}
       {more > 0 ? (
         <>
-          <button class="sb-toggle" id="rvtoggle" onClick={on.rvtoggle}>
+          <button
+            title={
+              props.showAll ? 'Show fewer reviewers' : 'Show all reviewers'
+            }
+            class="sb-toggle"
+            id="rvtoggle"
+            onClick={on.rvtoggle}
+          >
             <span>
               +{more} more reviewer{plural(more)}
             </span>
@@ -646,6 +657,7 @@ export function CommitsDialog(props: CommitsDialogProps & { on?: CpHandlers }) {
           </button>
         </div>
         <button
+          title="Show every commit in the diff"
           class={`cp-opt${props.allOn ? ' on' : ''}`}
           id="cpall"
           onClick={on?.all}
@@ -657,6 +669,7 @@ export function CommitsDialog(props: CommitsDialogProps & { on?: CpHandlers }) {
         </button>
         {props.since ? (
           <button
+            title="Show only what changed since your last review"
             class={`cp-opt${props.since.on ? ' on' : ''}`}
             id="cpsince"
             disabled={!props.since.n}
@@ -706,10 +719,16 @@ export function CommitsDialog(props: CommitsDialogProps & { on?: CpHandlers }) {
         <div class="btns">
           <span class="cp-sel">{props.selLabel}</span>
           <span class="sp"></span>
-          <button class="btn" id="cpcancel" onClick={on?.close}>
+          <button
+            title="Close without changing the commits shown"
+            class="btn"
+            id="cpcancel"
+            onClick={on?.close}
+          >
             Cancel
           </button>
           <button
+            title="Show the selected commits"
             class="btn primary"
             id="cpsave"
             disabled={!props.hasPick}
@@ -778,6 +797,7 @@ export function FcBar(props: FcBarProps & { on?: FilesHandlers }) {
       {props.nav ? (
         <div class="seg-ctl">
           <button
+            title="Previous file"
             data-fstep="-1"
             disabled={props.nav.prevOff}
             onClick={on && (() => on.step(-1))}
@@ -785,6 +805,7 @@ export function FcBar(props: FcBarProps & { on?: FilesHandlers }) {
             ‹ Prev
           </button>
           <button
+            title="Next file"
             data-fstep="1"
             disabled={props.nav.nextOff}
             onClick={on && (() => on.step(1))}
@@ -798,7 +819,12 @@ export function FcBar(props: FcBarProps & { on?: FilesHandlers }) {
       {props.hasRange ? (
         <>
           <span class="fc-t">{props.title}</span>
-          <button class="link-btn" id="fcall" onClick={on?.all}>
+          <button
+            title="Go back to all commits"
+            class="link-btn"
+            id="fcall"
+            onClick={on?.all}
+          >
             Show all commits
           </button>
         </>
@@ -836,6 +862,7 @@ export function FilesBar(props: FilesBarProps & { on?: FilesHandlers }) {
     <div class="files-bar">
       <div class="seg-ctl">
         <button
+          title="Show changes in a single column"
           class={props.mode === 'unified' ? 'on' : ''}
           data-dmode="unified"
           onClick={on && (() => on.mode('unified'))}
@@ -843,6 +870,7 @@ export function FilesBar(props: FilesBarProps & { on?: FilesHandlers }) {
           Unified
         </button>
         <button
+          title="Show old and new code side by side"
           class={props.mode === 'split' ? 'on' : ''}
           data-dmode="split"
           onClick={on && (() => on.mode('split'))}
@@ -878,13 +906,19 @@ export function FilesBar(props: FilesBarProps & { on?: FilesHandlers }) {
         ''
       )}
       {props.pending ? (
-        <button class="btn small primary" id="finishrev" onClick={on?.finish}>
+        <button
+          title="Submit your pending review comments"
+          class="btn small primary"
+          id="finishrev"
+          onClick={on?.finish}
+        >
           Finish review · {props.pending} comment{plural(props.pending)}
         </button>
       ) : (
         ''
       )}
       <button
+        title={props.allFolded ? 'Open every file' : 'Fold every file'}
         class="link-btn"
         data-foldall={props.allFolded ? 'open' : 'close'}
         data-files={props.names.join('\n')}

@@ -103,6 +103,7 @@ export function Banners({
           </span>
           <span class="sp"></span>
           <button
+            title="Open a pull request for the branch you just pushed"
             class="btn small primary"
             data-compare={`${pushBanner.repo}@${pushBanner.branch}`}
             onClick={() => on.compare(pushBanner.repo, pushBanner.branch)}
@@ -176,7 +177,12 @@ function Body({
         requests.
         <br />
         <br />
-        <button class="btn primary" id="addtoken" onClick={on.addToken}>
+        <button
+          title="Add a GitHub access token so Pullscope can read your repositories"
+          class="btn primary"
+          id="addtoken"
+          onClick={on.addToken}
+        >
           Add token
         </button>
       </div>
@@ -210,6 +216,7 @@ function Body({
             <div class="seg-ctl">
               {['all', 'open', 'merged', 'closed'].map(text => (
                 <button
+                  title={`Show ${text} pull requests`}
                   class={otherValue.state === text ? 'on' : ''}
                   data-rstate={text}
                   onClick={() => on.rstate(text)}
@@ -296,6 +303,7 @@ function Body({
         <div class="seg-ctl">
           {['all', 'public', 'private'].map(text => (
             <button
+              title={`Show ${text} repositories`}
               class={otherValue.vis === text ? 'on' : ''}
               data-hvis={text}
               onClick={() => on.vis(text)}
@@ -348,6 +356,7 @@ export function Home({ p: props, on }: { p: HomeProps; on: HomeHandlers }) {
       {props.err ? <div class="err">{props.err}</div> : ''}
       <div class="np-tabs">
         <button
+          title="Show your repositories"
           class={props.tab === 'repos' ? 'sel' : ''}
           data-htab="repos"
           onClick={() => on.tab('repos')}
@@ -356,6 +365,7 @@ export function Home({ p: props, on }: { p: HomeProps; on: HomeHandlers }) {
           {props.repoCount !== null ? <span>{props.repoCount}</span> : ''}
         </button>
         <button
+          title="Show pull requests you opened recently"
           class={props.tab === 'recent' ? 'sel' : ''}
           data-htab="recent"
           onClick={() => on.tab('recent')}

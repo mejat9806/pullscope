@@ -27,20 +27,41 @@ export const ProfPop = (props: ProfPopProps) => (
         <i>@{props.login}</i>
       </div>
     </div>
-    <button data-h="profile" onClick={() => props.pick('profile')}>
+    <button
+      title="Open your GitHub profile in the browser"
+      data-h="profile"
+      onClick={() => props.pick('profile')}
+    >
       {renderIcon('link-external')} Your GitHub profile
     </button>
-    <button data-h="repos" onClick={() => props.pick('repos')}>
+    <button
+      title="Choose which repositories Pullscope follows"
+      data-h="repos"
+      onClick={() => props.pick('repos')}
+    >
       {renderIcon('repo')} Choose repositories…
     </button>
-    <button data-h="dense" onClick={() => props.pick('dense')}>
+    <button
+      title="Switch between comfortable and compact lists"
+      data-h="dense"
+      onClick={() => props.pick('dense')}
+    >
       {renderIcon('checklist')}{' '}
       {props.dense ? 'Comfortable lists' : 'Compact lists'}
     </button>
-    <button data-h="token" onClick={() => props.pick('token')}>
+    <button
+      title="View or change your GitHub access token"
+      data-h="token"
+      onClick={() => props.pick('token')}
+    >
       {renderIcon('key')} Access token…
     </button>
-    <button data-h="out" class="danger" onClick={() => props.pick('out')}>
+    <button
+      title="Sign out and forget the saved token"
+      data-h="out"
+      class="danger"
+      onClick={() => props.pick('out')}
+    >
       Sign out
     </button>
     <div class="pp-ver">

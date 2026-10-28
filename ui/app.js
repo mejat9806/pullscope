@@ -778,8 +778,24 @@
         style: `--rows:${rows}`,
         children: [
           /* @__PURE__ */ u3("div", { class: "tt-tabs", children: [
-            /* @__PURE__ */ u3("button", { class: prev ? "" : "on", onClick: () => show("write"), children: "Write" }),
-            /* @__PURE__ */ u3("button", { class: prev ? "on" : "", onClick: () => show("preview"), children: "Preview" })
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                title: "Write your comment",
+                class: prev ? "" : "on",
+                onClick: () => show("write"),
+                children: "Write"
+              }
+            ),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                title: "See how your comment will look",
+                class: prev ? "on" : "",
+                onClick: () => show("preview"),
+                children: "Preview"
+              }
+            )
           ] }),
           /* @__PURE__ */ u3("div", { class: "tt-ed", ref }),
           prev ? /* @__PURE__ */ u3("div", { class: "tt-preview markdown-body", children: pv === "loading" ? /* @__PURE__ */ u3("span", { class: "empty", children: "Loading preview\u2026" }) : !pv ? /* @__PURE__ */ u3("span", { class: "empty", children: "Nothing to preview" }) : "html" in pv ? /* @__PURE__ */ u3("div", { dangerouslySetInnerHTML: { __html: pv.html } }) : /* @__PURE__ */ u3(S, { children: [
@@ -849,11 +865,21 @@
               /* @__PURE__ */ u3("span", { class: "hint", children: "\u2318\u21B5 to send \xB7 Esc to collapse" }),
               /* @__PURE__ */ u3("span", { style: "flex:1" }),
               "\n  ",
-              props.merged ? "" : /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: props.closed ? "Reopen pull request" : "Close pull request" }),
+              props.merged ? "" : /* @__PURE__ */ u3(
+                "button",
+                {
+                  title: props.closed ? "Reopen this pull request" : "Close this pull request without merging",
+                  class: "btn ghost",
+                  id: "doclose",
+                  onClick: on3?.close,
+                  children: props.closed ? "Reopen pull request" : "Close pull request"
+                }
+              ),
               "\n  ",
               /* @__PURE__ */ u3(
                 "button",
                 {
+                  title: "Post your comment on this pull request",
                   class: "btn primary",
                   id: "docomment",
                   disabled: props.busy,
@@ -876,7 +902,16 @@
     const { on: on3 } = props;
     if (props.draft) {
       return /* @__PURE__ */ u3("div", { class: "merge-act", children: [
-        /* @__PURE__ */ u3("button", { class: "btn ghost", id: "doclose", onClick: on3?.close, children: "Close pull request" }),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Close this pull request without merging",
+            class: "btn ghost",
+            id: "doclose",
+            onClick: on3?.close,
+            children: "Close pull request"
+          }
+        ),
         /* @__PURE__ */ u3(ErrLine, { m: props.err })
       ] });
     }
@@ -885,6 +920,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Merge this pull request into the base branch",
           class: "btn primary",
           id: "domerge",
           disabled: props.busy,
@@ -945,24 +981,65 @@
             ] })
           ] })
         ] }),
-        /* @__PURE__ */ u3("button", { "data-h": "profile", onClick: () => props.pick("profile"), children: [
-          renderIcon("link-external"),
-          " Your GitHub profile"
-        ] }),
-        /* @__PURE__ */ u3("button", { "data-h": "repos", onClick: () => props.pick("repos"), children: [
-          renderIcon("repo"),
-          " Choose repositories\u2026"
-        ] }),
-        /* @__PURE__ */ u3("button", { "data-h": "dense", onClick: () => props.pick("dense"), children: [
-          renderIcon("checklist"),
-          " ",
-          props.dense ? "Comfortable lists" : "Compact lists"
-        ] }),
-        /* @__PURE__ */ u3("button", { "data-h": "token", onClick: () => props.pick("token"), children: [
-          renderIcon("key"),
-          " Access token\u2026"
-        ] }),
-        /* @__PURE__ */ u3("button", { "data-h": "out", class: "danger", onClick: () => props.pick("out"), children: "Sign out" }),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Open your GitHub profile in the browser",
+            "data-h": "profile",
+            onClick: () => props.pick("profile"),
+            children: [
+              renderIcon("link-external"),
+              " Your GitHub profile"
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Choose which repositories Pullscope follows",
+            "data-h": "repos",
+            onClick: () => props.pick("repos"),
+            children: [
+              renderIcon("repo"),
+              " Choose repositories\u2026"
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Switch between comfortable and compact lists",
+            "data-h": "dense",
+            onClick: () => props.pick("dense"),
+            children: [
+              renderIcon("checklist"),
+              " ",
+              props.dense ? "Comfortable lists" : "Compact lists"
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "View or change your GitHub access token",
+            "data-h": "token",
+            onClick: () => props.pick("token"),
+            children: [
+              renderIcon("key"),
+              " Access token\u2026"
+            ]
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Sign out and forget the saved token",
+            "data-h": "out",
+            class: "danger",
+            onClick: () => props.pick("out"),
+            children: "Sign out"
+          }
+        ),
         /* @__PURE__ */ u3("div", { class: "pp-ver", children: [
           "Signed in with token",
           props.ver ? ` \xB7 Pullscope v${props.ver}` : ""
@@ -1428,10 +1505,20 @@
           "Notifications"
         ] }),
         /* @__PURE__ */ u3("div", { class: "np-tools", children: [
-          /* @__PURE__ */ u3("button", { class: "btn small", id: "npcheck", onClick: on3.check, children: "Check now" }),
           /* @__PURE__ */ u3(
             "button",
             {
+              title: "Look for new activity now",
+              class: "btn small",
+              id: "npcheck",
+              onClick: on3.check,
+              children: "Check now"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              title: "Mark every notification as read",
               class: "btn small",
               id: "npreadall",
               onClick: on3.readAll,
@@ -1442,6 +1529,7 @@
           /* @__PURE__ */ u3(
             "button",
             {
+              title: "Remove all notifications",
               class: "btn small ghost",
               id: "npclear",
               onClick: on3.clear,
@@ -1455,6 +1543,7 @@
       /* @__PURE__ */ u3("div", { class: "np-tabs", children: tabs.map(([key2, line, count]) => /* @__PURE__ */ u3(
         "button",
         {
+          title: `Show ${line} notifications`,
           class: field === key2 ? "sel" : "",
           "data-nf": key2,
           onClick: () => on3.filter(key2),
@@ -1501,6 +1590,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: noteRow.read ? "Mark this notification as unread" : "Mark this notification as read",
             class: "np-act",
             "data-nread": noteRow.id,
             onClick: (event) => on3.read(event, noteRow.id),
@@ -1615,6 +1705,7 @@
             props.hasRepos ? /* @__PURE__ */ u3(
               "button",
               {
+                title: "Choose the repository",
                 type: "button",
                 class: "sel bp-btn",
                 id: "nprepo",
@@ -1644,6 +1735,7 @@
                 /* @__PURE__ */ u3(
                   "button",
                   {
+                    title: "Choose the branch to merge into",
                     type: "button",
                     class: "sel bp-btn",
                     id: "npbase",
@@ -1677,6 +1769,7 @@
                 /* @__PURE__ */ u3(
                   "button",
                   {
+                    title: "Choose the branch with your changes",
                     type: "button",
                     class: "sel bp-btn",
                     id: "nphead",
@@ -1761,10 +1854,20 @@
             props.err ? /* @__PURE__ */ u3("div", { class: "act-err", children: props.err }) : "",
             "\n    ",
             /* @__PURE__ */ u3("div", { class: "np-btns", children: [
-              /* @__PURE__ */ u3("button", { class: "btn", id: "npcancel", onClick: on3.cancel, children: "Cancel" }),
               /* @__PURE__ */ u3(
                 "button",
                 {
+                  title: "Discard this new pull request",
+                  class: "btn",
+                  id: "npcancel",
+                  onClick: on3.cancel,
+                  children: "Cancel"
+                }
+              ),
+              /* @__PURE__ */ u3(
+                "button",
+                {
+                  title: props.isDraft ? "Create the pull request as a draft on GitHub" : "Create the pull request on GitHub",
                   class: "btn primary",
                   id: "npcreate",
                   onClick: on3.create,
@@ -1804,7 +1907,15 @@
             }
           }
         ),
-        /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.viewNaming(false), children: "Cancel" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Cancel saving this view",
+            class: "btn small",
+            onClick: () => on3.viewNaming(false),
+            children: "Cancel"
+          }
+        )
       ] });
     }
     return /* @__PURE__ */ u3("span", { class: "ib-views", children: [
@@ -1930,6 +2041,7 @@
                           ibRow.snz ? /* @__PURE__ */ u3(
                             "button",
                             {
+                              title: "Bring it back to the inbox now",
                               onClick: () => on3.snooze(ibRow.ref, "off", ibRow.updated),
                               children: "Wake"
                             }
@@ -1937,6 +2049,7 @@
                           /* @__PURE__ */ u3(
                             "button",
                             {
+                              title: "Hide it until tomorrow morning",
                               onClick: () => on3.snooze(ibRow.ref, "tomorrow", ibRow.updated),
                               children: "Tomorrow"
                             }
@@ -1944,6 +2057,7 @@
                           /* @__PURE__ */ u3(
                             "button",
                             {
+                              title: "Hide it for a week",
                               onClick: () => on3.snooze(ibRow.ref, "week", ibRow.updated),
                               children: "Next week"
                             }
@@ -1951,6 +2065,7 @@
                           /* @__PURE__ */ u3(
                             "button",
                             {
+                              title: "Hide it until it has new activity",
                               onClick: () => on3.snooze(ibRow.ref, "activity", ibRow.updated),
                               children: "Until activity"
                             }
@@ -1995,6 +2110,7 @@
         /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3(
           "button",
           {
+            title: "Reload your inbox from GitHub",
             class: "btn small",
             id: "ibrefresh",
             onClick: on3.refresh,
@@ -2020,13 +2136,22 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: allClosed ? "Open every section" : "Fold every section",
             class: "btn small",
             onClick: () => on3.foldAll(!allClosed),
             disabled: !secs,
             children: allClosed ? "Expand all" : "Collapse all"
           }
         ),
-        custom ? /* @__PURE__ */ u3("button", { class: "btn small", onClick: on3.resetOrder, children: "Reset order" }) : "",
+        custom ? /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Put the sections back in the default order",
+            class: "btn small",
+            onClick: on3.resetOrder,
+            children: "Reset order"
+          }
+        ) : "",
         /* @__PURE__ */ u3(ViewsBar, { views, view: view2, naming, on: on3 })
       ] }),
       body
@@ -2119,8 +2244,26 @@
     err ? /* @__PURE__ */ u3("p", { class: "gate-err", children: err }) : "",
     "\n  ",
     /* @__PURE__ */ u3("div", { class: "btns", style: "justify-content:center", children: [
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "gatego", onClick: go3, children: "Sign in with GitHub" }),
-      /* @__PURE__ */ u3("button", { class: "btn", id: "gatetok", onClick: tok, children: "Use a token instead" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Sign in with GitHub in your browser",
+          class: "btn primary",
+          id: "gatego",
+          onClick: go3,
+          children: "Sign in with GitHub"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Paste an access token instead",
+          class: "btn",
+          id: "gatetok",
+          onClick: tok,
+          children: "Use a token instead"
+        }
+      )
     ] }),
     "\n  ",
     /* @__PURE__ */ u3("small", { children: [
@@ -2943,6 +3086,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show or hide the details",
           class: `mb-h ${hashs[0]}`,
           "data-mb": key2,
           onClick: on3 && ((event) => on3.toggle(event, key2)),
@@ -2977,6 +3121,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show or hide these checks",
           class: "mb-grp",
           "data-mb": `g${ckGroup.k}`,
           onClick: on3 && ((event) => on3.toggle(event, `g${ckGroup.k}`)),
@@ -3030,7 +3175,16 @@
               /* @__PURE__ */ u3("b", { children: "This pull request is still a work in progress" }),
               /* @__PURE__ */ u3("i", { children: "Draft pull requests cannot be merged." })
             ] }),
-            /* @__PURE__ */ u3("button", { class: "btn primary", id: "doready", onClick: on3?.ready, children: props.busyReady ? "Updating\u2026" : "Ready for review" })
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                title: "Mark this draft as ready for review",
+                class: "btn primary",
+                id: "doready",
+                onClick: on3?.ready,
+                children: props.busyReady ? "Updating\u2026" : "Ready for review"
+              }
+            )
           ] }) }),
           /* @__PURE__ */ u3(ErrLine, { m: props.errReady })
         ] }) : "",
@@ -3046,7 +3200,16 @@
               " into this branch."
             ] })
           ] }),
-          /* @__PURE__ */ u3("button", { class: "btn", id: "updbranch", onClick: on3?.update, children: props.busyUpdate ? "Updating\u2026" : "Update branch" })
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              title: "Bring the latest changes from the base branch into this branch",
+              class: "btn",
+              id: "updbranch",
+              onClick: on3?.update,
+              children: props.busyUpdate ? "Updating\u2026" : "Update branch"
+            }
+          )
         ] }) }) : "",
         /* @__PURE__ */ u3("div", { class: "mb-sec", children: /* @__PURE__ */ u3("div", { class: `mb-h ${props.clean ? "ok" : "bad"}`, children: [
           /* @__PURE__ */ u3("span", { class: "mb-ic", children: renderIcon(props.clean ? "check-circle-fill" : "alert", 22) }),
@@ -3061,30 +3224,26 @@
   }
   var VISIBLE_REVIEWERS = 5;
   function ReviewerRow({ r: rvRow, on: on3 }) {
-    const ic = rvRow.st === "req" && rvRow.prev ? /* @__PURE__ */ u3(S, { children: [
-      /* @__PURE__ */ u3("span", { class: "again", title: "Asked to review again", children: renderIcon("clock") }),
-      renderIcon(
-        rvRow.prev === "approved" ? "check" : rvRow.prev === "changes_requested" ? "file-diff" : "comment"
-      )
-    ] }) : renderIcon(
-      rvRow.st === "approved" ? "check" : rvRow.st === "changes_requested" ? "file-diff" : rvRow.st === "req" ? "dot-fill" : "comment"
-    );
     const verdict = rvRow.st === "req" ? rvRow.prev : rvRow.st;
     const verdictClass = verdict === "approved" ? "ok" : verdict === "changes_requested" ? "bad" : verdict ? "" : "wait";
+    const icon2 = renderIcon(
+      verdict === "approved" ? "check" : verdict === "changes_requested" ? "file-diff" : verdict ? "comment" : "dot-fill"
+    );
+    const action = rvRow.st === "req" && rvRow.prev ? /* @__PURE__ */ u3("span", { class: "again", title: "Asked to review again", children: renderIcon("clock") }) : rvRow.canRe ? /* @__PURE__ */ u3(
+      "button",
+      {
+        class: "rerequest",
+        "data-rerequest": rvRow.u.login,
+        title: `Ask ${rvRow.u.login} to review again`,
+        onClick: (event) => on3.rerequest(event, rvRow.u.login ?? ""),
+        children: renderIcon("sync")
+      }
+    ) : "";
     return /* @__PURE__ */ u3("div", { class: "reviewer", children: [
       /* @__PURE__ */ u3("a", { href: rvRow.u.html_url, children: Av(rvRow.u, 20) }),
       /* @__PURE__ */ u3("a", { class: "nm", href: rvRow.u.html_url, children: rvRow.u.login }),
-      /* @__PURE__ */ u3("span", { class: `st ${verdictClass}`, children: ic }),
-      rvRow.canRe ? /* @__PURE__ */ u3(
-        "button",
-        {
-          class: "rerequest",
-          "data-rerequest": rvRow.u.login,
-          title: `Ask ${rvRow.u.login} to review again`,
-          onClick: (event) => on3.rerequest(event, rvRow.u.login ?? ""),
-          children: renderIcon("sync")
-        }
-      ) : ""
+      /* @__PURE__ */ u3("span", { class: "rv-act", children: action }),
+      /* @__PURE__ */ u3("span", { class: `st ${verdictClass}`, children: icon2 })
     ] });
   }
   function PrSide(props) {
@@ -3094,15 +3253,24 @@
     const rvSection = rv.length ? /* @__PURE__ */ u3(S, { children: [
       rv.slice(0, VISIBLE_REVIEWERS).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })),
       more > 0 ? /* @__PURE__ */ u3(S, { children: [
-        /* @__PURE__ */ u3("button", { class: "sb-toggle", id: "rvtoggle", onClick: on3.rvtoggle, children: [
-          /* @__PURE__ */ u3("span", { children: [
-            "+",
-            more,
-            " more reviewer",
-            plural(more)
-          ] }),
-          renderIcon(props.showAll ? "chevron-up" : "chevron-down")
-        ] }),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: props.showAll ? "Show fewer reviewers" : "Show all reviewers",
+            class: "sb-toggle",
+            id: "rvtoggle",
+            onClick: on3.rvtoggle,
+            children: [
+              /* @__PURE__ */ u3("span", { children: [
+                "+",
+                more,
+                " more reviewer",
+                plural(more)
+              ] }),
+              renderIcon(props.showAll ? "chevron-up" : "chevron-down")
+            ]
+          }
+        ),
         props.showAll ? rv.slice(VISIBLE_REVIEWERS).map((rvRow) => /* @__PURE__ */ u3(ReviewerRow, { r: rvRow, on: on3 })) : ""
       ] }) : ""
     ] }) : /* @__PURE__ */ u3("div", { class: "sb-none", children: "No reviews" });
@@ -3241,6 +3409,7 @@
           /* @__PURE__ */ u3(
             "button",
             {
+              title: "Show every commit in the diff",
               class: `cp-opt${props.allOn ? " on" : ""}`,
               id: "cpall",
               onClick: on3?.all,
@@ -3257,6 +3426,7 @@
           props.since ? /* @__PURE__ */ u3(
             "button",
             {
+              title: "Show only what changed since your last review",
               class: `cp-opt${props.since.on ? " on" : ""}`,
               id: "cpsince",
               disabled: !props.since.n,
@@ -3302,10 +3472,20 @@
           /* @__PURE__ */ u3("div", { class: "btns", children: [
             /* @__PURE__ */ u3("span", { class: "cp-sel", children: props.selLabel }),
             /* @__PURE__ */ u3("span", { class: "sp" }),
-            /* @__PURE__ */ u3("button", { class: "btn", id: "cpcancel", onClick: on3?.close, children: "Cancel" }),
             /* @__PURE__ */ u3(
               "button",
               {
+                title: "Close without changing the commits shown",
+                class: "btn",
+                id: "cpcancel",
+                onClick: on3?.close,
+                children: "Cancel"
+              }
+            ),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                title: "Show the selected commits",
                 class: "btn primary",
                 id: "cpsave",
                 disabled: !props.hasPick,
@@ -3349,6 +3529,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Previous file",
             "data-fstep": "-1",
             disabled: props.nav.prevOff,
             onClick: on3 && (() => on3.step(-1)),
@@ -3358,6 +3539,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Next file",
             "data-fstep": "1",
             disabled: props.nav.nextOff,
             onClick: on3 && (() => on3.step(1)),
@@ -3367,7 +3549,16 @@
       ] }) : "",
       props.hasRange ? /* @__PURE__ */ u3(S, { children: [
         /* @__PURE__ */ u3("span", { class: "fc-t", children: props.title }),
-        /* @__PURE__ */ u3("button", { class: "link-btn", id: "fcall", onClick: on3?.all, children: "Show all commits" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Go back to all commits",
+            class: "link-btn",
+            id: "fcall",
+            onClick: on3?.all,
+            children: "Show all commits"
+          }
+        )
       ] }) : ""
     ] });
   }
@@ -3386,6 +3577,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Show changes in a single column",
             class: props.mode === "unified" ? "on" : "",
             "data-dmode": "unified",
             onClick: on3 && (() => on3.mode("unified")),
@@ -3395,6 +3587,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Show old and new code side by side",
             class: props.mode === "split" ? "on" : "",
             "data-dmode": "split",
             onClick: on3 && (() => on3.mode("split")),
@@ -3426,15 +3619,25 @@
           ]
         }
       ) : "",
-      props.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", onClick: on3?.finish, children: [
-        "Finish review \xB7 ",
-        props.pending,
-        " comment",
-        plural(props.pending)
-      ] }) : "",
+      props.pending ? /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Submit your pending review comments",
+          class: "btn small primary",
+          id: "finishrev",
+          onClick: on3?.finish,
+          children: [
+            "Finish review \xB7 ",
+            props.pending,
+            " comment",
+            plural(props.pending)
+          ]
+        }
+      ) : "",
       /* @__PURE__ */ u3(
         "button",
         {
+          title: props.allFolded ? "Open every file" : "Fold every file",
           class: "link-btn",
           "data-foldall": props.allFolded ? "open" : "close",
           "data-files": props.names.join("\n"),
@@ -3720,8 +3923,26 @@
     ) }),
     /* @__PURE__ */ u3(Err, { m: props.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "revcancel", onClick: props.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "revsubmit", onClick: props.ok, children: "Submit review" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Close without submitting a review",
+          class: "btn",
+          id: "revcancel",
+          onClick: props.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Send your review to GitHub",
+          class: "btn primary",
+          id: "revsubmit",
+          onClick: props.ok,
+          children: "Submit review"
+        }
+      )
     ] })
   ] }) });
   var EditPrDialog = (otherValue) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
@@ -3741,18 +3962,46 @@
     /* @__PURE__ */ u3(DraftBox, { k: "prbody", ph: "Describe your changes", rows: 8 }),
     /* @__PURE__ */ u3(Err, { m: otherValue.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "epcancel", onClick: otherValue.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "epsave", onClick: otherValue.ok, children: "Save" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Close without saving",
+          class: "btn",
+          id: "epcancel",
+          onClick: otherValue.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Save the new title and description",
+          class: "btn primary",
+          id: "epsave",
+          onClick: otherValue.ok,
+          children: "Save"
+        }
+      )
     ] })
   ] }) });
   var ConfirmDialog = (value) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
     /* @__PURE__ */ u3("h2", { children: value.title }),
     /* @__PURE__ */ u3("p", { children: value.text }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "cfcancel", onClick: value.close, children: "Cancel" }),
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Close without doing it",
+          class: "btn",
+          id: "cfcancel",
+          onClick: value.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: value.danger ? "Confirm this action, it cannot be undone" : "Confirm",
           class: `btn ${value.danger ? "danger" : "primary"}`,
           id: "cfok",
           onClick: value.ok,
@@ -3766,8 +4015,26 @@
     /* @__PURE__ */ u3(DraftBox, { k: "editc", ph: "Edit your comment", rows: 6 }),
     /* @__PURE__ */ u3(Err, { m: value.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "eccancel", onClick: value.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "ecsave", onClick: value.ok, children: "Save" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Close without saving",
+          class: "btn",
+          id: "eccancel",
+          onClick: value.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Save your edited comment",
+          class: "btn primary",
+          id: "ecsave",
+          onClick: value.ok,
+          children: "Save"
+        }
+      )
     ] })
   ] }) });
   var DeleteCommentDialog = (value) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
@@ -3775,8 +4042,26 @@
     /* @__PURE__ */ u3("p", { style: "color:var(--fgColor-muted)", children: "This can't be undone." }),
     /* @__PURE__ */ u3(Err, { m: value.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "dccancel", onClick: value.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn danger", id: "dcdo", onClick: value.ok, children: "Delete" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Keep the comment",
+          class: "btn",
+          id: "dccancel",
+          onClick: value.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Delete this comment for good",
+          class: "btn danger",
+          id: "dcdo",
+          onClick: value.ok,
+          children: "Delete"
+        }
+      )
     ] })
   ] }) });
   var HideCommentDialog = (otherValue) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
@@ -3801,8 +4086,26 @@
     ),
     /* @__PURE__ */ u3(Err, { m: otherValue.err }),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "hccancel", onClick: otherValue.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "hcdo", onClick: otherValue.ok, children: "Hide comment" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Keep the comment visible",
+          class: "btn",
+          id: "hccancel",
+          onClick: otherValue.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Hide this comment",
+          class: "btn primary",
+          id: "hcdo",
+          onClick: otherValue.ok,
+          children: "Hide comment"
+        }
+      )
     ] })
   ] }) });
   var TokenDialog = (props) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg", children: [
@@ -3818,7 +4121,16 @@
       ". Stored in your OS keychain. Leave empty and save to remove it."
     ] }),
     /* @__PURE__ */ u3("div", { class: "oauth-row", children: [
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "oauthgo", onClick: props.go, children: "Sign in with GitHub" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Sign in with GitHub in your browser",
+          class: "btn primary",
+          id: "oauthgo",
+          onClick: props.go,
+          children: "Sign in with GitHub"
+        }
+      ),
       /* @__PURE__ */ u3("span", { children: "or paste a token below" })
     ] }),
     /* @__PURE__ */ u3("div", { id: "oauthbox", children: props.code ? /* @__PURE__ */ u3("div", { class: "oauth-code", children: [
@@ -3840,8 +4152,26 @@
       }
     ),
     /* @__PURE__ */ u3("div", { class: "btns", children: [
-      /* @__PURE__ */ u3("button", { class: "btn", id: "tokcancel", onClick: props.close, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn primary", id: "toksave", onClick: props.save, children: "Save" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Close without saving",
+          class: "btn",
+          id: "tokcancel",
+          onClick: props.close,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Save the access token",
+          class: "btn primary",
+          id: "toksave",
+          onClick: props.save,
+          children: "Save"
+        }
+      )
     ] })
   ] }) });
   var RepoPickDialog = (props) => {
@@ -3868,8 +4198,24 @@
           props.on.size,
           " selected"
         ] }),
-        /* @__PURE__ */ u3("button", { class: "btn", onClick: () => props.all(true), children: "Select shown" }),
-        /* @__PURE__ */ u3("button", { class: "btn", onClick: () => props.all(false), children: "Clear" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Tick every repository in the list",
+            class: "btn",
+            onClick: () => props.all(true),
+            children: "Select shown"
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Untick all repositories",
+            class: "btn",
+            onClick: () => props.all(false),
+            children: "Clear"
+          }
+        )
       ] }),
       /* @__PURE__ */ u3("div", { class: "rp-list", children: props.repos ? shown2.length ? shown2.map((row2) => /* @__PURE__ */ u3("label", { class: "rp-row", children: [
         /* @__PURE__ */ u3(
@@ -3886,8 +4232,26 @@
       ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "No matches." }) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading repositories\u2026" }) }),
       /* @__PURE__ */ u3(Err, { m: props.err }),
       /* @__PURE__ */ u3("div", { class: "btns", children: [
-        /* @__PURE__ */ u3("button", { class: "btn", id: "rpcancel", onClick: props.close, children: "Cancel" }),
-        /* @__PURE__ */ u3("button", { class: "btn primary", id: "rpsave", onClick: props.save, children: "Save" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Close without saving",
+            class: "btn",
+            id: "rpcancel",
+            onClick: props.close,
+            children: "Cancel"
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Save the chosen repositories",
+            class: "btn primary",
+            id: "rpsave",
+            onClick: props.save,
+            children: "Save"
+          }
+        )
       ] })
     ] }) });
   };
@@ -3954,10 +4318,19 @@
       ] }) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading\u2026" }) }),
       /* @__PURE__ */ u3(Err, { m: props.err }),
       /* @__PURE__ */ u3("div", { class: "btns", children: [
-        /* @__PURE__ */ u3("button", { class: "btn", onClick: props.close, children: "Cancel" }),
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Close without saving",
+            class: "btn",
+            onClick: props.close,
+            children: "Cancel"
+          }
+        ),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Save to GitHub",
             class: "btn primary",
             disabled: props.busy || !props.items,
             onClick: props.save,
@@ -3976,29 +4349,118 @@
     del,
     pick
   }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${left}px;top:${offset}px`, children: [
-    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
-    /* @__PURE__ */ u3("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
-    /* @__PURE__ */ u3("button", { "data-h": "quote", onClick: () => pick("quote"), children: "Quote reply" }),
-    /* @__PURE__ */ u3("button", { "data-h": "issue", onClick: () => pick("issue"), children: "Reference in new issue" }),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Copy a link to this comment",
+        "data-h": "link",
+        onClick: () => pick("link"),
+        children: "Copy link"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Copy the comment as Markdown",
+        "data-h": "md",
+        onClick: () => pick("md"),
+        children: "Copy Markdown"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Start a reply that quotes this comment",
+        "data-h": "quote",
+        onClick: () => pick("quote"),
+        children: "Quote reply"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Open a new issue that mentions this comment",
+        "data-h": "issue",
+        onClick: () => pick("issue"),
+        children: "Reference in new issue"
+      }
+    ),
     hr ? /* @__PURE__ */ u3("hr", {}) : "",
-    edit ? /* @__PURE__ */ u3("button", { "data-h": "edit", onClick: () => pick("edit"), children: "Edit" }) : "",
-    hide2 ? /* @__PURE__ */ u3("button", { "data-h": "hide", onClick: () => pick("hide"), children: "Hide" }) : "",
-    del ? /* @__PURE__ */ u3("button", { "data-h": "del", class: "danger", onClick: () => pick("del"), children: "Delete" }) : ""
+    edit ? /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Edit this comment",
+        "data-h": "edit",
+        onClick: () => pick("edit"),
+        children: "Edit"
+      }
+    ) : "",
+    hide2 ? /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Hide this comment",
+        "data-h": "hide",
+        onClick: () => pick("hide"),
+        children: "Hide"
+      }
+    ) : "",
+    del ? /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Delete this comment",
+        "data-h": "del",
+        class: "danger",
+        onClick: () => pick("del"),
+        children: "Delete"
+      }
+    ) : ""
   ] });
   var ReactPop = ({
     x: left,
     y: offset,
     reacts,
     pick
-  }) => /* @__PURE__ */ u3("div", { class: "react-pop", style: `left:${left}px;top:${offset}px`, children: reacts.map(([key2, em]) => /* @__PURE__ */ u3("button", { "data-c": key2, onClick: () => pick(key2), children: em })) });
+  }) => /* @__PURE__ */ u3("div", { class: "react-pop", style: `left:${left}px;top:${offset}px`, children: reacts.map(([key2, em]) => /* @__PURE__ */ u3(
+    "button",
+    {
+      title: `React with ${key2}`,
+      "data-c": key2,
+      onClick: () => pick(key2),
+      children: em
+    }
+  )) });
   var CtxPop = ({
     x: left,
     y: offset,
     pick
   }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${left}px;top:${offset}px`, children: [
-    /* @__PURE__ */ u3("button", { "data-h": "new", onClick: () => pick("new"), children: "Open in new tab" }),
-    /* @__PURE__ */ u3("button", { "data-h": "here", onClick: () => pick("here"), children: "Open" }),
-    /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" })
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Open this pull request in a new tab",
+        "data-h": "new",
+        onClick: () => pick("new"),
+        children: "Open in new tab"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Open this pull request in this tab",
+        "data-h": "here",
+        onClick: () => pick("here"),
+        children: "Open"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        title: "Copy a link to this pull request",
+        "data-h": "link",
+        onClick: () => pick("link"),
+        children: "Copy link"
+      }
+    )
   ] });
   var focusEl = (el) => {
     el?.focus();
@@ -4082,6 +4544,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Apply this suggested change to the code",
           class: "btn small primary",
           "data-sug": props.id,
           disabled: props.disabled,
@@ -4169,6 +4632,7 @@
       props.act ? /* @__PURE__ */ u3("div", { class: "th-foot", children: /* @__PURE__ */ u3(
         "button",
         {
+          title: props.act.res ? "Mark this conversation as unresolved" : "Mark this conversation as resolved",
           class: "thread-act",
           "data-thread": props.act.tid,
           "data-res": props.act.res ? "unresolve" : "resolve",
@@ -4202,6 +4666,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Post your reply",
           class: "btn small",
           "data-sendreply": rid,
           onClick: on3 && (() => on3.reply(String(rid))),
@@ -4253,8 +4718,26 @@
         }
       ) : "",
       /* @__PURE__ */ u3("span", { class: "sp" }),
-      /* @__PURE__ */ u3("button", { class: "btn small", id: "lccancel", onClick: on3?.cancel, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { class: "btn small primary", id: "lcadd", onClick: on3?.add, children: "Add to review" })
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Discard this comment",
+          class: "btn small",
+          id: "lccancel",
+          onClick: on3?.cancel,
+          children: "Cancel"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Add this comment to your pending review",
+          class: "btn small primary",
+          id: "lcadd",
+          onClick: on3?.add,
+          children: "Add to review"
+        }
+      )
     ] })
   ] });
   var Actor = ({ u: person }) => person ? /* @__PURE__ */ u3("a", { class: "actor", href: person.html_url, children: person.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
@@ -4317,6 +4800,7 @@
             rvThread.tid ? /* @__PURE__ */ u3(
               "button",
               {
+                title: rvThread.resolved ? "Mark this conversation as unresolved" : "Mark this conversation as resolved",
                 class: "thread-act",
                 "data-thread": rvThread.tid,
                 "data-res": rvThread.resolved ? "unresolve" : "resolve",
@@ -4439,6 +4923,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show comments from everyone",
           class: `who-chip ${everyone ? "on" : ""}`,
           "data-whoclear": "1",
           onClick: on3?.whoClear,
@@ -5737,6 +6222,7 @@
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Open a pull request for the branch you just pushed",
           class: "btn small primary",
           "data-compare": `${pushBanner.repo}@${pushBanner.branch}`,
           onClick: () => on3.compare(pushBanner.repo, pushBanner.branch),
@@ -5793,7 +6279,16 @@
         "Add an access token to list all your repositories and their pull requests.",
         /* @__PURE__ */ u3("br", {}),
         /* @__PURE__ */ u3("br", {}),
-        /* @__PURE__ */ u3("button", { class: "btn primary", id: "addtoken", onClick: on3.addToken, children: "Add token" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Add a GitHub access token so Pullscope can read your repositories",
+            class: "btn primary",
+            id: "addtoken",
+            onClick: on3.addToken,
+            children: "Add token"
+          }
+        )
       ] });
     }
     if (otherValue.kind === "error") {
@@ -5818,6 +6313,7 @@
           /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "open", "merged", "closed"].map((text) => /* @__PURE__ */ u3(
             "button",
             {
+              title: `Show ${text} pull requests`,
               class: otherValue.state === text ? "on" : "",
               "data-rstate": text,
               onClick: () => on3.rstate(text),
@@ -5876,6 +6372,7 @@
         /* @__PURE__ */ u3("div", { class: "seg-ctl", children: ["all", "public", "private"].map((text) => /* @__PURE__ */ u3(
           "button",
           {
+            title: `Show ${text} repositories`,
             class: otherValue.vis === text ? "on" : "",
             "data-hvis": text,
             onClick: () => on3.vis(text),
@@ -5918,6 +6415,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Show your repositories",
             class: props.tab === "repos" ? "sel" : "",
             "data-htab": "repos",
             onClick: () => on3.tab("repos"),
@@ -5931,6 +6429,7 @@
         /* @__PURE__ */ u3(
           "button",
           {
+            title: "Show pull requests you opened recently",
             class: props.tab === "recent" ? "sel" : "",
             "data-htab": "recent",
             onClick: () => on3.tab("recent"),
@@ -5997,7 +6496,16 @@
         " of ",
         props.total
       ] }),
-      props.active ? /* @__PURE__ */ u3("button", { class: "btn", id: "pfclear", onClick: on3.clear, children: "Clear" }) : ""
+      props.active ? /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Remove all filters",
+          class: "btn",
+          id: "pfclear",
+          onClick: on3.clear,
+          children: "Clear"
+        }
+      ) : ""
     ] });
   }
   function PrListPage({
@@ -6051,6 +6559,7 @@
           /* @__PURE__ */ u3("div", { class: "seg", children: ["open", "closed", "all"].map((text) => /* @__PURE__ */ u3(
             "button",
             {
+              title: `Show ${text} pull requests`,
               "data-ps": text,
               class: props.state === text ? "on" : "",
               onClick: () => on3.ps(text),
@@ -8679,11 +9188,35 @@ ${pull.html_url}`;
     /* @__PURE__ */ u3("div", { class: "note-h", children: [
       /* @__PURE__ */ u3("b", { children: "Notifications" }),
       /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("button", { id: "noteall", onClick: on3.all, children: "View all" }),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Open the full notifications page",
+            id: "noteall",
+            onClick: on3.all,
+            children: "View all"
+          }
+        ),
         " ",
-        /* @__PURE__ */ u3("button", { id: "notecheck", onClick: on3.check, children: "Check now" }),
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Look for new activity now",
+            id: "notecheck",
+            onClick: on3.check,
+            children: "Check now"
+          }
+        ),
         " ",
-        /* @__PURE__ */ u3("button", { id: "noteclear", onClick: on3.clear, children: "Clear all" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Remove all notifications",
+            id: "noteclear",
+            onClick: on3.clear,
+            children: "Clear all"
+          }
+        )
       ] })
     ] }),
     rows.length ? rows.map((noteRow) => /* @__PURE__ */ u3(
@@ -9416,6 +9949,7 @@ ${pull.html_url}`;
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show the repositories",
           "data-side": "repos",
           class: cls("repos"),
           onClick: () => on3.side("repos"),
@@ -9425,6 +9959,7 @@ ${pull.html_url}`;
       hasRepo && /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show this repository's pull requests",
           "data-side": "prs",
           class: cls("prs"),
           onClick: () => on3.side("prs"),
@@ -9434,6 +9969,7 @@ ${pull.html_url}`;
       /* @__PURE__ */ u3(
         "button",
         {
+          title: "Show pull requests you opened recently",
           "data-side": "recent",
           class: cls("recent"),
           onClick: () => on3.side("recent"),
@@ -9518,7 +10054,16 @@ ${pull.html_url}`;
           onInput: on3.repoFilter
         }
       ),
-      /* @__PURE__ */ u3("button", { class: "sb-btn", id: "pickrepos", onClick: on3.pickRepos, children: "Choose repositories\u2026" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          title: "Choose which repositories Pullscope follows",
+          class: "sb-btn",
+          id: "pickrepos",
+          onClick: on3.pickRepos,
+          children: "Choose repositories\u2026"
+        }
+      ),
       shown2.length ? shown2.map((repoSummary) => /* @__PURE__ */ u3(
         "a",
         {
@@ -9583,6 +10128,7 @@ ${pull.html_url}`;
       /* @__PURE__ */ u3("div", { class: "seg sb-seg", children: ["open", "closed", "all"].map((text) => /* @__PURE__ */ u3(
         "button",
         {
+          title: `Show ${text} pull requests`,
           "data-sps": text,
           class: props.state === text ? "on" : "",
           onClick: () => on3.sps(text),
@@ -9933,7 +10479,16 @@ ${pull.html_url}`;
         "Add an access token to list all your repositories and their pull requests.",
         /* @__PURE__ */ u3("br", {}),
         /* @__PURE__ */ u3("br", {}),
-        /* @__PURE__ */ u3("button", { class: "sb-btn", id: "addtoken", onClick: on2.addToken, children: "Add token" })
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            title: "Add a GitHub access token so Pullscope can read your repositories",
+            class: "sb-btn",
+            id: "addtoken",
+            onClick: on2.addToken,
+            children: "Add token"
+          }
+        )
       ] });
     }
     if (appState.reposErr) {

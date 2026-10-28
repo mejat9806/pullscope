@@ -53,10 +53,16 @@ export function NotesPage({
           {SP}Notifications
         </h1>
         <div class="np-tools">
-          <button class="btn small" id="npcheck" onClick={on.check}>
+          <button
+            title="Look for new activity now"
+            class="btn small"
+            id="npcheck"
+            onClick={on.check}
+          >
             Check now
           </button>
           <button
+            title="Mark every notification as read"
             class="btn small"
             id="npreadall"
             onClick={on.readAll}
@@ -65,6 +71,7 @@ export function NotesPage({
             Mark all as read
           </button>
           <button
+            title="Remove all notifications"
             class="btn small ghost"
             id="npclear"
             onClick={on.clear}
@@ -78,6 +85,7 @@ export function NotesPage({
       <div class="np-tabs">
         {tabs.map(([key, line, count]) => (
           <button
+            title={`Show ${line} notifications`}
             class={field === key ? 'sel' : ''}
             data-nf={key}
             onClick={() => on.filter(key)}
@@ -116,6 +124,11 @@ export function NotesPage({
               </a>
               {'\n    '}
               <button
+                title={
+                  noteRow.read
+                    ? 'Mark this notification as unread'
+                    : 'Mark this notification as read'
+                }
                 class="np-act"
                 data-nread={noteRow.id}
                 onClick={event => on.read(event, noteRow.id)}
@@ -309,6 +322,7 @@ export function NewPr({ p: props, on }: { p: NewPrProps; on: NewPrHandlers }) {
             <label class="np-l">Repository</label>
             {props.hasRepos ? (
               <button
+                title="Choose the repository"
                 type="button"
                 class="sel bp-btn"
                 id="nprepo"
@@ -333,6 +347,7 @@ export function NewPr({ p: props, on }: { p: NewPrProps; on: NewPrHandlers }) {
                   Base <i>merge into</i>
                 </label>
                 <button
+                  title="Choose the branch to merge into"
                   type="button"
                   class="sel bp-btn"
                   id="npbase"
@@ -363,6 +378,7 @@ export function NewPr({ p: props, on }: { p: NewPrProps; on: NewPrHandlers }) {
                   Head <i>changes from</i>
                 </label>
                 <button
+                  title="Choose the branch with your changes"
                   type="button"
                   class="sel bp-btn"
                   id="nphead"
@@ -445,10 +461,20 @@ export function NewPr({ p: props, on }: { p: NewPrProps; on: NewPrHandlers }) {
             {props.err ? <div class="act-err">{props.err}</div> : ''}
             {'\n    '}
             <div class="np-btns">
-              <button class="btn" id="npcancel" onClick={on.cancel}>
+              <button
+                title="Discard this new pull request"
+                class="btn"
+                id="npcancel"
+                onClick={on.cancel}
+              >
                 Cancel
               </button>
               <button
+                title={
+                  props.isDraft
+                    ? 'Create the pull request as a draft on GitHub'
+                    : 'Create the pull request on GitHub'
+                }
                 class="btn primary"
                 id="npcreate"
                 onClick={on.create}
@@ -560,7 +586,11 @@ function ViewsBar({
             }
           }}
         />
-        <button class="btn small" onClick={() => on.viewNaming(false)}>
+        <button
+          title="Cancel saving this view"
+          class="btn small"
+          onClick={() => on.viewNaming(false)}
+        >
           Cancel
         </button>
       </span>
@@ -702,6 +732,7 @@ export function InboxPage({
                       <>
                         {ibRow.snz ? (
                           <button
+                            title="Bring it back to the inbox now"
                             onClick={() =>
                               on.snooze(ibRow.ref, 'off', ibRow.updated)
                             }
@@ -712,6 +743,7 @@ export function InboxPage({
                           ''
                         )}
                         <button
+                          title="Hide it until tomorrow morning"
                           onClick={() =>
                             on.snooze(ibRow.ref, 'tomorrow', ibRow.updated)
                           }
@@ -719,6 +751,7 @@ export function InboxPage({
                           Tomorrow
                         </button>
                         <button
+                          title="Hide it for a week"
                           onClick={() =>
                             on.snooze(ibRow.ref, 'week', ibRow.updated)
                           }
@@ -726,6 +759,7 @@ export function InboxPage({
                           Next week
                         </button>
                         <button
+                          title="Hide it until it has new activity"
                           onClick={() =>
                             on.snooze(ibRow.ref, 'activity', ibRow.updated)
                           }
@@ -772,6 +806,7 @@ export function InboxPage({
         </h1>
         <div class="np-tools">
           <button
+            title="Reload your inbox from GitHub"
             class="btn small"
             id="ibrefresh"
             onClick={on.refresh}
@@ -799,6 +834,7 @@ export function InboxPage({
           </select>
         </label>
         <button
+          title={allClosed ? 'Open every section' : 'Fold every section'}
           class="btn small"
           onClick={() => on.foldAll(!allClosed)}
           disabled={!secs}
@@ -806,7 +842,11 @@ export function InboxPage({
           {allClosed ? 'Expand all' : 'Collapse all'}
         </button>
         {custom ? (
-          <button class="btn small" onClick={on.resetOrder}>
+          <button
+            title="Put the sections back in the default order"
+            class="btn small"
+            onClick={on.resetOrder}
+          >
             Reset order
           </button>
         ) : (
@@ -943,10 +983,20 @@ export const Gate = ({
       {err ? <p class="gate-err">{err}</p> : ''}
       {'\n  '}
       <div class="btns" style="justify-content:center">
-        <button class="btn primary" id="gatego" onClick={go}>
+        <button
+          title="Sign in with GitHub in your browser"
+          class="btn primary"
+          id="gatego"
+          onClick={go}
+        >
           Sign in with GitHub
         </button>
-        <button class="btn" id="gatetok" onClick={tok}>
+        <button
+          title="Paste an access token instead"
+          class="btn"
+          id="gatetok"
+          onClick={tok}
+        >
           Use a token instead
         </button>
       </div>

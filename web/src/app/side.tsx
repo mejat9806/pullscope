@@ -256,7 +256,12 @@ function List() {
         requests.
         <br />
         <br />
-        <button class="sb-btn" id="addtoken" onClick={on.addToken}>
+        <button
+          title="Add a GitHub access token so Pullscope can read your repositories"
+          class="sb-btn"
+          id="addtoken"
+          onClick={on.addToken}
+        >
           Add token
         </button>
       </div>

@@ -101,7 +101,12 @@ export function FilterBar({
         {props.n} of {props.total}
       </span>
       {props.active ? (
-        <button class="btn" id="pfclear" onClick={on.clear}>
+        <button
+          title="Remove all filters"
+          class="btn"
+          id="pfclear"
+          onClick={on.clear}
+        >
           Clear
         </button>
       ) : (
@@ -206,6 +211,7 @@ export function PrListPage({
           <div class="seg">
             {['open', 'closed', 'all'].map(text => (
               <button
+                title={`Show ${text} pull requests`}
                 data-ps={text}
                 class={props.state === text ? 'on' : ''}
                 onClick={() => on.ps(text)}

@@ -26,6 +26,7 @@ export function Sug({ s: props, on }: { s: SugProps; on?: ConvHandlers }) {
   ) : (
     <div class="sug-row">
       <button
+        title="Apply this suggested change to the code"
         class="btn small primary"
         data-sug={props.id}
         disabled={props.disabled}
@@ -147,6 +148,11 @@ export function ThreadRow(props: ThreadRowProps & { on?: ConvHandlers }) {
           {props.act ? (
             <div class="th-foot">
               <button
+                title={
+                  props.act.res
+                    ? 'Mark this conversation as unresolved'
+                    : 'Mark this conversation as resolved'
+                }
                 class="thread-act"
                 data-thread={props.act.tid}
                 data-res={props.act.res ? 'unresolve' : 'resolve'}
@@ -196,6 +202,7 @@ export function ReplyBox({
       />
       <ErrLine m={err} />
       <button
+        title="Post your reply"
         class="btn small"
         data-sendreply={rid}
         onClick={on && (() => on.reply(String(rid)))}
@@ -267,10 +274,20 @@ export const LcEdit = ({
         ''
       )}
       <span class="sp"></span>
-      <button class="btn small" id="lccancel" onClick={on?.cancel}>
+      <button
+        title="Discard this comment"
+        class="btn small"
+        id="lccancel"
+        onClick={on?.cancel}
+      >
         Cancel
       </button>
-      <button class="btn small primary" id="lcadd" onClick={on?.add}>
+      <button
+        title="Add this comment to your pending review"
+        class="btn small primary"
+        id="lcadd"
+        onClick={on?.add}
+      >
         Add to review
       </button>
     </div>
@@ -377,6 +394,11 @@ export function ReviewBlock(props: ReviewBlockProps & { on?: ConvHandlers }) {
                   {rvThread.resolved ? <span class="res">Resolved</span> : ''}
                   {rvThread.tid ? (
                     <button
+                      title={
+                        rvThread.resolved
+                          ? 'Mark this conversation as unresolved'
+                          : 'Mark this conversation as resolved'
+                      }
                       class="thread-act"
                       data-thread={rvThread.tid}
                       data-res={rvThread.resolved ? 'unresolve' : 'resolve'}

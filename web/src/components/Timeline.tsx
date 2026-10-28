@@ -147,6 +147,7 @@ export function WhoBar({
     <div class="who-bar">
       <span class="who-l">{renderIcon('person')}Show</span>
       <button
+        title="Show comments from everyone"
         class={`who-chip ${everyone ? 'on' : ''}`}
         data-whoclear="1"
         onClick={on?.whoClear}

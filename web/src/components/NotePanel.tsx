@@ -30,13 +30,25 @@ export const NotePanel = ({
     <div class="note-h">
       <b>Notifications</b>
       <span>
-        <button id="noteall" onClick={on.all}>
+        <button
+          title="Open the full notifications page"
+          id="noteall"
+          onClick={on.all}
+        >
           View all
         </button>{' '}
-        <button id="notecheck" onClick={on.check}>
+        <button
+          title="Look for new activity now"
+          id="notecheck"
+          onClick={on.check}
+        >
           Check now
         </button>{' '}
-        <button id="noteclear" onClick={on.clear}>
+        <button
+          title="Remove all notifications"
+          id="noteclear"
+          onClick={on.clear}
+        >
           Clear all
         </button>
       </span>

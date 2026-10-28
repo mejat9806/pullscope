@@ -86,10 +86,18 @@ export function DraftBox({
       style={`--rows:${rows}`}
     >
       <div class="tt-tabs">
-        <button class={prev ? '' : 'on'} onClick={() => show('write')}>
+        <button
+          title="Write your comment"
+          class={prev ? '' : 'on'}
+          onClick={() => show('write')}
+        >
           Write
         </button>
-        <button class={prev ? 'on' : ''} onClick={() => show('preview')}>
+        <button
+          title="See how your comment will look"
+          class={prev ? 'on' : ''}
+          onClick={() => show('preview')}
+        >
           Preview
         </button>
       </div>
@@ -191,12 +199,22 @@ export function Composer(props: ComposerProps & { on?: ComposerHandlers }) {
           {props.merged ? (
             ''
           ) : (
-            <button class="btn ghost" id="doclose" onClick={on?.close}>
+            <button
+              title={
+                props.closed
+                  ? 'Reopen this pull request'
+                  : 'Close this pull request without merging'
+              }
+              class="btn ghost"
+              id="doclose"
+              onClick={on?.close}
+            >
               {props.closed ? 'Reopen pull request' : 'Close pull request'}
             </button>
           )}
           {'\n  '}
           <button
+            title="Post your comment on this pull request"
             class="btn primary"
             id="docomment"
             disabled={props.busy}
@@ -242,7 +260,12 @@ export function MergeAct(props: MergeActProps & { on?: MergeActHandlers }) {
   if (props.draft) {
     return (
       <div class="merge-act">
-        <button class="btn ghost" id="doclose" onClick={on?.close}>
+        <button
+          title="Close this pull request without merging"
+          class="btn ghost"
+          id="doclose"
+          onClick={on?.close}
+        >
           Close pull request
         </button>
         <ErrLine m={props.err} />
@@ -260,6 +283,7 @@ export function MergeAct(props: MergeActProps & { on?: MergeActHandlers }) {
         ))}
       </select>
       <button
+        title="Merge this pull request into the base branch"
         class="btn primary"
         id="domerge"
         disabled={props.busy}
