@@ -41,7 +41,7 @@ export function fullDate(iso: string) {
 
 export const user = (u?: Person | null) => (u ? `<a class="actor" href="${esc(u.html_url)}">${esc(u.login)}</a>` : '<span class="actor">ghost</span>');
 
-export const avatar = (u?: Person | null, s = 40) => `<img class="av" src="${esc(u?.avatar_url || '')}${u?.avatar_url ? (u.avatar_url.includes('?') ? '&' : '?') + 's=' + s * 2 : ''}" width="${s}" height="${s}" alt="@${esc(u?.login || 'ghost')}" style="border-radius:50%;display:block">`;
+export const avatar = (u?: Person | null, s = 40) => `<img class="av" loading="lazy" decoding="async" src="${esc(u?.avatar_url || '')}${u?.avatar_url ? (u.avatar_url.includes('?') ? '&' : '?') + 's=' + s * 2 : ''}" width="${s}" height="${s}" alt="@${esc(u?.login || 'ghost')}" style="border-radius:50%;display:block">`;
 
 export const ASSOC: Record<string, string> = { CONTRIBUTOR: 'Contributor', MEMBER: 'Member', OWNER: 'Owner', COLLABORATOR: 'Collaborator', FIRST_TIME_CONTRIBUTOR: 'First-time contributor', FIRST_TIMER: 'First-timer', MANNEQUIN: 'Mannequin' };
 

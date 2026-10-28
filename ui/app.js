@@ -493,7 +493,7 @@
   var When = (t3, lead) => /* @__PURE__ */ u3(WhenText, { t: t3, lead });
   var SP = " ";
   var Icon = ({ n: n2, s: s3 = 16, c: c3 = "" }) => /* @__PURE__ */ u3("svg", { class: `octicon ${c3}`, viewBox: `0 0 ${s3} ${s3}`, width: s3, height: s3, "aria-hidden": "true", dangerouslySetInnerHTML: { __html: (window.OCTICONS || {})[n2 + (s3 === 24 ? "-24" : "")] || "" } });
-  var Avatar = ({ u: u4, s: s3 = 40 }) => /* @__PURE__ */ u3("img", { class: "av", src: `${u4?.avatar_url || ""}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}`, width: s3, height: s3, alt: `@${u4?.login || "ghost"}`, style: "border-radius:50%;display:block" });
+  var Avatar = ({ u: u4, s: s3 = 40 }) => /* @__PURE__ */ u3("img", { class: "av", loading: "lazy", decoding: "async", src: `${u4?.avatar_url || ""}${u4?.avatar_url ? (u4.avatar_url.includes("?") ? "&" : "?") + "s=" + s3 * 2 : ""}`, width: s3, height: s3, alt: `@${u4?.login || "ghost"}`, style: "border-radius:50%;display:block" });
   var WhenText = ({ t: t3, lead }) => {
     const w3 = whenParts(t3, lead);
     return /* @__PURE__ */ u3("span", { title: w3.title, children: w3.text });

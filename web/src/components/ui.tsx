@@ -12,7 +12,7 @@ export const Icon = ({ n, s = 16, c = '' }: { n: string; s?: number; c?: string 
 );
 
 export const Avatar = ({ u, s = 40 }: { u?: Person | null; s?: number }) => (
-  <img class="av" src={`${u?.avatar_url || ''}${u?.avatar_url ? (u.avatar_url.includes('?') ? '&' : '?') + 's=' + s * 2 : ''}`} width={s} height={s} alt={`@${u?.login || 'ghost'}`} style="border-radius:50%;display:block" />
+  <img class="av" loading="lazy" decoding="async" src={`${u?.avatar_url || ''}${u?.avatar_url ? (u.avatar_url.includes('?') ? '&' : '?') + 's=' + s * 2 : ''}`} width={s} height={s} alt={`@${u?.login || 'ghost'}`} style="border-radius:50%;display:block" />
 );
 
 export const WhenText = ({ t, lead }: { t: string; lead?: string }) => { const w = whenParts(t, lead); return <span title={w.title}>{w.text}</span>; };

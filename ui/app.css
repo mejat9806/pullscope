@@ -559,8 +559,10 @@ code, pre, .mono, .branch, .sha, .tt code, .tt pre { font-family: "SF Mono", ui-
 * { scrollbar-width: thin; scrollbar-color: rgba(128, 128, 128, .4) transparent; }
 
 /* translucent chrome */
-.toolbar { background: var(--glass); -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); border-bottom: .5px solid var(--borderColor-default); }
-.sidebar { background: color-mix(in srgb, var(--bgColor-default) 78%, transparent); -webkit-backdrop-filter: saturate(180%) blur(30px); backdrop-filter: saturate(180%) blur(30px); border-right: .5px solid var(--borderColor-default); }
+.toolbar { background: var(--glass); border-bottom: .5px solid var(--borderColor-default); }
+.sidebar { background: color-mix(in srgb, var(--bgColor-default) 78%, transparent); border-right: .5px solid var(--borderColor-default); }
+/* only the slide-over sidebar has content behind it; the docked one sits on flat canvas, so skip the always-on blur layer */
+@media (max-width: 900px) { .sidebar { -webkit-backdrop-filter: saturate(180%) blur(30px); backdrop-filter: saturate(180%) blur(30px); } }
 .addr { border-radius: 9px; background: rgba(120, 120, 128, .12); border: 0; }
 .tb-btn { border-radius: 8px; transition: background .15s; } .tb-btn:hover:not(:disabled) { background: rgba(120, 120, 128, .16); transform: none; }
 .sb-tabs { background: rgba(120, 120, 128, .14); border-radius: 9px; padding: 2px; }
