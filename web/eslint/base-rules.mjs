@@ -38,12 +38,7 @@ export const baseRules = {
       min: 2,
       max: 32,
       properties: 'never',
-      exceptions: [
-        '_',
-        '__',
-        '__dirname',
-        '__filename',
-      ],
+      exceptions: ['_', '__', '__dirname', '__filename'],
     },
   ],
   'logical-assignment-operators': ['error', 'never'],
