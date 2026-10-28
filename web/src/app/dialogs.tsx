@@ -3,7 +3,7 @@ import { CmPop, CommitsDialog, ConfirmDialog, CtxPop, DeleteCommentDialog, EditC
 import { ProfPop } from '../components/Overlays';
 import type { CpHandlers } from '../components/Merge';
 import { closeDlg, errMsg } from './actions';
-import { REACTS, S } from './core';
+import { isOwnPr, REACTS, S } from './core';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { pendList } from './diff';
 import { oauthGo, tokenSave } from './token';
@@ -26,7 +26,7 @@ export function Dialogs() {
   switch (d.k) {
     case 'commits': return <CommitsDialog {...commitsDialogProps()} on={cpOn} />;
     case 'token': return <TokenDialog text={S.tokenText || ''} input={(e) => { S.tokenText = (e.currentTarget as HTMLInputElement).value; }} code={S.oauth?.code || ''} err={S.oauth?.err || ''} go={oauthGo} close={close} save={tokenSave} />;
-    case 'review': { const n = pendList().length; return <ReviewDialog ph={n ? `Leave a review comment (${n} line comment${n === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)'} ev={d.ev} onEv={(v) => { d.ev = v; paintDlg(); }} err={errMsg('review')} close={close} ok={ok} />; }
+    case 'review': { const n = pendList().length; return <ReviewDialog ph={n ? `Leave a review comment (${n} line comment${n === 1 ? '' : 's'} will be included)` : 'Leave a review comment (required unless approving)'} ev={d.ev} own={isOwnPr()} onEv={(v) => { d.ev = v; paintDlg(); }} err={errMsg('review')} close={close} ok={ok} />; }
     case 'editpr': return <EditPrDialog title={d.title} onTitle={(v) => { d.title = v; }} err={errMsg('editpr')} close={close} ok={ok} />;
     case 'confirm': return <ConfirmDialog title={d.title} text={d.text} label={d.label} danger={d.danger} close={close} ok={ok} />;
     case 'editc': return <EditCommentDialog err={errMsg('editc')} close={close} ok={ok} />;

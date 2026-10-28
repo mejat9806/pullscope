@@ -6,10 +6,10 @@ import type { CommitsDialogProps, CpHandlers } from './Merge';
 const Err = ({ m }: { m: string }) => <div id="reverr">{m ? <div class="act-err">{m}</div> : ''}</div>;
 
 export interface Btns { close: () => void; ok: () => void }
-export interface ReviewDlgProps extends Btns { ph: string; ev: string; onEv: (v: string) => void }
+export interface ReviewDlgProps extends Btns { ph: string; ev: string; onEv: (v: string) => void; own: boolean }
 const REVS: [string, string, string][] = [['COMMENT', 'Comment', 'Submit general feedback without explicit approval.'], ['APPROVE', 'Approve', 'Submit feedback and approve merging these changes.'], ['REQUEST_CHANGES', 'Request changes', 'Submit feedback that must be addressed before merging.']];
 export const ReviewDialog = (p: ReviewDlgProps & { err: string }) => <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2><DraftBox k="review" ph={p.ph} rows={5} submit={p.ok} />
-  <div class="radios">{REVS.map(([v, t, d]) => <label><input type="radio" name="rev" value={v} checked={p.ev === v} onChange={() => p.onEv(v)} /> <b>{t}</b> <span>{d}</span></label>)}</div>
+  <div class="radios">{REVS.filter(([v]) => !p.own || v === 'COMMENT').map(([v, t, d]) => <label><input type="radio" name="rev" value={v} checked={p.ev === v} onChange={() => p.onEv(v)} /> <b>{t}</b> <span>{d}</span></label>)}</div>
   <Err m={p.err} /><div class="btns"><button class="btn" id="revcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="revsubmit" onClick={p.ok}>Submit review</button></div></div></div>;
 
 export const EditPrDialog = (p: Btns & { title: string; err: string; onTitle: (v: string) => void }) => <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit pull request</h2><label class="np-l">Title</label><input class="input" id="eptitle" value={p.title} onInput={(e) => p.onTitle((e.target as HTMLInputElement).value)} style="width:100%;box-sizing:border-box;height:34px" /><label class="np-l">Description</label><DraftBox k="prbody" ph="Describe your changes" rows={8} /><Err m={p.err} /><div class="btns"><button class="btn" id="epcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="epsave" onClick={p.ok}>Save</button></div></div></div>;

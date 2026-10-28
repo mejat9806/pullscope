@@ -70,6 +70,8 @@ export function syncUnread() {
 // Offline: GitHub unreachable (or the machine is offline). The last saved copy is shown with a clear banner and a retry.
 S.offline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
+/** You cannot approve or request changes on your own PR; GitHub rejects both. */
+export const isOwnPr = () => !!S.me && S.bundle?.pull.user?.login.toLowerCase() === S.me.toLowerCase();
 export const isOff = () => !!(S.offline || (S.bundle && S.bundle._cached));
 
 export const offlineBar = () => '';

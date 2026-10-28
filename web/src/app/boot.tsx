@@ -8,6 +8,7 @@ import { setGlobals } from './frame';
 import { noteClick } from './actions';
 import { closePop } from './dialogs';
 import { ripple } from './fun';
+import { restoreZoom, zoomKey, zoomWheel } from './zoom';
 import { menuAway, shortcut } from './keyboard';
 import { goOffline, goOnline } from './listeners';
 import { notesAway, notesKey } from './notes';
@@ -24,9 +25,10 @@ if (q.get('split')) S.split = q.get('split') === '1';
 
 if (tauri) tauri!.invoke('has_token').then((v) => { S.hasToken = v; S.authChecked = true; render(); if (v) { loadRepos(); loadProfile(); } }).catch(() => { S.authChecked = true; S.hasToken = false; render(); });
 
+restoreZoom();
 setGlobals({
   pointerDown: (e) => ripple(e), clickCapture: (e) => noteClick(e), click: () => closePop(), mouseDown: (e) => { menuAway(e); notesAway(e); bpAway(e); },
-  key: (e) => { shortcut(e); notesKey(e); helpKey(e); homeKey(e); }, focus: () => refocus(), online: () => goOnline(), offline: () => goOffline(),
+  key: (e) => { zoomKey(e); shortcut(e); notesKey(e); helpKey(e); homeKey(e); }, wheel: (e) => zoomWheel(e), focus: () => refocus(), online: () => goOnline(), offline: () => goOffline(),
 });
 
 render();

@@ -58,6 +58,7 @@
     }
   }
   S.offline = typeof navigator !== "undefined" && navigator.onLine === false;
+  var isOwnPr = () => !!S.me && S.bundle?.pull.user?.login.toLowerCase() === S.me.toLowerCase();
   var isOff = () => !!(S.offline || S.bundle && S.bundle._cached);
   function applyMode() {
     const d3 = document.documentElement, dark = isDark();
@@ -506,9 +507,9 @@
     reqs.set(id, { ...r3, n: (reqs.get(id)?.n || 0) + 1 });
     subs.get(id)?.forEach((f4) => f4());
   }
-  function useOnRequest(id, apply, layout = false) {
-    const [, tick] = d2(0), r3 = reqs.get(id), seen2 = A2(r3?.n), act3 = A2(apply);
-    act3.current = apply;
+  function useOnRequest(id, apply2, layout = false) {
+    const [, tick] = d2(0), r3 = reqs.get(id), seen2 = A2(r3?.n), act3 = A2(apply2);
+    act3.current = apply2;
     h2(() => {
       const f4 = () => tick((t3) => t3 + 1);
       let s3 = subs.get(id);
@@ -689,11 +690,13 @@
       const g3 = globals;
       if (!g3) return;
       addEventListener("keydown", g3.key);
+      addEventListener("wheel", g3.wheel, { passive: false });
       addEventListener("focus", g3.focus);
       addEventListener("online", g3.online);
       addEventListener("offline", g3.offline);
       return () => {
         removeEventListener("keydown", g3.key);
+        removeEventListener("wheel", g3.wheel);
         removeEventListener("focus", g3.focus);
         removeEventListener("online", g3.online);
         removeEventListener("offline", g3.offline);
@@ -1557,7 +1560,7 @@
   var ReviewDialog = (p3) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
     /* @__PURE__ */ u3("h2", { children: "Finish your review" }),
     /* @__PURE__ */ u3(DraftBox, { k: "review", ph: p3.ph, rows: 5, submit: p3.ok }),
-    /* @__PURE__ */ u3("div", { class: "radios", children: REVS.map(([v3, t3, d3]) => /* @__PURE__ */ u3("label", { children: [
+    /* @__PURE__ */ u3("div", { class: "radios", children: REVS.filter(([v3]) => !p3.own || v3 === "COMMENT").map(([v3, t3, d3]) => /* @__PURE__ */ u3("label", { children: [
       /* @__PURE__ */ u3("input", { type: "radio", name: "rev", value: v3, checked: p3.ev === v3, onChange: () => p3.onEv(v3) }),
       " ",
       /* @__PURE__ */ u3("b", { children: t3 }),
@@ -3927,7 +3930,7 @@
         }, code: S.oauth?.code || "", err: S.oauth?.err || "", go: oauthGo, close, save: tokenSave });
       case "review": {
         const n2 = pendList().length;
-        return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, onEv: (v3) => {
+        return /* @__PURE__ */ u3(ReviewDialog, { ph: n2 ? `Leave a review comment (${n2} line comment${n2 === 1 ? "" : "s"} will be included)` : "Leave a review comment (required unless approving)", ev: d3.ev, own: isOwnPr(), onEv: (v3) => {
           d3.ev = v3;
           paintDlg();
         }, err: errMsg("review"), close, ok });
@@ -6370,6 +6373,43 @@ ${ev.currentTarget.dataset.code}
     else render();
   };
 
+  // src/app/zoom.ts
+  var MIN = 0.5;
+  var MAX = 2.5;
+  var KEY = "zoom";
+  var level = 1;
+  var view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
+  var apply = (z3) => {
+    level = Math.min(MAX, Math.max(MIN, Math.round(z3 * 100) / 100));
+    view()?.setZoom(level).catch(() => {
+    });
+    try {
+      localStorage.setItem(KEY, String(level));
+    } catch {
+    }
+  };
+  var restoreZoom = () => {
+    let saved = 1;
+    try {
+      saved = parseFloat(localStorage.getItem(KEY) || "1");
+    } catch {
+    }
+    if (saved && saved !== 1) apply(saved);
+  };
+  var zoomWheel = (e3) => {
+    if (!(e3.ctrlKey || e3.metaKey) || !e3.deltaY) return;
+    e3.preventDefault();
+    apply(level * (e3.deltaY < 0 ? 1.1 : 1 / 1.1));
+  };
+  var zoomKey = (e3) => {
+    if (!(e3.ctrlKey || e3.metaKey) || e3.altKey) return;
+    if (e3.key === "=" || e3.key === "+") apply(level * 1.1);
+    else if (e3.key === "-") apply(level / 1.1);
+    else if (e3.key === "0") apply(1);
+    else return;
+    e3.preventDefault();
+  };
+
   // src/app/boot.tsx
   var q2 = new URLSearchParams(location.search);
   if (q2.get("mode")) S.mode = q2.get("mode");
@@ -6388,6 +6428,7 @@ ${ev.currentTarget.dataset.code}
     S.hasToken = false;
     render();
   });
+  restoreZoom();
   setGlobals({
     pointerDown: (e3) => ripple(e3),
     clickCapture: (e3) => noteClick(e3),
@@ -6398,11 +6439,13 @@ ${ev.currentTarget.dataset.code}
       bpAway(e3);
     },
     key: (e3) => {
+      zoomKey(e3);
       shortcut(e3);
       notesKey(e3);
       helpKey(e3);
       homeKey(e3);
     },
+    wheel: (e3) => zoomWheel(e3),
     focus: () => refocus(),
     online: () => goOnline(),
     offline: () => goOffline()

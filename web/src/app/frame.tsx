@@ -12,7 +12,7 @@ const slots: Record<Slot, VNode | null> = { top: null, side: null, dlg: null, no
 // Everything that used to be a document/window listener: element-level handlers on the frame root, window events for shortcuts and focus, and the pointer drags.
 export interface Globals {
   pointerDown: (e: PointerEvent) => void; clickCapture: (e: MouseEvent) => void; click: (e: MouseEvent) => void; mouseDown: (e: MouseEvent) => void
-  key: (e: KeyboardEvent) => void; focus: () => void; online: () => void; offline: () => void
+  key: (e: KeyboardEvent) => void; wheel: (e: WheelEvent) => void; focus: () => void; online: () => void; offline: () => void
 }
 export interface DragFns { move: (e: MouseEvent) => void; end: () => void }
 let globals: Globals | null = null, drag: DragFns | null = null;
@@ -27,8 +27,8 @@ const Frame = () => {
   useLayoutEffect(() => { applyMode(); });
   useEffect(() => {
     const g = globals; if (!g) return;
-    addEventListener('keydown', g.key); addEventListener('focus', g.focus); addEventListener('online', g.online); addEventListener('offline', g.offline);
-    return () => { removeEventListener('keydown', g.key); removeEventListener('focus', g.focus); removeEventListener('online', g.online); removeEventListener('offline', g.offline); };
+    addEventListener('keydown', g.key); addEventListener('wheel', g.wheel, { passive: false }); addEventListener('focus', g.focus); addEventListener('online', g.online); addEventListener('offline', g.offline);
+    return () => { removeEventListener('keydown', g.key); removeEventListener('wheel', g.wheel); removeEventListener('focus', g.focus); removeEventListener('online', g.online); removeEventListener('offline', g.offline); };
   }, []);
   const d = drag;
   useLayoutEffect(() => {
