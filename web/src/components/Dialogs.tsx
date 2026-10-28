@@ -1,60 +1,624 @@
-import type { PalRow } from '../types';
 import { DraftBox } from './Actions';
 import { CommitsDialog } from './Merge';
+
+import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
 
-const Err = ({ m }: { m: string }) => <div id="reverr">{m ? <div class="act-err">{m}</div> : ''}</div>;
+const Err = ({ m }: { m: string }) => (
+  <div id="reverr">{m ? <div class="act-err">{m}</div> : ''}</div>
+);
 
-export interface Btns { close: () => void; ok: () => void }
-export interface ReviewDlgProps extends Btns { ph: string; ev: string; onEv: (v: string) => void; own: boolean }
-const REVS: [string, string, string][] = [['COMMENT', 'Comment', 'Submit general feedback without explicit approval.'], ['APPROVE', 'Approve', 'Submit feedback and approve merging these changes.'], ['REQUEST_CHANGES', 'Request changes', 'Submit feedback that must be addressed before merging.']];
-export const ReviewDialog = (p: ReviewDlgProps & { err: string }) => <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Finish your review</h2><DraftBox k="review" ph={p.ph} rows={5} submit={p.ok} />
-  <div class="radios">{REVS.filter(([v]) => !p.own || v === 'COMMENT').map(([v, t, d]) => <label><input type="radio" name="rev" value={v} checked={p.ev === v} onChange={() => p.onEv(v)} /> <b>{t}</b> <span>{d}</span></label>)}</div>
-  <Err m={p.err} /><div class="btns"><button class="btn" id="revcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="revsubmit" onClick={p.ok}>Submit review</button></div></div></div>;
+export interface Btns {
+  close: () => void;
+  ok: () => void;
+}
 
-export const EditPrDialog = (p: Btns & { title: string; err: string; onTitle: (v: string) => void }) => <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit pull request</h2><label class="np-l">Title</label><input class="input" id="eptitle" value={p.title} onInput={(e) => p.onTitle((e.target as HTMLInputElement).value)} style="width:100%;box-sizing:border-box;height:34px" /><label class="np-l">Description</label><DraftBox k="prbody" ph="Describe your changes" rows={8} /><Err m={p.err} /><div class="btns"><button class="btn" id="epcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="epsave" onClick={p.ok}>Save</button></div></div></div>;
+export interface ReviewDlgProps extends Btns {
+  ph: string;
+  ev: string;
+  onEv: (v: string) => void;
+  own: boolean;
+}
 
-export const ConfirmDialog = (p: Btns & { title: string; text: string; label: string; danger: boolean }) => <div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>{p.title}</h2><p>{p.text}</p><div class="btns"><button class="btn" id="cfcancel" onClick={p.close}>Cancel</button><button class={`btn ${p.danger ? 'danger' : 'primary'}`} id="cfok" onClick={p.ok}>{p.label}</button></div></div></div>;
+const REVS: [string, string, string][] = [
+  ['COMMENT', 'Comment', 'Submit general feedback without explicit approval.'],
+  ['APPROVE', 'Approve', 'Submit feedback and approve merging these changes.'],
+  [
+    'REQUEST_CHANGES',
+    'Request changes',
+    'Submit feedback that must be addressed before merging.',
+  ],
+];
 
-export const EditCommentDialog = (p: Btns & { err: string }) => <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Edit comment</h2><DraftBox k="editc" ph="Edit your comment" rows={6} /><Err m={p.err} /><div class="btns"><button class="btn" id="eccancel" onClick={p.close}>Cancel</button><button class="btn primary" id="ecsave" onClick={p.ok}>Save</button></div></div></div>;
+export const ReviewDialog = (p: ReviewDlgProps & { err: string }) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide">
+      <h2>Finish your review</h2>
+      <DraftBox k="review" ph={p.ph} rows={5} submit={p.ok} />
+      <div class="radios">
+        {REVS.filter(([v]) => !p.own || v === 'COMMENT').map(([v, t, d]) => (
+          <label>
+            <input
+              type="radio"
+              name="rev"
+              value={v}
+              checked={p.ev === v}
+              onChange={() => p.onEv(v)}
+            />{' '}
+            <b>{t}</b> <span>{d}</span>
+          </label>
+        ))}
+      </div>
+      <Err m={p.err} />
+      <div class="btns">
+        <button class="btn" id="revcancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn primary" id="revsubmit" onClick={p.ok}>
+          Submit review
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
-export const DeleteCommentDialog = (p: Btns & { err: string }) => <div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Delete this comment?</h2><p style="color:var(--fgColor-muted)">This can't be undone.</p><Err m={p.err} /><div class="btns"><button class="btn" id="dccancel" onClick={p.close}>Cancel</button><button class="btn danger" id="dcdo" onClick={p.ok}>Delete</button></div></div></div>;
+export const EditPrDialog = (
+  p: Btns & { title: string; err: string; onTitle: (v: string) => void },
+) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide">
+      <h2>Edit pull request</h2>
+      <label class="np-l">Title</label>
+      <input
+        class="input"
+        id="eptitle"
+        value={p.title}
+        onInput={e => p.onTitle((e.target as HTMLInputElement).value)}
+        style="width:100%;box-sizing:border-box;height:34px"
+      />
+      <label class="np-l">Description</label>
+      <DraftBox k="prbody" ph="Describe your changes" rows={8} />
+      <Err m={p.err} />
+      <div class="btns">
+        <button class="btn" id="epcancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn primary" id="epsave" onClick={p.ok}>
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
-export const HideCommentDialog = (p: Btns & { reasons: [string, string][]; reason: string; pick: (e: Event) => void; err: string }) => <div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>Hide this comment</h2><label class="np-l">Reason</label><select class="sel" id="hcreason" style="width:100%;height:34px" onChange={p.pick}>{p.reasons.map(([v, l]) => <option value={v} selected={v === p.reason}>{l}</option>)}</select><Err m={p.err} /><div class="btns"><button class="btn" id="hccancel" onClick={p.close}>Cancel</button><button class="btn primary" id="hcdo" onClick={p.ok}>Hide comment</button></div></div></div>;
+export const ConfirmDialog = (
+  p: Btns & { title: string; text: string; label: string; danger: boolean },
+) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg">
+      <h2>{p.title}</h2>
+      <p>{p.text}</p>
+      <div class="btns">
+        <button class="btn" id="cfcancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button
+          class={`btn ${p.danger ? 'danger' : 'primary'}`}
+          id="cfok"
+          onClick={p.ok}
+        >
+          {p.label}
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
-export interface TokenDlgProps { text: string; input: (e: Event) => void; code: string; err: string; go: () => void; close: () => void; save: () => void }
-export const TokenDialog = (p: TokenDlgProps) => <div class="dlg-bg" id="dlgbg"><div class="dlg"><h2>GitHub classic token</h2><p>Use a <b>classic</b> personal access token with the <code>repo</code> scope. It lists all your repositories (including organization ones) and raises the rate limit to 5,000 requests per hour. Organization with SSO: after creating it, click <b>Configure SSO → Authorize</b>. Stored in your OS keychain. Leave empty and save to remove it.</p><div class="oauth-row"><button class="btn primary" id="oauthgo" onClick={p.go}>Sign in with GitHub</button><span>or paste a token below</span></div><div id="oauthbox">{p.code ? <div class="oauth-code"><span>Enter this code on GitHub</span><b>{p.code}</b><small>Waiting for approval…</small></div> : p.err ? <div class="err" style="margin:8px 0">{p.err}</div> : ''}</div><p><a href="https://github.com/settings/tokens/new?scopes=repo&description=Pullscope">Create a classic token (repo scope preselected) ↗</a></p><input class="input" id="tokeninput" type="password" value={p.text} onInput={p.input} placeholder="ghp_…" style="width:100%;box-sizing:border-box" /><div class="btns"><button class="btn" id="tokcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="toksave" onClick={p.save}>Save</button></div></div></div>;
+export const EditCommentDialog = (p: Btns & { err: string }) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide">
+      <h2>Edit comment</h2>
+      <DraftBox k="editc" ph="Edit your comment" rows={6} />
+      <Err m={p.err} />
+      <div class="btns">
+        <button class="btn" id="eccancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn primary" id="ecsave" onClick={p.ok}>
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+);
 
-export interface RepoPickProps { repos: { full_name: string; private: boolean }[] | null; on: Set<string>; q: string; err: string; toggle: (n: string) => void; all: (on: boolean) => void; input: (e: Event) => void; close: () => void; save: () => void }
+export const DeleteCommentDialog = (p: Btns & { err: string }) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg">
+      <h2>Delete this comment?</h2>
+      <p style="color:var(--fgColor-muted)">This can't be undone.</p>
+      <Err m={p.err} />
+      <div class="btns">
+        <button class="btn" id="dccancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn danger" id="dcdo" onClick={p.ok}>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export const HideCommentDialog = (
+  p: Btns & {
+    reasons: [string, string][];
+    reason: string;
+    pick: (e: Event) => void;
+    err: string;
+  },
+) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg">
+      <h2>Hide this comment</h2>
+      <label class="np-l">Reason</label>
+      <select
+        class="sel"
+        id="hcreason"
+        style="width:100%;height:34px"
+        onChange={p.pick}
+      >
+        {p.reasons.map(([v, l]) => (
+          <option value={v} selected={v === p.reason}>
+            {l}
+          </option>
+        ))}
+      </select>
+      <Err m={p.err} />
+      <div class="btns">
+        <button class="btn" id="hccancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn primary" id="hcdo" onClick={p.ok}>
+          Hide comment
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export interface TokenDlgProps {
+  text: string;
+  input: (e: Event) => void;
+  code: string;
+  err: string;
+  go: () => void;
+  close: () => void;
+  save: () => void;
+}
+
+export const TokenDialog = (p: TokenDlgProps) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg">
+      <h2>GitHub classic token</h2>
+      <p>
+        Use a <b>classic</b> personal access token with the <code>repo</code>{' '}
+        scope. It lists all your repositories (including organization ones) and
+        raises the rate limit to 5,000 requests per hour. Organization with SSO:
+        after creating it, click <b>Configure SSO → Authorize</b>. Stored in
+        your OS keychain. Leave empty and save to remove it.
+      </p>
+      <div class="oauth-row">
+        <button class="btn primary" id="oauthgo" onClick={p.go}>
+          Sign in with GitHub
+        </button>
+        <span>or paste a token below</span>
+      </div>
+      <div id="oauthbox">
+        {p.code ? (
+          <div class="oauth-code">
+            <span>Enter this code on GitHub</span>
+            <b>{p.code}</b>
+            <small>Waiting for approval…</small>
+          </div>
+        ) : p.err ? (
+          <div class="err" style="margin:8px 0">
+            {p.err}
+          </div>
+        ) : (
+          ''
+        )}
+      </div>
+      <p>
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=Pullscope">
+          Create a classic token (repo scope preselected) ↗
+        </a>
+      </p>
+      <input
+        class="input"
+        id="tokeninput"
+        type="password"
+        value={p.text}
+        onInput={p.input}
+        placeholder="ghp_…"
+        style="width:100%;box-sizing:border-box"
+      />
+      <div class="btns">
+        <button class="btn" id="tokcancel" onClick={p.close}>
+          Cancel
+        </button>
+        <button class="btn primary" id="toksave" onClick={p.save}>
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export interface RepoPickProps {
+  repos: { full_name: string; private: boolean }[] | null;
+  on: Set<string>;
+  q: string;
+  err: string;
+  toggle: (n: string) => void;
+  all: (on: boolean) => void;
+  input: (e: Event) => void;
+  close: () => void;
+  save: () => void;
+}
+
 export const RepoPickDialog = (p: RepoPickProps) => {
-  const q = p.q.toLowerCase(), shown = (p.repos || []).filter((r) => r.full_name.toLowerCase().includes(q));
-  return <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>Choose repositories</h2><p>Only the ticked repositories are listed and fetched (sidebar, inbox, notifications). Tick none, or all, to use every repository. Pasting a pull request link still opens any repository.</p>
-    <input class="input" id="rpq" placeholder="Filter…" value={p.q} onInput={p.input} style="width:100%;box-sizing:border-box;height:34px" />
-    <div class="rp-bar"><span>{p.on.size} selected</span><button class="btn" onClick={() => p.all(true)}>Select shown</button><button class="btn" onClick={() => p.all(false)}>Clear</button></div>
-    <div class="rp-list">{p.repos ? (shown.length ? shown.map((r) => <label class="rp-row"><input type="checkbox" checked={p.on.has(r.full_name)} onChange={() => p.toggle(r.full_name)} /> <b>{r.full_name}</b>{r.private ? <i>private</i> : ''}</label>) : <div class="sb-empty">No matches.</div>) : <div class="sb-empty">Loading repositories…</div>}</div>
-    <Err m={p.err} /><div class="btns"><button class="btn" id="rpcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="rpsave" onClick={p.save}>Save</button></div></div></div>;
+  const q = p.q.toLowerCase();
+
+  const shown = (p.repos || []).filter(r =>
+    r.full_name.toLowerCase().includes(q),
+  );
+
+  return (
+    <div class="dlg-bg" id="dlgbg">
+      <div class="dlg wide">
+        <h2>Choose repositories</h2>
+        <p>
+          Only the ticked repositories are listed and fetched (sidebar, inbox,
+          notifications). Tick none, or all, to use every repository. Pasting a
+          pull request link still opens any repository.
+        </p>
+        <input
+          class="input"
+          id="rpq"
+          placeholder="Filter…"
+          value={p.q}
+          onInput={p.input}
+          style="width:100%;box-sizing:border-box;height:34px"
+        />
+        <div class="rp-bar">
+          <span>{p.on.size} selected</span>
+          <button class="btn" onClick={() => p.all(true)}>
+            Select shown
+          </button>
+          <button class="btn" onClick={() => p.all(false)}>
+            Clear
+          </button>
+        </div>
+        <div class="rp-list">
+          {p.repos ? (
+            shown.length ? (
+              shown.map(r => (
+                <label class="rp-row">
+                  <input
+                    type="checkbox"
+                    checked={p.on.has(r.full_name)}
+                    onChange={() => p.toggle(r.full_name)}
+                  />{' '}
+                  <b>{r.full_name}</b>
+                  {r.private ? <i>private</i> : ''}
+                </label>
+              ))
+            ) : (
+              <div class="sb-empty">No matches.</div>
+            )
+          ) : (
+            <div class="sb-empty">Loading repositories…</div>
+          )}
+        </div>
+        <Err m={p.err} />
+        <div class="btns">
+          <button class="btn" id="rpcancel" onClick={p.close}>
+            Cancel
+          </button>
+          <button class="btn primary" id="rpsave" onClick={p.save}>
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
-export interface MetaProps { field: string; items: { id: string; name: string; color?: string; avatar?: string }[] | null; on: string[]; q: string; err: string; busy: boolean; pick: (id: string) => void; input: (e: Event) => void; close: () => void; save: () => void }
-const META_T: Record<string, string> = { labels: 'Labels', assignees: 'Assignees', milestone: 'Milestone' };
+export interface MetaProps {
+  field: string;
+  items: { id: string; name: string; color?: string; avatar?: string }[] | null;
+  on: string[];
+  q: string;
+  err: string;
+  busy: boolean;
+  pick: (id: string) => void;
+  input: (e: Event) => void;
+  close: () => void;
+  save: () => void;
+}
+
+const META_T: Record<string, string> = {
+  labels: 'Labels',
+  assignees: 'Assignees',
+  milestone: 'Milestone',
+};
+
 export const MetaDialog = (p: MetaProps) => {
-  const q = p.q.toLowerCase(), one = p.field === 'milestone', shown = (p.items || []).filter((r) => r.name.toLowerCase().includes(q));
-  return <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>{META_T[p.field]}</h2>
-    <input class="input" id="metaq" placeholder="Filter…" value={p.q} onInput={p.input} style="width:100%;box-sizing:border-box;height:34px" />
-    <div class="rp-list">{p.items ? <>{one && <label class="rp-row"><input type="radio" name="ms" checked={!p.on.length} onChange={() => p.pick('')} /> <b>No milestone</b></label>}{shown.length ? shown.map((r) => <label class="rp-row"><input type={one ? 'radio' : 'checkbox'} name="ms" checked={p.on.includes(r.id)} onChange={() => p.pick(r.id)} />{r.avatar && <img class="mt-av" src={r.avatar} width="20" height="20" />}{r.color && <i class="mt-dot" style={`background:#${r.color}`}></i>}<b>{r.name}</b></label>) : <div class="sb-empty">None found.</div>}</> : <div class="sb-empty">Loading…</div>}</div>
-    <Err m={p.err} /><div class="btns"><button class="btn" onClick={p.close}>Cancel</button><button class="btn primary" disabled={p.busy || !p.items} onClick={p.save}>{p.busy ? 'Saving…' : 'Save'}</button></div></div></div>;
+  const q = p.q.toLowerCase();
+  const one = p.field === 'milestone';
+  const shown = (p.items || []).filter(r => r.name.toLowerCase().includes(q));
+
+  return (
+    <div class="dlg-bg" id="dlgbg">
+      <div class="dlg wide">
+        <h2>{META_T[p.field]}</h2>
+        <input
+          class="input"
+          id="metaq"
+          placeholder="Filter…"
+          value={p.q}
+          onInput={p.input}
+          style="width:100%;box-sizing:border-box;height:34px"
+        />
+        <div class="rp-list">
+          {p.items ? (
+            <>
+              {one && (
+                <label class="rp-row">
+                  <input
+                    type="radio"
+                    name="ms"
+                    checked={!p.on.length}
+                    onChange={() => p.pick('')}
+                  />{' '}
+                  <b>No milestone</b>
+                </label>
+              )}
+              {shown.length ? (
+                shown.map(r => (
+                  <label class="rp-row">
+                    <input
+                      type={one ? 'radio' : 'checkbox'}
+                      name="ms"
+                      checked={p.on.includes(r.id)}
+                      onChange={() => p.pick(r.id)}
+                    />
+                    {r.avatar && (
+                      <img
+                        class="mt-av"
+                        src={r.avatar}
+                        width="20"
+                        height="20"
+                      />
+                    )}
+                    {r.color && (
+                      <i class="mt-dot" style={`background:#${r.color}`}></i>
+                    )}
+                    <b>{r.name}</b>
+                  </label>
+                ))
+              ) : (
+                <div class="sb-empty">None found.</div>
+              )}
+            </>
+          ) : (
+            <div class="sb-empty">Loading…</div>
+          )}
+        </div>
+        <Err m={p.err} />
+        <div class="btns">
+          <button class="btn" onClick={p.close}>
+            Cancel
+          </button>
+          <button
+            class="btn primary"
+            disabled={p.busy || !p.items}
+            onClick={p.save}
+          >
+            {p.busy ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export { CommitsDialog };
+
 export type { CommitsDialogProps, CpHandlers };
 
-export const CmPop = ({ x, y, hr, edit, hide, del, pick }: { x: number; y: number; hr: boolean; edit: boolean; hide: boolean; del: boolean; pick: (h: string) => void }) => <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}><button data-h="link" onClick={() => pick('link')}>Copy link</button><button data-h="md" onClick={() => pick('md')}>Copy Markdown</button><button data-h="quote" onClick={() => pick('quote')}>Quote reply</button><button data-h="issue" onClick={() => pick('issue')}>Reference in new issue</button>{hr ? <hr /> : ''}{edit ? <button data-h="edit" onClick={() => pick('edit')}>Edit</button> : ''}{hide ? <button data-h="hide" onClick={() => pick('hide')}>Hide</button> : ''}{del ? <button data-h="del" class="danger" onClick={() => pick('del')}>Delete</button> : ''}</div>;
-export const ReactPop = ({ x, y, reacts, pick }: { x: number; y: number; reacts: [string, string][]; pick: (c: string) => void }) => <div class="react-pop" style={`left:${x}px;top:${y}px`}>{reacts.map(([k, em]) => <button data-c={k} onClick={() => pick(k)}>{em}</button>)}</div>;
-export const CtxPop = ({ x, y, pick }: { x: number; y: number; pick: (h: string) => void }) => <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}><button data-h="new" onClick={() => pick('new')}>Open in new tab</button><button data-h="here" onClick={() => pick('here')}>Open</button><button data-h="link" onClick={() => pick('link')}>Copy link</button></div>;
+export const CmPop = ({
+  x,
+  y,
+  hr,
+  edit,
+  hide,
+  del,
+  pick,
+}: {
+  x: number;
+  y: number;
+  hr: boolean;
+  edit: boolean;
+  hide: boolean;
+  del: boolean;
+  pick: (h: string) => void;
+}) => (
+  <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}>
+    <button data-h="link" onClick={() => pick('link')}>
+      Copy link
+    </button>
+    <button data-h="md" onClick={() => pick('md')}>
+      Copy Markdown
+    </button>
+    <button data-h="quote" onClick={() => pick('quote')}>
+      Quote reply
+    </button>
+    <button data-h="issue" onClick={() => pick('issue')}>
+      Reference in new issue
+    </button>
+    {hr ? <hr /> : ''}
+    {edit ? (
+      <button data-h="edit" onClick={() => pick('edit')}>
+        Edit
+      </button>
+    ) : (
+      ''
+    )}
+    {hide ? (
+      <button data-h="hide" onClick={() => pick('hide')}>
+        Hide
+      </button>
+    ) : (
+      ''
+    )}
+    {del ? (
+      <button data-h="del" class="danger" onClick={() => pick('del')}>
+        Delete
+      </button>
+    ) : (
+      ''
+    )}
+  </div>
+);
 
-const focusEl = (el: HTMLElement | null) => { el?.focus(); };
-export interface PaletteProps { q: string; rows: PalRow[]; sel: number; onQ: (v: string) => void; onKey: (e: KeyboardEvent) => void; pick: (i: number) => void; close: () => void }
-export const Palette = (p: PaletteProps) => <div class="dlg-bg palette" onMouseDown={(e) => { if (e.target === e.currentTarget) p.close(); }}><div class="dlg pal"><input class="pal-in" placeholder="Jump to a pull request — owner/repo#123, a URL, or search recent…" value={p.q} ref={focusEl} onInput={(e) => p.onQ((e.target as HTMLInputElement).value)} onKeyDown={p.onKey} /><div class="pal-list" onMouseDown={(e) => { const r = (e.target as HTMLElement).closest<HTMLElement>('.pal-row'); if (r) p.pick(+r.dataset.i!); }}>{p.rows.length ? p.rows.map((r, i) => <div class={`pal-row${i === p.sel ? ' on' : ''}`} data-i={i}><b>{r.label}</b><i>{r.sub}</i></div>) : <div class="pal-none">No matches</div>}</div></div></div>;
+export const ReactPop = ({
+  x,
+  y,
+  reacts,
+  pick,
+}: {
+  x: number;
+  y: number;
+  reacts: [string, string][];
+  pick: (c: string) => void;
+}) => (
+  <div class="react-pop" style={`left:${x}px;top:${y}px`}>
+    {reacts.map(([k, em]) => (
+      <button data-c={k} onClick={() => pick(k)}>
+        {em}
+      </button>
+    ))}
+  </div>
+);
 
-const HELP: [string, string][] = [['Jump to any pull request', '⌘ K'], ['Next / previous comment', 'j / k'], ['Next / previous unresolved thread', '] / ['], ['Reply to the selected comment', 'r'], ['Write a comment (docked at the bottom)', 'c'], ['New pull request', 'n'], ['New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T'], ['Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab'], ['Open a PR in a new tab', '⌘-click'], ['Turn Split view on / off', 's'], ['Swap the two sides of Split view', 'f'], ['Diff: unified ⇄ side-by-side', 'd'], ['Show this help', '?'], ['Close dialogs and menus', 'Esc']];
-export const HelpDialog = ({ close }: { close: () => void }) => <div class="dlg-bg palette" onMouseDown={close}><div class="dlg pal"><h2>Keyboard shortcuts</h2>{HELP.map(([a, b]) => <div class="kb-r"><span>{a}</span><kbd>{b}</kbd></div>)}</div></div>;
+export const CtxPop = ({
+  x,
+  y,
+  pick,
+}: {
+  x: number;
+  y: number;
+  pick: (h: string) => void;
+}) => (
+  <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}>
+    <button data-h="new" onClick={() => pick('new')}>
+      Open in new tab
+    </button>
+    <button data-h="here" onClick={() => pick('here')}>
+      Open
+    </button>
+    <button data-h="link" onClick={() => pick('link')}>
+      Copy link
+    </button>
+  </div>
+);
+
+const focusEl = (el: HTMLElement | null) => {
+  el?.focus();
+};
+
+export interface PaletteProps {
+  q: string;
+  rows: PalRow[];
+  sel: number;
+  onQ: (v: string) => void;
+  onKey: (e: KeyboardEvent) => void;
+  pick: (i: number) => void;
+  close: () => void;
+}
+
+export const Palette = (p: PaletteProps) => (
+  <div
+    class="dlg-bg palette"
+    onMouseDown={e => {
+      if (e.target === e.currentTarget) {
+        p.close();
+      }
+    }}
+  >
+    <div class="dlg pal">
+      <input
+        class="pal-in"
+        placeholder="Jump to a pull request — owner/repo#123, a URL, or search recent…"
+        value={p.q}
+        ref={focusEl}
+        onInput={e => p.onQ((e.target as HTMLInputElement).value)}
+        onKeyDown={p.onKey}
+      />
+      <div
+        class="pal-list"
+        onMouseDown={e => {
+          const r = (e.target as HTMLElement).closest<HTMLElement>('.pal-row');
+
+          if (r) {
+            p.pick(+r.dataset.i!);
+          }
+        }}
+      >
+        {p.rows.length ? (
+          p.rows.map((r, i) => (
+            <div class={`pal-row${i === p.sel ? ' on' : ''}`} data-i={i}>
+              <b>{r.label}</b>
+              <i>{r.sub}</i>
+            </div>
+          ))
+        ) : (
+          <div class="pal-none">No matches</div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const HELP: [string, string][] = [
+  ['Jump to any pull request', '⌘ K'],
+  ['Next / previous comment', 'j / k'],
+  ['Next / previous unresolved thread', '] / ['],
+  ['Reply to the selected comment', 'r'],
+  ['Write a comment (docked at the bottom)', 'c'],
+  ['New pull request', 'n'],
+  ['New tab / close tab / reopen closed', '⌘T · ⌘W · ⌘⇧T'],
+  ['Go to tab 1–9 / next tab', '⌘1–9 · ⌃Tab'],
+  ['Open a PR in a new tab', '⌘-click'],
+  ['Turn Split view on / off', 's'],
+  ['Swap the two sides of Split view', 'f'],
+  ['Diff: unified ⇄ side-by-side', 'd'],
+  ['Show this help', '?'],
+  ['Close dialogs and menus', 'Esc'],
+];
+
+export const HelpDialog = ({ close }: { close: () => void }) => (
+  <div class="dlg-bg palette" onMouseDown={close}>
+    <div class="dlg pal">
+      <h2>Keyboard shortcuts</h2>
+      {HELP.map(([a, b]) => (
+        <div class="kb-r">
+          <span>{a}</span>
+          <kbd>{b}</kbd>
+        </div>
+      ))}
+    </div>
+  </div>
+);

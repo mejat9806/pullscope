@@ -34,6 +34,10 @@ jobs:
         working-directory: web
       - run: npm run check
         working-directory: web
+      - run: npm run lint
+        working-directory: web
+      - run: npm run format:check
+        working-directory: web
       - run: npm run build
         working-directory: web
       - name: Committed ui/app.js is up to date
