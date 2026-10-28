@@ -50,6 +50,7 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 - Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
 - A **docked comment bar** stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft).
 - Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.
+- The Reviewers list shows people with a verdict first (changes requested, approved, commented), then people who still have to answer, then bots; five show before the fold. A grey refresh button asks someone to review again, and a yellow clock marks someone you already asked.
 - Resolve and unresolve threads, re-request a review, react to comments. A comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
 - Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
 - **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
@@ -115,7 +116,7 @@ bash scripts/bundle.sh
 
 The frontend is TypeScript + Preact under `web/`, bundled by esbuild into the committed `ui/app.js`. After editing it run `cd web && npm ci && npm run check && npm run build` (`npm run watch` while developing); `check` runs `tsc --noEmit` under `strict` and rejects explicit `any`.
 
-**Code style** (ported from the Citadel monorepo and adapted): Prettier (`web/.prettierrc`: 80 columns, single quotes, trailing commas, `arrowParens: avoid`) and ESLint 9 flat config (`web/eslint.config.mjs`, rules in `web/eslint/base-rules.mjs`, the ones this codebase does not follow, with reasons, in `web/eslint/overrides.mjs`). Run `npm run format` and `npm run lint` (`lint:fix` for auto-fixes) in `web/`; CI runs `check`, `lint` and `format:check`. Disable a rule only with a comment saying why.
+**Code style** (ported from the Citadel monorepo and adapted): Prettier (`web/.prettierrc`: 80 columns, single quotes, trailing commas, `arrowParens: avoid`) and ESLint 9 flat config (`web/eslint.config.mjs`, rules in `web/eslint/base-rules.mjs`, the ones this codebase does not follow, with reasons, in `web/eslint/overrides.mjs`). Run `npm run format` and `npm run lint` (`lint:fix` for auto-fixes) in `web/`; CI runs `check`, `lint` and `format:check`. Names must say what they hold: single-letter names are rejected (`id-length`), and so are `cb` and `callback`, so write `event`, `bundle` or `appState`, not `e`, `b` or `S`. Disable a rule only with a comment saying why.
 
 The rich editor and syntax highlighter are bundled with esbuild from `editor/`; the output is already committed in `ui/vendor/`. To rebuild them: `cd editor && npm install && npm run build`.
 
