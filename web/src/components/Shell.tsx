@@ -1,12 +1,21 @@
 import type { ComponentChildren } from 'preact';
+import { useEffect } from 'preact/hooks';
 import { useScroller } from './req';
 
 export interface ShellPane { key: string; children: ComponentChildren }
-export interface ShellProps { nav: boolean; navHidden: boolean; sbw: number; lw: number; fade: boolean; enter: boolean; stuck: boolean; active: ShellPane; onPage: (e: MouseEvent) => void; kept: ShellPane[]; onScroll: (e: Event) => void; onGrip: (e: MouseEvent) => void; onGripReset: () => void; onScrim: () => void; side?: ComponentChildren; dlg?: ComponentChildren; notes?: ComponentChildren }
+export interface ShellProps { nav: boolean; navHidden: boolean; sbw: number; lw: number; fade: boolean; enter: boolean; stuck: boolean; active: ShellPane; onPage: (e: MouseEvent) => void; kept: ShellPane[]; onScroll: (e: Event) => void; onMeasure: (el: HTMLElement) => void; onGrip: (e: MouseEvent) => void; onGripReset: () => void; onScrim: () => void; side?: ComponentChildren; dlg?: ComponentChildren; notes?: ComponentChildren }
 
 // The shown page scrolls when asked (`scroll:main`) and reports its own scrolling.
-const Main = (p: { cls: string; onScroll: (e: Event) => void; onPage: (e: MouseEvent) => void; children: ComponentChildren }) => {
+const Main = (p: { cls: string; onScroll: (e: Event) => void; onMeasure: (el: HTMLElement) => void; onPage: (e: MouseEvent) => void; children: ComponentChildren }) => {
   const ref = useScroller('main', true);
+  // A page that has not been scrolled yet still needs its scroll button: re-measure when its size or content changes.
+  useEffect(() => {
+    const el = ref.current as HTMLElement | null; if (!el) return;
+    let raf = 0; const measure = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => p.onMeasure(el)); };
+    const ro = new ResizeObserver(measure), mo = new MutationObserver(measure);
+    ro.observe(el); mo.observe(el, { childList: true, subtree: true }); measure();
+    return () => { ro.disconnect(); mo.disconnect(); cancelAnimationFrame(raf); };
+  }, []);
   return <div class={p.cls} ref={ref} onScroll={p.onScroll}><div id="page" style="display:contents" onClick={p.onPage}>{p.children}</div></div>;
 };
 
@@ -19,7 +28,7 @@ export const Shell = (p: ShellProps) => (
       <div class="sb-grip" id="sbgrip" title="Drag to resize · double-click to reset" onMouseDown={p.onGrip} onDblClick={p.onGripReset}></div>
       <div class="scrim" id="scrim" onClick={p.onScrim}></div>
       {[p.active, ...p.kept].map((k, i) => i === 0
-        ? <Main key={k.key} cls={`main${p.fade ? ' tab-in' : ''}${p.stuck ? ' stuck' : ''}`} onScroll={p.onScroll} onPage={p.onPage}>{k.children}</Main>
+        ? <Main key={k.key} cls={`main${p.fade ? ' tab-in' : ''}${p.stuck ? ' stuck' : ''}`} onScroll={p.onScroll} onMeasure={p.onMeasure} onPage={p.onPage}>{k.children}</Main>
         : <div class="main-off" key={k.key} style="display:none"><div style="display:contents">{k.children}</div></div>)}
     </div>
     <div id="dlg" style="display:contents">{p.dlg}</div>

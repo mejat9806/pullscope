@@ -5,6 +5,7 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 ## [Unreleased]
 
 ### Added
+- A scroll button on every long page: a down arrow at the top jumps to the bottom, and once you are further down it becomes an up arrow back to the top. `End` also jumps to the bottom (`Home` to the top).
 - The Inbox has three more sections: **Mentioned** (open PRs where you were @mentioned), **Participated** (open PRs you commented on or reviewed) and **Recently closed or merged** (PRs you were involved in). A PR appears only in the first section that matches. They follow your chosen repositories.
 - The Inbox is easier to scan: click a section heading to collapse it (or use *Collapse all*), sort every section (newest or oldest activity, most comments, repository, author, title), and filter by title, repository, author or PR number. Mentioned and Participated now come before *Your pull requests*. Collapsed sections and the sort are remembered.
 

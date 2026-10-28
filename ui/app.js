@@ -660,6 +660,24 @@
   // src/components/Shell.tsx
   var Main = (p3) => {
     const ref = useScroller("main", true);
+    h2(() => {
+      const el = ref.current;
+      if (!el) return;
+      let raf = 0;
+      const measure = () => {
+        cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(() => p3.onMeasure(el));
+      };
+      const ro = new ResizeObserver(measure), mo = new MutationObserver(measure);
+      ro.observe(el);
+      mo.observe(el, { childList: true, subtree: true });
+      measure();
+      return () => {
+        ro.disconnect();
+        mo.disconnect();
+        cancelAnimationFrame(raf);
+      };
+    }, []);
     return /* @__PURE__ */ u3("div", { class: p3.cls, ref, onScroll: p3.onScroll, children: /* @__PURE__ */ u3("div", { id: "page", style: "display:contents", onClick: p3.onPage, children: p3.children }) });
   };
   var Shell = (p3) => /* @__PURE__ */ u3(S2, { children: [
@@ -667,7 +685,7 @@
       /* @__PURE__ */ u3("div", { id: "side", style: "display:contents", children: p3.side }),
       /* @__PURE__ */ u3("div", { class: "sb-grip", id: "sbgrip", title: "Drag to resize \xB7 double-click to reset", onMouseDown: p3.onGrip, onDblClick: p3.onGripReset }),
       /* @__PURE__ */ u3("div", { class: "scrim", id: "scrim", onClick: p3.onScrim }),
-      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, onScroll: p3.onScroll, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
+      [p3.active, ...p3.kept].map((k3, i3) => i3 === 0 ? /* @__PURE__ */ u3(Main, { cls: `main${p3.fade ? " tab-in" : ""}${p3.stuck ? " stuck" : ""}`, onScroll: p3.onScroll, onMeasure: p3.onMeasure, onPage: p3.onPage, children: k3.children }, k3.key) : /* @__PURE__ */ u3("div", { class: "main-off", style: "display:none", children: /* @__PURE__ */ u3("div", { style: "display:contents", children: k3.children }) }, k3.key))
     ] }),
     /* @__PURE__ */ u3("div", { id: "dlg", style: "display:contents", children: p3.dlg }),
     /* @__PURE__ */ u3("div", { id: "notehost", style: "display:contents", children: p3.notes })
@@ -2753,7 +2771,7 @@
   };
 
   // src/components/ToTop.tsx
-  var ToTop = ({ hidden, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: "Back to top", "aria-label": "Back to top", hidden, onClick, children: I2("chevron-up") });
+  var ToTop = ({ dir, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: dir === "down" ? "Scroll to bottom" : "Back to top", "aria-label": dir === "down" ? "Scroll to bottom" : "Back to top", hidden: !dir, onClick, children: I2(dir === "down" ? "chevron-down" : "chevron-up") });
 
   // src/components/Home.tsx
   var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
@@ -3658,7 +3676,18 @@
     if (S.scrollId && S.scrollId !== "main") scrollTarget(S.scrollId, 0, smooth);
     else scrollMain(0, smooth);
   };
-  var paintToTop = () => setSlot("totop", /* @__PURE__ */ u3(ToTop, { hidden: !S.toTop, onClick: () => toTop() }));
+  var toBottom = (smooth = true) => {
+    if (S.scrollId && S.scrollId !== "main") scrollTarget(S.scrollId, 1e7, smooth);
+    else scrollMain(1e7, smooth);
+  };
+  var paintToTop = () => setSlot("totop", /* @__PURE__ */ u3(ToTop, { dir: S.toTop || "", onClick: () => S.toTop === "down" ? toBottom() : toTop() }));
+  function scrollBtn(el) {
+    const next = el.scrollHeight - el.clientHeight < 500 ? "" : el.scrollTop < 200 ? "down" : "up";
+    if ((S.toTop || "") !== next) {
+      S.toTop = next;
+      paintToTop();
+    }
+  }
   function scrolled(id, el) {
     S.scrollId = id;
     if (id === "main") {
@@ -3672,10 +3701,7 @@
         }
       });
     }
-    if (!!S.toTop !== el.scrollTop >= 600) {
-      S.toTop = !S.toTop;
-      paintToTop();
-    }
+    scrollBtn(el);
     const c3 = S.composerBox;
     if (!c3 || c3.in !== id) return;
     const dist = el.scrollHeight - el.scrollTop - el.clientHeight, up = el.scrollTop < lastTop;
@@ -3693,9 +3719,10 @@
     }
   }
   var homeKey = (e3) => {
-    if (e3.key === "Home" && !e3.target.closest?.("input, textarea, select, [contenteditable]") && S.scrollId) {
+    if ((e3.key === "Home" || e3.key === "End") && !e3.target.closest?.("input, textarea, select, [contenteditable]") && S.scrollId) {
       e3.preventDefault();
-      toTop();
+      if (e3.key === "Home") toTop();
+      else toBottom();
     }
   };
 
@@ -5542,7 +5569,9 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
     batch(() => {
       paintTop();
-      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, onGrip: (e3) => gripDown(e3), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e3) => scrolled("main", e3.currentTarget), kept });
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, onGrip: (e3) => gripDown(e3), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e3) => scrolled("main", e3.currentTarget), onMeasure: (el) => {
+        if (S.scrollId === "main" || !S.scrollId) scrollBtn(el);
+      }, kept });
       paintSide();
       paintDlg();
       paintNotes();

@@ -18,7 +18,7 @@ import type { InboxProps } from '../components/Pages';
 import type { NewPrProps, NpMetaProps } from '../components/Pages';
 import { Gate, Skeleton } from '../components/Pages';
 import type { ShellProps } from '../components/Shell';
-import { scrolled } from './scrolling';
+import { scrollBtn, scrolled } from './scrolling';
 import { request } from '../components/req';
 import { batch, beginDrag, setDragging, setGate, setShell, shellProps } from './frame';
 
@@ -199,7 +199,7 @@ export function render() {
   const kept = [...S.alive].filter(([r]) => 'pr:' + r !== key).map(([r, a]) => ({ key: 'pr:' + r, children: a.vnode }));
   batch(() => {
     paintTop();
-    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, onGrip: (e) => gripDown(e), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e) => scrolled('main', e.currentTarget as HTMLElement), kept });
+    setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live }, onPage: followLink, onGrip: (e) => gripDown(e), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e) => scrolled('main', e.currentTarget as HTMLElement), onMeasure: (el) => { if (S.scrollId === 'main' || !S.scrollId) scrollBtn(el); }, kept });
     paintSide(); paintDlg(); paintNotes();
   });
   S.stash = null;
