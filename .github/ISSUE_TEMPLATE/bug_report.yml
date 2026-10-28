@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in Pullscope is broken or behaves differently from GitHub
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a pull request
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or error text
+      description: Drag images in here. Copy any error message exactly. Do not include access tokens.
+  - type: input
+    id: version
+    attributes:
+      label: Pullscope version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [macOS, Windows, Linux]
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Does it happen on every pull request, or only some (large, private, many comments)?
