@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.1.0]
+
 ### Added
 - Choose which repositories to fetch: a checklist (profile menu → *Choose repositories…*, or the Repos tab) limits the sidebar, address-bar suggestions, inbox search and notification polling to the ticked repositories. The choice is stored locally and start-up no longer requests the full repository list.
 - The profile menu shows the app version.
