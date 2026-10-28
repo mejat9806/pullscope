@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.1]
+
 ### Changed
 - Developer tooling: the web code is now formatted with Prettier and linted with ESLint, using Citadel's rules adapted for this repo. CI checks both. No behaviour change.
 
