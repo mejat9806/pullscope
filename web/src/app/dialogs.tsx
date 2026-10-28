@@ -15,7 +15,7 @@ import {
 } from '../components/Dialogs';
 import { ProfPop } from '../components/Overlays';
 import { closeDlg, errMsg } from './actions';
-import { isOwnPr, REACTS, S } from './core';
+import { appState, isOwnPr, REACTS } from './core';
 import { pendList } from './diff';
 import { setSlot } from './frame';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
@@ -32,38 +32,38 @@ const cpOn: CpHandlers = {
   close: () => closeDlg(),
   all: () => setFr(null),
   since: () => {
-    const sr = sinceReview(S.bundle!);
+    const sr = sinceReview(appState.bundle!);
 
     if (sr?.n) {
-      setFr({ a: sr.at + 1, b: commitList(S.bundle!).length - 1 });
+      setFr({ a: sr.at + 1, b: commitList(appState.bundle!).length - 1 });
     }
   },
   save: () => {
-    if (S.cpick) {
-      setFr({ ...S.cpick });
+    if (appState.cpick) {
+      setFr({ ...appState.cpick });
     }
   },
-  filter: e => {
-    S.cfilter = (e.target as HTMLInputElement).value;
+  filter: event => {
+    appState.cfilter = (event.target as HTMLInputElement).value;
     paintDlg();
   },
-  pick: (e, i) => {
-    e.preventDefault();
-    const p = S.cpick;
+  pick: (event, index) => {
+    event.preventDefault();
+    const frRange = appState.cpick;
 
-    S.cpick =
-      !p || p.a !== p.b
-        ? { a: i, b: i }
-        : { a: Math.min(p.a, i), b: Math.max(p.b, i) };
+    appState.cpick =
+      !frRange || frRange.a !== frRange.b
+        ? { a: index, b: index }
+        : { a: Math.min(frRange.a, index), b: Math.max(frRange.b, index) };
 
     paintDlg();
   },
 };
 
 export function Dialogs() {
-  const d = S.dlg;
+  const dlg = appState.dlg;
 
-  if (!d) {
+  if (!dlg) {
     return null;
   }
 
@@ -71,34 +71,36 @@ export function Dialogs() {
 
   const ok = () => {
     if (
-      d.k !== 'commits' &&
-      d.k !== 'token' &&
-      d.k !== 'repos' &&
-      d.k !== 'meta'
+      dlg.k !== 'commits' &&
+      dlg.k !== 'token' &&
+      dlg.k !== 'repos' &&
+      dlg.k !== 'meta'
     ) {
-      d.ok();
+      dlg.ok();
     }
   };
 
-  switch (d.k) {
+  switch (dlg.k) {
     case 'commits':
       return <CommitsDialog {...commitsDialogProps()} on={cpOn} />;
     case 'token':
       return (
         <TokenDialog
-          text={S.tokenText || ''}
-          input={e => {
-            S.tokenText = (e.currentTarget as HTMLInputElement).value;
+          text={appState.tokenText || ''}
+          input={event => {
+            appState.tokenText = (
+              event.currentTarget as HTMLInputElement
+            ).value;
           }}
-          code={S.oauth?.code || ''}
-          err={S.oauth?.err || ''}
+          code={appState.oauth?.code || ''}
+          err={appState.oauth?.err || ''}
           go={oauthGo}
           close={close}
           save={tokenSave}
         />
       );
     case 'repos': {
-      const rp = S.rpick!;
+      const rp = appState.rpick!;
 
       return (
         <RepoPickDialog
@@ -108,79 +110,79 @@ export function Dialogs() {
           err={rp.err}
           close={close}
           save={repoPickSave}
-          toggle={n => {
-            rp.on = rp.on.includes(n)
-              ? rp.on.filter(x => x !== n)
-              : [...rp.on, n];
+          toggle={name => {
+            rp.on = rp.on.includes(name)
+              ? rp.on.filter(text => text !== name)
+              : [...rp.on, name];
 
             paintDlg();
           }}
           all={on => {
-            const q = rp.q.toLowerCase();
+            const query = rp.q.toLowerCase();
 
             const vis = (rp.all || [])
-              .map(r => r.full_name)
-              .filter(n => n.toLowerCase().includes(q));
+              .map(repoSummary => repoSummary.full_name)
+              .filter(name => name.toLowerCase().includes(query));
 
             rp.on = on
               ? [...new Set([...rp.on, ...vis])]
-              : rp.on.filter(n => !vis.includes(n));
+              : rp.on.filter(name => !vis.includes(name));
 
             paintDlg();
           }}
-          input={e => {
-            rp.q = (e.currentTarget as HTMLInputElement).value;
+          input={event => {
+            rp.q = (event.currentTarget as HTMLInputElement).value;
             paintDlg();
           }}
         />
       );
     }
     case 'meta': {
-      const m = S.meta!;
+      const meta = appState.meta!;
 
       return (
         <MetaDialog
-          field={m.field}
-          items={m.items}
-          on={m.on}
-          q={m.q}
-          err={m.err}
-          busy={m.busy}
+          field={meta.field}
+          items={meta.items}
+          on={meta.on}
+          q={meta.q}
+          err={meta.err}
+          busy={meta.busy}
           close={close}
           save={metaSave}
           pick={id => {
-            m.on =
-              m.field === 'milestone'
+            meta.on =
+              meta.field === 'milestone'
                 ? id
                   ? [id]
                   : []
-                : m.on.includes(id)
-                  ? m.on.filter(x => x !== id)
-                  : [...m.on, id];
+                : meta.on.includes(id)
+                  ? meta.on.filter(text => text !== id)
+                  : [...meta.on, id];
 
             paintDlg();
           }}
-          input={e => {
-            m.q = (e.currentTarget as HTMLInputElement).value;
+          input={event => {
+            meta.q = (event.currentTarget as HTMLInputElement).value;
             paintDlg();
           }}
         />
       );
     }
     case 'review': {
-      const n = pendList().length;
+      const count = pendList().length;
 
       return (
         <ReviewDialog
           ph={
-            n
-              ? `Leave a review comment (${n} line comment${n === 1 ? '' : 's'} will be included)`
+            count
+              ? `Leave a review comment (${count} line comment${count === 1 ? '' : 's'} will be included)`
               : 'Leave a review comment (required unless approving)'
           }
-          ev={d.ev}
+          ev={dlg.ev}
           own={isOwnPr()}
-          onEv={v => {
-            d.ev = v;
+          onEv={value => {
+            dlg.ev = value;
             paintDlg();
           }}
           err={errMsg('review')}
@@ -193,9 +195,9 @@ export function Dialogs() {
     case 'editpr':
       return (
         <EditPrDialog
-          title={d.title}
-          onTitle={v => {
-            d.title = v;
+          title={dlg.title}
+          onTitle={value => {
+            dlg.title = value;
           }}
           err={errMsg('editpr')}
           close={close}
@@ -205,10 +207,10 @@ export function Dialogs() {
     case 'confirm':
       return (
         <ConfirmDialog
-          title={d.title}
-          text={d.text}
-          label={d.label}
-          danger={d.danger}
+          title={dlg.title}
+          text={dlg.text}
+          label={dlg.label}
+          danger={dlg.danger}
           close={close}
           ok={ok}
         />
@@ -220,10 +222,13 @@ export function Dialogs() {
     case 'hidec':
       return (
         <HideCommentDialog
-          reasons={d.reasons}
-          reason={S.hideReason || 'OUTDATED'}
-          pick={e => {
-            S.hideReason = (e.currentTarget as HTMLSelectElement).value;
+          reasons={dlg.reasons}
+          reason={appState.hideReason || 'OUTDATED'}
+          pick={event => {
+            appState.hideReason = (
+              event.currentTarget as HTMLSelectElement
+            ).value;
+
             paintDlg();
           }}
           err={errMsg('hidec')}
@@ -237,47 +242,47 @@ export function Dialogs() {
 }
 
 function Pops() {
-  const p = S.pop;
+  const pop = appState.pop;
 
-  if (!p) {
+  if (!pop) {
     return null;
   }
 
-  if (p.k === 'cm') {
-    return <CmPop {...p} />;
+  if (pop.k === 'cm') {
+    return <CmPop {...pop} />;
   }
 
-  if (p.k === 'ctx') {
-    return <CtxPop {...p} />;
+  if (pop.k === 'ctx') {
+    return <CtxPop {...pop} />;
   }
 
-  if (p.k === 'prof') {
-    return <ProfPop {...p} />;
+  if (pop.k === 'prof') {
+    return <ProfPop {...pop} />;
   }
 
   return (
     <ReactPop
-      x={p.x}
-      y={p.y}
+      x={pop.x}
+      y={pop.y}
       reacts={REACTS as [string, string][]}
-      pick={p.pick}
+      pick={pop.pick}
     />
   );
 }
 
 const paintPop = () => setSlot('pop', <Pops />);
 
-export function openPop(p: NonNullable<typeof S.pop>) {
-  S.pop = p;
+export function openPop(nonNullable: NonNullable<typeof appState.pop>) {
+  appState.pop = nonNullable;
   paintPop();
 }
 
 export function closePop() {
-  if (!S.pop) {
+  if (!appState.pop) {
     return;
   }
 
-  S.pop = null;
+  appState.pop = null;
   paintPop();
 }
 
@@ -288,18 +293,18 @@ let downOn: EventTarget | null = null;
 
 document.addEventListener(
   'mousedown',
-  e => {
-    downOn = e.target;
+  event => {
+    downOn = event.target;
   },
   true,
 );
 
 document.addEventListener(
   'click',
-  e => {
-    const t = e.target as HTMLElement;
+  event => {
+    const element = event.target as HTMLElement;
 
-    if (S.dlg && t === downOn && t.id === 'dlgbg') {
+    if (appState.dlg && element === downOn && element.id === 'dlgbg') {
       closeDlg();
     }
   },

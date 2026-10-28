@@ -3,7 +3,7 @@ import { Crumbs } from '../components/PrList';
 import { rerender } from './actions';
 import { openAux, openClick, openCtx, rmRecent } from './bind';
 import { homeProps } from './bindwrite';
-import { S } from './core';
+import { appState } from './core';
 import { pushDis } from './data';
 import { loadRepos, openRepo } from './nav';
 import { openNewPr, render } from './pages';
@@ -14,52 +14,52 @@ import type { CrumbHandlers } from '../components/PrList';
 
 export const crumbs: CrumbHandlers = {
   home: () => {
-    S.view = 'home';
-    S.homeOwner = '';
-    S.nav = false;
+    appState.view = 'home';
+    appState.homeOwner = '';
+    appState.nav = false;
     render();
   },
-  owner: o => {
-    S.view = 'home';
-    S.homeOwner = o;
-    S.homeTab = 'repos';
-    S.nav = false;
+  owner: option => {
+    appState.view = 'home';
+    appState.homeOwner = option;
+    appState.homeTab = 'repos';
+    appState.nav = false;
     render();
 
-    if (S.hasToken && !S.repos) {
+    if (appState.hasToken && !appState.repos) {
       loadRepos();
     }
   },
-  repo: r => openRepo(r),
+  repo: text => openRepo(text),
 };
 
 const on: HomeHandlers = {
-  tab: t => {
-    S.homeTab = t;
+  tab: text => {
+    appState.homeTab = text;
     render();
   },
-  vis: v => {
-    S.hmVis = v;
+  vis: value => {
+    appState.hmVis = value;
     render();
   },
-  sort: e => {
-    S.hmSort = (e.target as HTMLSelectElement).value;
+  sort: event => {
+    appState.hmSort = (event.target as HTMLSelectElement).value;
     render();
   },
-  group: e => {
-    S.hmGroup = (e.target as HTMLSelectElement).value;
+  group: event => {
+    appState.hmGroup = (event.target as HTMLSelectElement).value;
     render();
   },
-  repoFilter: e => {
-    S.repoFilter = (e.target as HTMLInputElement).value;
+  repoFilter: event => {
+    appState.repoFilter = (event.target as HTMLInputElement).value;
     render();
   },
-  recentFilter: e => {
-    S.recentFilter = (e.target as HTMLInputElement).value;
+  recentFilter: event => {
+    appState.recentFilter = (event.target as HTMLInputElement).value;
     render();
   },
-  rstate: s => {
-    S.recentState = s;
+  rstate: text => {
+    appState.recentState = text;
     render();
   },
   repo: full => openRepo(full),
@@ -81,7 +81,7 @@ export function HomeView() {
     <>
       <Crumbs
         repo=""
-        trail={S.homeOwner ? [{ t: S.homeOwner }] : []}
+        trail={appState.homeOwner ? [{ t: appState.homeOwner }] : []}
         on={crumbs}
       />
       <Home p={homeProps()} on={on} />

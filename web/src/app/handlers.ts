@@ -28,7 +28,7 @@ import {
   updateBranch,
 } from './actions';
 import { foldAllConv } from './bind';
-import { S } from './core';
+import { appState } from './core';
 import { foldToggle } from './fold';
 import { commitList, openCommits, setFr } from './mergebox';
 import { render, scrollMain } from './pages';
@@ -42,19 +42,19 @@ import type { TlHandlers } from './timeline';
 
 // One set of comment handlers for every live view that shows comments (conversation, timeline, diff lines, split view).
 export const convOn: ConvHandlers = {
-  fold: (e, k, def) => foldToggle(e, k, def),
-  menu: (e, b) => cmMenu(e, b),
+  fold: (event, key, def) => foldToggle(event, key, def),
+  menu: (event, element) => cmMenu(event, element),
   react: {
-    toggle: (e, kind, id, c) => reactToggle(e, kind, id, c),
-    add: (e, b) => reactAdd(e, b),
+    toggle: (event, kind, id, color) => reactToggle(event, kind, id, color),
+    add: (event, element) => reactAdd(event, element),
     hover: (kind, id) => {
       getMine(kind, id);
     },
   },
-  thread: (e, node, how) => {
-    threadAct(e, node, how);
+  thread: (event, node, how) => {
+    threadAct(event, node, how);
   },
-  sug: (e, id) => applySuggestion(e, id),
+  sug: (event, id) => applySuggestion(event, id),
   reply: id => {
     sendReply(id);
   },
@@ -62,24 +62,24 @@ export const convOn: ConvHandlers = {
 
 export const diffOn: DiffHandlers = {
   conv: convOn,
-  plus: e => lcOpen(e),
+  plus: event => lcOpen(event),
   lc: {
     del: id => lcDel(id),
     cancel: () => lcCancel(),
-    suggest: e => lcSuggest(e),
+    suggest: event => lcSuggest(event),
     add: () => lcAdd(),
   },
 };
 
 export const keep = (fn: () => void) => {
-  S.keepScroll = true;
+  appState.keepScroll = true;
   fn();
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
-export function openTab(k: string) {
-  S.tab = k;
+export function openTab(key: string) {
+  appState.tab = key;
   render();
   scrollMain(0);
 }
@@ -87,36 +87,36 @@ export function openTab(k: string) {
 export const filesOn: FilesHandlers = {
   commits: () => openCommits(),
   all: () => setFr(null),
-  step: n => {
-    const cs = commitList(S.bundle!);
-    const i = (S.fr?.a ?? 0) + n;
+  step: count => {
+    const cs = commitList(appState.bundle!);
+    const index = (appState.fr?.a ?? 0) + count;
 
-    if (cs[i]) {
-      setFr({ a: i, b: i });
+    if (cs[index]) {
+      setFr({ a: index, b: index });
     }
   },
-  mode: m => setDiffMode(m),
-  sort: e => {
-    S.fileSort = (e.target as HTMLSelectElement).value;
+  mode: message => setDiffMode(message),
+  sort: event => {
+    appState.fileSort = (event.target as HTMLSelectElement).value;
     rerender();
   },
   finish: () => reviewDialog(),
   foldAll: (allFolded, names) => {
-    names.forEach(n => {
-      S.fold[`f:${n}`] = !allFolded;
+    names.forEach(name => {
+      appState.fold[`f:${name}`] = !allFolded;
     });
 
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
     rerender();
   },
-  fold: (e, k, def) => foldToggle(e, k, def),
+  fold: (event, key, def) => foldToggle(event, key, def),
 };
 
 export const attOn: AttentionHandlers = {
   next: () => jumpUnresolved(),
   unres: () =>
     keep(() => {
-      S.unres = !S.unres;
+      appState.unres = !appState.unres;
     }),
   tab: openTab,
 };
@@ -124,48 +124,50 @@ export const attOn: AttentionHandlers = {
 export const tlOn: TlHandlers = {
   conv: convOn,
   bars: {
-    who: w =>
+    who: word =>
       keep(() => {
-        S.who = S.who.includes(w) ? S.who.filter(x => x !== w) : [...S.who, w];
+        appState.who = appState.who.includes(word)
+          ? appState.who.filter(text => text !== word)
+          : [...appState.who, word];
       }),
     whoClear: () =>
       keep(() => {
-        S.who = [];
+        appState.who = [];
       }),
-    range: e =>
+    range: event =>
       keep(() => {
-        S.range = (e.target as HTMLInputElement).value;
+        appState.range = (event.target as HTMLInputElement).value;
 
-        if (S.range === 'custom' && !S.rFrom && !S.rTo) {
-          const d = (t: number) =>
-            new Date(t - new Date().getTimezoneOffset() * 6e4)
+        if (appState.range === 'custom' && !appState.rFrom && !appState.rTo) {
+          const handler = (time: number) =>
+            new Date(time - new Date().getTimezoneOffset() * 6e4)
               .toISOString()
               .slice(0, 10);
 
-          S.rTo = d(Date.now());
-          S.rFrom = d(Date.now() - 7 * 864e5);
+          appState.rTo = handler(Date.now());
+          appState.rFrom = handler(Date.now() - 7 * 864e5);
         }
       }),
-    from: e =>
+    from: event =>
       keep(() => {
-        S.rFrom = (e.target as HTMLInputElement).value;
+        appState.rFrom = (event.target as HTMLInputElement).value;
       }),
-    to: e =>
+    to: event =>
       keep(() => {
-        S.rTo = (e.target as HTMLInputElement).value;
+        appState.rTo = (event.target as HTMLInputElement).value;
       }),
     sort: () =>
       keep(() => {
-        S.sort = S.sort === 'desc' ? 'asc' : 'desc';
-        localStorage.setItem('csort', S.sort);
+        appState.sort = appState.sort === 'desc' ? 'asc' : 'desc';
+        localStorage.setItem('csort', appState.sort);
       }),
   },
   foldAll: foldAllConv,
   tab: openTab,
   merge: {
-    toggle: (e, k) => toggleMb(e, k),
-    rerun: e => {
-      rerunChecks(e);
+    toggle: (event, key) => toggleMb(event, key),
+    rerun: event => {
+      rerunChecks(event);
     },
     update: () => {
       updateBranch();
@@ -184,20 +186,20 @@ export const tlOn: TlHandlers = {
       enableAuto();
     },
     draft: () => toDraft(),
-    method: e => {
-      S.method = (e.currentTarget as HTMLSelectElement).value;
+    method: event => {
+      appState.method = (event.currentTarget as HTMLSelectElement).value;
       rerender();
     },
   },
   composer: {
     toggle: () => toggleComposer(),
-    key: e => cbarKey(e),
+    key: event => cbarKey(event),
     send: () => {
       sendComment();
     },
     close: () => toggleClosed(),
-    measure: m => {
-      S.composerBox = m;
+    measure: meta => {
+      appState.composerBox = meta;
     },
   },
 };

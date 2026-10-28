@@ -1,5 +1,5 @@
 import { whenParts } from '../app/core';
-import { Av, I, SP } from './ui';
+import { Av, renderIcon, SP } from './ui';
 
 import type { ComponentChildren } from 'preact';
 import type { Person, Verification } from '../types';
@@ -33,7 +33,7 @@ export function CommitRow({
       <span class="msg" style="flex:0 1 auto">
         <a href={url || '#'}>{first}</a>
       </span>
-      <span class="cm-ic">{I('comment')}</span>
+      <span class="cm-ic">{renderIcon('comment')}</span>
       <span style="flex:1"></span>
       {verification ? (
         <span class={`label-pill ${unv ? 'warn' : 'ok'}`}>
@@ -52,9 +52,9 @@ export function CommitRow({
 export interface BarHandlers {
   who: (login: string) => void;
   whoClear: () => void;
-  range: (e: Event) => void;
-  from: (e: Event) => void;
-  to: (e: Event) => void;
+  range: (event: Event) => void;
+  from: (event: Event) => void;
+  to: (event: Event) => void;
   sort: () => void;
 }
 
@@ -83,16 +83,16 @@ export function RangeBar({
 
   return (
     <div class="date-bar">
-      <span class="who-l">{I('clock')}When</span>
+      <span class="who-l">{renderIcon('clock')}When</span>
       <select
         class="sel"
         id="crange"
         title="Only show activity from this period"
         onChange={on?.range}
       >
-        {opts.map(([v, l]) => (
-          <option value={v} selected={range === v}>
-            {l}
+        {opts.map(([otherValue, line]) => (
+          <option value={otherValue} selected={range === otherValue}>
+            {line}
           </option>
         ))}
       </select>
@@ -126,7 +126,7 @@ export function RangeBar({
         title="Flip the order of the timeline"
         onClick={on?.sort}
       >
-        {I(desc ? 'chevron-down' : 'chevron-up')}
+        {renderIcon(desc ? 'chevron-down' : 'chevron-up')}
         <span>{desc ? 'Newest first' : 'Oldest first'}</span>
       </button>
     </div>
@@ -145,7 +145,7 @@ export function WhoBar({
 }: WhoBarProps & { on?: BarHandlers }) {
   return (
     <div class="who-bar">
-      <span class="who-l">{I('person')}Show</span>
+      <span class="who-l">{renderIcon('person')}Show</span>
       <button
         class={`who-chip ${everyone ? 'on' : ''}`}
         data-whoclear="1"
@@ -153,16 +153,16 @@ export function WhoBar({
       >
         Everyone
       </button>
-      {people.map(({ u, n, on: sel }) => (
+      {people.map(({ u: person, n: count, on: sel }) => (
         <button
           class={`who-chip ${sel ? 'on' : ''}`}
-          data-who={u.login}
-          onClick={on && (() => on.who(u.login!))}
-          title={`${n} comment${n === 1 ? '' : 's'}`}
+          data-who={person.login}
+          onClick={on && (() => on.who(person.login!))}
+          title={`${count} comment${count === 1 ? '' : 's'}`}
         >
-          {Av(u, 18)}
-          <span>{u.login}</span>
-          <i>{n}</i>
+          {Av(person, 18)}
+          <span>{person.login}</span>
+          <i>{count}</i>
         </button>
       ))}
     </div>
@@ -201,7 +201,7 @@ export function FoldBar({
         title="Collapse or expand every comment, review and thread"
         onClick={onClick}
       >
-        {I('chevron-down')}
+        {renderIcon('chevron-down')}
         {SP}
         <span>
           {folded ? 'Expand all conversations' : 'Collapse all conversations'}
@@ -215,17 +215,17 @@ const Time = ({ at }: { at: string }) => (
   <a class="time">{whenParts(at).text}</a>
 );
 
-const actor = (u?: Person | null) =>
-  u ? (
-    <a class="actor" href={u.html_url}>
-      {u.login}
+const actor = (person?: Person | null) =>
+  person ? (
+    <a class="actor" href={person.html_url}>
+      {person.login}
     </a>
   ) : (
     <span class="actor">ghost</span>
   );
 
 export function CommitRun({
-  n,
+  n: count,
   first,
   last,
   onTab,
@@ -233,11 +233,11 @@ export function CommitRun({
   n: number;
   first: string;
   last: string;
-  onTab?: (k: string) => void;
+  onTab?: (key: string) => void;
 }) {
   return (
     <div class="TLI">
-      <div class="TLI-badge">{I('git-commit')}</div>
+      <div class="TLI-badge">{renderIcon('git-commit')}</div>
       <div class="TLI-body">
         <div class="row">
           <a
@@ -245,7 +245,7 @@ export function CommitRun({
             class="run"
             onClick={onTab && (() => onTab('commits'))}
           >
-            <b>{n} commits</b>
+            <b>{count} commits</b>
             {SP}
             <span class="mono">
               {first} … {last}
@@ -261,7 +261,7 @@ export function CommitRun({
 export function Committed({ row }: { row: ComponentChildren }) {
   return (
     <div class="TLI">
-      <div class="TLI-badge">{I('git-commit')}</div>
+      <div class="TLI-badge">{renderIcon('git-commit')}</div>
       <div class="TLI-body">{row}</div>
     </div>
   );
@@ -276,28 +276,33 @@ export interface ReferencedProps {
 
 // An issue reference in the commit message becomes its own link: the text before and after it stay links to the commit.
 const Linked = ({ msg, url }: { msg: string; url: string }) => {
-  const m = msg.match(/^([\s\S]*?)#(\d+)([\s\S]*)$/);
+  const match = msg.match(/^([\s\S]*?)#(\d+)([\s\S]*)$/);
 
-  return m ? (
+  return match ? (
     <>
-      <a href={url}>{m[1]}</a>
+      <a href={url}>{match[1]}</a>
       <a href="#" style="color:var(--fgColor-accent)">
-        #{m[2]}
+        #{match[2]}
       </a>
-      <a href="#">{m[3]}</a>
+      <a href="#">{match[3]}</a>
     </>
   ) : (
     <a href={url}>{msg}</a>
   );
 };
 
-export function Referenced({ actor: a, at, commit: ci, msg }: ReferencedProps) {
+export function Referenced({
+  actor: person,
+  at,
+  commit: ci,
+  msg,
+}: ReferencedProps) {
   return (
     <div class="TLI">
-      <div class="TLI-badge">{I('cross-reference')}</div>
+      <div class="TLI-badge">{renderIcon('cross-reference')}</div>
       <div class="TLI-body stack">
         <div class="row" style="min-height:32px">
-          {actor(a)}
+          {actor(person)}
           {SP}
           <span>added a commit that referenced this pull request</span>
           {SP}
@@ -307,7 +312,7 @@ export function Referenced({ actor: a, at, commit: ci, msg }: ReferencedProps) {
           <div class="line2">
             <div class="commit-row">
               <span class="TLI-avatar" style="margin:0 8px 0 0">
-                {Av(ci.author || a, 20)}
+                {Av(ci.author || person, 20)}
               </span>
               <span class="msg" style="flex:0 1 auto">
                 <Linked msg={msg} url={ci.html_url} />
@@ -318,7 +323,7 @@ export function Referenced({ actor: a, at, commit: ci, msg }: ReferencedProps) {
               >
                 …
               </span>
-              <span class="cm-ic">{I('comment')}</span>
+              <span class="cm-ic">{renderIcon('comment')}</span>
               <span style="flex:1"></span>
               <a class="sha" href={ci.html_url}>
                 {ci.sha.slice(0, 7)}
@@ -334,7 +339,7 @@ export function Referenced({ actor: a, at, commit: ci, msg }: ReferencedProps) {
 }
 
 export function MergedRow({
-  actor: a,
+  actor: person,
   commit,
   base,
   at,
@@ -346,11 +351,11 @@ export function MergedRow({
 }) {
   return (
     <div class="TLI mergedrow">
-      <div class="TLI-badge done">{I('git-merge')}</div>
-      <div class="TLI-avatar">{Av(a, 20)}</div>
+      <div class="TLI-badge done">{renderIcon('git-merge')}</div>
+      <div class="TLI-avatar">{Av(person, 20)}</div>
       <div class="TLI-body">
         <div class="row">
-          {actor(a)}
+          {actor(person)}
           {SP}
           <span>
             merged commit{' '}
@@ -379,31 +384,31 @@ export interface CrossRefProps {
   number: number;
 }
 
-export function CrossRef(p: CrossRefProps) {
+export function CrossRef(props: CrossRefProps) {
   return (
     <div class="TLI">
-      <div class="TLI-badge">{I('cross-reference')}</div>
+      <div class="TLI-badge">{renderIcon('cross-reference')}</div>
       <div class="TLI-body">
         <div class="row">
-          {actor(p.actor)}
+          {actor(props.actor)}
           {SP}
-          <span>mentioned this {p.isPr ? 'pull request' : 'issue'}</span>
+          <span>mentioned this {props.isPr ? 'pull request' : 'issue'}</span>
           {SP}
-          <Time at={p.at} />
+          <Time at={props.at} />
         </div>
         {'\n        '}
         <div class="ref-card">
           <span
-            style={`color:var(--fgColor-${p.open ? 'success' : 'done'});margin-top:2px`}
+            style={`color:var(--fgColor-${props.open ? 'success' : 'done'});margin-top:2px`}
           >
-            {I(p.icon)}
+            {renderIcon(props.icon)}
           </span>
           <div>
-            <a class="t" href={p.url} style="color:var(--fgColor-default)">
-              {p.title}
+            <a class="t" href={props.url} style="color:var(--fgColor-default)">
+              {props.title}
             </a>
             <span class="r">
-              {p.repo}#{p.number}
+              {props.repo}#{props.number}
             </span>
           </div>
         </div>
@@ -413,7 +418,7 @@ export function CrossRef(p: CrossRefProps) {
 }
 
 export function LabelRow({
-  actor: a,
+  actor: person,
   verb,
   color,
   name,
@@ -427,10 +432,10 @@ export function LabelRow({
 }) {
   return (
     <div class="TLI condensed">
-      <div class="TLI-badge">{I('tag')}</div>
-      <div class="TLI-avatar">{Av(a, 20)}</div>
+      <div class="TLI-badge">{renderIcon('tag')}</div>
+      <div class="TLI-avatar">{Av(person, 20)}</div>
       <div class="TLI-body">
-        {actor(a)}
+        {actor(person)}
         {SP}
         <span>{verb}</span>
         {SP}
@@ -457,14 +462,14 @@ export interface SimpleProps {
   at: string;
 }
 
-export function Simple({ actor: a, ic, text, kind, at }: SimpleProps) {
+export function Simple({ actor: person, ic, text, kind, at }: SimpleProps) {
   return (
     <div class="TLI">
-      <div class={`TLI-badge ${kind}`}>{I(ic)}</div>
-      <div class="TLI-avatar">{Av(a, 20)}</div>
+      <div class={`TLI-badge ${kind}`}>{renderIcon(ic)}</div>
+      <div class="TLI-avatar">{Av(person, 20)}</div>
       <div class="TLI-body">
         <div class="row">
-          {actor(a)}
+          {actor(person)}
           {SP}
           <span>{text}</span>
           {SP}
@@ -496,28 +501,31 @@ export function Checks({ head, summary, headIcon, rows }: ChecksProps) {
   return (
     <div class="checks">
       <div class={`ck-head ${head[0]}`}>
-        {I(headIcon, 20)}
+        {renderIcon(headIcon, 20)}
         <div>
           <b>{head[1]}</b>
           <span>{summary}</span>
         </div>
       </div>
-      {rows.map(c => (
-        <a class={`ck-row ${c.st}`} href={c.url ? c.url : undefined}>
-          <span class="ck-i">{I(c.icon)}</span>
+      {rows.map(value => (
+        <a
+          class={`ck-row ${value.st}`}
+          href={value.url ? value.url : undefined}
+        >
+          <span class="ck-i">{renderIcon(value.icon)}</span>
           <span class="ck-n">
-            <b>{c.name}</b>
-            {c.req ? (
+            <b>{value.name}</b>
+            {value.req ? (
               <span class="ck-req" title="Required by branch protection">
                 Required
               </span>
             ) : (
               ''
             )}
-            <i>{c.desc}</i>
+            <i>{value.desc}</i>
           </span>
-          <span class="ck-s">{c.status}</span>
-          <span class="ck-d">{c.dur}</span>
+          <span class="ck-s">{value.status}</span>
+          <span class="ck-d">{value.dur}</span>
         </a>
       ))}
     </div>
@@ -536,7 +544,7 @@ export interface AttItem {
 export interface AttentionHandlers {
   next: () => void;
   unres: () => void;
-  tab: (k: string) => void;
+  tab: (key: string) => void;
 }
 
 export function Attention({
@@ -567,7 +575,7 @@ export function Attention({
                 : undefined)
           }
         >
-          {I(it.ic)}
+          {renderIcon(it.ic)}
           <span>{it.text}</span>
         </button>
       ))}
@@ -580,7 +588,7 @@ export function Attention({
             title="Hide everything except review threads that are still open"
             onClick={on?.unres}
           >
-            {I('comment')}Unresolved only
+            {renderIcon('comment')}Unresolved only
           </button>
         </>
       ) : (

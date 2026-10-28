@@ -3,7 +3,7 @@ import { options } from 'preact';
 import { editorMount } from '../components/Actions';
 import { request } from '../components/req';
 import { openExternal } from './addressbar';
-import { load, S, setFlash, tauri } from './core';
+import { appState, load, setFlash, tauri } from './core';
 import { qc } from './data';
 import { closePop, openPop } from './dialogs';
 import { pendKey, pendList, savePending, sugOf } from './diff';
@@ -24,21 +24,24 @@ import type {
 
 // ---- Write actions (comment, reply, review, merge, close/reopen) ----
 export const peopleList = () => {
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  if (!b) {
+  if (!bundle) {
     return [];
   }
 
-  const s = new Set<string>();
+  const names = new Set<string>();
 
   [
-    b.pull.user,
-    ...b.timeline.map(e => e.user || e.actor || e.author),
-    ...b.review_comments.map(c => c.user),
-  ].forEach(u => u?.login && s.add(u.login));
+    bundle.pull.user,
+    ...bundle.timeline.map(
+      timelineEvent =>
+        timelineEvent.user || timelineEvent.actor || timelineEvent.author,
+    ),
+    ...bundle.review_comments.map(reviewComment => reviewComment.user),
+  ].forEach(value => value?.login && names.add(value.login));
 
-  return [...s];
+  return [...names];
 };
 
 export const drafts = load<Record<string, Record<string, string>>>(
@@ -47,18 +50,18 @@ export const drafts = load<Record<string, Record<string, string>>>(
 );
 
 export function saveDrafts() {
-  if (!S.draftRef) {
+  if (!appState.draftRef) {
     return;
   }
 
-  const d = Object.fromEntries(
-    Object.entries(S.draft).filter(([, v]) => v && v.trim()),
+  const item = Object.fromEntries(
+    Object.entries(appState.draft).filter(([, value]) => value && value.trim()),
   );
 
-  if (Object.keys(d).length) {
-    drafts[S.draftRef] = d;
+  if (Object.keys(item).length) {
+    drafts[appState.draftRef] = item;
   } else {
-    delete drafts[S.draftRef];
+    delete drafts[appState.draftRef];
   }
 
   try {
@@ -69,33 +72,33 @@ export function saveDrafts() {
 }
 
 export const prRef = () => ({
-  repo: S.bundle!.pull.base.repo.full_name,
-  number: S.bundle!.pull.number,
+  repo: appState.bundle!.pull.base.repo.full_name,
+  number: appState.bundle!.pull.number,
 });
 
-export const errMsg = (k: string) =>
-  S.actErr && S.actErr.k === k ? S.actErr.m : '';
+export const errMsg = (key: string) =>
+  appState.actErr && appState.actErr.k === key ? appState.actErr.m : '';
 
-export function composerProps(b: Bundle): ComposerProps {
-  const p = b.pull;
-  const closed = p.state === 'closed';
-  const busy = S.busy === 'comment';
-  const open = busy || S.cOpen === true;
-  const dr = (S.draft.comment || '').trim();
+export function composerProps(bundle: Bundle): ComposerProps {
+  const pull = bundle.pull;
+  const closed = pull.state === 'closed';
+  const busy = appState.busy === 'comment';
+  const open = busy || appState.cOpen === true;
+  const dr = (appState.draft.comment || '').trim();
 
   // Docked: it sticks to the bottom of the view, so you can write from anywhere in the thread; the bar expands in place.
   return {
     open,
     draft: dr ? dr.replace(/\s+/g, ' ').slice(0, 60) : '',
     err: errMsg('comment'),
-    merged: !!p.merged,
+    merged: !!pull.merged,
     closed,
     busy,
   };
 }
 
 const mergeMethod = () => {
-  const am = S.bundle?.pull.auto_merge;
+  const am = appState.bundle?.pull.auto_merge;
 
   return am
     ? (
@@ -107,63 +110,63 @@ const mergeMethod = () => {
     : 'merge';
 };
 
-export function mergeActProps(b: Bundle): MergeActProps | null {
-  const p = b.pull;
+export function mergeActProps(bundle: Bundle): MergeActProps | null {
+  const pull = bundle.pull;
 
-  if (p.merged || p.state === 'closed') {
+  if (pull.merged || pull.state === 'closed') {
     return null;
   }
 
-  const busy = S.busy === 'merge';
-  const am = p.auto_merge;
+  const busy = appState.busy === 'merge';
+  const am = pull.auto_merge;
 
   const blocked =
-    p.mergeable_state !== 'clean' && p.mergeable_state !== 'unstable';
+    pull.mergeable_state !== 'clean' && pull.mergeable_state !== 'unstable';
 
   return {
-    draft: !!p.draft,
+    draft: !!pull.draft,
     err: errMsg('merge'),
-    method: S.method || mergeMethod(),
+    method: appState.method || mergeMethod(),
     busy,
     auto: am
       ? {
           method: am.merge_method!.toLowerCase(),
-          busy: S.busy === 'disable_automerge',
+          busy: appState.busy === 'disable_automerge',
         }
       : null,
     canAuto: blocked,
-    autoBusy: S.busy === 'automerge',
+    autoBusy: appState.busy === 'automerge',
     errAuto: errMsg('automerge'),
   };
 }
 
 export function closeDlg() {
-  const d = S.dlg;
+  const dlg = appState.dlg;
 
-  if (!d) {
+  if (!dlg) {
     return;
   }
 
-  if (d.k === 'editpr') {
-    delete S.draft.prbody;
-  } else if (d.k === 'editc') {
-    delete S.draft.editc;
-  } else if (d.k === 'commits') {
-    S.cpick = null;
-  } else if (d.k === 'token') {
-    S.oauthLive = false;
+  if (dlg.k === 'editpr') {
+    delete appState.draft.prbody;
+  } else if (dlg.k === 'editc') {
+    delete appState.draft.editc;
+  } else if (dlg.k === 'commits') {
+    appState.cpick = null;
+  } else if (dlg.k === 'token') {
+    appState.oauthLive = false;
   }
 
-  S.dlg = null;
+  appState.dlg = null;
   render();
 }
 
 export function reviewDialog() {
-  S.dlg = {
+  appState.dlg = {
     k: 'review',
     ev: 'COMMENT',
     ok: async () => {
-      const { ev } = S.dlg as { ev: string };
+      const { ev } = appState.dlg as { ev: string };
 
       const lines = pendList().map(({ path, line, side, body }) => ({
         path,
@@ -172,21 +175,21 @@ export function reviewDialog() {
         body,
       }));
 
-      const r = await act(
+      const actResult = await act(
         'review',
-        { body: S.draft.review || '', event: ev, extra: lines },
+        { body: appState.draft.review || '', event: ev, extra: lines },
         'review',
         true,
       );
 
-      if (r === undefined) {
+      if (actResult === undefined) {
         return;
       }
 
-      delete S.draft.review;
-      delete S.pending![pendKey()];
+      delete appState.draft.review;
+      delete appState.pending![pendKey()];
       savePending();
-      S.dlg = null;
+      appState.dlg = null;
       await refreshPr();
     },
   };
@@ -195,28 +198,28 @@ export function reviewDialog() {
 }
 
 export function editPrDialog() {
-  const p = S.bundle!.pull;
-  S.draft.prbody = p.body || '';
+  const pull = appState.bundle!.pull;
+  appState.draft.prbody = pull.body || '';
 
-  S.dlg = {
+  appState.dlg = {
     k: 'editpr',
-    title: p.title,
+    title: pull.title,
     ok: async () => {
-      const { title } = S.dlg as { title: string };
+      const { title } = appState.dlg as { title: string };
 
-      const r = await act(
+      const actResult = await act(
         'edit',
-        { body: S.draft.prbody ?? '', extra: { title } },
+        { body: appState.draft.prbody ?? '', extra: { title } },
         'editpr',
         true,
       );
 
-      if (r === undefined) {
+      if (actResult === undefined) {
         return;
       }
 
-      delete S.draft.prbody;
-      S.dlg = null;
+      delete appState.draft.prbody;
+      appState.dlg = null;
       await refreshPr();
     },
   };
@@ -229,7 +232,7 @@ export function editPrDialog() {
 export async function previewDraft(
   key: string,
 ): Promise<{ html: string } | { raw: string; err: string } | null> {
-  const md = (S.draft[key] || '').trim();
+  const md = (appState.draft[key] || '').trim();
 
   if (!md) {
     return null;
@@ -240,11 +243,12 @@ export async function previewDraft(
       throw new Error('offline');
     }
 
-    const repo = S.bundle?.pull.base.repo.full_name || S.np?.repo || null;
+    const repo =
+      appState.bundle?.pull.base.repo.full_name || appState.np?.repo || null;
 
     return { html: await tauri!.invoke('render_markdown', { text: md, repo }) };
-  } catch (e) {
-    return { raw: md, err: String(e).replace(/^Error: /, '') };
+  } catch (error) {
+    return { raw: md, err: String(error).replace(/^Error: /, '') };
   }
 }
 
@@ -255,14 +259,14 @@ export function confirmDlg(
   danger: boolean,
   fn: () => void | Promise<void>,
 ) {
-  S.dlg = {
+  appState.dlg = {
     k: 'confirm',
     title,
     text,
     label,
     danger,
     ok: async () => {
-      S.dlg = null;
+      appState.dlg = null;
       render();
       await fn();
     },
@@ -273,48 +277,54 @@ export function confirmDlg(
 
 // Runs a write action. Returns the API response, or undefined after showing an error under `key`.
 // Any write action puts a spinner in the button that started it and disables it until the request settles.
-export const noteClick = (e: MouseEvent) => {
-  const b = (e.target as HTMLElement).closest?.('button');
-  S.lastSel = b ? btnSel(b) : null;
+export const noteClick = (event: MouseEvent) => {
+  const element = (event.target as HTMLElement).closest?.('button');
+  appState.lastSel = element ? btnSel(element) : null;
 };
 
-export const btnSel = (b: HTMLElement) => {
-  if (b.id) {
-    return `#${b.id}`;
+export const btnSel = (element: HTMLElement) => {
+  if (element.id) {
+    return `#${element.id}`;
   }
 
-  const a = [...b.attributes].find(x => x.name.startsWith('data-'));
+  const attr = [...element.attributes].find(otherAttr =>
+    otherAttr.name.startsWith('data-'),
+  );
 
-  return a ? `button[${a.name}="${CSS.escape(a.value)}"]` : null;
+  return attr ? `button[${attr.name}="${CSS.escape(attr.value)}"]` : null;
 };
 
 // The same selector, computed from a button's props, so the views can tell which button is busy while they render.
-export const propSel = (p: Record<string, unknown>) => {
-  if (p.id) {
-    return `#${String(p.id)}`;
+export const propSel = (lookup: Record<string, unknown>) => {
+  if (lookup.id) {
+    return `#${String(lookup.id)}`;
   }
 
-  const k = Object.keys(p).find(x => x.startsWith('data-') && p[x] != null);
+  const key = Object.keys(lookup).find(
+    text => text.startsWith('data-') && lookup[text] != null,
+  );
 
-  return k ? `button[${k}="${CSS.escape(String(p[k]))}"]` : null;
+  return key ? `button[${key}="${CSS.escape(String(lookup[key]))}"]` : null;
 };
 
 const prevVnode = options.vnode;
 
-options.vnode = v => {
-  if (v.type === 'button' && S.busySels?.length) {
-    const p = v.props as Record<string, unknown>;
-    const sel = propSel(p);
+options.vnode = node => {
+  if (node.type === 'button' && appState.busySels?.length) {
+    const lookup = node.props as Record<string, unknown>;
+    const sel = propSel(lookup);
 
-    if (sel && S.busySels.includes(sel)) {
-      p.class = `${String(p.class ?? p.className ?? '')} is-busy`.trim();
-      delete p.className;
-      p.disabled = true;
-      p['aria-busy'] = 'true';
+    if (sel && appState.busySels.includes(sel)) {
+      lookup.class =
+        `${String(lookup.class ?? lookup.className ?? '')} is-busy`.trim();
+
+      delete lookup.className;
+      lookup.disabled = true;
+      lookup['aria-busy'] = 'true';
     }
   }
 
-  prevVnode?.(v);
+  prevVnode?.(node);
 };
 
 // A busy button is state (S.busySels): the views draw it with the spinner class and disabled until the request settles.
@@ -323,13 +333,13 @@ export const setBusy = (sel: string | null, on: boolean) => {
     return;
   }
 
-  const l = (S.busySels ||= []);
-  const i = l.indexOf(sel);
+  const lines = (appState.busySels ||= []);
+  const index = lines.indexOf(sel);
 
   if (on) {
-    l.push(sel);
-  } else if (i >= 0) {
-    l.splice(i, 1);
+    lines.push(sel);
+  } else if (index >= 0) {
+    lines.splice(index, 1);
   } else {
     return;
   }
@@ -338,16 +348,16 @@ export const setBusy = (sel: string | null, on: boolean) => {
 };
 
 // Add a reaction, or remove it when you already left it (clicking the same emoji again), like github.com.
-S.mine = {};
+appState.mine = {};
 
 // `${kind}:${id}` -> Promise of the Set of reactions you have left there
 export const getMine = (kind: string, rid: number | string) =>
-  (S.mine![`${kind}:${rid}`] ||= tauri
+  (appState.mine![`${kind}:${rid}`] ||= tauri
     ? tauri!
         .invoke('my_reactions', { ...prRef(), kind, id: +rid })
-        .then(l => new Set<string>(l))
+        .then(lines => new Set<string>(lines))
         .catch(() => {
-          delete S.mine![`${kind}:${rid}`];
+          delete appState.mine![`${kind}:${rid}`];
 
           return new Set<string>();
         })
@@ -356,38 +366,46 @@ export const getMine = (kind: string, rid: number | string) =>
 export async function toggleReact(
   kind: string,
   rid: number | string,
-  c: string,
+  color: string,
 ) {
-  const mine = (await getMine(kind, rid)).has(c);
-  const b = S.bundle;
+  const mine = (await getMine(kind, rid)).has(color);
+  const bundle = appState.bundle;
 
   const tgt =
     kind === 'pr'
-      ? b!.pull
-      : [...b!.timeline, ...b!.review_comments].find(
-          x => String(x.id) === String(rid),
+      ? bundle!.pull
+      : [...bundle!.timeline, ...bundle!.review_comments].find(
+          value => String(value.id) === String(rid),
         );
 
   const prev = tgt && tgt.reactions ? { ...tgt.reactions } : null;
-  const base = prev ? (prev as Record<string, number>)[c] || 0 : 0;
+  const base = prev ? (prev as Record<string, number>)[color] || 0 : 0;
 
-  const bump = (n: number) => {
+  const bump = (count: number) => {
     if (tgt) {
-      tgt.reactions = { ...(tgt.reactions || {}), [c]: Math.max(0, base + n) };
+      tgt.reactions = {
+        ...(tgt.reactions || {}),
+        [color]: Math.max(0, base + count),
+      };
     }
   };
 
   bump(mine ? -1 : 1);
-  S.refreshing = true;
+  appState.refreshing = true;
   rerender();
-  const r = await act('react', { kind, id: +rid, content: c }, 'react');
 
-  if (r === undefined) {
+  const actResult = await act(
+    'react',
+    { kind, id: +rid, content: color },
+    'react',
+  );
+
+  if (actResult === undefined) {
     if (tgt && prev) {
       tgt.reactions = prev;
     }
 
-    S.refreshing = false;
+    appState.refreshing = false;
     rerender();
 
     return;
@@ -395,10 +413,10 @@ export async function toggleReact(
 
   const set = await getMine(kind, rid);
 
-  if ((r as { added?: boolean }).added === false) {
-    set.delete(c);
+  if ((actResult as { added?: boolean }).added === false) {
+    set.delete(color);
   } else {
-    set.add(c);
+    set.add(color);
   }
 
   await refreshPr(kind === 'pr' ? '' : rid);
@@ -412,7 +430,7 @@ export async function act(
   key: string,
   inDialog = false,
 ) {
-  const sel = S.lastSel ?? null;
+  const sel = appState.lastSel ?? null;
   setBusy(sel, true);
 
   try {
@@ -428,23 +446,23 @@ export async function act2(
   key: string,
   inDialog = false,
 ): Promise<ActResult | undefined> {
-  S.actErr = null;
+  appState.actErr = null;
 
   if (!tauri) {
-    S.actErr = { k: key, m: 'Writing needs the desktop app.' };
+    appState.actErr = { k: key, m: 'Writing needs the desktop app.' };
     render();
 
     return undefined;
   }
 
-  S.busy = key;
+  appState.busy = key;
 
   if (!inDialog) {
     render();
   }
 
   try {
-    const r =
+    const value =
       action === 'react'
         ? await tauri!.invoke('toggle_reaction', {
             ...prRef(),
@@ -465,7 +483,7 @@ export async function act2(
             ...args,
           });
 
-    S.busy = '';
+    appState.busy = '';
 
     if (
       action === 'merge' ||
@@ -474,10 +492,10 @@ export async function act2(
       confetti();
     }
 
-    return (r ?? {}) as ActResult;
-  } catch (e) {
-    S.busy = '';
-    S.actErr = { k: key, m: String(e).replace(/^Error: /, '') };
+    return (value ?? {}) as ActResult;
+  } catch (error) {
+    appState.busy = '';
+    appState.actErr = { k: key, m: String(error).replace(/^Error: /, '') };
     render();
 
     return undefined;
@@ -487,7 +505,7 @@ export async function act2(
 export const refreshPr = (focus: string | number = '') => {
   qc.invalidate(`${prRef().repo}#${prRef().number}`);
   saveDrafts();
-  S.focus = focus ? String(focus) : '';
+  appState.focus = focus ? String(focus) : '';
 
   return openPr(`${prRef().repo}#${prRef().number}`, {
     nav: true,
@@ -496,45 +514,50 @@ export const refreshPr = (focus: string | number = '') => {
 };
 
 export function editCommentDialog(
-  c: ReviewComment | TimelineEvent,
+  value: ReviewComment | TimelineEvent,
   kind: string,
 ) {
-  S.draft.editc = c.body || '';
+  appState.draft.editc = value.body || '';
 
-  S.dlg = {
+  appState.dlg = {
     k: 'editc',
     ok: async () => {
-      const r = await act(
+      const actResult = await act(
         'edit_comment',
-        { id: c.id, kind, body: S.draft.editc ?? '' },
+        { id: value.id, kind, body: appState.draft.editc ?? '' },
         'editc',
         true,
       );
 
-      if (r === undefined) {
+      if (actResult === undefined) {
         return;
       }
 
-      delete S.draft.editc;
-      S.dlg = null;
-      await refreshPr(c.id);
+      delete appState.draft.editc;
+      appState.dlg = null;
+      await refreshPr(value.id);
     },
   };
 
   render();
 }
 
-export function deleteCommentDialog(c: { id?: number }, kind: string) {
-  S.dlg = {
+export function deleteCommentDialog(item: { id?: number }, kind: string) {
+  appState.dlg = {
     k: 'delc',
     ok: async () => {
-      const r = await act('delete_comment', { id: c.id, kind }, 'delc', true);
+      const actResult = await act(
+        'delete_comment',
+        { id: item.id, kind },
+        'delc',
+        true,
+      );
 
-      if (r === undefined) {
+      if (actResult === undefined) {
         return;
       }
 
-      S.dlg = null;
+      appState.dlg = null;
       await refreshPr();
     },
   };
@@ -542,7 +565,7 @@ export function deleteCommentDialog(c: { id?: number }, kind: string) {
   render();
 }
 
-export function hideCommentDialog(c: {
+export function hideCommentDialog(item: {
   node_id?: string;
   id?: number | string;
 }) {
@@ -555,26 +578,29 @@ export function hideCommentDialog(c: {
     ['RESOLVED', 'Resolved'],
   ];
 
-  S.hideReason = 'OUTDATED';
+  appState.hideReason = 'OUTDATED';
 
-  S.dlg = {
+  appState.dlg = {
     k: 'hidec',
     reasons: reasons as [string, string][],
     ok: async () => {
-      const r = await act(
+      const actResult = await act(
         'minimize',
-        { body: c.node_id || '', content: S.hideReason || 'OUTDATED' },
+        {
+          body: item.node_id || '',
+          content: appState.hideReason || 'OUTDATED',
+        },
         'hidec',
         true,
       );
 
-      if (r === undefined) {
+      if (actResult === undefined) {
         return;
       }
 
-      S.fold[`c:${c.id}`] = true;
-      localStorage.setItem('fold', JSON.stringify(S.fold));
-      S.dlg = null;
+      appState.fold[`c:${item.id}`] = true;
+      localStorage.setItem('fold', JSON.stringify(appState.fold));
+      appState.dlg = null;
       await refreshPr();
     },
   };
@@ -583,69 +609,69 @@ export function hideCommentDialog(c: {
 }
 
 export function cmAction(id: number, root: HTMLElement, how: string) {
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  const c =
-    [...b!.timeline, ...b!.review_comments].find(
-      x => String(x.id) === String(id),
-    ) || (String(b!.pull.id) === String(id) ? b!.pull : null);
+  const value =
+    [...bundle!.timeline, ...bundle!.review_comments].find(
+      otherValue => String(otherValue.id) === String(id),
+    ) || (String(bundle!.pull.id) === String(id) ? bundle!.pull : null);
 
-  if (!c) {
+  if (!value) {
     return;
   }
 
   if (how === 'link') {
-    return navigator.clipboard?.writeText(c.html_url || '');
+    return navigator.clipboard?.writeText(value.html_url || '');
   }
 
   if (how === 'md') {
-    return navigator.clipboard?.writeText(c.body || '');
+    return navigator.clipboard?.writeText(value.body || '');
   }
 
   const kind =
-    (c as unknown) === b!.pull
+    (value as unknown) === bundle!.pull
       ? 'pr'
-      : (b!.review_comments as unknown[]).includes(c)
+      : (bundle!.review_comments as unknown[]).includes(value)
         ? 'review_comment'
         : 'issue_comment';
 
   if (how === 'issue') {
-    const r = prRef().repo;
+    const text = prRef().repo;
 
     return openExternal(
-      `https://github.com/${r}/issues/new?body=${encodeURIComponent(`Reference: ${c.html_url || ''}\n\n`)}`,
+      `https://github.com/${text}/issues/new?body=${encodeURIComponent(`Reference: ${value.html_url || ''}\n\n`)}`,
     );
   }
 
   if (how === 'edit') {
     return kind === 'pr'
       ? editPrDialog()
-      : editCommentDialog(c as ReviewComment, kind);
+      : editCommentDialog(value as ReviewComment, kind);
   }
 
   if (how === 'hide') {
-    return hideCommentDialog(c);
+    return hideCommentDialog(value);
   }
 
   if (how === 'del') {
-    return deleteCommentDialog(c, kind);
+    return deleteCommentDialog(value, kind);
   }
 
   const key = root ? `reply-${root}` : 'comment';
 
-  const q = (c.body || '')
+  const query = (value.body || '')
     .split('\n')
-    .map(l => `> ${l}`)
+    .map(line => `> ${line}`)
     .join('\n');
 
-  S.draft[key] = `${
-    S.draft[key] ? `${S.draft[key]}\n\n` : ''
-  }@${((c as CommentLike).user || (c as CommentLike).actor || ({} as { login?: string })).login || ''}\n\n${q}\n\n`;
+  appState.draft[key] = `${
+    appState.draft[key] ? `${appState.draft[key]}\n\n` : ''
+  }@${((value as CommentLike).user || (value as CommentLike).actor || ({} as { login?: string })).login || ''}\n\n${query}\n\n`;
 
   saveDrafts();
-  S.keepScroll = true;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
   syncDraft(key);
   setTimeout(() => scrollDraft(key), 50);
 }
@@ -653,26 +679,28 @@ export function cmAction(id: number, root: HTMLElement, how: string) {
 // Show a just-posted comment from the API reply instead of re-fetching the whole PR.
 export function addLocal(
   kind: string,
-  r: ReviewComment | TimelineEvent,
+  value: ReviewComment | TimelineEvent,
   rootId?: number,
 ) {
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  if (!b || !r || !r.id || !r.body_html) {
+  if (!bundle || !value || !value.id || !value.body_html) {
     return false;
   }
 
   if (kind === 'commented') {
-    b.timeline.push({ ...r, event: 'commented', actor: r.user });
+    bundle.timeline.push({ ...value, event: 'commented', actor: value.user });
   } else {
-    const root = b.review_comments.find(c => c.id === rootId);
+    const root = bundle.review_comments.find(
+      reviewComment => reviewComment.id === rootId,
+    );
 
     if (!root) {
       return false;
     }
 
-    b.review_comments.push({
-      ...r,
+    bundle.review_comments.push({
+      ...value,
       pull_request_review_id: root.pull_request_review_id,
       path: root.path,
       diff_hunk: root.diff_hunk,
@@ -681,33 +709,33 @@ export function addLocal(
     } as ReviewComment);
   }
 
-  qc.set(`${prRef().repo}#${prRef().number}`, b);
+  qc.set(`${prRef().repo}#${prRef().number}`, bundle);
   qc.invalidate(`${prRef().repo}#${prRef().number}`);
   qc.m.get(`${prRef().repo}#${prRef().number}`)!.at = Date.now() - 20000;
-  S.focus = '';
-  S.keepScroll = true;
+  appState.focus = '';
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 
-  setFlash(`c-${r.id}`, { block: 'start', pop: true });
-  S.keepScroll = true;
+  setFlash(`c-${value.id}`, { block: 'start', pop: true });
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 
   return true;
 }
 
-export async function rerequestReview(e: Event, login: string) {
-  const b = e.currentTarget as HTMLElement;
-  e.stopPropagation();
-  const sel = btnSel(b);
+export async function rerequestReview(event: Event, login: string) {
+  const element = event.currentTarget as HTMLElement;
+  event.stopPropagation();
+  const sel = btnSel(element);
   setBusy(sel, true);
 
   try {
-    const r = await act('rerequest', { body: login }, 'rerequest');
+    const actResult = await act('rerequest', { body: login }, 'rerequest');
 
-    if (r === undefined) {
-      alert(S.actErr?.m || 'Could not re-request review.');
+    if (actResult === undefined) {
+      alert(appState.actErr?.m || 'Could not re-request review.');
 
       return;
     }
@@ -719,36 +747,41 @@ export async function rerequestReview(e: Event, login: string) {
 }
 
 // Merge box, merge actions and composer handlers: shared by the live PR page and by the imperatively bound copies (split view).
-export const composerOpen = () => S.busy === 'comment' || S.cOpen === true;
+export const composerOpen = () =>
+  appState.busy === 'comment' || appState.cOpen === true;
 
 export function toggleComposer() {
   setComposer(!composerOpen(), true);
 }
 
-export function cbarKey(e: KeyboardEvent) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).click();
+export function cbarKey(event: KeyboardEvent) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    (event.currentTarget as HTMLElement).click();
   }
 }
 
 export async function sendComment() {
-  const r = await act('comment', { body: S.draft.comment || '' }, 'comment');
+  const actResult = await act(
+    'comment',
+    { body: appState.draft.comment || '' },
+    'comment',
+  );
 
-  if (r === undefined) {
+  if (actResult === undefined) {
     return;
   }
 
-  delete S.draft.comment;
-  S.cOpen = false;
+  delete appState.draft.comment;
+  appState.cOpen = false;
 
-  if (!addLocal('commented', r)) {
-    await refreshPr(r.id);
+  if (!addLocal('commented', actResult)) {
+    await refreshPr(actResult.id);
   }
 }
 
 export function toggleClosed() {
-  const closed = S.bundle!.pull.state === 'closed';
+  const closed = appState.bundle!.pull.state === 'closed';
 
   confirmDlg(
     closed ? 'Reopen this pull request?' : 'Close this pull request?',
@@ -758,46 +791,46 @@ export function toggleClosed() {
     closed ? 'Reopen' : 'Close pull request',
     !closed,
     async () => {
-      const r = await act(closed ? 'reopen' : 'close', {}, 'close');
+      const actResult = await act(closed ? 'reopen' : 'close', {}, 'close');
 
-      if (r !== undefined) {
+      if (actResult !== undefined) {
         await refreshPr();
       }
     },
   );
 }
 
-export function toggleMb(e: Event, k: string) {
-  if ((e.target as HTMLElement).closest<HTMLElement>('#rerunck')) {
+export function toggleMb(event: Event, key: string) {
+  if ((event.target as HTMLElement).closest<HTMLElement>('#rerunck')) {
     return;
   }
 
-  S.mbOpen = S.mbOpen || new Set();
+  appState.mbOpen = appState.mbOpen || new Set();
 
-  if (S.mbOpen.has(k)) {
-    S.mbOpen.delete(k);
+  if (appState.mbOpen.has(key)) {
+    appState.mbOpen.delete(key);
   } else {
-    S.mbOpen.add(k);
+    appState.mbOpen.add(key);
   }
 
   rerender();
 }
 
-export async function rerunChecks(e: Event) {
-  e.stopPropagation();
+export async function rerunChecks(event: Event) {
+  event.stopPropagation();
 
-  const urls = (S.bundle!.checks || [])
-    .filter(c => checkState(c) === 'fail' && c.url)
-    .map(c => c.url);
+  const urls = (appState.bundle!.checks || [])
+    .filter(check => checkState(check) === 'fail' && check.url)
+    .map(check => check.url);
 
-  const sel = btnSel(e.currentTarget as HTMLElement);
+  const sel = btnSel(event.currentTarget as HTMLElement);
   setBusy(sel, true);
 
   try {
-    const r = await act('rerun', { extra: urls }, 'rerun');
+    const actResult = await act('rerun', { extra: urls }, 'rerun');
 
-    if (r !== undefined) {
-      S.actErr = null;
+    if (actResult !== undefined) {
+      appState.actErr = null;
       await refreshPr();
     }
   } finally {
@@ -806,17 +839,17 @@ export async function rerunChecks(e: Event) {
 }
 
 export async function updateBranch() {
-  const r = await act('update_branch', {}, 'update_branch');
+  const actResult = await act('update_branch', {}, 'update_branch');
 
-  if (r !== undefined) {
+  if (actResult !== undefined) {
     await refreshPr();
   }
 }
 
 export async function markReady() {
-  const r = await act('ready', {}, 'ready');
+  const actResult = await act('ready', {}, 'ready');
 
-  if (r !== undefined) {
+  if (actResult !== undefined) {
     await refreshPr();
   }
 }
@@ -828,9 +861,9 @@ export function toDraft() {
     'Convert to draft',
     false,
     async () => {
-      const r = await act('draft', {}, 'merge');
+      const actResult = await act('draft', {}, 'merge');
 
-      if (r !== undefined) {
+      if (actResult !== undefined) {
         await refreshPr();
       }
     },
@@ -838,28 +871,28 @@ export function toDraft() {
 }
 
 export async function enableAuto() {
-  const r = await act(
+  const actResult = await act(
     'automerge',
-    { method: S.method || mergeMethod() },
+    { method: appState.method || mergeMethod() },
     'automerge',
   );
 
-  if (r !== undefined) {
+  if (actResult !== undefined) {
     await refreshPr();
   }
 }
 
 export async function disableAuto() {
-  const r = await act('disable_automerge', {}, 'automerge');
+  const actResult = await act('disable_automerge', {}, 'automerge');
 
-  if (r !== undefined) {
+  if (actResult !== undefined) {
     await refreshPr();
   }
 }
 
 export function doMerge() {
-  const m = S.method || mergeMethod();
-  const p = S.bundle!.pull;
+  const message = appState.method || mergeMethod();
+  const pull = appState.bundle!.pull;
 
   const names: Record<string, string> = {
     merge: 'merge commit',
@@ -869,13 +902,13 @@ export function doMerge() {
 
   confirmDlg(
     'Merge this pull request?',
-    `${p.head.label} will be merged into ${p.base.label} using ${names[m]}. This changes the repository and cannot be undone from here.`,
+    `${pull.head.label} will be merged into ${pull.base.label} using ${names[message]}. This changes the repository and cannot be undone from here.`,
     'Merge',
     false,
     async () => {
-      const r = await act('merge', { method: m }, 'merge');
+      const actResult = await act('merge', { method: message }, 'merge');
 
-      if (r !== undefined) {
+      if (actResult !== undefined) {
         await refreshPr();
       }
     },
@@ -883,103 +916,105 @@ export function doMerge() {
 }
 
 // Comment, reaction, thread and suggestion handlers: shared by the live conversation and by the imperatively bound copies (diff lines, split view).
-export function cmMenu(e: Event, btn: HTMLElement) {
-  e.stopPropagation();
+export function cmMenu(event: Event, btn: HTMLElement) {
+  event.stopPropagation();
 
-  const bb = S.bundle;
+  const bb = appState.bundle;
 
   const cc =
     String(bb!.pull.id) === String(btn.dataset.cm)
       ? bb!.pull
       : [...bb!.timeline, ...bb!.review_comments].find(
-          x => String(x.id) === String(btn.dataset.cm),
+          value => String(value.id) === String(btn.dataset.cm),
         );
 
   const isPr = cc === bb!.pull;
 
   const own =
-    !!S.me &&
+    !!appState.me &&
     ((cc as CommentLike | null)?.user || (cc as CommentLike | null)?.actor)
-      ?.login === S.me;
+      ?.login === appState.me;
 
-  const r = btn.getBoundingClientRect();
+  const rect = btn.getBoundingClientRect();
   const id = +btn.dataset.cm!;
   const root = btn.dataset.root as unknown as HTMLElement;
 
   openPop({
     k: 'cm',
-    x: Math.min(r.left - 100, innerWidth - 180),
-    y: r.bottom + 4,
-    hr: own || (!isPr && !!S.hasToken),
+    x: Math.min(rect.left - 100, innerWidth - 180),
+    y: rect.bottom + 4,
+    hr: own || (!isPr && !!appState.hasToken),
     edit: own,
-    hide: !isPr && !!S.hasToken,
+    hide: !isPr && !!appState.hasToken,
     del: own && !isPr,
-    pick: h => {
+    pick: hash => {
       closePop();
-      cmAction(id, root, h);
+      cmAction(id, root, hash);
     },
   });
 }
 
-export function reactAdd(e: Event, btn: HTMLElement) {
-  e.stopPropagation();
+export function reactAdd(event: Event, btn: HTMLElement) {
+  event.stopPropagation();
 
-  const r = btn.getBoundingClientRect();
+  const rect = btn.getBoundingClientRect();
   const kind = btn.dataset.rk!;
   const id = btn.dataset.rid!;
 
   openPop({
     k: 'react',
-    x: Math.min(r.left, innerWidth - 300),
-    y: Math.min(r.bottom + 4, innerHeight - 60),
-    pick: c => {
+    x: Math.min(rect.left, innerWidth - 300),
+    y: Math.min(rect.bottom + 4, innerHeight - 60),
+    pick: color => {
       closePop();
-      toggleReact(kind, id, c);
+      toggleReact(kind, id, color);
     },
   });
 }
 
 export function reactToggle(
-  e: Event,
+  event: Event,
   kind: string,
   id: number | string,
-  c: string,
+  color: string,
 ) {
-  e.stopPropagation();
-  toggleReact(kind, id, c);
+  event.stopPropagation();
+  toggleReact(kind, id, color);
 }
 
-export async function threadAct(e: Event, node: string, how: string) {
-  e.stopPropagation();
+export async function threadAct(event: Event, node: string, how: string) {
+  event.stopPropagation();
 
   // Optimistic: flip the thread locally right away, sync with GitHub in the background, undo on failure.
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  const root = Object.keys(b!.thread_ids || {}).find(
-    k => b!.thread_ids[k] === node,
+  const root = Object.keys(bundle!.thread_ids || {}).find(
+    key => bundle!.thread_ids[key] === node,
   );
 
   const ids = [
     Number(root),
-    ...b!.review_comments
-      .filter(c => String(c.in_reply_to_id) === String(root))
-      .map(c => c.id),
+    ...bundle!.review_comments
+      .filter(
+        reviewComment => String(reviewComment.in_reply_to_id) === String(root),
+      )
+      .map(reviewComment => reviewComment.id),
   ].filter(Boolean);
 
-  const prev = [...(b!.resolved_ids || [])];
+  const prev = [...(bundle!.resolved_ids || [])];
   const res = how === 'resolve';
 
-  b!.resolved_ids = res
+  bundle!.resolved_ids = res
     ? [...new Set([...prev, ...ids])]
-    : prev.filter(x => !ids.includes(x));
+    : prev.filter(left => !ids.includes(left));
 
   rerender();
-  const r = await act(how, { body: node }, 'thread', true);
+  const actResult = await act(how, { body: node }, 'thread', true);
 
-  if (r === undefined) {
-    b!.resolved_ids = prev;
+  if (actResult === undefined) {
+    bundle!.resolved_ids = prev;
     rerender();
-    alert(S.actErr?.m || 'Could not update the thread.');
+    alert(appState.actErr?.m || 'Could not update the thread.');
 
     return;
   }
@@ -987,113 +1022,116 @@ export async function threadAct(e: Event, node: string, how: string) {
   refreshPr();
 }
 
-export function applySuggestion(e: Event, id: string) {
-  e.stopPropagation();
+export function applySuggestion(event: Event, id: string) {
+  event.stopPropagation();
 
-  const b = S.bundle;
-  const c = b!.review_comments.find(x => String(x.id) === id);
+  const bundle = appState.bundle;
 
-  if (!c) {
+  const reviewComment = bundle!.review_comments.find(
+    otherReviewComment => String(otherReviewComment.id) === id,
+  );
+
+  if (!reviewComment) {
     return;
   }
 
   confirmDlg(
     'Apply suggestion?',
-    `This commits the change to ${c.path} on ${b!.pull.head.ref}.`,
+    `This commits the change to ${reviewComment.path} on ${bundle!.pull.head.ref}.`,
     'Commit suggestion',
     false,
     async () => {
-      (S.applied ||= new Set()).add(String(c.id));
+      (appState.applied ||= new Set()).add(String(reviewComment.id));
       rerender();
 
-      const r = await act(
+      const actResult = await act(
         'suggest',
         {
           extra: {
-            head_repo: b!.pull.head.repo.full_name,
-            branch: b!.pull.head.ref,
-            path: c.path,
-            line: c.line,
-            start_line: c.start_line || null,
-            text: sugOf(c),
+            head_repo: bundle!.pull.head.repo.full_name,
+            branch: bundle!.pull.head.ref,
+            path: reviewComment.path,
+            line: reviewComment.line,
+            start_line: reviewComment.start_line || null,
+            text: sugOf(reviewComment),
           },
         },
         'sug',
         true,
       );
 
-      if (r === undefined) {
-        S.applied!.delete(String(c.id));
+      if (actResult === undefined) {
+        appState.applied!.delete(String(reviewComment.id));
         rerender();
-        alert(S.actErr?.m || 'Could not apply the suggestion.');
+        alert(appState.actErr?.m || 'Could not apply the suggestion.');
 
         return;
       }
 
       refreshPr().finally(() => {
-        S.applied!.delete(String(c.id));
+        appState.applied!.delete(String(reviewComment.id));
       });
     },
   );
 }
 
 export async function sendReply(id: string) {
-  const r = await act(
+  const actResult = await act(
     'reply',
-    { id: +id, body: S.draft[`reply-${id}`] || '' },
+    { id: +id, body: appState.draft[`reply-${id}`] || '' },
     `reply-${id}`,
   );
 
-  if (r === undefined) {
+  if (actResult === undefined) {
     return;
   }
 
-  delete S.draft[`reply-${id}`];
+  delete appState.draft[`reply-${id}`];
 
-  if (!addLocal('reply', r, +id)) {
-    await refreshPr(r.id);
+  if (!addLocal('reply', actResult, +id)) {
+    await refreshPr(actResult.id);
   }
 }
 
 // Diff view handlers: shared by the live files tab and the imperatively bound copies.
-export function setDiffMode(m: string) {
-  S.diffMode = m;
-  localStorage.setItem('diffmode', m);
+export function setDiffMode(message: string) {
+  appState.diffMode = message;
+  localStorage.setItem('diffmode', message);
   rerender();
 }
 
-export function lcOpen(e: Event) {
-  e.stopPropagation();
-  S.lcOpen = (e.currentTarget as HTMLElement).dataset.lc;
+export function lcOpen(event: Event) {
+  event.stopPropagation();
+  appState.lcOpen = (event.currentTarget as HTMLElement).dataset.lc;
   rerender();
   focusDraft('lc');
 }
 
 export function lcCancel() {
-  S.lcOpen = '';
-  delete S.draft.lc;
+  appState.lcOpen = '';
+  delete appState.draft.lc;
   saveDrafts();
   rerender();
 }
 
 export function lcSuggest(ev: Event) {
-  const cur = (S.draft.lc || '').trimEnd();
-  S.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`;
+  const cur = (appState.draft.lc || '').trimEnd();
+  appState.draft.lc = `${cur}${cur ? '\n\n' : ''}\`\`\`suggestion\n${(ev.currentTarget as HTMLElement).dataset.code}\n\`\`\`\n`;
   saveDrafts();
   rerender();
   focusDraft('lc');
 }
 
 export function lcAdd() {
-  const body = (S.draft.lc || '').trim();
+  const body = (appState.draft.lc || '').trim();
 
-  if (!body || !S.lcOpen) {
+  if (!body || !appState.lcOpen) {
     return;
   }
 
-  const [path, side, line] = S.lcOpen.split('\u001f');
+  const [path, side, line] = appState.lcOpen.split('\u001f');
 
-  (S.pending![pendKey()] ||= []).push({
+  (appState.pending![pendKey()] ||= []).push({
     id: Date.now(),
     path,
     side,
@@ -1102,22 +1140,25 @@ export function lcAdd() {
   });
 
   savePending();
-  S.lcOpen = '';
-  delete S.draft.lc;
+  appState.lcOpen = '';
+  delete appState.draft.lc;
   saveDrafts();
   rerender();
 }
 
 export function lcDel(id: string) {
-  S.pending![pendKey()] = pendList().filter(c => String(c.id) !== id);
+  appState.pending![pendKey()] = pendList().filter(
+    pendingComment => String(pendingComment.id) !== id,
+  );
+
   savePending();
   rerender();
 }
 
 export const rerender = () => {
-  S.keepScroll = true;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
 // Live editors, so a new draft can be pushed into one and the newest can be focused.
@@ -1126,7 +1167,7 @@ const live = new Map<EditorHandle, string>();
 const wantFocus = new Set<string>();
 
 editorMount.focus = key => {
-  const ed = [...live].find(([, k]) => k === key)?.[0];
+  const ed = [...live].find(([, otherKey]) => otherKey === key)?.[0];
 
   if (ed) {
     ed.focus?.();
@@ -1142,9 +1183,9 @@ export const scrollDraft = (key: string) => request(`draft:scroll:${key}`);
 export const blurDraft = (key: string) => request(`draft:blur:${key}`);
 
 export function syncDraft(key: string) {
-  live.forEach((k, ed) => {
-    if (k === key) {
-      ed.setMarkdown?.(S.draft[key] || '');
+  live.forEach((otherKey, ed) => {
+    if (otherKey === key) {
+      ed.setMarkdown?.(appState.draft[key] || '');
     }
   });
 }
@@ -1170,11 +1211,11 @@ editorMount.fn = (host, key, ph) => {
     }
 
     ed = window.createEditor!(host, {
-      value: S.draft[key] || '',
+      value: appState.draft[key] || '',
       placeholder: ph,
       people: peopleList(),
       onChange: md => {
-        S.draft[key] = md;
+        appState.draft[key] = md;
         saveDrafts();
       },
       onSubmit: send,
@@ -1190,7 +1231,7 @@ editorMount.fn = (host, key, ph) => {
   // Editors are heavy: build each one only when its box is near the viewport.
   const io = new IntersectionObserver(
     en => {
-      if (en.some(x => x.isIntersecting)) {
+      if (en.some(entry => entry.isIntersecting)) {
         io.disconnect();
         mount();
       }

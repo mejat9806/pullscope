@@ -735,7 +735,10 @@ export type SnapSource = Pick<
   'commits' | 'comments' | 'review_comments' | 'merged' | 'state'
 >;
 
-export type Cmp = (a: PrListItem, b: PrListItem) => number;
+export type Cmp = (
+  firstPrListItem: PrListItem,
+  secondPrListItem: PrListItem,
+) => number;
 
 export type CheckRow = Check & { st: string };
 
@@ -774,10 +777,10 @@ export type Pop =
       edit: boolean;
       hide: boolean;
       del: boolean;
-      pick: (h: string) => void;
+      pick: (hash: string) => void;
     }
-  | { k: 'react'; x: number; y: number; pick: (c: string) => void }
-  | { k: 'ctx'; x: number; y: number; pick: (h: string) => void }
+  | { k: 'react'; x: number; y: number; pick: (color: string) => void }
+  | { k: 'ctx'; x: number; y: number; pick: (hash: string) => void }
   | {
       k: 'prof';
       right: number;
@@ -787,5 +790,5 @@ export type Pop =
       avatar: string;
       ver?: string;
       dense?: boolean;
-      pick: (h: string) => void;
+      pick: (hash: string) => void;
     };

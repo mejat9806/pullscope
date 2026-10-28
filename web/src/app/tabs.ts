@@ -1,6 +1,6 @@
 import { fastTab, stashCurrent } from './bind';
 import { stateOf } from './comments';
-import { load, S } from './core';
+import { appState, load } from './core';
 import { openPr } from './nav';
 import { render } from './pages';
 
@@ -12,15 +12,15 @@ import type { Pull, Tab } from '../types';
 export const KEY_TABS = 'tabs';
 
 {
-  const t = load<{ list?: Tab[] }>(KEY_TABS, {});
-  S.tabs = Array.isArray(t.list) ? t.list : [];
-  S.closed = [];
-  S.tabMenu = false;
+  const item = load<{ list?: Tab[] }>(KEY_TABS, {});
+  appState.tabs = Array.isArray(item.list) ? item.list : [];
+  appState.closed = [];
+  appState.tabMenu = false;
 }
 
 export const curRef = () =>
-  S.view === 'pr' && S.bundle
-    ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+  appState.view === 'pr' && appState.bundle
+    ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
     : '';
 
 export const saveTabs = () => {
@@ -28,53 +28,67 @@ export const saveTabs = () => {
     localStorage.setItem(
       KEY_TABS,
       JSON.stringify({
-        list: S.tabs.map(({ ref, title, state, icon, tab, dot, scroll }) => ({
-          ref,
-          title,
-          state,
-          icon,
-          tab,
-          dot,
-          scroll,
-        })),
+        list: appState.tabs.map(
+          ({ ref, title, state, icon, tab, dot, scroll }) => ({
+            ref,
+            title,
+            state,
+            icon,
+            tab,
+            dot,
+            scroll,
+          }),
+        ),
       }),
     );
   } catch {}
 };
 
-export const tabIdx = () => S.tabs.findIndex(t => t.ref === curRef());
+export const tabIdx = () =>
+  appState.tabs.findIndex(tab => tab.ref === curRef());
 
 export function tabSnap() {
-  const t = S.tabs[tabIdx()];
+  const tab = appState.tabs[tabIdx()];
 
-  if (t) {
-    t.tab = S.tab;
-    t.scroll = S.mainTop || 0;
+  if (tab) {
+    tab.tab = appState.tab;
+    tab.scroll = appState.mainTop || 0;
   }
 }
 
 export function tabPut(
   ref: string,
-  p: Pull,
+  pull: Pull,
   opts: { at?: number; newTab?: boolean } = {},
 ) {
-  const [state, ic] = stateOf(p);
-  const item = { ref, title: p.title, state, icon: ic, tab: S.tab, dot: false };
-  const have = S.tabs.findIndex(t => t.ref === ref);
+  const [state, ic] = stateOf(pull);
+
+  const item = {
+    ref,
+    title: pull.title,
+    state,
+    icon: ic,
+    tab: appState.tab,
+    dot: false,
+  };
+
+  const have = appState.tabs.findIndex(tab => tab.ref === ref);
 
   if (have >= 0) {
-    Object.assign(S.tabs[have], item, { tab: S.tabs[have].tab });
+    Object.assign(appState.tabs[have], item, { tab: appState.tabs[have].tab });
   } else if (opts.at !== undefined && opts.at >= 0 && !opts.newTab) {
-    S.tabs[opts.at] = item;
+    appState.tabs[opts.at] = item;
   } else {
-    S.tabs.splice(
-      opts.at !== undefined && opts.at >= 0 ? opts.at + 1 : S.tabs.length,
+    appState.tabs.splice(
+      opts.at !== undefined && opts.at >= 0
+        ? opts.at + 1
+        : appState.tabs.length,
       0,
       item,
     );
   }
 
-  S.tabs = S.tabs.slice(-15);
+  appState.tabs = appState.tabs.slice(-15);
   saveTabs();
 }
 
@@ -85,64 +99,69 @@ export function openTab(ref: string, { newTab = false } = {}) {
 
   stashCurrent();
   tabSnap();
-  S.fadeMain = true;
-  S.tabMenu = false;
+  appState.fadeMain = true;
+  appState.tabMenu = false;
 
   return openPr(ref, {
     newTab,
-    restore: newTab ? '' : S.tabs.find(t => t.ref === ref)?.tab,
+    restore: newTab ? '' : appState.tabs.find(tab => tab.ref === ref)?.tab,
   });
 }
 
-export function closeTab(i: number) {
-  const t = S.tabs[i];
+export function closeTab(index: number) {
+  const tab = appState.tabs[index];
 
-  if (!t) {
+  if (!tab) {
     return;
   }
 
-  S.alive.delete(t.ref);
-  const was = t.ref === curRef();
+  appState.alive.delete(tab.ref);
+  const was = tab.ref === curRef();
 
-  S.closed = [
-    { ref: t.ref, tab: t.tab },
-    ...S.closed.filter(c => c.ref !== t.ref),
+  appState.closed = [
+    { ref: tab.ref, tab: tab.tab },
+    ...appState.closed.filter(item => item.ref !== tab.ref),
   ].slice(0, 10);
 
-  S.tabs.splice(i, 1);
+  appState.tabs.splice(index, 1);
   saveTabs();
 
   if (!was) {
     return render();
   }
 
-  const n = S.tabs[Math.min(i, S.tabs.length - 1)];
-  S.fadeMain = true;
+  const otherTab = appState.tabs[Math.min(index, appState.tabs.length - 1)];
+  appState.fadeMain = true;
 
-  if (n) {
-    openPr(n.ref, { restore: n.tab, nav: true });
+  if (otherTab) {
+    openPr(otherTab.ref, { restore: otherTab.tab, nav: true });
   } else {
-    S.view = 'home';
-    S.bundle = null;
+    appState.view = 'home';
+    appState.bundle = null;
     render();
   }
 }
 
 export function reopenTab() {
-  const c = S.closed.shift();
+  const item = appState.closed.shift();
 
-  if (c) {
+  if (item) {
     tabSnap();
-    openPr(c.ref, { newTab: true, restore: c.tab });
+    openPr(item.ref, { newTab: true, restore: item.tab });
   }
 }
 
-export function stepTab(d: number) {
-  if (S.tabs.length < 2) {
+export function stepTab(delta: number) {
+  if (appState.tabs.length < 2) {
     return;
   }
 
-  const i = tabIdx();
-  const n = S.tabs[(i + d + S.tabs.length) % S.tabs.length];
-  openTab(n.ref);
+  const index = tabIdx();
+
+  const tab =
+    appState.tabs[
+      (index + delta + appState.tabs.length) % appState.tabs.length
+    ];
+
+  openTab(tab.ref);
 }

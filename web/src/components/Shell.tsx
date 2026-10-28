@@ -18,11 +18,11 @@ export interface ShellProps {
   enter: boolean;
   stuck: boolean;
   active: ShellPane;
-  onPage: (e: MouseEvent) => void;
+  onPage: (event: MouseEvent) => void;
   kept: ShellPane[];
-  onScroll: (e: Event) => void;
+  onScroll: (event: Event) => void;
   onMeasure: (el: HTMLElement) => void;
-  onGrip: (e: MouseEvent) => void;
+  onGrip: (event: MouseEvent) => void;
   onGripReset: () => void;
   onScrim: () => void;
   side?: ComponentChildren;
@@ -31,11 +31,11 @@ export interface ShellProps {
 }
 
 // The shown page scrolls when asked (`scroll:main`) and reports its own scrolling.
-const Main = (p: {
+const Main = (props: {
   cls: string;
-  onScroll: (e: Event) => void;
+  onScroll: (event: Event) => void;
   onMeasure: (el: HTMLElement) => void;
-  onPage: (e: MouseEvent) => void;
+  onPage: (event: MouseEvent) => void;
   children: ComponentChildren;
 }) => {
   const ref = useScroller('main', true);
@@ -52,7 +52,7 @@ const Main = (p: {
 
     const measure = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => p.onMeasure(el));
+      raf = requestAnimationFrame(() => props.onMeasure(el));
     };
 
     const ro = new ResizeObserver(measure);
@@ -69,9 +69,9 @@ const Main = (p: {
   }, []);
 
   return (
-    <div class={p.cls} ref={ref} onScroll={p.onScroll}>
-      <div id="page" style="display:contents" onClick={p.onPage}>
-        {p.children}
+    <div class={props.cls} ref={ref} onScroll={props.onScroll}>
+      <div id="page" style="display:contents" onClick={props.onPage}>
+        {props.children}
       </div>
     </div>
   );
@@ -79,46 +79,46 @@ const Main = (p: {
 
 // The frame around every view: the sidebar host, its grip, the mobile scrim, the page and the parked pages of other open tabs.
 // All pages share one keyed list, so a tab moving between parked and shown keeps its DOM. A parked tab keeps the very vnode it last rendered, so Preact skips it and its DOM (scroll, open editors) stays as it was.
-export const Shell = (p: ShellProps) => (
+export const Shell = (props: ShellProps) => (
   <>
     <div
-      class={`shell ${p.nav ? 'nav-open' : ''} ${p.navHidden ? 'nav-hidden' : ''}${p.enter ? ' entering' : ''}`}
-      style={`--sbw:${p.sbw}px;--lw:${p.lw}%`}
+      class={`shell ${props.nav ? 'nav-open' : ''} ${props.navHidden ? 'nav-hidden' : ''}${props.enter ? ' entering' : ''}`}
+      style={`--sbw:${props.sbw}px;--lw:${props.lw}%`}
     >
       <div id="side" style="display:contents">
-        {p.side}
+        {props.side}
       </div>
       <div
         class="sb-grip"
         id="sbgrip"
         title="Drag to resize · double-click to reset"
-        onMouseDown={p.onGrip}
-        onDblClick={p.onGripReset}
+        onMouseDown={props.onGrip}
+        onDblClick={props.onGripReset}
       ></div>
-      <div class="scrim" id="scrim" onClick={p.onScrim}></div>
-      {[p.active, ...p.kept].map((k, i) =>
-        i === 0 ? (
+      <div class="scrim" id="scrim" onClick={props.onScrim}></div>
+      {[props.active, ...props.kept].map((shellPane, index) =>
+        index === 0 ? (
           <Main
-            key={k.key}
-            cls={`main${p.fade ? ' tab-in' : ''}${p.stuck ? ' stuck' : ''}`}
-            onScroll={p.onScroll}
-            onMeasure={p.onMeasure}
-            onPage={p.onPage}
+            key={shellPane.key}
+            cls={`main${props.fade ? ' tab-in' : ''}${props.stuck ? ' stuck' : ''}`}
+            onScroll={props.onScroll}
+            onMeasure={props.onMeasure}
+            onPage={props.onPage}
           >
-            {k.children}
+            {shellPane.children}
           </Main>
         ) : (
-          <div class="main-off" key={k.key} style="display:none">
-            <div style="display:contents">{k.children}</div>
+          <div class="main-off" key={shellPane.key} style="display:none">
+            <div style="display:contents">{shellPane.children}</div>
           </div>
         ),
       )}
     </div>
     <div id="dlg" style="display:contents">
-      {p.dlg}
+      {props.dlg}
     </div>
     <div id="notehost" style="display:contents">
-      {p.notes}
+      {props.notes}
     </div>
   </>
 );

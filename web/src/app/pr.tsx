@@ -3,7 +3,7 @@ import { PrSide, SIDE_KEYS } from '../components/Merge';
 import { PrLayout, SplitLayout } from '../components/Pages';
 import { Crumbs } from '../components/PrList';
 import { Attention } from '../components/Timeline';
-import { I } from '../components/ui';
+import { renderIcon } from '../components/ui';
 import {
   editPrDialog,
   rerender,
@@ -11,7 +11,7 @@ import {
   reviewDialog,
 } from './actions';
 import { isFolded, prHeaderProps, stateOf } from './comments';
-import { esc, icon, S } from './core';
+import { appState, esc, icon } from './core';
 import { attOn, keep, openTab, tlOn } from './handlers';
 import { crumbs } from './home';
 import { commitsView, filesView, sidebarProps, splitView } from './mergebox';
@@ -29,23 +29,25 @@ import type { PrHeaderHandlers } from '../components/Comments';
 import type { PrSideHandlers } from '../components/Merge';
 
 // A few plain lines to paste into a standup or chat: what it is, where it stands and who has reviewed.
-function prSummary(b: NonNullable<typeof S.bundle>) {
-  const p = b.pull;
-  const [, , label] = stateOf(p);
+function prSummary(otherBundle: NonNullable<typeof appState.bundle>) {
+  const pull = otherBundle.pull;
+  const [, , label] = stateOf(pull);
   const latest = new Map<string, string>();
 
-  b.timeline
-    .filter(e => e.event === 'reviewed' && e.user)
-    .forEach(e => {
-      const st = e.state!.toLowerCase();
+  otherBundle.timeline
+    .filter(
+      timelineEvent => timelineEvent.event === 'reviewed' && timelineEvent.user,
+    )
+    .forEach(timelineEvent => {
+      const st = timelineEvent.state!.toLowerCase();
 
-      if (st !== 'commented' || !latest.has(e.user!.login)) {
-        latest.set(e.user!.login, st);
+      if (st !== 'commented' || !latest.has(timelineEvent.user!.login)) {
+        latest.set(timelineEvent.user!.login, st);
       }
     });
 
-  const by = (s: string) =>
-    [...latest].filter(([, v]) => v === s).map(([u]) => u);
+  const by = (text: string) =>
+    [...latest].filter(([, value]) => value === text).map(([url]) => url);
 
   const rv =
     [
@@ -57,22 +59,22 @@ function prSummary(b: NonNullable<typeof S.bundle>) {
       .filter(Boolean)
       .join('; ') || 'no reviews yet';
 
-  return `${p.title} (${p.base.repo.full_name}#${p.number})\n${label} · by ${p.user.login} · +${p.additions} −${p.deletions} in ${p.changed_files ?? b.files.length} files · ${rv}\n${p.html_url}`;
+  return `${pull.title} (${pull.base.repo.full_name}#${pull.number})\n${label} · by ${pull.user.login} · +${pull.additions} −${pull.deletions} in ${pull.changed_files ?? otherBundle.files.length} files · ${rv}\n${pull.html_url}`;
 }
 
-const hide = (k: string, v: boolean) =>
+const hide = (key: string, flag: boolean) =>
   keep(() => {
-    S.hide[k] = v;
-    localStorage.setItem('hide', JSON.stringify(S.hide));
+    appState.hide[key] = flag;
+    localStorage.setItem('hide', JSON.stringify(appState.hide));
   });
 
 export const toggleSplit = () => {
   if (
-    S.view === 'pr' &&
-    S.bundle &&
-    S.tab !== 'files' &&
-    S.tab !== 'checks' &&
-    S.tab !== 'timeline'
+    appState.view === 'pr' &&
+    appState.bundle &&
+    appState.tab !== 'files' &&
+    appState.tab !== 'checks' &&
+    appState.tab !== 'timeline'
   ) {
     head.split();
   }
@@ -82,109 +84,118 @@ const head: PrHeaderHandlers = {
   tab: openTab,
   edit: editPrDialog,
   copy: () => {
-    navigator.clipboard?.writeText(S.bundle!.pull.head.ref);
+    navigator.clipboard?.writeText(appState.bundle!.pull.head.ref);
   },
   review: reviewDialog,
   summary: () => {
-    navigator.clipboard?.writeText(prSummary(S.bundle!));
+    navigator.clipboard?.writeText(prSummary(appState.bundle!));
   },
   side: () =>
     keep(() => {
-      S.hide.side = !S.hide.side;
-      localStorage.setItem('hide', JSON.stringify(S.hide));
+      appState.hide.side = !appState.hide.side;
+      localStorage.setItem('hide', JSON.stringify(appState.hide));
     }),
   split: () =>
     keep(() => {
-      S.split = !S.split;
-      localStorage.setItem('split', S.split ? '1' : '0');
+      appState.split = !appState.split;
+      localStorage.setItem('split', appState.split ? '1' : '0');
     }),
 };
 
 const sideOn: PrSideHandlers = {
-  fold: (k, def) => {
-    S.fold[k] = !isFolded(k, def);
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+  fold: (key, def) => {
+    appState.fold[key] = !isFolded(key, def);
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
     rerender();
   },
   rvtoggle: () => {
-    S.showAllReviewers = !S.showAllReviewers;
+    appState.showAllReviewers = !appState.showAllReviewers;
     rerender();
   },
   rerequest: rerequestReview,
-  edit: k => {
-    if (k === 'labels' || k === 'assignees' || k === 'milestone') {
-      metaOpen(k);
+  edit: sideKey => {
+    if (
+      sideKey === 'labels' ||
+      sideKey === 'assignees' ||
+      sideKey === 'milestone'
+    ) {
+      metaOpen(sideKey);
     }
   },
-  grip: (e, k) =>
+  grip: (event, sideKey) =>
     roGrip(
-      e,
+      event,
       'side',
       '.pr-side-inner > .ro-it',
-      k,
-      () => arrange(SIDE_KEYS, 'side', x => x),
-      o => saveOrder('side', o),
+      sideKey,
+      () => arrange(SIDE_KEYS, 'side', otherSideKey => otherSideKey),
+      options => saveOrder('side', options),
     ),
 };
 
 function Header() {
-  const p = S.bundle!.pull;
-  const r = p.base.repo;
+  const pull = appState.bundle!.pull;
+  const row = pull.base.repo;
 
   const extra = (
     <>
-      <a class="crumb gh" href={r.html_url} data-ext="" title="Open on GitHub">
-        {I('link-external', 12)}
+      <a
+        class="crumb gh"
+        href={row.html_url}
+        data-ext=""
+        title="Open on GitHub"
+      >
+        {renderIcon('link-external', 12)}
       </a>
-      {S.refreshing ? <span class="stale">Refreshing…</span> : ''}
+      {appState.refreshing ? <span class="stale">Refreshing…</span> : ''}
     </>
   );
 
   return (
     <>
       <Crumbs
-        repo={r.full_name}
+        repo={row.full_name}
         trail={[
-          { t: 'Pull requests', repo: r.full_name },
-          { t: `#${p.number}` },
+          { t: 'Pull requests', repo: row.full_name },
+          { t: `#${pull.number}` },
         ]}
         extraNode={extra}
         on={crumbs}
       />
-      <PrHeader {...prHeaderProps(S.bundle!)} on={head} />
+      <PrHeader {...prHeaderProps(appState.bundle!)} on={head} />
     </>
   );
 }
 
 export function PrView() {
-  const b = S.bundle!;
+  const bundle = appState.bundle!;
 
   if (
-    S.split &&
-    S.tab !== 'files' &&
-    S.tab !== 'checks' &&
-    S.tab !== 'timeline'
+    appState.split &&
+    appState.tab !== 'files' &&
+    appState.tab !== 'checks' &&
+    appState.tab !== 'timeline'
   ) {
-    return <SplitLayout header={<Header />} split={splitView(b)} />;
+    return <SplitLayout header={<Header />} split={splitView(bundle)} />;
   }
 
   const body =
-    S.tab === 'files'
-      ? filesView(b)
-      : S.tab === 'commits'
-        ? commitsView(b)
-        : S.tab === 'checks'
-          ? checksView(b)
+    appState.tab === 'files'
+      ? filesView(bundle)
+      : appState.tab === 'commits'
+        ? commitsView(bundle)
+        : appState.tab === 'checks'
+          ? checksView(bundle)
           : null;
 
   const side =
-    S.tab !== 'conversation'
+    appState.tab !== 'conversation'
       ? { kind: 'none' as const }
-      : S.hide.side
+      : appState.hide.side
         ? { kind: 'rail' as const }
         : {
             kind: 'aside' as const,
-            inner: <PrSide {...sidebarProps(b)} on={sideOn} />,
+            inner: <PrSide {...sidebarProps(bundle)} on={sideOn} />,
             on: { hide: () => hide('side', true) },
           };
 
@@ -192,14 +203,14 @@ export function PrView() {
     <PrLayout
       header={<Header />}
       body={
-        S.tab === 'timeline' ? (
+        appState.tab === 'timeline' ? (
           <div class="rail">
-            <Timeline m={timelineModel(b)} on={tlOn} />
+            <Timeline m={timelineModel(bundle)} on={tlOn} />
           </div>
-        ) : S.tab === 'conversation' ? (
+        ) : appState.tab === 'conversation' ? (
           <>
-            <Attention {...attentionProps(b)} on={attOn} />
-            <Timeline m={timelineModel(b)} on={tlOn} />
+            <Attention {...attentionProps(bundle)} on={attOn} />
+            <Timeline m={timelineModel(bundle)} on={tlOn} />
           </>
         ) : (
           body

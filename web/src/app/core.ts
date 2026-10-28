@@ -14,15 +14,15 @@ export const tauri = window.__TAURI__ && window.__TAURI__.core;
 
 // Clicking a native notification: open that PR and jump to the comment.
 
-export const $ = <T extends HTMLElement = HTMLElement>(
-  s: string,
-  r: ParentNode = document,
-): T | null => r.querySelector<T>(s);
+export const queryElement = <T extends HTMLElement = HTMLElement>(
+  text: string,
+  root: ParentNode = document,
+): T | null => root.querySelector<T>(text);
 
 export const qa = <T extends HTMLElement = HTMLElement>(
-  s: string,
-  r: ParentNode = document,
-): T[] => [...r.querySelectorAll<T>(s)];
+  text: string,
+  root: ParentNode = document,
+): T[] => [...root.querySelectorAll<T>(text)];
 
 const ESC: Record<string, string> = {
   '&': '&amp;',
@@ -32,13 +32,13 @@ const ESC: Record<string, string> = {
   "'": '&#39;',
 };
 
-export const esc = (s: unknown) =>
-  String(s ?? '').replace(/[&<>"']/g, c => ESC[c]);
+export const esc = (value: unknown) =>
+  String(value ?? '').replace(/[&<>"']/g, color => ESC[color]);
 
 export const icon = (name: string, size = 16, cls = '') => {
-  const k = name + (size === 24 ? '-24' : '');
+  const key = name + (size === 24 ? '-24' : '');
 
-  return `<svg class="octicon ${cls}" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">${(window.OCTICONS || {})[k] || ''}</svg>`;
+  return `<svg class="octicon ${cls}" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true">${(window.OCTICONS || {})[key] || ''}</svg>`;
 };
 
 export const MONTHS = [
@@ -60,51 +60,52 @@ export function whenParts(
   iso: string,
   lead = 'on ',
 ): { title: string; text: string } {
-  const d = new Date(iso);
+  const date = new Date(iso);
   const now = new Date();
-  const diff = (+now - +d) / 1000;
-  const abs = `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}${d.getUTCFullYear() !== now.getUTCFullYear() ? `, ${d.getUTCFullYear()}` : ''}`;
-  const title = d.toUTCString();
+  const diff = (+now - +date) / 1000;
+  const abs = `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}${date.getUTCFullYear() !== now.getUTCFullYear() ? `, ${date.getUTCFullYear()}` : ''}`;
+  const title = date.toUTCString();
 
-  let t;
+  let value;
 
   if (diff < 30 * 86400 && diff >= 0) {
-    const n = (v: number, u: string) => `${v} ${u}${v === 1 ? '' : 's'} ago`;
+    const handler = (otherValue: number, url: string) =>
+      `${otherValue} ${url}${otherValue === 1 ? '' : 's'} ago`;
 
-    t =
+    value =
       diff < 60
         ? 'now'
         : diff < 3600
-          ? n(Math.floor(diff / 60), 'minute')
+          ? handler(Math.floor(diff / 60), 'minute')
           : diff < 86400
-            ? n(Math.floor(diff / 3600), 'hour')
-            : n(Math.floor(diff / 86400), 'day');
+            ? handler(Math.floor(diff / 3600), 'hour')
+            : handler(Math.floor(diff / 86400), 'day');
 
-    return { title, text: t };
+    return { title, text: value };
   }
 
   return { title, text: `${lead}${abs}` };
 }
 
 export function when(iso: string, lead = 'on ') {
-  const w = whenParts(iso, lead);
+  const item = whenParts(iso, lead);
 
-  return `<span title="${w.title}">${w.text}</span>`;
+  return `<span title="${item.title}">${item.text}</span>`;
 }
 
 export function fullDate(iso: string) {
-  const d = new Date(iso);
+  const date = new Date(iso);
 
-  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}`;
 }
 
-export const user = (u?: Person | null) =>
-  u
-    ? `<a class="actor" href="${esc(u.html_url)}">${esc(u.login)}</a>`
+export const user = (person?: Person | null) =>
+  person
+    ? `<a class="actor" href="${esc(person.html_url)}">${esc(person.login)}</a>`
     : '<span class="actor">ghost</span>';
 
-export const avatar = (u?: Person | null, s = 40) =>
-  `<img class="av" loading="lazy" decoding="async" src="${esc(u?.avatar_url || '')}${u?.avatar_url ? `${u.avatar_url.includes('?') ? '&' : '?'}s=${s * 2}` : ''}" width="${s}" height="${s}" alt="@${esc(u?.login || 'ghost')}" style="border-radius:50%;display:block">`;
+export const avatar = (person?: Person | null, size = 40) =>
+  `<img class="av" loading="lazy" decoding="async" src="${esc(person?.avatar_url || '')}${person?.avatar_url ? `${person.avatar_url.includes('?') ? '&' : '?'}s=${size * 2}` : ''}" width="${size}" height="${size}" alt="@${esc(person?.login || 'ghost')}" style="border-radius:50%;display:block">`;
 
 export const ASSOC: Record<string, string> = {
   CONTRIBUTOR: 'Contributor',
@@ -127,24 +128,27 @@ export const REACTS: [keyof Reactions, string][] = [
   ['eyes', '👀'],
 ];
 
-export const load = <T>(k: string, d: T): T => {
+export const load = <T>(key: string, item: T): T => {
   try {
-    return (JSON.parse(localStorage.getItem(k) ?? 'null') as T | null) ?? d;
+    return (
+      (JSON.parse(localStorage.getItem(key) ?? 'null') as T | null) ?? item
+    );
   } catch {
-    return d;
+    return item;
   }
 };
 
 // Repositories the user chose to fetch (null = all). Kept whole, so the sidebar needs no repository-list request at start-up.
 export const loadRepoSel = (): RepoSummary[] | null => {
-  const l = load<RepoSummary[]>('repoSel', []);
+  const repoSummarys = load<RepoSummary[]>('repoSel', []);
 
-  return l.length ? l : null;
+  return repoSummarys.length ? repoSummarys : null;
 };
 
-export const selNames = (): string[] => (S.repoSel || []).map(r => r.full_name);
+export const selNames = (): string[] =>
+  (appState.repoSel || []).map(repoSummary => repoSummary.full_name);
 
-export const S: AppState = {
+export const appState: AppState = {
   profile: (() => {
     try {
       return JSON.parse(
@@ -206,7 +210,7 @@ export const S: AppState = {
   ibOrder: load<string[]>('iborder', []),
 };
 
-S.recent = (() => {
+appState.recent = (() => {
   try {
     return (
       (JSON.parse(localStorage.getItem('recent') ?? 'null') as
@@ -218,8 +222,9 @@ S.recent = (() => {
 })();
 
 export const isDark = () =>
-  S.mode === 'dark' ||
-  (S.mode === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  appState.mode === 'dark' ||
+  (appState.mode === 'auto' &&
+    matchMedia('(prefers-color-scheme: dark)').matches);
 
 if (!/Mac/i.test(navigator.platform)) {
   document.documentElement.classList.add('not-mac');
@@ -229,63 +234,67 @@ if (!/Mac/i.test(navigator.platform)) {
 export const flags = { lastUnread: -1, polling: false };
 
 export function syncUnread() {
-  const n = S.notes.filter(x => !x.read).length;
+  const count = appState.notes.filter(note => !note.read).length;
 
-  if (tauri && n !== flags.lastUnread) {
-    flags.lastUnread = n;
+  if (tauri && count !== flags.lastUnread) {
+    flags.lastUnread = count;
 
-    tauri!.invoke('set_unread', { count: n }).catch(() => {});
+    tauri!.invoke('set_unread', { count }).catch(() => {});
   }
 }
 
 // Offline: GitHub unreachable (or the machine is offline). The last saved copy is shown with a clear banner and a retry.
-S.offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+appState.offline =
+  typeof navigator !== 'undefined' && navigator.onLine === false;
 
 /** You cannot approve or request changes on your own PR; GitHub rejects both. */
 export const isOwnPr = () =>
-  !!S.me && S.bundle?.pull.user?.login.toLowerCase() === S.me.toLowerCase();
+  !!appState.me &&
+  appState.bundle?.pull.user?.login.toLowerCase() === appState.me.toLowerCase();
 
-export const isOff = () => !!(S.offline || (S.bundle && S.bundle._cached));
+export const isOff = () =>
+  !!(appState.offline || (appState.bundle && appState.bundle._cached));
 
 export const offlineBar = () => '';
 
 export function applyMode() {
-  const d = document.documentElement;
+  const element = document.documentElement;
   const dark = isDark();
-  d.setAttribute('data-color-mode', dark ? 'dark' : 'light');
-  d.setAttribute('data-light-theme', 'light');
-  d.setAttribute('data-dark-theme', 'dark');
-  d.setAttribute('data-t', dark ? 'dark' : 'light');
+  element.setAttribute('data-color-mode', dark ? 'dark' : 'light');
+  element.setAttribute('data-light-theme', 'light');
+  element.setAttribute('data-dark-theme', 'dark');
+  element.setAttribute('data-t', dark ? 'dark' : 'light');
 }
 
 export const KEY_RECENT = 'recent';
 
-export const compact = (n?: number | null) =>
-  n == null
+export const compact = (count?: number | null) =>
+  count == null
     ? null
-    : n < 1000
-      ? String(n)
-      : n >= 5000
-        ? `${Math.floor(n / 1000)}k+`
-        : `${(Math.floor(n / 100) / 10).toString().replace(/\.0$/, '')}k`;
+    : count < 1000
+      ? String(count)
+      : count >= 5000
+        ? `${Math.floor(count / 1000)}k+`
+        : `${(Math.floor(count / 100) / 10).toString().replace(/\.0$/, '')}k`;
 
 // The comment to highlight is state (S.flash): the comment components draw the class and scroll themselves into view.
-export const flashLive = () => !!S.flash && Date.now() < S.flashUntil!;
+export const flashLive = () =>
+  !!appState.flash && Date.now() < appState.flashUntil!;
 
 export const flashFor = (id: string) =>
-  S.flash && S.flash.id === id && flashLive()
+  appState.flash && appState.flash.id === id && flashLive()
     ? {
-        n: S.flash.n,
-        block: S.flash.block,
-        smooth: S.flash.smooth,
-        pop: S.flash.pop,
+        n: appState.flash.n,
+        block: appState.flash.block,
+        smooth: appState.flash.smooth,
+        pop: appState.flash.pop,
       }
     : undefined;
 
 export const setFlash = (
   id: string,
-  o: { block: 'start' | 'center'; smooth?: boolean; pop?: boolean },
+  options: { block: 'start' | 'center'; smooth?: boolean; pop?: boolean },
 ) => {
-  S.flash = { id, n: (S.flash?.n || 0) + 1, ...o };
-  S.flashUntil = Date.now() + 2500;
+  appState.flash = { id, n: (appState.flash?.n || 0) + 1, ...options };
+  appState.flashUntil = Date.now() + 2500;
 };

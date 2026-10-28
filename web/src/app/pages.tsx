@@ -2,7 +2,14 @@ import { Gate, Skeleton } from '../components/Pages';
 import { request } from '../components/req';
 import { rerender, saveDrafts } from './actions';
 import { bindSticky, openExternal } from './addressbar';
-import { $, S, selNames, syncUnread, tauri, when } from './core';
+import {
+  appState,
+  queryElement,
+  selNames,
+  syncUnread,
+  tauri,
+  when,
+} from './core';
 import { qc, seen } from './data';
 import { paintDlg } from './dialogs';
 import {
@@ -40,54 +47,56 @@ import type {
 } from '../types';
 
 export const saveNotes = () =>
-  localStorage.setItem('notes', JSON.stringify(S.notes));
+  localStorage.setItem('notes', JSON.stringify(appState.notes));
 
 export function notesProps() {
-  const f = S.nf || 'all';
-  const unread = S.notes.filter(n => !n.read).length;
+  const field = appState.nf || 'all';
+  const unread = appState.notes.filter(note => !note.read).length;
 
-  const rows = S.notes
-    .filter(n => f === 'all' || (f === 'unread' ? !n.read : n.read))
-    .map(n => ({
-      id: n.id,
-      read: !!n.read,
-      ref: n.ref,
-      target: n.target || '',
-      title: n.title,
-      text: n.text,
-      when: when(n.at).replace(/<\/?span[^>]*>/g, ''),
+  const rows = appState.notes
+    .filter(
+      note => field === 'all' || (field === 'unread' ? !note.read : note.read),
+    )
+    .map(note => ({
+      id: note.id,
+      read: !!note.read,
+      ref: note.ref,
+      target: note.target || '',
+      title: note.title,
+      text: note.text,
+      when: when(note.at).replace(/<\/?span[^>]*>/g, ''),
     }));
 
-  return { f, rows, unread, total: S.notes.length };
+  return { f: field, rows, unread, total: appState.notes.length };
 }
 
 // ---- Inbox: PRs that need you ----
 export async function loadInbox(force = false) {
-  S.inbox = S.inbox || { data: null, err: '', loading: true };
-  S.inbox!.loading = true;
-  S.inbox!.err = '';
+  appState.inbox = appState.inbox || { data: null, err: '', loading: true };
+  appState.inbox!.loading = true;
+  appState.inbox!.err = '';
   render();
 
   try {
-    S.inbox!.data = tauri
+    appState.inbox!.data = tauri
       ? await tauri!.invoke('inbox', { force, repos: selNames() })
       : { requested: [], mine: [], ready: [] };
-  } catch (e) {
-    S.inbox!.err = String(e).replace(/^Error: /, '');
+  } catch (error) {
+    appState.inbox!.err = String(error).replace(/^Error: /, '');
   }
 
-  S.inbox!.loading = false;
-  S.keepScroll = true;
+  appState.inbox!.loading = false;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 }
 
 // ---- New pull request ----
-export const npHuman = (s: string) =>
-  s
+export const npHuman = (text: string) =>
+  text
     .replace(/^[a-z]+\//i, '')
     .replace(/[-_]+/g, ' ')
-    .replace(/^./, c => c.toUpperCase());
+    .replace(/^./, color => color.toUpperCase());
 
 export let npSeq = 0;
 
@@ -96,26 +105,30 @@ export const bumpNp = () => {
 };
 
 export function newPrProps(): NewPrProps {
-  const n = S.np!;
-  const repos = (S.repos || []).filter(r => !r.archived);
-  const br = n.branches[n.repo];
-  const same = !!(n.base && n.base === n.head);
-  const c = n.cmp;
+  const newPr = appState.np!;
+
+  const repos = (appState.repos || []).filter(
+    repoSummary => !repoSummary.archived,
+  );
+
+  const br = newPr.branches[newPr.repo];
+  const same = !!(newPr.base && newPr.base === newPr.head);
+  const value = newPr.cmp;
 
   const cmp =
-    c === 'loading'
+    value === 'loading'
       ? { kind: 'loading' as const, text: '', ahead: 0, files: 0, behind: 0 }
-      : !c
+      : !value
         ? { kind: 'none' as const, text: '', ahead: 0, files: 0, behind: 0 }
-        : typeof c === 'string'
-          ? { kind: 'err' as const, text: c, ahead: 0, files: 0, behind: 0 }
-          : c.ahead_by
+        : typeof value === 'string'
+          ? { kind: 'err' as const, text: value, ahead: 0, files: 0, behind: 0 }
+          : value.ahead_by
             ? {
                 kind: 'ok' as const,
                 text: '',
-                ahead: c.ahead_by,
-                files: c.files,
-                behind: c.behind_by,
+                ahead: value.ahead_by,
+                files: value.files,
+                behind: value.behind_by,
               }
             : {
                 kind: 'same' as const,
@@ -126,51 +139,51 @@ export function newPrProps(): NewPrProps {
               };
 
   const ready = !!(
-    n.title.trim() &&
-    n.repo &&
-    n.base &&
-    n.head &&
+    newPr.title.trim() &&
+    newPr.repo &&
+    newPr.base &&
+    newPr.head &&
     !same &&
-    n.cmp &&
-    typeof n.cmp === 'object' &&
-    n.cmp.ahead_by > 0
+    newPr.cmp &&
+    typeof newPr.cmp === 'object' &&
+    newPr.cmp.ahead_by > 0
   );
 
   return {
     hasRepos: repos.length > 0,
-    repo: n.repo,
-    base: n.base,
-    head: n.head,
+    repo: newPr.repo,
+    base: newPr.base,
+    head: newPr.head,
     hasBranches: !!br,
     same,
     cmp,
-    title: n.title,
-    tpls: n.tpl[`${n.repo}|${n.base}`] ?? null,
-    tplText: n.tplText,
+    title: newPr.title,
+    tpls: newPr.tpl[`${newPr.repo}|${newPr.base}`] ?? null,
+    tplText: newPr.tplText,
     seq: npSeq,
-    isDraft: !!n.draft,
-    err: n.err || '',
+    isDraft: !!newPr.draft,
+    err: newPr.err || '',
     ready,
-    meta: npMetaProps(n),
+    meta: npMetaProps(newPr),
   };
 }
 
 // Reviewers / assignees / labels / milestone / linked issues pickers
-export function npMetaProps(n: NewPr): NpMetaProps | null {
-  const m = n.meta?.[n.repo];
+export function npMetaProps(newPr: NewPr): NpMetaProps | null {
+  const repoMeta = newPr.meta?.[newPr.repo];
 
-  if (!m) {
+  if (!repoMeta) {
     return null;
   }
 
-  const ppl = m.people.map(x => x.login);
-  const me = S.me || '';
+  const ppl = repoMeta.people.map(item => item.login);
+  const me = appState.me || '';
 
-  const row = (k: NpListKey, name: string, list: string[]) => ({
-    k,
+  const row = (npListKey: NpListKey, name: string, list: string[]) => ({
+    k: npListKey,
     name,
-    chips: n[k].slice() as string[],
-    free: list.filter(x => !n[k].includes(x)),
+    chips: newPr[npListKey].slice() as string[],
+    free: list.filter(text => !newPr[npListKey].includes(text)),
   });
 
   return {
@@ -178,81 +191,88 @@ export function npMetaProps(n: NewPr): NpMetaProps | null {
       row(
         'reviewers',
         'Reviewers',
-        ppl.filter(x => x !== me),
+        ppl.filter(text => text !== me),
       ),
       row('assignees', 'Assignees', ppl),
       row(
         'labels',
         'Labels',
-        m.labels.map(x => x.name),
+        repoMeta.labels.map(item => item.name),
       ),
     ],
-    milestones: m.milestones.map(x => ({
-      number: x.number,
-      title: x.title,
-      on: String(n.milestone) === String(x.number),
+    milestones: repoMeta.milestones.map(item => ({
+      number: item.number,
+      title: item.title,
+      on: String(newPr.milestone) === String(item.number),
     })),
-    issues: n.issues,
+    issues: newPr.issues,
   };
 }
 
 export async function npLoadMeta(repo: string) {
-  const n = S.np;
+  const newPr = appState.np;
 
-  if (!repo || !tauri || n!.meta[repo]) {
+  if (!repo || !tauri || newPr!.meta[repo]) {
     return;
   }
 
   try {
-    n!.meta[repo] = await tauri!.invoke('repo_meta', { repo });
+    newPr!.meta[repo] = await tauri!.invoke('repo_meta', { repo });
   } catch {
-    n!.meta[repo] = { people: [], labels: [], milestones: [] };
+    newPr!.meta[repo] = { people: [], labels: [], milestones: [] };
   }
 
-  if (S.np === n) {
+  if (appState.np === newPr) {
     rerender();
   }
 }
 
 export async function npLoadBranches(repo: string) {
-  const n = S.np;
+  const newPr = appState.np;
   npLoadMeta(repo);
 
-  if (!repo || n!.branches[repo]) {
+  if (!repo || newPr!.branches[repo]) {
     return npPickDefaults();
   }
 
   if (!tauri) {
-    n!.err = 'Creating pull requests needs the desktop app.';
+    newPr!.err = 'Creating pull requests needs the desktop app.';
 
     return render();
   }
 
   try {
-    n!.branches[repo] = await tauri!.invoke('list_branches', { repo });
-    n!.err = '';
-  } catch (e) {
-    n!.err = String(e).replace(/^Error: /, '');
-    n!.branches[repo] = { default: '', branches: [] } as unknown as BranchInfo;
+    newPr!.branches[repo] = await tauri!.invoke('list_branches', { repo });
+    newPr!.err = '';
+  } catch (error) {
+    newPr!.err = String(error).replace(/^Error: /, '');
+
+    newPr!.branches[repo] = {
+      default: '',
+      branches: [],
+    } as unknown as BranchInfo;
   }
 
   npPickDefaults();
 }
 
 export function npPickDefaults() {
-  const n = S.np;
-  const b = n!.branches[n!.repo];
+  const newPr = appState.np;
+  const branchInfo = newPr!.branches[newPr!.repo];
 
-  if (!b) {
+  if (!branchInfo) {
     return render();
   }
 
-  if (!b.branches.includes(n!.base)) {
-    n!.base = b.default || b.branches[0] || '';
+  if (!branchInfo.branches.includes(newPr!.base)) {
+    newPr!.base = branchInfo.default || branchInfo.branches[0] || '';
   }
 
-  if (!b.branches.includes(n!.head) || n!.head === n!.base) {
-    n!.head = b.branches.find(x => x !== n!.base) || '';
+  if (
+    !branchInfo.branches.includes(newPr!.head) ||
+    newPr!.head === newPr!.base
+  ) {
+    newPr!.head = branchInfo.branches.find(text => text !== newPr!.base) || '';
   }
 
   npCompare();
@@ -260,41 +280,41 @@ export function npPickDefaults() {
 
 // Pull request templates from the repo: pre-fill an empty description (or one still showing the previous template).
 export async function npLoadTemplates() {
-  const n = S.np;
+  const newPr = appState.np;
 
-  if (!n!.repo || !n!.base || !tauri) {
+  if (!newPr!.repo || !newPr!.base || !tauri) {
     return;
   }
 
-  const k = `${n!.repo}|${n!.base}`;
+  const key = `${newPr!.repo}|${newPr!.base}`;
 
-  if (n!.tpl[k] !== undefined) {
-    return n!.tpl[k] ? npApplyTemplate() : undefined;
+  if (newPr!.tpl[key] !== undefined) {
+    return newPr!.tpl[key] ? npApplyTemplate() : undefined;
   }
 
-  n!.tpl[k] = null;
+  newPr!.tpl[key] = null;
 
   try {
-    n!.tpl[k] = await tauri!.invoke('pr_templates', {
-      repo: n!.repo,
-      base: n!.base,
+    newPr!.tpl[key] = await tauri!.invoke('pr_templates', {
+      repo: newPr!.repo,
+      base: newPr!.base,
     });
   } catch {
-    n!.tpl[k] = [];
+    newPr!.tpl[key] = [];
   }
 
-  if (S.np === n && `${n!.repo}|${n!.base}` === k) {
+  if (appState.np === newPr && `${newPr!.repo}|${newPr!.base}` === key) {
     npApplyTemplate();
   }
 }
 
 export function npApplyTemplate() {
-  const n = S.np;
-  const list = n!.tpl[`${n!.repo}|${n!.base}`];
-  const cur = (S.draft.newpr || '').trim();
+  const newPr = appState.np;
+  const list = newPr!.tpl[`${newPr!.repo}|${newPr!.base}`];
+  const cur = (appState.draft.newpr || '').trim();
 
-  if (list?.length && (!cur || cur === n!.tplText.trim())) {
-    S.draft.newpr = n!.tplText = list[0].body;
+  if (list?.length && (!cur || cur === newPr!.tplText.trim())) {
+    appState.draft.newpr = newPr!.tplText = list[0].body;
     saveDrafts();
   }
 
@@ -302,41 +322,49 @@ export function npApplyTemplate() {
 }
 
 export async function npCompare() {
-  const n = S.np;
-  n!.cmp = null;
+  const newPr = appState.np;
+  newPr!.cmp = null;
   npLoadTemplates();
 
-  if (!n!.repo || !n!.base || !n!.head || n!.base === n!.head) {
+  if (
+    !newPr!.repo ||
+    !newPr!.base ||
+    !newPr!.head ||
+    newPr!.base === newPr!.head
+  ) {
     return rerender();
   }
 
-  const key = `${n!.repo}|${n!.base}|${n!.head}`;
-  n!.key = key;
-  n!.cmp = 'loading';
+  const key = `${newPr!.repo}|${newPr!.base}|${newPr!.head}`;
+  newPr!.key = key;
+  newPr!.cmp = 'loading';
   rerender();
 
   try {
-    const r = await tauri!.invoke('compare_branches', {
-      repo: n!.repo,
-      base: n!.base,
-      head: n!.head,
+    const compareResult = await tauri!.invoke('compare_branches', {
+      repo: newPr!.repo,
+      base: newPr!.base,
+      head: newPr!.head,
     });
 
-    if (S.np!.key !== key) {
+    if (appState.np!.key !== key) {
       return;
     }
 
-    n!.cmp = r;
+    newPr!.cmp = compareResult;
 
-    if (!n!.titleTouched) {
-      n!.title = r.commits.length === 1 ? r.commits[0] : npHuman(n!.head);
+    if (!newPr!.titleTouched) {
+      newPr!.title =
+        compareResult.commits.length === 1
+          ? compareResult.commits[0]
+          : npHuman(newPr!.head);
     }
-  } catch (e) {
-    if (S.np!.key !== key) {
+  } catch (error) {
+    if (appState.np!.key !== key) {
       return;
     }
 
-    n!.cmp = String(e).replace(/^Error: /, '');
+    newPr!.cmp = String(error).replace(/^Error: /, '');
   }
 
   rerender();
@@ -345,15 +373,15 @@ export async function npCompare() {
 export function openNewPr(repo?: string, head?: string) {
   const cur =
     (typeof repo === 'string' && repo) ||
-    S.bundle?.pull.base.repo.full_name ||
-    S.repo ||
+    appState.bundle?.pull.base.repo.full_name ||
+    appState.repo ||
     '';
 
   bumpNp();
-  S.view = 'newpr';
-  S.nav = false;
+  appState.view = 'newpr';
+  appState.nav = false;
 
-  S.np = {
+  appState.np = {
     repo: cur,
     base: '',
     head: (typeof head === 'string' && head) || '',
@@ -374,16 +402,16 @@ export function openNewPr(repo?: string, head?: string) {
     tplText: '',
   };
 
-  delete S.draft.newpr;
+  delete appState.draft.newpr;
   render();
 
-  if (tauri && !S.repos) {
+  if (tauri && !appState.repos) {
     loadRepos().then(() => {
-      if (!S.np!.repo && S.repos?.[0]) {
-        S.np!.repo = S.repos[0].full_name;
+      if (!appState.np!.repo && appState.repos?.[0]) {
+        appState.np!.repo = appState.repos[0].full_name;
       }
 
-      npLoadBranches(S.np!.repo);
+      npLoadBranches(appState.np!.repo);
     });
   } else {
     npLoadBranches(cur);
@@ -391,11 +419,11 @@ export function openNewPr(repo?: string, head?: string) {
 }
 
 export function openInbox() {
-  S.view = 'inbox';
-  S.nav = false;
+  appState.view = 'inbox';
+  appState.nav = false;
   render();
 
-  if (!S.inbox?.data || !qc.fresh('inbox', 45000)) {
+  if (!appState.inbox?.data || !qc.fresh('inbox', 45000)) {
     qc.set('inbox', 1 as unknown as Bundle);
     loadInbox();
   }
@@ -410,24 +438,38 @@ export const IB_SORTS: [string, string][] = [
   ['title', 'Title'],
 ];
 
-const ibCmp = (k: string): ((a: InboxItem, b: InboxItem) => number) => {
-  const t = (x: string, y: string) =>
-    x.localeCompare(y, undefined, { sensitivity: 'base' });
+const ibCmp = (
+  key: string,
+): ((firstInboxItem: InboxItem, secondInboxItem: InboxItem) => number) => {
+  const compare = (leftText: string, rightText: string) =>
+    leftText.localeCompare(rightText, undefined, { sensitivity: 'base' });
 
-  const at = (a: InboxItem, b: InboxItem) =>
-    b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0;
+  const at = (firstInboxItem: InboxItem, secondInboxItem: InboxItem) =>
+    secondInboxItem.updated_at > firstInboxItem.updated_at
+      ? 1
+      : secondInboxItem.updated_at < firstInboxItem.updated_at
+        ? -1
+        : 0;
 
-  switch (k) {
+  switch (key) {
     case 'oldest':
-      return (a, b) => at(b, a);
+      return (firstInboxItem, secondInboxItem) =>
+        at(secondInboxItem, firstInboxItem);
     case 'comments':
-      return (a, b) => (b.comments || 0) - (a.comments || 0) || at(a, b);
+      return (firstInboxItem, secondInboxItem) =>
+        (secondInboxItem.comments || 0) - (firstInboxItem.comments || 0) ||
+        at(firstInboxItem, secondInboxItem);
     case 'repo':
-      return (a, b) => t(a.repo, b.repo) || at(a, b);
+      return (firstInboxItem, secondInboxItem) =>
+        compare(firstInboxItem.repo, secondInboxItem.repo) ||
+        at(firstInboxItem, secondInboxItem);
     case 'author':
-      return (a, b) => t(a.user, b.user) || at(a, b);
+      return (firstInboxItem, secondInboxItem) =>
+        compare(firstInboxItem.user, secondInboxItem.user) ||
+        at(firstInboxItem, secondInboxItem);
     case 'title':
-      return (a, b) => t(a.title, b.title);
+      return (firstInboxItem, secondInboxItem) =>
+        compare(firstInboxItem.title, secondInboxItem.title);
     default:
       return at;
   }
@@ -448,62 +490,69 @@ export const IB_TITLES = [
 
 // The section order is the user's: saved as a list of titles, with any section not in it kept in its default place.
 export const ibOrder = () => {
-  const saved = S.ibOrder || [];
+  const saved = appState.ibOrder || [];
 
   return [
     ...(saved.includes('Pinned') ? [] : ['Pinned']),
-    ...saved.filter(t => IB_TITLES.includes(t)),
-    ...IB_TITLES.filter(t => !saved.includes(t) && t !== 'Pinned'),
+    ...saved.filter(text => IB_TITLES.includes(text)),
+    ...IB_TITLES.filter(text => !saved.includes(text) && text !== 'Pinned'),
   ];
 };
 
 export function inboxProps(): InboxProps {
-  const I: Partial<InboxState> = S.inbox || { loading: true };
-  const d = I.data;
-  const q = (S.ibQ || '').toLowerCase();
-  const cmp = ibCmp(S.ibSort || 'updated');
+  const inboxState: Partial<InboxState> = appState.inbox || { loading: true };
+  const inbox = inboxState.data;
+  const query = (appState.ibQ || '').toLowerCase();
+  const cmp = ibCmp(appState.ibSort || 'updated');
   const pins = ibPins();
 
-  const row = (p: InboxItem) => {
-    const ref = `${p.repo}#${p.number}`;
+  const row = (inboxItem: InboxItem) => {
+    const ref = `${inboxItem.repo}#${inboxItem.number}`;
     const was = seen[ref]?.at;
 
     return {
       ref,
-      avatar: p.avatar,
-      title: p.title,
-      sub: `${ref} · ${p.user} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}${p.draft ? ' · Draft' : ''}`,
-      fresh: !!(was && p.updated_at > was),
-      comments: p.comments || 0,
-      updated: p.updated_at,
+      avatar: inboxItem.avatar,
+      title: inboxItem.title,
+      sub: `${ref} · ${inboxItem.user} · ${when(inboxItem.updated_at).replace(/<\/?span[^>]*>/g, '')}${inboxItem.draft ? ' · Draft' : ''}`,
+      fresh: !!(was && inboxItem.updated_at > was),
+      comments: inboxItem.comments || 0,
+      updated: inboxItem.updated_at,
       pinned: pins.includes(ref),
       snz: snoozeLabel(ref),
-      sel: S.ibSel === ref,
-      snzOpen: S.ibSnzOpen === ref,
+      sel: appState.ibSel === ref,
+      snzOpen: appState.ibSnzOpen === ref,
     };
   };
 
-  const refOf = (x: InboxItem) => `${x.repo}#${x.number}`;
+  const refOf = (inboxItem: InboxItem) =>
+    `${inboxItem.repo}#${inboxItem.number}`;
 
-  const match = (x: InboxItem) =>
-    !q ||
-    `${x.title} ${x.repo} ${x.user} #${x.number}`.toLowerCase().includes(q);
+  const match = (inboxItem: InboxItem) =>
+    !query ||
+    `${inboxItem.title} ${inboxItem.repo} ${inboxItem.user} #${inboxItem.number}`
+      .toLowerCase()
+      .includes(query);
 
-  const lists: [string, string, InboxItem[]][] = d
+  const lists: [string, string, InboxItem[]][] = inbox
     ? [
-        ['Review requested', 'Waiting on you', d.requested],
-        ['Ready to merge', 'Your approved pull requests', d.ready],
-        ['Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []],
+        ['Review requested', 'Waiting on you', inbox.requested],
+        ['Ready to merge', 'Your approved pull requests', inbox.ready],
+        [
+          'Mentioned',
+          'Open PRs where you were @mentioned',
+          inbox.mentioned || [],
+        ],
         [
           'Participated',
           'Open PRs you commented on or reviewed',
-          d.participated || [],
+          inbox.participated || [],
         ],
-        ['Your pull requests', 'Open PRs you opened', d.mine],
+        ['Your pull requests', 'Open PRs you opened', inbox.mine],
         [
           'Recently closed or merged',
           'PRs you were involved in',
-          d.closed || [],
+          inbox.closed || [],
         ],
       ]
     : [];
@@ -511,18 +560,23 @@ export function inboxProps(): InboxProps {
   // Snoozed PRs leave every list; pinned ones move up into their own section.
   const everything = new Map<string, InboxItem>();
 
-  lists.forEach(([, , l]) =>
-    l.forEach(x => everything.has(refOf(x)) || everything.set(refOf(x), x)),
+  lists.forEach(([, , inboxItems]) =>
+    inboxItems.forEach(
+      inboxItem =>
+        everything.has(refOf(inboxItem)) ||
+        everything.set(refOf(inboxItem), inboxItem),
+    ),
   );
 
-  const snoozed = [...everything.values()].filter(x =>
-    isSnoozed(refOf(x), x.updated_at),
+  const snoozed = [...everything.values()].filter(inboxItem =>
+    isSnoozed(refOf(inboxItem), inboxItem.updated_at),
   );
 
   const hidden = new Set(snoozed.map(refOf));
 
   const pinned = [...everything.values()].filter(
-    x => pins.includes(refOf(x)) && !hidden.has(refOf(x)),
+    inboxItem =>
+      pins.includes(refOf(inboxItem)) && !hidden.has(refOf(inboxItem)),
   );
 
   const taken = new Set([...hidden, ...pinned.map(refOf)]);
@@ -531,18 +585,18 @@ export function inboxProps(): InboxProps {
     title,
     sub,
     key: ibSecKey(title),
-    closed: !!S.fold[ibSecKey(title)],
+    closed: !!appState.fold[ibSecKey(title)],
     rows: list.filter(match).sort(cmp).map(row),
   });
 
-  const all = d
+  const all = inbox
     ? [
         ...(pinned.length ? [sec('Pinned', 'Kept on top', pinned)] : []),
-        ...lists.map(([t, s, l]) =>
+        ...lists.map(([text, otherText, inboxItems]) =>
           sec(
-            t,
-            s,
-            l.filter(x => !taken.has(refOf(x))),
+            text,
+            otherText,
+            inboxItems.filter(inboxItem => !taken.has(refOf(inboxItem))),
           ),
         ),
         ...(snoozed.length
@@ -560,23 +614,26 @@ export function inboxProps(): InboxProps {
   const order = ibOrder();
 
   return {
-    loading: !!I.loading,
-    err: I.err || '',
-    sort: S.ibSort || 'updated',
+    loading: !!inboxState.loading,
+    err: inboxState.err || '',
+    sort: appState.ibSort || 'updated',
     sorts: IB_SORTS,
-    q: S.ibQ || '',
-    custom: !!S.ibOrder?.length,
-    views: ibViews().map(v => v.name),
-    view: S.ibView || '',
-    naming: !!S.ibNaming,
+    q: appState.ibQ || '',
+    custom: !!appState.ibOrder?.length,
+    views: ibViews().map(ibView => ibView.name),
+    view: appState.ibView || '',
+    naming: !!appState.ibNaming,
     secs: all
       ? all
-          .sort((x, y) => order.indexOf(x.title) - order.indexOf(y.title))
-          .map((x, i, l) => ({
-            ...x,
-            first: i === 0,
-            last: i === l.length - 1,
-            ro: roCls('ib', x.title),
+          .sort(
+            (leftItem, rightItem) =>
+              order.indexOf(leftItem.title) - order.indexOf(rightItem.title),
+          )
+          .map((item, index, items) => ({
+            ...item,
+            first: index === 0,
+            last: index === items.length - 1,
+            ro: roCls('ib', item.title),
           }))
       : null,
   };
@@ -584,7 +641,7 @@ export function inboxProps(): InboxProps {
 
 // Signing in is required: anonymous GitHub access is capped at 60 requests an hour and is too slow to use.
 export const needSignIn = () =>
-  (tauri && S.authChecked && !S.hasToken) ||
+  (tauri && appState.authChecked && !appState.hasToken) ||
   new URLSearchParams(location.search).get('gate') === '1';
 
 // #app holds two persistent hosts: Preact owns #top (toolbar and tab strip) and #rest (the shell, or the sign-in gate).
@@ -592,43 +649,43 @@ export { setDragging } from './frame';
 
 // The page scrolls where the state says: every move is a numbered request that the shown page applies.
 export function scrollMain(top: number, smooth = false) {
-  S.mainTop = top;
+  appState.mainTop = top;
   request('scroll:main', { top, smooth });
 }
 
 // The sidebar grip: drag to resize, double-click to reset; the scrim closes the mobile drawer.
-const gripDown = (e: MouseEvent) => {
-  e.preventDefault();
+const gripDown = (event: MouseEvent) => {
+  event.preventDefault();
 
-  const x0 = e.clientX;
-  const w0 = S.sbw;
+  const x0 = event.clientX;
+  const w0 = appState.sbw;
   setDragging(true);
 
   beginDrag({
     move: ev => {
-      S.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
-      repaintShell({ sbw: S.sbw });
+      appState.sbw = Math.max(200, Math.min(560, w0 + ev.clientX - x0));
+      repaintShell({ sbw: appState.sbw });
     },
     end: () => {
       setDragging(false);
-      localStorage.setItem('sbw', String(Math.round(S.sbw)));
+      localStorage.setItem('sbw', String(Math.round(appState.sbw)));
     },
   });
 };
 
 const gripReset = () => {
-  S.sbw = 260;
+  appState.sbw = 260;
   localStorage.setItem('sbw', '260');
-  S.keepScroll = true;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
 const scrimTap = () => {
-  S.nav = false;
-  S.keepScroll = true;
+  appState.nav = false;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
 export const repaintShell = (patch: Partial<ShellProps>) => {
@@ -640,54 +697,57 @@ export const repaintShell = (patch: Partial<ShellProps>) => {
 };
 
 const liveView = (): VNode | null => {
-  if (S.loading) {
+  if (appState.loading) {
     return <Skeleton />;
   }
 
-  if (S.view === 'inbox') {
+  if (appState.view === 'inbox') {
     return <InboxView />;
   }
 
-  if (S.view === 'notes') {
+  if (appState.view === 'notes') {
     return <NotesView />;
   }
 
-  if (S.view === 'repo') {
+  if (appState.view === 'repo') {
     return <RepoView />;
   }
 
-  if (S.view === 'newpr') {
-    return S.np ? <NewPrView /> : null;
+  if (appState.view === 'newpr') {
+    return appState.np ? <NewPrView /> : null;
   }
 
-  if (S.view === 'pr' && S.bundle) {
+  if (appState.view === 'pr' && appState.bundle) {
     return <PrView />;
   }
 
-  return (S.view === 'home' || !S.bundle) && S.view !== 'newpr' ? (
+  return (appState.view === 'home' || !appState.bundle) &&
+    appState.view !== 'newpr' ? (
     <HomeView />
   ) : null;
 };
 
 // Links inside a pull request page (comment bodies are pre-built HTML) open in the app or the browser.
-const followLink = (e: MouseEvent) => {
-  if (S.view !== 'pr') {
+const followLink = (event: MouseEvent) => {
+  if (appState.view !== 'pr') {
     return;
   }
 
-  const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href]');
+  const element = (event.target as HTMLElement).closest<HTMLAnchorElement>(
+    'a[href]',
+  );
 
-  if (!a) {
+  if (!element) {
     return;
   }
 
-  e.preventDefault();
-  const h = a.getAttribute('href');
+  event.preventDefault();
+  const hash = element.getAttribute('href');
 
-  if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(h!)) {
-    openPr(h!);
-  } else if (/^https?:\/\//.test(h!)) {
-    openExternal(h!);
+  if (/^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(hash!)) {
+    openPr(hash!);
+  } else if (/^https?:\/\//.test(hash!)) {
+    openExternal(hash!);
   }
 };
 
@@ -705,10 +765,10 @@ export function render() {
 
       setGate(
         <Gate
-          err={S.gateErr ? String(S.gateErr) : ''}
+          err={appState.gateErr ? String(appState.gateErr) : ''}
           go={() => {
             tokenDialog();
-            setTimeout(() => $('#oauthgo')?.click(), 50);
+            setTimeout(() => queryElement('#oauthgo')?.click(), 50);
           }}
           tok={tokenDialog}
         />,
@@ -720,43 +780,43 @@ export function render() {
     return;
   }
 
-  const { stash } = S;
+  const { stash } = appState;
   const live = stash ? stash.vnode : liveView();
   const ref = curRef();
 
-  const key = S.loading
+  const key = appState.loading
     ? 'loading'
-    : S.view === 'pr' && S.bundle
+    : appState.view === 'pr' && appState.bundle
       ? `pr:${ref}`
-      : S.view || 'home';
+      : appState.view || 'home';
 
-  if (S.view === 'pr' && S.bundle && !S.loading && live) {
+  if (appState.view === 'pr' && appState.bundle && !appState.loading && live) {
     shown = { ref, vnode: live };
   }
 
-  const kept = [...S.alive]
-    .filter(([r]) => `pr:${r}` !== key)
-    .map(([r, a]) => ({ key: `pr:${r}`, children: a.vnode }));
+  const kept = [...appState.alive]
+    .filter(([text]) => `pr:${text}` !== key)
+    .map(([text, alive]) => ({ key: `pr:${text}`, children: alive.vnode }));
 
   batch(() => {
     paintTop();
 
     setShell({
-      nav: !!S.nav,
-      navHidden: !!S.hide.nav,
-      sbw: S.sbw,
-      lw: S.lw,
-      fade: !!S.fadeMain,
-      enter: !!S.enter,
-      stuck: !!S.stuck,
+      nav: !!appState.nav,
+      navHidden: !!appState.hide.nav,
+      sbw: appState.sbw,
+      lw: appState.lw,
+      fade: !!appState.fadeMain,
+      enter: !!appState.enter,
+      stuck: !!appState.stuck,
       active: { key, children: live },
       onPage: followLink,
-      onGrip: e => gripDown(e),
+      onGrip: event => gripDown(event),
       onGripReset: () => gripReset(),
       onScrim: () => scrimTap(),
-      onScroll: e => scrolled('main', e.currentTarget as HTMLElement),
+      onScroll: event => scrolled('main', event.currentTarget as HTMLElement),
       onMeasure: el => {
-        if (S.scrollId === 'main' || !S.scrollId) {
+        if (appState.scrollId === 'main' || !appState.scrollId) {
           scrollBtn(el);
         }
       },
@@ -768,18 +828,18 @@ export function render() {
     paintNotes();
   });
 
-  S.stash = null;
-  (S.ios || []).forEach(o => o.disconnect());
-  S.ios = [];
+  appState.stash = null;
+  (appState.ios || []).forEach(observer => observer.disconnect());
+  appState.ios = [];
   bindSticky();
 
-  if (S.fadeMain) {
-    S.fadeMain = false;
+  if (appState.fadeMain) {
+    appState.fadeMain = false;
   }
 
   syncUnread();
 
-  document.title = S.bundle
-    ? `${S.bundle.pull.title} · ${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+  document.title = appState.bundle
+    ? `${appState.bundle.pull.title} · ${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
     : 'GitHub PR View';
 }

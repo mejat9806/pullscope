@@ -1,5 +1,5 @@
 import { HelpDialog, Palette } from '../components/Dialogs';
-import { S } from './core';
+import { appState } from './core';
 import { setSlot } from './frame';
 import { openPr } from './nav';
 
@@ -8,14 +8,22 @@ import type { PalRow } from '../types';
 // The quick-open palette and the shortcuts sheet are plain state (S.pal), painted into their own host on <body>.
 
 const rowsFor = (raw: string): PalRow[] => {
-  const q = raw.trim().toLowerCase();
+  const query = raw.trim().toLowerCase();
 
-  const rows = S.recent
-    .filter(r => !q || `${r.ref} ${r.title}`.toLowerCase().includes(q))
+  const rows = appState.recent
+    .filter(
+      recentEntry =>
+        !query ||
+        `${recentEntry.ref} ${recentEntry.title}`.toLowerCase().includes(query),
+    )
     .slice(0, 8)
-    .map(r => ({ ref: r.ref, label: r.title, sub: r.ref }));
+    .map(recentEntry => ({
+      ref: recentEntry.ref,
+      label: recentEntry.title,
+      sub: recentEntry.ref,
+    }));
 
-  if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(q)) {
+  if (/^(https?:\/\/github\.com\/|[\w.-]+\/[\w.-]+#\d+)/.test(query)) {
     rows.unshift({
       ref: raw.trim(),
       label: `Open ${raw.trim()}`,
@@ -27,50 +35,50 @@ const rowsFor = (raw: string): PalRow[] => {
 };
 
 export function closePal() {
-  S.pal = null;
+  appState.pal = null;
   paintPal();
 }
 
-function go(r: { ref: string } | undefined) {
+function go(row: { ref: string } | undefined) {
   closePal();
 
-  if (r) {
-    S.nav = false;
-    S.focus = '';
-    openPr(r.ref);
+  if (row) {
+    appState.nav = false;
+    appState.focus = '';
+    openPr(row.ref);
   }
 }
 
 function paintPal() {
-  const p = S.pal;
+  const value = appState.pal;
 
-  if (!p) {
+  if (!value) {
     setSlot('pal', null);
 
     return;
   }
 
-  if (p.k === 'help') {
+  if (value.k === 'help') {
     setSlot('pal', <HelpDialog close={closePal} />);
 
     return;
   }
 
-  const rows = rowsFor(p.q);
-  const sel = Math.min(p.sel, Math.max(0, rows.length - 1));
+  const rows = rowsFor(value.q);
+  const sel = Math.min(value.sel, Math.max(0, rows.length - 1));
 
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
       closePal();
-    } else if (e.key === 'ArrowDown') {
-      p.sel = Math.min(rows.length - 1, sel + 1);
+    } else if (event.key === 'ArrowDown') {
+      value.sel = Math.min(rows.length - 1, sel + 1);
       paintPal();
-      e.preventDefault();
-    } else if (e.key === 'ArrowUp') {
-      p.sel = Math.max(0, sel - 1);
+      event.preventDefault();
+    } else if (event.key === 'ArrowUp') {
+      value.sel = Math.max(0, sel - 1);
       paintPal();
-      e.preventDefault();
-    } else if (e.key === 'Enter') {
+      event.preventDefault();
+    } else if (event.key === 'Enter') {
       go(rows[sel]);
     }
   };
@@ -78,41 +86,41 @@ function paintPal() {
   setSlot(
     'pal',
     <Palette
-      q={p.q}
+      q={value.q}
       rows={rows}
       sel={sel}
-      onQ={v => {
-        p.q = v;
-        p.sel = 0;
+      onQ={otherValue => {
+        value.q = otherValue;
+        value.sel = 0;
         paintPal();
       }}
       onKey={onKey}
-      pick={i => go(rows[i])}
+      pick={index => go(rows[index])}
       close={closePal}
     />,
   );
 }
 
 export function openPalette() {
-  if (S.pal) {
+  if (appState.pal) {
     return;
   }
 
-  S.pal = { k: 'pal', q: '', sel: 0 };
+  appState.pal = { k: 'pal', q: '', sel: 0 };
   paintPal();
 }
 
 export function showHelp() {
-  if (S.pal) {
+  if (appState.pal) {
     return;
   }
 
-  S.pal = { k: 'help' };
+  appState.pal = { k: 'help' };
   paintPal();
 }
 
-export const helpKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && S.pal?.k === 'help') {
+export const helpKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && appState.pal?.k === 'help') {
     closePal();
   }
 };

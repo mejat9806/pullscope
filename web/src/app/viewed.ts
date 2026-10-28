@@ -1,16 +1,20 @@
 import { rerender } from './actions';
-import { load, S } from './core';
+import { appState, load } from './core';
 
 import type { FileChange } from '../types';
 
 // "Viewed" marks per pull request and file, kept locally. A mark is dropped when the file changes (its blob id or size differs).
-const stamp = (f: FileChange) => f.sha || `${f.additions}/${f.deletions}`;
+const stamp = (fileChange: FileChange) =>
+  fileChange.sha || `${fileChange.additions}/${fileChange.deletions}`;
 
 const key = () =>
-  `${S.bundle?.pull.base.repo.full_name}#${S.bundle?.pull.number}`;
+  `${appState.bundle?.pull.base.repo.full_name}#${appState.bundle?.pull.number}`;
 
 const all = () =>
-  (S.viewed ||= load<Record<string, Record<string, string>>>('viewed', {}));
+  (appState.viewed ||= load<Record<string, Record<string, string>>>(
+    'viewed',
+    {},
+  ));
 
 const save = () => {
   try {
@@ -20,27 +24,27 @@ const save = () => {
   }
 };
 
-export const isViewed = (f: FileChange) =>
-  all()[key()]?.[f.filename] === stamp(f);
+export const isViewed = (fileChange: FileChange) =>
+  all()[key()]?.[fileChange.filename] === stamp(fileChange);
 
 export const viewedCount = (files: FileChange[]) =>
   files.filter(isViewed).length;
 
 // Marking a file viewed folds it away, like GitHub; unmarking opens it again.
-export function toggleViewed(f: FileChange) {
-  const m = (all()[key()] ||= {});
-  const on = !isViewed(f);
+export function toggleViewed(fileChange: FileChange) {
+  const lookup = (all()[key()] ||= {});
+  const on = !isViewed(fileChange);
 
   if (on) {
-    m[f.filename] = stamp(f);
+    lookup[fileChange.filename] = stamp(fileChange);
   } else {
-    delete m[f.filename];
+    delete lookup[fileChange.filename];
   }
 
-  S.fold[`f:${f.filename}`] = on;
+  appState.fold[`f:${fileChange.filename}`] = on;
 
   try {
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
   } catch {
     /* ignore */
   }
@@ -50,20 +54,20 @@ export function toggleViewed(f: FileChange) {
 }
 
 export function viewedAll(files: FileChange[], on: boolean) {
-  const m = (all()[key()] ||= {});
+  const lookup = (all()[key()] ||= {});
 
-  files.forEach(f => {
+  files.forEach(fileChange => {
     if (on) {
-      m[f.filename] = stamp(f);
+      lookup[fileChange.filename] = stamp(fileChange);
     } else {
-      delete m[f.filename];
+      delete lookup[fileChange.filename];
     }
 
-    S.fold[`f:${f.filename}`] = on;
+    appState.fold[`f:${fileChange.filename}`] = on;
   });
 
   try {
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
   } catch {
     /* ignore */
   }

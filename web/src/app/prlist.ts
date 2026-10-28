@@ -1,4 +1,4 @@
-import { S, when } from './core';
+import { appState, when } from './core';
 import { pushBannerItems } from './data';
 
 import type { FilterBarProps, PrListProps, PrlRow } from '../components/PrList';
@@ -21,12 +21,12 @@ export const PGROUP = {
   base: 'Base branch',
 };
 
-export const prStatus = (p: PrListItem) =>
-  p.merged_at
+export const prStatus = (prListItem: PrListItem) =>
+  prListItem.merged_at
     ? 'merged'
-    : p.state === 'closed'
+    : prListItem.state === 'closed'
       ? 'closed'
-      : p.draft
+      : prListItem.draft
         ? 'draft'
         : 'open';
 
@@ -38,99 +38,117 @@ export const PICON = {
 };
 
 export function prFiltered() {
-  const f = S.pf.toLowerCase();
+  const field = appState.pf.toLowerCase();
 
-  const list = (S.prs || []).filter(
-    p =>
-      (!f ||
-        `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map(l => l.name).join(' ')}`
+  const list = (appState.prs || []).filter(
+    prListItem =>
+      (!field ||
+        `#${prListItem.number} ${prListItem.title} ${prListItem.user.login} ${prListItem.head?.ref || ''} ${(prListItem.labels || []).map(label => label.name).join(' ')}`
           .toLowerCase()
-          .includes(f)) &&
-      (!S.pAuthor || p.user.login === S.pAuthor) &&
-      (!S.pLabel || (p.labels || []).some(l => l.name === S.pLabel)) &&
-      (!S.pStatus || prStatus(p) === S.pStatus),
+          .includes(field)) &&
+      (!appState.pAuthor || prListItem.user.login === appState.pAuthor) &&
+      (!appState.pLabel ||
+        (prListItem.labels || []).some(
+          label => label.name === appState.pLabel,
+        )) &&
+      (!appState.pStatus || prStatus(prListItem) === appState.pStatus),
   );
 
   const cmps: Record<string, Cmp> = {
-    updated: (a, b) => b.updated_at.localeCompare(a.updated_at),
-    created: (a, b) => b.created_at.localeCompare(a.created_at),
-    oldest: (a, b) => a.created_at.localeCompare(b.created_at),
-    number: (a, b) => b.number - a.number,
-    title: (a, b) => a.title.localeCompare(b.title),
-    author: (a, b) =>
-      a.user.login.localeCompare(b.user.login) || b.number - a.number,
+    updated: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.updated_at.localeCompare(firstPrListItem.updated_at),
+    created: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.created_at.localeCompare(firstPrListItem.created_at),
+    oldest: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.created_at.localeCompare(secondPrListItem.created_at),
+    number: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.number - firstPrListItem.number,
+    title: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.title.localeCompare(secondPrListItem.title),
+    author: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.user.login.localeCompare(secondPrListItem.user.login) ||
+      secondPrListItem.number - firstPrListItem.number,
   };
 
-  return list.sort(cmps[S.psort]);
+  return list.sort(cmps[appState.psort]);
 }
 
 export function prFilterBar(): FilterBarProps | null {
-  if (!S.prs) {
+  if (!appState.prs) {
     return null;
   }
 
-  const authors = [...new Set(S.prs.map(p => p.user.login))].sort((a, b) =>
-    a.localeCompare(b),
-  );
+  const authors = [
+    ...new Set(appState.prs.map(prListItem => prListItem.user.login)),
+  ].sort((firstText, secondText) => firstText.localeCompare(secondText));
 
   const labels = [
-    ...new Set(S.prs.flatMap(p => (p.labels || []).map(l => l.name))),
-  ].sort((a, b) => a.localeCompare(b));
+    ...new Set(
+      appState.prs.flatMap(prListItem =>
+        (prListItem.labels || []).map(label => label.name),
+      ),
+    ),
+  ].sort((firstText, secondText) => firstText.localeCompare(secondText));
 
   return {
-    filter: S.pf,
+    filter: appState.pf,
     authors,
     labels,
-    author: S.pAuthor!,
-    label: S.pLabel!,
-    status: S.pStatus ?? '',
+    author: appState.pAuthor!,
+    label: appState.pLabel!,
+    status: appState.pStatus ?? '',
     statuses: Object.entries({
       open: 'Open',
       draft: 'Draft',
       merged: 'Merged',
       closed: 'Closed',
     }),
-    sort: S.psort,
+    sort: appState.psort,
     sorts: Object.entries(PSORT),
     n: prFiltered().length,
-    total: S.prs.length,
-    active: !!(S.pf || S.pAuthor || S.pLabel || S.pStatus),
+    total: appState.prs.length,
+    active: !!(
+      appState.pf ||
+      appState.pAuthor ||
+      appState.pLabel ||
+      appState.pStatus
+    ),
   };
 }
 
 export function prListProps(): PrListProps {
   const rows =
-    S.error || !S.prs
+    appState.error || !appState.prs
       ? null
-      : prFiltered().map((p): PrlRow => {
-          const st = p.merged_at
+      : prFiltered().map((prListItem): PrlRow => {
+          const st = prListItem.merged_at
             ? ['merged', 'git-merge']
-            : p.state === 'closed'
+            : prListItem.state === 'closed'
               ? ['closed', 'git-pull-request-closed']
-              : p.draft
+              : prListItem.draft
                 ? ['draft', 'git-pull-request-draft']
                 : ['open', 'git-pull-request'];
 
           return {
-            ref: `${S.repo}#${p.number}`,
+            ref: `${appState.repo}#${prListItem.number}`,
             st: st[0],
             icon: st[1],
-            title: p.title,
-            labels: p.labels || [],
-            meta: `#${p.number} ${p.merged_at ? 'merged' : p.state === 'closed' ? 'closed' : 'opened'} ${when(p.merged_at || p.closed_at || p.created_at).replace(/<\/?span[^>]*>/g, '')} by ${p.user.login}`,
-            avatar: p.user.avatar_url ?? '',
+            title: prListItem.title,
+            labels: prListItem.labels || [],
+            meta: `#${prListItem.number} ${prListItem.merged_at ? 'merged' : prListItem.state === 'closed' ? 'closed' : 'opened'} ${when(prListItem.merged_at || prListItem.closed_at || prListItem.created_at).replace(/<\/?span[^>]*>/g, '')} by ${prListItem.user.login}`,
+            avatar: prListItem.user.avatar_url ?? '',
           };
         });
 
   return {
-    repo: S.repo!,
-    state: S.prState,
-    banners: pushBannerItems(S.repo!),
+    repo: appState.repo!,
+    state: appState.prState,
+    banners: pushBannerItems(appState.repo!),
     filterBar: prFilterBar(),
     rows,
-    err: S.error ? String(S.error) : '',
-    loading: !S.error && !S.prs,
-    empty: S.prs?.length
+    err: appState.error ? String(appState.error) : '',
+    loading: !appState.error && !appState.prs,
+    empty: appState.prs?.length
       ? 'No pull requests match the filters.'
       : 'No pull requests.',
   };

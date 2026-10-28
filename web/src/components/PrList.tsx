@@ -1,17 +1,17 @@
 import { Banners } from './Home';
-import { I, SP } from './ui';
+import { renderIcon, SP } from './ui';
 
 import type { ComponentChildren } from 'preact';
 import type { PushBanner } from './Home';
 
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const cap = (text: string) => text[0].toUpperCase() + text.slice(1);
 
 export interface FilterHandlers {
-  filter: (e: Event) => void;
-  author: (e: Event) => void;
-  label: (e: Event) => void;
-  status: (e: Event) => void;
-  sort: (e: Event) => void;
+  filter: (event: Event) => void;
+  author: (event: Event) => void;
+  label: (event: Event) => void;
+  status: (event: Event) => void;
+  sort: (event: Event) => void;
   clear: () => void;
 }
 
@@ -30,13 +30,21 @@ export interface FilterBarProps {
   active: boolean;
 }
 
-function Opts({ arr, v, all }: { arr: string[]; v: string; all: string }) {
+function Opts({
+  arr,
+  v: otherValue,
+  all,
+}: {
+  arr: string[];
+  v: string;
+  all: string;
+}) {
   return (
     <>
       <option value="">{all}</option>
-      {arr.map(x => (
-        <option value={x} selected={x === v}>
-          {x}
+      {arr.map(text => (
+        <option value={text} selected={text === otherValue}>
+          {text}
         </option>
       ))}
     </>
@@ -44,7 +52,7 @@ function Opts({ arr, v, all }: { arr: string[]; v: string; all: string }) {
 }
 
 export function FilterBar({
-  p,
+  p: props,
   on,
 }: {
   p: FilterBarProps;
@@ -53,46 +61,46 @@ export function FilterBar({
   return (
     <div class="prl-filters">
       <span class="pf-search">
-        {I('search')}
+        {renderIcon('search')}
         <input
           class="input"
           id="mainfilter"
           placeholder="Filter by title, #, author, branch, label…"
-          value={p.filter}
+          value={props.filter}
           spellcheck={false}
           onInput={on.filter}
         />
       </span>
       {'\n  '}
       <select class="input" id="pfauthor" onChange={on.author}>
-        <Opts arr={p.authors} v={p.author} all="Author: all" />
+        <Opts arr={props.authors} v={props.author} all="Author: all" />
       </select>
       {'\n  '}
       <select class="input" id="pflabel" onChange={on.label}>
-        <Opts arr={p.labels} v={p.label} all="Label: all" />
+        <Opts arr={props.labels} v={props.label} all="Label: all" />
       </select>
       {'\n  '}
       <select class="input" id="pfstatus" onChange={on.status}>
         <option value="">Status: any</option>
-        {p.statuses.map(([k, t]) => (
-          <option value={k} selected={k === p.status}>
-            {t}
+        {props.statuses.map(([key, text]) => (
+          <option value={key} selected={key === props.status}>
+            {text}
           </option>
         ))}
       </select>
       {'\n  '}
       <select class="input" id="pfsort" onChange={on.sort}>
-        {p.sorts.map(([k, t]) => (
-          <option value={k} selected={k === p.sort}>
-            Sort: {t}
+        {props.sorts.map(([key, text]) => (
+          <option value={key} selected={key === props.sort}>
+            Sort: {text}
           </option>
         ))}
       </select>
       {'\n  '}
       <span class="pf-count">
-        {p.n} of {p.total}
+        {props.n} of {props.total}
       </span>
-      {p.active ? (
+      {props.active ? (
         <button class="btn" id="pfclear" onClick={on.clear}>
           Clear
         </button>
@@ -114,10 +122,10 @@ export interface PrlRow {
 }
 
 export interface PrListHandlers extends FilterHandlers {
-  ps: (s: string) => void;
-  open: (el: HTMLElement, e: MouseEvent) => void;
-  aux: (el: HTMLElement, e: MouseEvent) => void;
-  ctx: (el: HTMLElement, e: MouseEvent) => void;
+  ps: (text: string) => void;
+  open: (el: HTMLElement, event: MouseEvent) => void;
+  aux: (el: HTMLElement, event: MouseEvent) => void;
+  ctx: (el: HTMLElement, event: MouseEvent) => void;
   compare: (repo: string, branch: string) => void;
   dismiss: (key: string) => void;
 }
@@ -133,40 +141,46 @@ export interface PrListProps {
   empty: string;
 }
 
-export function PrListPage({ p, on }: { p: PrListProps; on: PrListHandlers }) {
-  const body = p.err ? (
+export function PrListPage({
+  p: props,
+  on,
+}: {
+  p: PrListProps;
+  on: PrListHandlers;
+}) {
+  const body = props.err ? (
     <div class="err" style="padding:16px">
-      {p.err}
+      {props.err}
     </div>
-  ) : p.loading ? (
+  ) : props.loading ? (
     <div class="spinner" style="margin:48px auto">
       Loading pull requests…
     </div>
-  ) : p.rows && p.rows.length ? (
+  ) : props.rows && props.rows.length ? (
     <>
-      {p.rows.map(r => (
+      {props.rows.map(prlRow => (
         <a
           class="prl-row"
-          data-open={r.ref}
-          onClick={e => on.open(e.currentTarget, e)}
-          onAuxClick={e => on.aux(e.currentTarget, e)}
-          onContextMenu={e => on.ctx(e.currentTarget, e)}
+          data-open={prlRow.ref}
+          onClick={event => on.open(event.currentTarget, event)}
+          onAuxClick={event => on.aux(event.currentTarget, event)}
+          onContextMenu={event => on.ctx(event.currentTarget, event)}
         >
-          <span class={`rc-i ${r.st}`}>{I(r.icon)}</span>
+          <span class={`rc-i ${prlRow.st}`}>{renderIcon(prlRow.icon)}</span>
           <span class="prl-main">
-            <b>{r.title}</b>
-            {r.labels.map(l => (
+            <b>{prlRow.title}</b>
+            {prlRow.labels.map(item => (
               <span
                 class="pill-label"
-                style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color};margin:0 0 0 4px`}
+                style={`background:#${item.color}33;color:#${item.color};border-color:#${item.color};margin:0 0 0 4px`}
               >
-                {l.name}
+                {item.name}
               </span>
             ))}
-            <i>{r.meta}</i>
+            <i>{prlRow.meta}</i>
           </span>
           <img
-            src={`${r.avatar}&s=40`}
+            src={`${prlRow.avatar}&s=40`}
             width={20}
             height={20}
             style="border-radius:50%"
@@ -175,33 +189,33 @@ export function PrListPage({ p, on }: { p: PrListProps; on: PrListHandlers }) {
       ))}
     </>
   ) : (
-    <div class="diff-empty">{p.empty}</div>
+    <div class="diff-empty">{props.empty}</div>
   );
 
   return (
     <div class="pr-page">
       <div class="repoline" style="padding-bottom:16px"></div>
-      <Banners items={p.banners} on={on} />
+      <Banners items={props.banners} on={on} />
       <div class="prl">
         <div class="prl-head">
           <div>
-            <span class="repo-ic">{I('repo', 16)}</span>
+            <span class="repo-ic">{renderIcon('repo', 16)}</span>
             {SP}
-            <b>{p.repo}</b>
+            <b>{props.repo}</b>
           </div>
           <div class="seg">
-            {['open', 'closed', 'all'].map(s => (
+            {['open', 'closed', 'all'].map(text => (
               <button
-                data-ps={s}
-                class={p.state === s ? 'on' : ''}
-                onClick={() => on.ps(s)}
+                data-ps={text}
+                class={props.state === text ? 'on' : ''}
+                onClick={() => on.ps(text)}
               >
-                {cap(s)}
+                {cap(text)}
               </button>
             ))}
           </div>
         </div>
-        {p.filterBar ? <FilterBar p={p.filterBar} on={on} /> : null}
+        {props.filterBar ? <FilterBar p={props.filterBar} on={on} /> : null}
         {body}
       </div>
     </div>
@@ -210,8 +224,8 @@ export function PrListPage({ p, on }: { p: PrListProps; on: PrListHandlers }) {
 
 export interface CrumbHandlers {
   home: () => void;
-  owner: (o: string) => void;
-  repo: (r: string) => void;
+  owner: (option: string) => void;
+  repo: (text: string) => void;
 }
 
 export interface CrumbProps {
@@ -227,12 +241,12 @@ export function Crumbs({ repo, trail, extraNode, on }: CrumbProps) {
   const parts: ComponentChildren[] = [
     homeCur ? (
       <span class="crumb cur home">
-        {I('home', 14)}
+        {renderIcon('home', 14)}
         <span>Home</span>
       </span>
     ) : (
       <a class="crumb" data-home="1" onClick={on && on.home} title="Home">
-        {I('home', 14)}
+        {renderIcon('home', 14)}
         <span>Home</span>
       </a>
     ),
@@ -264,17 +278,17 @@ export function Crumbs({ repo, trail, extraNode, on }: CrumbProps) {
     );
   }
 
-  trail.forEach((t, i) =>
+  trail.forEach((item, index) =>
     parts.push(
-      i === trail.length - 1 ? (
-        <span class="crumb cur">{t.t}</span>
+      index === trail.length - 1 ? (
+        <span class="crumb cur">{item.t}</span>
       ) : (
         <a
           class="crumb"
-          data-repo={t.repo || undefined}
-          onClick={on && t.repo ? () => on.repo(t.repo!) : undefined}
+          data-repo={item.repo || undefined}
+          onClick={on && item.repo ? () => on.repo(item.repo!) : undefined}
         >
-          {t.t}
+          {item.t}
         </a>
       ),
     ),
@@ -282,10 +296,14 @@ export function Crumbs({ repo, trail, extraNode, on }: CrumbProps) {
 
   return (
     <nav class="repoline crumbs" aria-label="Breadcrumb">
-      {parts.map((x, i) => (
+      {parts.map((value, index) => (
         <>
-          {i ? <span class="crumb-sep">{I('chevron-right', 12)}</span> : ''}
-          {x}
+          {index ? (
+            <span class="crumb-sep">{renderIcon('chevron-right', 12)}</span>
+          ) : (
+            ''
+          )}
+          {value}
         </>
       ))}
       {extraNode}

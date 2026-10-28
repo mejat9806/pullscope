@@ -1,6 +1,6 @@
 import { noteClick } from './actions';
 import { bpAway, loadProfile } from './addressbar';
-import { S, tauri } from './core';
+import { appState, tauri } from './core';
 import { pollNotes, qc } from './data';
 import { closePop } from './dialogs';
 import { setGlobals } from './frame';
@@ -15,36 +15,36 @@ import { paintToTop } from './scrolling';
 import { homeKey } from './scrolling';
 import { restoreZoom, zoomKey, zoomWheel } from './zoom';
 
-export const q = new URLSearchParams(location.search);
+export const urlParams = new URLSearchParams(location.search);
 
-if (q.get('mode')) {
-  S.mode = q.get('mode')!;
+if (urlParams.get('mode')) {
+  appState.mode = urlParams.get('mode')!;
 }
 
-if (q.get('tab')) {
-  S.tab = q.get('tab')!;
+if (urlParams.get('tab')) {
+  appState.tab = urlParams.get('tab')!;
 }
 
-if (q.get('split')) {
-  S.split = q.get('split') === '1';
+if (urlParams.get('split')) {
+  appState.split = urlParams.get('split') === '1';
 }
 
 if (tauri) {
   tauri!
     .invoke('has_token')
-    .then(v => {
-      S.hasToken = v;
-      S.authChecked = true;
+    .then(flag => {
+      appState.hasToken = flag;
+      appState.authChecked = true;
       render();
 
-      if (v) {
+      if (flag) {
         loadRepos();
         loadProfile();
       }
     })
     .catch(() => {
-      S.authChecked = true;
-      S.hasToken = false;
+      appState.authChecked = true;
+      appState.hasToken = false;
       render();
     });
 }
@@ -53,28 +53,28 @@ restoreZoom();
 
 window.__TAURI__?.app
   ?.getVersion?.()
-  .then(v => {
-    S.ver = v;
+  .then(value => {
+    appState.ver = value;
   })
   .catch(() => {});
 
 setGlobals({
-  pointerDown: e => ripple(e),
-  clickCapture: e => noteClick(e),
+  pointerDown: event => ripple(event),
+  clickCapture: event => noteClick(event),
   click: () => closePop(),
-  mouseDown: e => {
-    menuAway(e);
-    notesAway(e);
-    bpAway(e);
+  mouseDown: event => {
+    menuAway(event);
+    notesAway(event);
+    bpAway(event);
   },
-  key: e => {
-    zoomKey(e);
-    shortcut(e);
-    notesKey(e);
-    helpKey(e);
-    homeKey(e);
+  key: event => {
+    zoomKey(event);
+    shortcut(event);
+    notesKey(event);
+    helpKey(event);
+    homeKey(event);
   },
-  wheel: e => zoomWheel(e),
+  wheel: event => zoomWheel(event),
   focus: () => refocus(),
   online: () => goOnline(),
   offline: () => goOffline(),
@@ -82,10 +82,10 @@ setGlobals({
 
 render();
 
-if (q.get('fixture')) {
-  openPr(q.get('fixture')!).then(() => {
-    if (q.get('tab')) {
-      S.tab = q.get('tab')!;
+if (urlParams.get('fixture')) {
+  openPr(urlParams.get('fixture')!).then(() => {
+    if (urlParams.get('tab')) {
+      appState.tab = urlParams.get('tab')!;
       render();
     }
   });
@@ -94,7 +94,7 @@ if (q.get('fixture')) {
     if (arg) {
       openPr(arg);
     } else {
-      S.view = 'home';
+      appState.view = 'home';
       render();
     }
   });
@@ -105,23 +105,29 @@ setTimeout(pollNotes, 4000);
 
 // refetchOnWindowFocus: coming back to the app tops up a PR that has gone stale.
 export const refocus = () => {
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  if (!tauri || !b || S.view !== 'pr' || S.loading || S.refreshing) {
+  if (
+    !tauri ||
+    !bundle ||
+    appState.view !== 'pr' ||
+    appState.loading ||
+    appState.refreshing
+  ) {
     return;
   }
 
-  const k = `${b.pull.base.repo.full_name}#${b.pull.number}`;
+  const key = `${bundle.pull.base.repo.full_name}#${bundle.pull.number}`;
 
-  if (!qc.fresh(k, 60000)) {
-    openPr(k, { nav: true, keepTab: true });
+  if (!qc.fresh(key, 60000)) {
+    openPr(key, { nav: true, keepTab: true });
   }
 };
 
 setTimeout(pollNotes, 8000);
 
 if (new URLSearchParams(location.search).get('demonote')) {
-  S.notes = [
+  appState.notes = [
     {
       id: 1,
       ref: 'octocat/Hello-World#6',
@@ -140,7 +146,7 @@ if (new URLSearchParams(location.search).get('demonote')) {
     },
   ];
 
-  S.bell = true;
+  appState.bell = true;
   render();
 }
 
@@ -148,15 +154,15 @@ if (new URLSearchParams(location.search).get('demonote')) {
 export async function checkUpdate() {
   const up = window.__TAURI__?.updater;
 
-  if (!up || S.update?.busy) {
+  if (!up || appState.update?.busy) {
     return;
   }
 
   try {
-    const u = await up.check();
+    const updateHandle = await up.check();
 
-    if (u) {
-      S.update = { version: u.version, obj: u };
+    if (updateHandle) {
+      appState.update = { version: updateHandle.version, obj: updateHandle };
       render();
     }
   } catch {}

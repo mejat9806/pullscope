@@ -1,5 +1,5 @@
 import { DraftBox } from './Actions';
-import { I, SP } from './ui';
+import { renderIcon, SP } from './ui';
 
 import type { ComponentChildren } from 'preact';
 import type { NpListKey, Template } from '../types';
@@ -18,16 +18,16 @@ export interface NotesHandlers {
   check: () => void;
   readAll: () => void;
   clear: () => void;
-  filter: (f: string) => void;
-  read: (e: MouseEvent, id: number | string) => void;
-  del: (e: MouseEvent, id: number | string) => void;
-  open: (el: HTMLElement, e: MouseEvent) => void;
-  aux: (el: HTMLElement, e: MouseEvent) => void;
-  ctx: (el: HTMLElement, e: MouseEvent) => void;
+  filter: (field: string) => void;
+  read: (event: MouseEvent, id: number | string) => void;
+  del: (event: MouseEvent, id: number | string) => void;
+  open: (el: HTMLElement, event: MouseEvent) => void;
+  aux: (el: HTMLElement, event: MouseEvent) => void;
+  ctx: (el: HTMLElement, event: MouseEvent) => void;
 }
 
 export function NotesPage({
-  f,
+  f: field,
   rows,
   unread,
   total,
@@ -49,7 +49,7 @@ export function NotesPage({
     <div class="notes-page">
       <div class="np-head">
         <h1>
-          {I('bell')}
+          {renderIcon('bell')}
           {SP}Notifications
         </h1>
         <div class="np-tools">
@@ -76,67 +76,67 @@ export function NotesPage({
       </div>
       {'\n  '}
       <div class="np-tabs">
-        {tabs.map(([k, l, c]) => (
+        {tabs.map(([key, line, count]) => (
           <button
-            class={f === k ? 'sel' : ''}
-            data-nf={k}
-            onClick={() => on.filter(k)}
+            class={field === key ? 'sel' : ''}
+            data-nf={key}
+            onClick={() => on.filter(key)}
           >
-            {l}
-            <span>{c}</span>
+            {line}
+            <span>{count}</span>
           </button>
         ))}
       </div>
       {'\n  '}
       <div class="np-list">
         {rows.length ? (
-          rows.map(n => (
-            <div class={`np-row ${n.read ? '' : 'new'}`}>
+          rows.map(noteRow => (
+            <div class={`np-row ${noteRow.read ? '' : 'new'}`}>
               <button
                 class="np-dot"
-                data-nread={n.id}
-                onClick={e => on.read(e, n.id)}
-                title={n.read ? 'Mark as unread' : 'Mark as read'}
+                data-nread={noteRow.id}
+                onClick={event => on.read(event, noteRow.id)}
+                title={noteRow.read ? 'Mark as unread' : 'Mark as read'}
               ></button>
               {'\n    '}
               <a
                 class="np-main"
-                data-open={n.ref}
-                data-target={n.target}
-                data-note={n.id}
-                onClick={e => on.open(e.currentTarget, e)}
-                onAuxClick={e => on.aux(e.currentTarget, e)}
-                onContextMenu={e => on.ctx(e.currentTarget, e)}
+                data-open={noteRow.ref}
+                data-target={noteRow.target}
+                data-note={noteRow.id}
+                onClick={event => on.open(event.currentTarget, event)}
+                onAuxClick={event => on.aux(event.currentTarget, event)}
+                onContextMenu={event => on.ctx(event.currentTarget, event)}
               >
-                <b>{n.title}</b>
-                <span>{n.text}</span>
+                <b>{noteRow.title}</b>
+                <span>{noteRow.text}</span>
                 <i>
-                  {n.ref} · {n.when}
+                  {noteRow.ref} · {noteRow.when}
                 </i>
               </a>
               {'\n    '}
               <button
                 class="np-act"
-                data-nread={n.id}
-                onClick={e => on.read(e, n.id)}
+                data-nread={noteRow.id}
+                onClick={event => on.read(event, noteRow.id)}
               >
-                {n.read ? 'Mark unread' : 'Mark read'}
+                {noteRow.read ? 'Mark unread' : 'Mark read'}
               </button>
               <button
                 class="np-act del"
-                data-ndel={n.id}
-                onClick={e => on.del(e, n.id)}
+                data-ndel={noteRow.id}
+                onClick={event => on.del(event, noteRow.id)}
                 title="Delete"
               >
-                {I('x')}
+                {renderIcon('x')}
               </button>
             </div>
           ))
         ) : (
           <div class="note-empty np-empty">
-            {f === 'unread'
+            {field === 'unread'
               ? 'You are all caught up.'
-              : f === 'read'
+              : field === 'read'
                 ? 'Nothing read yet.'
                 : 'No notifications yet. New comments, commits and reviews on PRs you opened will show up here.'}
           </div>
@@ -153,40 +153,46 @@ export interface NpMetaProps {
 }
 
 export interface NpMetaHandlers {
-  add: (k: NpListKey, e: Event) => void;
-  del: (k: NpListKey, v: string) => void;
-  mile: (e: Event) => void;
-  issues: (e: Event) => void;
+  add: (npListKey: NpListKey, event: Event) => void;
+  del: (npListKey: NpListKey, value: string) => void;
+  mile: (event: Event) => void;
+  issues: (event: Event) => void;
 }
 
-export function NpMeta({ p, on }: { p: NpMetaProps; on: NpMetaHandlers }) {
+export function NpMeta({
+  p: props,
+  on,
+}: {
+  p: NpMetaProps;
+  on: NpMetaHandlers;
+}) {
   return (
     <div class="np-box np-metas" id="npmeta">
-      {p.rows.map(r => (
+      {props.rows.map(row => (
         <div class="np-meta">
-          <label class="np-l">{r.name}</label>
+          <label class="np-l">{row.name}</label>
           <div class="np-chips">
-            {r.chips.map(x => (
+            {row.chips.map(text => (
               <span
                 class="np-chip"
-                data-npdel={r.k}
-                data-v={x}
-                onClick={() => on.del(r.k, x)}
+                data-npdel={row.k}
+                data-v={text}
+                onClick={() => on.del(row.k, text)}
                 title="Remove"
               >
-                {x} ×
+                {text} ×
               </span>
             ))}
-            {r.free.length ? (
+            {row.free.length ? (
               <select
                 class="sel np-add"
-                data-npadd={r.k}
+                data-npadd={row.k}
                 value=""
-                onChange={e => on.add(r.k, e)}
+                onChange={event => on.add(row.k, event)}
               >
-                <option value="">{`Add ${r.name.toLowerCase()}…`}</option>
-                {r.free.map(x => (
-                  <option>{x}</option>
+                <option value="">{`Add ${row.name.toLowerCase()}…`}</option>
+                {row.free.map(text => (
+                  <option>{text}</option>
                 ))}
               </select>
             ) : (
@@ -200,9 +206,9 @@ export function NpMeta({ p, on }: { p: NpMetaProps; on: NpMetaHandlers }) {
         <label class="np-l">Milestone</label>
         <select class="sel" id="npmile" onChange={on.mile}>
           <option value="">None</option>
-          {p.milestones.map(x => (
-            <option value={x.number} selected={x.on}>
-              {x.title}
+          {props.milestones.map(item => (
+            <option value={item.number} selected={item.on}>
+              {item.title}
             </option>
           ))}
         </select>
@@ -216,7 +222,7 @@ export function NpMeta({ p, on }: { p: NpMetaProps; on: NpMetaHandlers }) {
           class="input"
           id="npissues"
           placeholder="e.g. 12, 15"
-          value={p.issues}
+          value={props.issues}
           onInput={on.issues}
         />
       </div>
@@ -250,34 +256,34 @@ export interface NewPrProps {
 
 export interface NewPrHandlers extends NpMetaHandlers {
   cancel: () => void;
-  repo: (e: MouseEvent) => void;
-  repoIn: (e: Event) => void;
-  base: (e: MouseEvent) => void;
-  head: (e: MouseEvent) => void;
+  repo: (event: MouseEvent) => void;
+  repoIn: (event: Event) => void;
+  base: (event: MouseEvent) => void;
+  head: (event: MouseEvent) => void;
   swap: () => void;
-  tpl: (e: Event) => void;
-  title: (e: Event) => void;
-  draft: (e: Event) => void;
+  tpl: (event: Event) => void;
+  title: (event: Event) => void;
+  draft: (event: Event) => void;
   create: () => void;
 }
 
-export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
-  const c = p.cmp;
+export function NewPr({ p: props, on }: { p: NewPrProps; on: NewPrHandlers }) {
+  const item = props.cmp;
 
   const cmp =
-    c.kind === 'loading' ? (
+    item.kind === 'loading' ? (
       <span class="np-note">Comparing…</span>
-    ) : c.kind === 'none' ? (
+    ) : item.kind === 'none' ? (
       ''
-    ) : c.kind === 'err' ? (
-      <span class="np-note err">{c.text}</span>
-    ) : c.kind === 'ok' ? (
+    ) : item.kind === 'err' ? (
+      <span class="np-note err">{item.text}</span>
+    ) : item.kind === 'ok' ? (
       <span class="np-note ok">
-        {I('git-commit')}
+        {renderIcon('git-commit')}
         {SP}
-        {c.ahead} commit{c.ahead === 1 ? '' : 's'} · {c.files} file
-        {c.files === 1 ? '' : 's'} changed
-        {c.behind ? ` · ${c.behind} behind ${p.base}` : ''}
+        {item.ahead} commit{item.ahead === 1 ? '' : 's'} · {item.files} file
+        {item.files === 1 ? '' : 's'} changed
+        {item.behind ? ` · ${item.behind} behind ${props.base}` : ''}
       </span>
     ) : (
       <span class="np-note err">
@@ -285,13 +291,13 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
       </span>
     );
 
-  const t = p.tpls;
+  const templates = props.tpls;
 
   return (
-    <div class="notes-page np-new" key={p.seq}>
+    <div class="notes-page np-new" key={props.seq}>
       <div class="np-head">
         <h1>
-          {I('git-pull-request')}
+          {renderIcon('git-pull-request')}
           {SP}New pull request
         </h1>
       </div>
@@ -301,22 +307,22 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
           {'\n    '}
           <div class="np-box">
             <label class="np-l">Repository</label>
-            {p.hasRepos ? (
+            {props.hasRepos ? (
               <button
                 type="button"
                 class="sel bp-btn"
                 id="nprepo"
                 onClick={on.repo}
               >
-                <span>{p.repo || 'Choose a repository'}</span>
-                {I('chevron-down', 14)}
+                <span>{props.repo || 'Choose a repository'}</span>
+                {renderIcon('chevron-down', 14)}
               </button>
             ) : (
               <input
                 class="input"
                 id="nprepoin"
                 placeholder="owner/repo"
-                value={p.repo}
+                value={props.repo}
                 onChange={on.repoIn}
               />
             )}
@@ -332,12 +338,14 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
                   id="npbase"
                   data-bp="base"
                   onClick={on.base}
-                  disabled={!p.hasBranches}
+                  disabled={!props.hasBranches}
                 >
                   <span>
-                    {p.hasBranches ? p.base || 'Choose a branch' : 'Loading…'}
+                    {props.hasBranches
+                      ? props.base || 'Choose a branch'
+                      : 'Loading…'}
                   </span>
-                  {I('chevron-down', 14)}
+                  {renderIcon('chevron-down', 14)}
                 </button>
               </div>
               {'\n      '}
@@ -360,18 +368,20 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
                   id="nphead"
                   data-bp="head"
                   onClick={on.head}
-                  disabled={!p.hasBranches}
+                  disabled={!props.hasBranches}
                 >
                   <span>
-                    {p.hasBranches ? p.head || 'Choose a branch' : 'Loading…'}
+                    {props.hasBranches
+                      ? props.head || 'Choose a branch'
+                      : 'Loading…'}
                   </span>
-                  {I('chevron-down', 14)}
+                  {renderIcon('chevron-down', 14)}
                 </button>
               </div>
             </div>
             {'\n    '}
             <div class="np-cmp">
-              {p.same ? (
+              {props.same ? (
                 <span class="np-note err">
                   Base and head are the same branch.
                 </span>
@@ -387,23 +397,27 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
               class="input"
               id="nptitle"
               placeholder="Title"
-              value={p.title}
+              value={props.title}
               onInput={on.title}
             />
           </div>
           {'\n    '}
           <div class="np-box">
             <label class="np-l">Description</label>
-            {t && t.length > 1 ? (
+            {templates && templates.length > 1 ? (
               <select
                 class="sel np-tpl"
                 id="nptpl"
-                value={String(t.findIndex(x => x.body === p.tplText))}
+                value={String(
+                  templates.findIndex(
+                    template => template.body === props.tplText,
+                  ),
+                )}
                 onChange={on.tpl}
               >
                 <option value="-1">No template</option>
-                {t.map((x, i) => (
-                  <option value={i}>Template: {x.name}</option>
+                {templates.map((template, index) => (
+                  <option value={index}>Template: {template.name}</option>
                 ))}
               </select>
             ) : (
@@ -413,7 +427,7 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
               k="newpr"
               ph="Describe your changes"
               rows={8}
-              submit={p.ready ? on.create : undefined}
+              submit={props.ready ? on.create : undefined}
             />
           </div>
           {'\n    '}
@@ -422,13 +436,13 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
               <input
                 type="checkbox"
                 id="npdraft"
-                checked={p.isDraft}
+                checked={props.isDraft}
                 onChange={on.draft}
               />{' '}
               Create as draft <span>(not ready for review yet)</span>
             </label>
             {'\n    '}
-            {p.err ? <div class="act-err">{p.err}</div> : ''}
+            {props.err ? <div class="act-err">{props.err}</div> : ''}
             {'\n    '}
             <div class="np-btns">
               <button class="btn" id="npcancel" onClick={on.cancel}>
@@ -438,9 +452,9 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
                 class="btn primary"
                 id="npcreate"
                 onClick={on.create}
-                disabled={!p.ready}
+                disabled={!props.ready}
               >
-                {p.isDraft
+                {props.isDraft
                   ? 'Create draft pull request'
                   : 'Create pull request'}
               </button>
@@ -449,7 +463,7 @@ export function NewPr({ p, on }: { p: NewPrProps; on: NewPrHandlers }) {
           {'\n  '}
         </div>
         <div class="np-side-col">
-          {p.meta ? <NpMeta p={p.meta} on={on} /> : ''}
+          {props.meta ? <NpMeta p={props.meta} on={on} /> : ''}
         </div>
       </div>
     </div>
@@ -496,12 +510,12 @@ export interface InboxProps {
 
 export interface InboxHandlers {
   refresh: () => void;
-  sort: (e: Event) => void;
-  query: (e: Event) => void;
+  sort: (event: Event) => void;
+  query: (event: Event) => void;
   fold: (key: string) => void;
   foldAll: (closed: boolean) => void;
   move: (title: string, by: number) => void;
-  grip: (e: MouseEvent, title: string) => void;
+  grip: (event: MouseEvent, title: string) => void;
   resetOrder: () => void;
   pin: (ref: string) => void;
   snooze: (
@@ -514,9 +528,9 @@ export interface InboxHandlers {
   viewSave: (name: string) => void;
   viewDelete: (name: string) => void;
   viewNaming: (on: boolean) => void;
-  open: (el: HTMLElement, e: MouseEvent) => void;
-  aux: (el: HTMLElement, e: MouseEvent) => void;
-  ctx: (el: HTMLElement, e: MouseEvent) => void;
+  open: (el: HTMLElement, event: MouseEvent) => void;
+  aux: (el: HTMLElement, event: MouseEvent) => void;
+  ctx: (el: HTMLElement, event: MouseEvent) => void;
 }
 
 function ViewsBar({
@@ -538,10 +552,10 @@ function ViewsBar({
           placeholder="Name this view"
           autofocus
           ref={el => el?.focus()}
-          onKeyDown={e => {
-            if (e.key === 'Enter') {
-              on.viewSave((e.target as HTMLInputElement).value);
-            } else if (e.key === 'Escape') {
+          onKeyDown={event => {
+            if (event.key === 'Enter') {
+              on.viewSave((event.target as HTMLInputElement).value);
+            } else if (event.key === 'Escape') {
               on.viewNaming(false);
             }
           }}
@@ -560,12 +574,14 @@ function ViewsBar({
           View
           <select
             class="input"
-            onChange={e => on.viewApply((e.target as HTMLSelectElement).value)}
+            onChange={event =>
+              on.viewApply((event.target as HTMLSelectElement).value)
+            }
           >
             <option value="">Choose…</option>
-            {views.map(v => (
-              <option value={v} selected={v === view}>
-                {v}
+            {views.map(otherValue => (
+              <option value={otherValue} selected={otherValue === view}>
+                {otherValue}
               </option>
             ))}
           </select>
@@ -592,7 +608,7 @@ function ViewsBar({
 }
 
 export function InboxPage({
-  p: { loading, err, secs, sort, sorts, q, custom, views, view, naming },
+  p: { loading, err, secs, sort, sorts, q: query, custom, views, view, naming },
   on,
 }: {
   p: InboxProps;
@@ -607,83 +623,88 @@ export function InboxPage({
       <div class="sk sk-line w60"></div>
     </div>
   ) : (
-    secs.map(s => (
+    secs.map(inboxSec => (
       <section
-        key={s.title}
-        data-t={s.title}
-        class={`ib-sec${s.closed ? ' closed' : ''}${s.ro}`}
+        key={inboxSec.title}
+        data-t={inboxSec.title}
+        class={`ib-sec${inboxSec.closed ? ' closed' : ''}${inboxSec.ro}`}
       >
-        <h2 class="ib-h" onClick={() => on.fold(s.key)}>
+        <h2 class="ib-h" onClick={() => on.fold(inboxSec.key)}>
           <i
             class="ib-grip"
             title="Drag to move this section"
-            onClick={e => e.stopPropagation()}
-            onMouseDown={e => on.grip(e, s.title)}
+            onClick={event => event.stopPropagation()}
+            onMouseDown={event => on.grip(event, inboxSec.title)}
           >
             ⋮⋮
           </i>
-          {I(s.closed ? 'chevron-right' : 'chevron-down')}
-          {s.title}
-          <span>{s.rows.length}</span>
+          {renderIcon(inboxSec.closed ? 'chevron-right' : 'chevron-down')}
+          {inboxSec.title}
+          <span>{inboxSec.rows.length}</span>
           <em class="ib-mv">
             <button
               title="Move up"
-              disabled={s.first}
-              onClick={e => {
-                e.stopPropagation();
-                on.move(s.title, -1);
+              disabled={inboxSec.first}
+              onClick={event => {
+                event.stopPropagation();
+                on.move(inboxSec.title, -1);
               }}
             >
-              {I('chevron-up')}
+              {renderIcon('chevron-up')}
             </button>
             <button
               title="Move down"
-              disabled={s.last}
-              onClick={e => {
-                e.stopPropagation();
-                on.move(s.title, 1);
+              disabled={inboxSec.last}
+              onClick={event => {
+                event.stopPropagation();
+                on.move(inboxSec.title, 1);
               }}
             >
-              {I('chevron-down')}
+              {renderIcon('chevron-down')}
             </button>
           </em>
         </h2>
-        {s.closed ? (
+        {inboxSec.closed ? (
           ''
         ) : (
           <>
-            <p>{s.sub}</p>
-            {s.rows.length ? (
-              s.rows.map(r => (
+            <p>{inboxSec.sub}</p>
+            {inboxSec.rows.length ? (
+              inboxSec.rows.map(ibRow => (
                 <a
-                  class={`ib-row${r.sel ? ' sel' : ''}${r.pinned ? ' pinned' : ''}`}
-                  data-open={r.ref}
-                  onClick={e => on.open(e.currentTarget, e)}
-                  onAuxClick={e => on.aux(e.currentTarget, e)}
-                  onContextMenu={e => on.ctx(e.currentTarget, e)}
+                  class={`ib-row${ibRow.sel ? ' sel' : ''}${ibRow.pinned ? ' pinned' : ''}`}
+                  data-open={ibRow.ref}
+                  onClick={event => on.open(event.currentTarget, event)}
+                  onAuxClick={event => on.aux(event.currentTarget, event)}
+                  onContextMenu={event => on.ctx(event.currentTarget, event)}
                 >
-                  <img src={r.avatar} alt="" />
+                  <img src={ibRow.avatar} alt="" />
                   <span class="ib-t">
-                    <b>{r.title}</b>
-                    <i>{r.sub}</i>
+                    <b>{ibRow.title}</b>
+                    <i>{ibRow.sub}</i>
                   </span>
-                  {r.fresh ? <span class="ib-new">New activity</span> : ''}
-                  {r.snz ? <span class="ib-snz">{r.snz}</span> : ''}
-                  {r.comments ? (
+                  {ibRow.fresh ? <span class="ib-new">New activity</span> : ''}
+                  {ibRow.snz ? <span class="ib-snz">{ibRow.snz}</span> : ''}
+                  {ibRow.comments ? (
                     <span class="ib-c">
-                      {I('comment')}
+                      {renderIcon('comment')}
                       {SP}
-                      {r.comments}
+                      {ibRow.comments}
                     </span>
                   ) : (
                     ''
                   )}
-                  <span class="ib-acts" onClick={e => e.stopPropagation()}>
-                    {r.snzOpen ? (
+                  <span
+                    class="ib-acts"
+                    onClick={event => event.stopPropagation()}
+                  >
+                    {ibRow.snzOpen ? (
                       <>
-                        {r.snz ? (
+                        {ibRow.snz ? (
                           <button
-                            onClick={() => on.snooze(r.ref, 'off', r.updated)}
+                            onClick={() =>
+                              on.snooze(ibRow.ref, 'off', ibRow.updated)
+                            }
                           >
                             Wake
                           </button>
@@ -692,19 +713,21 @@ export function InboxPage({
                         )}
                         <button
                           onClick={() =>
-                            on.snooze(r.ref, 'tomorrow', r.updated)
+                            on.snooze(ibRow.ref, 'tomorrow', ibRow.updated)
                           }
                         >
                           Tomorrow
                         </button>
                         <button
-                          onClick={() => on.snooze(r.ref, 'week', r.updated)}
+                          onClick={() =>
+                            on.snooze(ibRow.ref, 'week', ibRow.updated)
+                          }
                         >
                           Next week
                         </button>
                         <button
                           onClick={() =>
-                            on.snooze(r.ref, 'activity', r.updated)
+                            on.snooze(ibRow.ref, 'activity', ibRow.updated)
                           }
                         >
                           Until activity
@@ -712,21 +735,24 @@ export function InboxPage({
                       </>
                     ) : null}
                     <button
-                      class={r.pinned ? 'on' : ''}
-                      title={r.pinned ? 'Unpin' : 'Pin to the top'}
-                      onClick={() => on.pin(r.ref)}
+                      class={ibRow.pinned ? 'on' : ''}
+                      title={ibRow.pinned ? 'Unpin' : 'Pin to the top'}
+                      onClick={() => on.pin(ibRow.ref)}
                     >
-                      {I('bookmark')}
+                      {renderIcon('bookmark')}
                     </button>
-                    <button title="Snooze" onClick={() => on.snoozeMenu(r.ref)}>
-                      {I('clock')}
+                    <button
+                      title="Snooze"
+                      onClick={() => on.snoozeMenu(ibRow.ref)}
+                    >
+                      {renderIcon('clock')}
                     </button>
                   </span>
                 </a>
               ))
             ) : (
               <div class="ib-none">
-                {q ? 'No matches.' : 'Nothing here. Nice.'}
+                {query ? 'No matches.' : 'Nothing here. Nice.'}
               </div>
             )}
           </>
@@ -735,13 +761,13 @@ export function InboxPage({
     ))
   );
 
-  const allClosed = !!secs && secs.every(s => s.closed);
+  const allClosed = !!secs && secs.every(inboxSec => inboxSec.closed);
 
   return (
     <div class="notes-page">
       <div class="np-head">
         <h1>
-          {I('checklist')}
+          {renderIcon('checklist')}
           {SP}Inbox
         </h1>
         <div class="np-tools">
@@ -759,15 +785,15 @@ export function InboxPage({
         <input
           class="input"
           placeholder="Filter by title, repository, author or #…"
-          value={q}
+          value={query}
           onInput={on.query}
         />
         <label>
           Sort
           <select class="input" onChange={on.sort}>
-            {sorts.map(([k, t]) => (
-              <option value={k} selected={k === sort}>
-                {t}
+            {sorts.map(([key, text]) => (
+              <option value={key} selected={key === sort}>
+                {text}
               </option>
             ))}
           </select>
@@ -804,8 +830,8 @@ export const Skeleton = () => (
       <i class="sk"></i>
       <i class="sk"></i>
     </div>
-    {[0, 1, 2].map(i => (
-      <div class="sk-row" style={`--i:${i}`}>
+    {[0, 1, 2].map(index => (
+      <div class="sk-row" style={`--i:${index}`}>
         <div class="sk sk-av"></div>
         <div class="sk-card">
           <div class="sk sk-line w40"></div>
@@ -850,7 +876,7 @@ export function PrLayout({
             onClick={on.show}
             title="Show details"
           >
-            {I('columns')}
+            {renderIcon('columns')}
             <span>Details</span>
           </button>
         ) : side.kind === 'aside' ? (
@@ -863,7 +889,7 @@ export function PrLayout({
                 onClick={side.on.hide}
                 title="Hide this panel"
               >
-                {I('x')}
+                {renderIcon('x')}
               </button>
             </div>
             {side.inner}
@@ -904,7 +930,7 @@ export const Gate = ({
       <h1>Sign in to Pullscope</h1>
       {'\n  '}
       <p class="gate-err">
-        {I('alert')}
+        {renderIcon('alert')}
         {SP}No GitHub sign-in or token was found.
       </p>
       {'\n  '}

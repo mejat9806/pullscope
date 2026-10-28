@@ -1,7 +1,7 @@
 import { LcCards, LcEdit, ReviewBlock, ThreadRow } from '../components/Diff';
 import { errMsg } from './actions';
 import { hunkRows, isFolded, reactionProps } from './comments';
-import { esc, flashFor, load, S, whenParts } from './core';
+import { appState, esc, flashFor, load, whenParts } from './core';
 import { b0open } from './mergebox';
 
 import type { VNode } from 'preact';
@@ -21,50 +21,50 @@ import type {
 } from '../types';
 
 // ---- File diffs: unified or side-by-side, syntax highlighted, with line comments for a draft review ----
-S.diffMode = localStorage.getItem('diffmode') || 'unified';
+appState.diffMode = localStorage.getItem('diffmode') || 'unified';
 
-S.pending = load<Record<string, PendingComment[]>>('pending', {});
+appState.pending = load<Record<string, PendingComment[]>>('pending', {});
 
 export const pendKey = () =>
-  S.bundle
-    ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+  appState.bundle
+    ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
     : '';
 
-export const pendList = () => S.pending![pendKey()] || [];
+export const pendList = () => appState.pending![pendKey()] || [];
 
 export const savePending = () =>
-  localStorage.setItem('pending', JSON.stringify(S.pending));
+  localStorage.setItem('pending', JSON.stringify(appState.pending));
 
 export function parsePatch(patch: string) {
   const rows = [];
 
-  let o = 0;
-  let n = 0;
+  let offset = 0;
+  let count = 0;
 
   for (const line of patch.split('\n')) {
     if (line.startsWith('@@')) {
-      const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/);
+      const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/);
 
-      if (m) {
-        o = +m[1];
-        n = +m[2];
+      if (match) {
+        offset = +match[1];
+        count = +match[2];
       }
 
       rows.push({ t: 'hunk', text: line });
       continue;
     }
 
-    const c = line[0];
+    const color = line[0];
     const txt = line.slice(1);
 
-    if (c === '+') {
-      rows.push({ t: 'add', n: n++, text: txt });
-    } else if (c === '-') {
-      rows.push({ t: 'del', o: o++, text: txt });
-    } else if (c === '\\') {
+    if (color === '+') {
+      rows.push({ t: 'add', n: count++, text: txt });
+    } else if (color === '-') {
+      rows.push({ t: 'del', o: offset++, text: txt });
+    } else if (color === '\\') {
       rows.push({ t: 'note', text: line });
     } else {
-      rows.push({ t: 'ctx', o: o++, n: n++, text: txt });
+      rows.push({ t: 'ctx', o: offset++, n: count++, text: txt });
     }
   }
 
@@ -82,26 +82,28 @@ export const lineKey = (path: string, line: number, side: 'LEFT' | 'RIGHT') =>
 export const lcBody = (md: string) =>
   String(md)
     .split(/```/)
-    .map((p, i) =>
-      i % 2
+    .map((path, index) =>
+      index % 2
         ? (() => {
-            const m = p.match(/^(\w*)\n?([\s\S]*)$/);
+            const match = path.match(/^(\w*)\n?([\s\S]*)$/);
 
-            return `<pre class="lc-code${m![1] === 'suggestion' ? ' sug' : ''}">${m![1] === 'suggestion' ? '<b>Suggested change</b>\n' : ''}${esc(m![2].replace(/\n$/, ''))}</pre>`;
+            return `<pre class="lc-code${match![1] === 'suggestion' ? ' sug' : ''}">${match![1] === 'suggestion' ? '<b>Suggested change</b>\n' : ''}${esc(match![2].replace(/\n$/, ''))}</pre>`;
           })()
-        : esc(p).replace(/\n/g, '<br>'),
+        : esc(path).replace(/\n/g, '<br>'),
     )
     .join('');
 
 // Existing review threads for one line, shown read-only under it (reply / resolve live in the Conversation tab).
 export function threadsFor(path: string) {
-  return (S.bundle?.review_comments || []).filter(c => c.path === path);
+  return (appState.bundle?.review_comments || []).filter(
+    reviewComment => reviewComment.path === path,
+  );
 }
 
 export interface DiffHandlers {
   conv: ConvHandlers;
   lc: LcHandlers;
-  plus: (e: Event) => void;
+  plus: (event: Event) => void;
 }
 
 export function lineThreads(
@@ -118,54 +120,71 @@ export function lineThreads(
   }
 
   const roots = all.filter(
-    c =>
-      !c.in_reply_to_id &&
-      (c.line ?? c.original_line) === line &&
-      (c.side || 'RIGHT') === side,
+    reviewComment =>
+      !reviewComment.in_reply_to_id &&
+      (reviewComment.line ?? reviewComment.original_line) === line &&
+      (reviewComment.side || 'RIGHT') === side,
   );
 
   if (!roots.length) {
     return [];
   }
 
-  const res = new Set(S.bundle!.resolved_ids || []);
-  const b = S.bundle;
+  const res = new Set(appState.bundle!.resolved_ids || []);
+  const bundle = appState.bundle;
 
-  const card = (c: ReviewComment, rootId: number): TcProps => ({
-    user: c.user,
-    login: c.user?.login || 'ghost',
-    at: c.created_at,
-    id: c.id,
+  const card = (reviewComment: ReviewComment, rootId: number): TcProps => ({
+    user: reviewComment.user,
+    login: reviewComment.user?.login || 'ghost',
+    at: reviewComment.created_at,
+    id: reviewComment.id,
     root: rootId,
-    withMenu: !!S.hasToken,
-    bodyHtml: c.body_html || esc(c.body || ''),
-    reactions: reactionProps(c.reactions, 'review_comment', c.id),
+    withMenu: !!appState.hasToken,
+    bodyHtml: reviewComment.body_html || esc(reviewComment.body || ''),
+    reactions: reactionProps(
+      reviewComment.reactions,
+      'review_comment',
+      reviewComment.id,
+    ),
     sug: null,
     anchorId: false,
   });
 
-  return roots.map(r => {
-    const isRes = res.has(r.id);
-    const tid = (b!.thread_ids || {})[r.id];
-    const list = [r, ...all.filter(c => c.in_reply_to_id === r.id)];
+  return roots.map(reviewComment => {
+    const isRes = res.has(reviewComment.id);
+    const tid = (bundle!.thread_ids || {})[reviewComment.id];
 
-    const p: ThreadRowProps = {
+    const list = [
+      reviewComment,
+      ...all.filter(
+        otherReviewComment =>
+          otherReviewComment.in_reply_to_id === reviewComment.id,
+      ),
+    ];
+
+    const props: ThreadRowProps = {
       cols,
-      k: `t:${r.id}`,
+      k: `t:${reviewComment.id}`,
       def: isRes,
-      folded: isFolded(`t:${r.id}`, isRes),
+      folded: isFolded(`t:${reviewComment.id}`, isRes),
       side: side === 'LEFT' ? 'L' : 'R',
       line,
-      outdated: r.line == null,
+      outdated: reviewComment.line == null,
       resolved: isRes,
-      cards: list.map(c => card(c, r.id)),
-      reply: S.hasToken
-        ? { rid: r.id, ph: 'Write a reply', err: errMsg(`reply-${r.id}`) }
+      cards: list.map(otherReviewComment =>
+        card(otherReviewComment, reviewComment.id),
+      ),
+      reply: appState.hasToken
+        ? {
+            rid: reviewComment.id,
+            ph: 'Write a reply',
+            err: errMsg(`reply-${reviewComment.id}`),
+          }
         : null,
-      act: tid && S.hasToken ? { tid, res: isRes } : null,
+      act: tid && appState.hasToken ? { tid, res: isRes } : null,
     };
 
-    return <ThreadRow {...p} on={on.conv} />;
+    return <ThreadRow {...props} on={on.conv} />;
   });
 }
 
@@ -178,14 +197,17 @@ export function lineExtras(
   on: DiffHandlers,
   text?: string,
 ): VNode[] {
-  const k = lineKey(path, line, side);
+  const key = lineKey(path, line, side);
   const th = lineThreads(path, line, side, cols, on);
 
   const mine = pendList().filter(
-    c => c.path === path && c.line === line && c.side === side,
+    pendingComment =>
+      pendingComment.path === path &&
+      pendingComment.line === line &&
+      pendingComment.side === side,
   );
 
-  const open = canComment && S.lcOpen === k;
+  const open = canComment && appState.lcOpen === key;
 
   if (!mine.length && !open) {
     return th;
@@ -198,7 +220,10 @@ export function lineExtras(
         <div class="lc">
           {mine.length ? (
             <LcCards
-              cards={mine.map(c => ({ id: c.id, body: lcBody(c.body) }))}
+              cards={mine.map(pendingComment => ({
+                id: pendingComment.id,
+                body: lcBody(pendingComment.body),
+              }))}
               on={on.lc}
             />
           ) : (
@@ -227,28 +252,33 @@ export function diffTable(
   canComment: boolean,
   on: DiffHandlers,
 ): VNode {
-  const open = S.lcOpen && String(S.lcOpen).includes(path);
+  const open = appState.lcOpen && String(appState.lcOpen).includes(path);
 
   if (open) {
     return diffTableBuild(patch, path, canComment, on);
   }
 
-  const key = `${(S.busySels || []).join(',')}|${S.flash?.id}${S.flash?.n}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter(c => c.path === path))}|${threadsFor(
+  const key = `${(appState.busySels || []).join(',')}|${appState.flash?.id}${appState.flash?.n}|${window.hlLine ? 1 : 0}|${appState.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter(pendingComment => pendingComment.path === path))}|${threadsFor(
     path,
   )
     .map(
-      c =>
-        `${c.id}:${c.updated_at || ''}${JSON.stringify(c.reactions || {})}${
-          (S.bundle!.resolved_ids || []).includes(c.id) ? 'r' : ''
+      reviewComment =>
+        `${reviewComment.id}:${reviewComment.updated_at || ''}${JSON.stringify(reviewComment.reactions || {})}${
+          (appState.bundle!.resolved_ids || []).includes(reviewComment.id)
+            ? 'r'
+            : ''
         }${
-          isFolded(`t:${c.id}`, (S.bundle!.resolved_ids || []).includes(c.id))
+          isFolded(
+            `t:${reviewComment.id}`,
+            (appState.bundle!.resolved_ids || []).includes(reviewComment.id),
+          )
             ? 'f'
             : ''
         }`,
     )
     .join(
       ',',
-    )}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith('reply-') ? S.actErr.k + S.actErr.m : ''}`;
+    )}|${appState.hasToken ? 1 : 0}|${appState.actErr && String(appState.actErr.k).startsWith('reply-') ? appState.actErr.k + appState.actErr.m : ''}`;
 
   const hit = diffCache.get(key);
 
@@ -306,100 +336,114 @@ export function diffTableBuild(
 
   const out: VNode[] = [];
 
-  if (S.diffMode === 'split') {
-    let i = 0;
+  if (appState.diffMode === 'split') {
+    let index = 0;
 
-    while (i < rows.length) {
-      const r = rows[i];
+    while (index < rows.length) {
+      const value = rows[index];
 
-      if (r.t === 'hunk') {
+      if (value.t === 'hunk') {
         out.push(
           <tr class="hunk">
             <td class="num"></td>
             <td class="code" colspan={3}>
-              {r.text}
+              {value.text}
             </td>
           </tr>,
         );
 
-        i++;
+        index++;
         continue;
       }
 
-      if (r.t === 'note') {
-        i++;
+      if (value.t === 'note') {
+        index++;
         continue;
       }
 
-      if (r.t === 'ctx') {
+      if (value.t === 'ctx') {
         out.push(
           <tr>
-            <td class="num">{r.o}</td>
-            <Code text={r.text} path={path} marker=" " />
+            <td class="num">{value.o}</td>
+            <Code text={value.text} path={path} marker=" " />
             <td class="num">
-              {r.n}
-              {plus(r.n!, 'RIGHT')}
+              {value.n}
+              {plus(value.n!, 'RIGHT')}
             </td>
-            <Code text={r.text} path={path} marker=" " />
+            <Code text={value.text} path={path} marker=" " />
           </tr>,
-          ...lineExtras(path, r.n!, 'RIGHT', 4, canComment, on, r.text),
+          ...lineExtras(path, value.n!, 'RIGHT', 4, canComment, on, value.text),
         );
 
-        i++;
+        index++;
         continue;
       }
 
       const dels = [];
       const adds = [];
 
-      while (rows[i] && rows[i].t === 'del') {
-        dels.push(rows[i++]);
+      while (rows[index] && rows[index].t === 'del') {
+        dels.push(rows[index++]);
       }
 
-      while (rows[i] && rows[i].t === 'add') {
-        adds.push(rows[i++]);
+      while (rows[index] && rows[index].t === 'add') {
+        adds.push(rows[index++]);
       }
 
-      for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
-        const d = dels[k];
-        const a = adds[k];
+      for (
+        let otherIndex = 0;
+        otherIndex < Math.max(dels.length, adds.length);
+        otherIndex++
+      ) {
+        const otherValue = dels[otherIndex];
+        const innerValue = adds[otherIndex];
 
         out.push(
           <tr>
-            <td class={`num${d ? ' del' : ' empty'}`}>
-              {d ? (
+            <td class={`num${otherValue ? ' del' : ' empty'}`}>
+              {otherValue ? (
                 <>
-                  {d.o}
-                  {plus(d.o!, 'LEFT')}
+                  {otherValue.o}
+                  {plus(otherValue.o!, 'LEFT')}
                 </>
               ) : (
                 ''
               )}
             </td>
-            {d ? (
-              <Code text={d.text} path={path} cls=" del" marker="-" />
+            {otherValue ? (
+              <Code text={otherValue.text} path={path} cls=" del" marker="-" />
             ) : (
               <td class="code empty"></td>
             )}
-            <td class={`num${a ? ' add' : ' empty'}`}>
-              {a ? (
+            <td class={`num${innerValue ? ' add' : ' empty'}`}>
+              {innerValue ? (
                 <>
-                  {a.n}
-                  {plus(a.n!, 'RIGHT')}
+                  {innerValue.n}
+                  {plus(innerValue.n!, 'RIGHT')}
                 </>
               ) : (
                 ''
               )}
             </td>
-            {a ? (
-              <Code text={a.text} path={path} cls=" add" marker="+" />
+            {innerValue ? (
+              <Code text={innerValue.text} path={path} cls=" add" marker="+" />
             ) : (
               <td class="code empty"></td>
             )}
           </tr>,
-          ...(d ? lineExtras(path, d.o!, 'LEFT', 4, canComment, on) : []),
-          ...(a
-            ? lineExtras(path, a.n!, 'RIGHT', 4, canComment, on, a.text)
+          ...(otherValue
+            ? lineExtras(path, otherValue.o!, 'LEFT', 4, canComment, on)
+            : []),
+          ...(innerValue
+            ? lineExtras(
+                path,
+                innerValue.n!,
+                'RIGHT',
+                4,
+                canComment,
+                on,
+                innerValue.text,
+              )
             : []),
         );
       }
@@ -418,60 +462,60 @@ export function diffTableBuild(
     );
   }
 
-  for (const r of rows) {
-    if (r.t === 'hunk') {
+  for (const value of rows) {
+    if (value.t === 'hunk') {
       out.push(
         <tr class="hunk">
           <td class="num">…</td>
           <td class="num">…</td>
-          <td class="code">{r.text}</td>
+          <td class="code">{value.text}</td>
         </tr>,
       );
-    } else if (r.t === 'note') {
+    } else if (value.t === 'note') {
       out.push(
         <tr>
           <td class="num"></td>
           <td class="num"></td>
           <td class="code" style="color:var(--fgColor-muted)">
-            {r.text}
+            {value.text}
           </td>
         </tr>,
       );
-    } else if (r.t === 'add') {
+    } else if (value.t === 'add') {
       out.push(
         <tr class="add">
           <td class="num"></td>
           <td class="num">
-            {r.n}
-            {plus(r.n!, 'RIGHT')}
+            {value.n}
+            {plus(value.n!, 'RIGHT')}
           </td>
-          <Code text={r.text} path={path} marker="+" />
+          <Code text={value.text} path={path} marker="+" />
         </tr>,
-        ...lineExtras(path, r.n!, 'RIGHT', 3, canComment, on, r.text),
+        ...lineExtras(path, value.n!, 'RIGHT', 3, canComment, on, value.text),
       );
-    } else if (r.t === 'del') {
+    } else if (value.t === 'del') {
       out.push(
         <tr class="del">
           <td class="num">
-            {r.o}
-            {plus(r.o!, 'LEFT')}
+            {value.o}
+            {plus(value.o!, 'LEFT')}
           </td>
           <td class="num"></td>
-          <Code text={r.text} path={path} marker="-" />
+          <Code text={value.text} path={path} marker="-" />
         </tr>,
-        ...lineExtras(path, r.o!, 'LEFT', 3, canComment, on),
+        ...lineExtras(path, value.o!, 'LEFT', 3, canComment, on),
       );
     } else {
       out.push(
         <tr>
-          <td class="num">{r.o}</td>
+          <td class="num">{value.o}</td>
           <td class="num">
-            {r.n}
-            {plus(r.n!, 'RIGHT')}
+            {value.n}
+            {plus(value.n!, 'RIGHT')}
           </td>
-          <Code text={r.text} path={path} marker=" " />
+          <Code text={value.text} path={path} marker=" " />
         </tr>,
-        ...lineExtras(path, r.n!, 'RIGHT', 3, canComment, on, r.text),
+        ...lineExtras(path, value.n!, 'RIGHT', 3, canComment, on, value.text),
       );
     }
   }
@@ -489,38 +533,42 @@ export function diffTableBuild(
 }
 
 // ```suggestion blocks in a review comment can be applied as a commit on the PR branch
-export const sugOf = (c: { body?: string | null }) => {
-  const m = (c.body || '').match(/```suggestion[^\n]*\n([\s\S]*?)\n?```/);
+export const sugOf = (item: { body?: string | null }) => {
+  const match = (item.body || '').match(
+    /```suggestion[^\n]*\n([\s\S]*?)\n?```/,
+  );
 
-  return m ? m[1] : null;
+  return match ? match[1] : null;
 };
 
 export function suggestProps(
-  c: ReviewComment,
-  b: Bundle,
+  reviewComment: ReviewComment,
+  bundle: Bundle,
   list: ReviewComment[],
 ): SugProps | null {
-  const t = sugOf(c);
+  const text = sugOf(reviewComment);
 
-  if (t !== null && S.applied?.has(String(c.id))) {
+  if (text !== null && appState.applied?.has(String(reviewComment.id))) {
     return { kind: 'note', text: 'Applying suggestion…' };
   }
 
   if (
-    t === null ||
+    text === null ||
     !b0open() ||
-    list.some(x => (b.resolved_ids || []).includes(x.id))
+    list.some(otherReviewComment =>
+      (bundle.resolved_ids || []).includes(otherReviewComment.id),
+    )
   ) {
     return null;
   }
 
-  const p = b.pull;
+  const pull = bundle.pull;
 
   const mine =
-    (p.head.repo && !p.head.repo.fork) ||
-    (p.head.repo && p.head.repo.full_name === p.base.repo.full_name);
+    (pull.head.repo && !pull.head.repo.fork) ||
+    (pull.head.repo && pull.head.repo.full_name === pull.base.repo.full_name);
 
-  if (!c.line) {
+  if (!reviewComment.line) {
     return {
       kind: 'note',
       text: 'Outdated suggestion — the lines have changed.',
@@ -529,19 +577,21 @@ export function suggestProps(
 
   return {
     kind: 'btn',
-    id: c.id,
-    disabled: !p.head.repo,
-    ref: p.head.ref,
+    id: reviewComment.id,
+    disabled: !pull.head.repo,
+    ref: pull.head.ref,
     mine: !!mine,
   };
 }
 
 export function reviewBlockProps(
-  e: TimelineEvent,
-  b: Bundle,
+  timelineEvent: TimelineEvent,
+  bundle: Bundle,
 ): ReviewBlockProps | null {
-  const resolved = new Set(b.resolved_ids || []);
-  const isRes = (list: ReviewComment[]) => list.some(c => resolved.has(c.id));
+  const resolved = new Set(bundle.resolved_ids || []);
+
+  const isRes = (list: ReviewComment[]) =>
+    list.some(reviewComment => resolved.has(reviewComment.id));
 
   const stateMap: Record<string, string[]> = {
     approved: ['check', 'success', 'approved these changes'],
@@ -550,49 +600,59 @@ export function reviewBlockProps(
     dismissed: ['x', '', 'dismissed a review'],
   };
 
-  const [ic, kind, verb] = stateMap[e.state!.toLowerCase()] || [
+  const [ic, kind, verb] = stateMap[timelineEvent.state!.toLowerCase()] || [
     'eye',
     '',
     'reviewed',
   ];
 
-  const mine = b.review_comments.filter(c => c.pull_request_review_id === e.id);
-  const mineIds = new Set(mine.map(c => c.id));
+  const mine = bundle.review_comments.filter(
+    reviewComment => reviewComment.pull_request_review_id === timelineEvent.id,
+  );
+
+  const mineIds = new Set(mine.map(reviewComment => reviewComment.id));
 
   const cs = [
     ...mine,
-    ...b.review_comments.filter(
-      c => c.pull_request_review_id !== e.id && mineIds.has(c.in_reply_to_id!),
+    ...bundle.review_comments.filter(
+      reviewComment =>
+        reviewComment.pull_request_review_id !== timelineEvent.id &&
+        mineIds.has(reviewComment.in_reply_to_id!),
     ),
   ].filter(
-    c =>
-      !S.who.length ||
-      S.who.includes(e.user?.login ?? '') ||
-      S.who.includes(c.user?.login),
+    reviewComment =>
+      !appState.who.length ||
+      appState.who.includes(timelineEvent.user?.login ?? '') ||
+      appState.who.includes(reviewComment.user?.login),
   );
 
-  const hasBody = e.body_html && e.body_html.trim();
+  const hasBody = timelineEvent.body_html && timelineEvent.body_html.trim();
   const byPath: Record<string, ReviewComment[]> = {};
 
-  cs.forEach(c =>
-    (byPath[`${c.path}\u0000${c.original_position ?? c.position}`] ||= []).push(
-      c,
-    ),
+  cs.forEach(reviewComment =>
+    (byPath[
+      `${reviewComment.path}\u0000${reviewComment.original_position ?? reviewComment.position}`
+    ] ||= []).push(reviewComment),
   );
 
-  const all = Object.values(byPath).map(l =>
-    l.sort(
-      (x, y) =>
-        (x.in_reply_to_id ? 1 : 0) - (y.in_reply_to_id ? 1 : 0) || x.id - y.id,
+  const all = Object.values(byPath).map(reviewComments =>
+    reviewComments.sort(
+      (leftReviewComment, rightReviewComment) =>
+        (leftReviewComment.in_reply_to_id ? 1 : 0) -
+          (rightReviewComment.in_reply_to_id ? 1 : 0) ||
+        leftReviewComment.id - rightReviewComment.id,
     ),
   );
 
   const allRes = all.length > 0 && all.every(isRes);
   const nres = all.filter(isRes).length;
-  const rk = `r:${e.id}`;
-  const lists = S.unres ? all.filter(l => !isRes(l)) : all;
+  const rk = `r:${timelineEvent.id}`;
 
-  if (S.unres && !lists.length) {
+  const lists = appState.unres
+    ? all.filter(reviewComments => !isRes(reviewComments))
+    : all;
+
+  if (appState.unres && !lists.length) {
     return null;
   }
 
@@ -602,21 +662,27 @@ export function reviewBlockProps(
     def: isRes(list),
     path: list[0].path,
     resolved: isRes(list),
-    tid: (b.thread_ids || {})[list[0].id] ? b.thread_ids[list[0].id] : null,
+    tid: (bundle.thread_ids || {})[list[0].id]
+      ? bundle.thread_ids[list[0].id]
+      : null,
     hunk: hunkRows(list[0].diff_hunk || ''),
-    cards: list.map((c): TcProps => ({
-      user: c.user,
-      login: c.user.login,
-      at: c.created_at,
-      id: c.id,
+    cards: list.map((reviewComment): TcProps => ({
+      user: reviewComment.user,
+      login: reviewComment.user.login,
+      at: reviewComment.created_at,
+      id: reviewComment.id,
       root: list[0].id,
       withMenu: true,
-      bodyHtml: c.body_html || '',
-      reactions: reactionProps(c.reactions, 'review_comment', c.id),
-      sug: suggestProps(c, b, list),
+      bodyHtml: reviewComment.body_html || '',
+      reactions: reactionProps(
+        reviewComment.reactions,
+        'review_comment',
+        reviewComment.id,
+      ),
+      sug: suggestProps(reviewComment, bundle, list),
       anchorId: true,
-      kb: S.kbId === `c-${c.id}`,
-      flash: flashFor(`c-${c.id}`),
+      kb: appState.kbId === `c-${reviewComment.id}`,
+      flash: flashFor(`c-${reviewComment.id}`),
     })),
     reply: {
       rid: list[0].id,
@@ -638,12 +704,12 @@ export function reviewBlockProps(
     k: rk,
     kind,
     ic,
-    user: e.user,
+    user: timelineEvent.user,
     verb,
-    url: e.html_url ?? '',
-    at: whenParts(e.submitted_at!).text,
+    url: timelineEvent.html_url ?? '',
+    at: whenParts(timelineEvent.submitted_at!).text,
     sum,
-    bodyHtml: hasBody ? e.body_html! : '',
+    bodyHtml: hasBody ? timelineEvent.body_html! : '',
     threads,
     allRes,
   };

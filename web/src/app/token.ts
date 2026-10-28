@@ -1,71 +1,77 @@
-import { esc, S, tauri } from './core';
+import { appState, esc, tauri } from './core';
 import { paintDlg } from './dialogs';
 import { loadRepos } from './nav';
 import { render } from './pages';
 
 export function tokenDialog() {
-  S.oauth = {};
-  S.oauthLive = false;
-  S.tokenText = '';
-  S.dlg = { k: 'token' };
+  appState.oauth = {};
+  appState.oauthLive = false;
+  appState.tokenText = '';
+  appState.dlg = { k: 'token' };
   render();
 }
 
 export async function tokenSave() {
-  const v = S.tokenText || '';
+  const value = appState.tokenText || '';
 
   try {
-    await tauri?.invoke('set_token', { token: v });
-    S.hasToken = !!v.trim();
-    S.authChecked = true;
+    await tauri?.invoke('set_token', { token: value });
+    appState.hasToken = !!value.trim();
+    appState.authChecked = true;
 
-    if (S.hasToken) {
-      S.gateErr = '';
+    if (appState.hasToken) {
+      appState.gateErr = '';
       loadRepos();
     } else {
-      S.repos = null;
+      appState.repos = null;
     }
-  } catch (e) {
-    alert(e);
+  } catch (error) {
+    alert(error);
   }
 
-  S.oauthLive = false;
-  S.dlg = null;
+  appState.oauthLive = false;
+  appState.dlg = null;
   render();
 }
 
 export async function oauthGo() {
-  const show = (o: { code?: string; err?: string }) => {
-    S.oauth = o;
+  const show = (options: { code?: string; err?: string }) => {
+    appState.oauth = options;
 
-    if (S.dlg) {
+    if (appState.dlg) {
       paintDlg();
     }
   };
 
-  S.oauthLive = true;
-  const me = (S.oauthRun = (S.oauthRun || 0) + 1);
+  appState.oauthLive = true;
+  const me = (appState.oauthRun = (appState.oauthRun || 0) + 1);
 
   try {
-    const d = await tauri!.invoke('device_start');
-    show({ code: d.user_code });
+    const deviceCode = await tauri!.invoke('device_start');
+    show({ code: deviceCode.user_code });
 
-    tauri!.invoke('open_external', { url: d.verification_uri }).catch(() => {});
+    tauri!
+      .invoke('open_external', { url: deviceCode.verification_uri })
+      .catch(() => {});
 
-    let wait = (d.interval || 5) * 1000;
+    let wait = (deviceCode.interval || 5) * 1000;
 
-    const until = Date.now() + (d.expires_in || 900) * 1000;
+    const until = Date.now() + (deviceCode.expires_in || 900) * 1000;
 
-    while (S.oauthLive && S.oauthRun === me && Date.now() < until) {
+    while (
+      appState.oauthLive &&
+      appState.oauthRun === me &&
+      Date.now() < until
+    ) {
       const delay = wait;
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise(handler => setTimeout(handler, delay));
 
-      if (!S.oauthLive || S.oauthRun !== me) {
+      if (!appState.oauthLive || appState.oauthRun !== me) {
         return;
       }
 
       const st = await tauri!.invoke('device_poll', {
-        deviceCode: d.device_code,
+        deviceCode: deviceCode.device_code,
       });
 
       if (st === 'slow_down') {
@@ -73,10 +79,10 @@ export async function oauthGo() {
       }
 
       if (st === 'ok') {
-        S.oauthLive = false;
-        S.hasToken = true;
-        S.gateErr = '';
-        S.dlg = null;
+        appState.oauthLive = false;
+        appState.hasToken = true;
+        appState.gateErr = '';
+        appState.dlg = null;
         loadRepos();
 
         return;
@@ -84,9 +90,9 @@ export async function oauthGo() {
     }
 
     throw new Error('The code expired. Start again.');
-  } catch (e) {
-    S.oauthLive = false;
-    show({ err: e instanceof Error ? e.message : String(e) });
+  } catch (error) {
+    appState.oauthLive = false;
+    show({ err: error instanceof Error ? error.message : String(error) });
   }
 }
 

@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Changed
+- Developer tooling: one-letter names are gone from the web code (`S` is now `appState`, `e` is `event`, `b` is `bundle`, and so on) and ESLint's `id-length` rule keeps them out. No behaviour change.
+
 ## [1.3.1]
 
 ### Changed

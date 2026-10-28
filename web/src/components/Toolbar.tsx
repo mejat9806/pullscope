@@ -4,25 +4,25 @@ import { Icon } from './ui';
 import type { Profile } from '../types';
 
 export interface ToolbarHandlers {
-  nav: (e: MouseEvent) => void;
+  nav: (event: MouseEvent) => void;
   back: () => void;
   fwd: () => void;
   reload: () => void;
   external: () => void;
-  mode: (e: MouseEvent) => void;
-  addr: (e: Event) => void;
-  drag: (e: MouseEvent) => void;
-  input: (e: Event) => void;
-  focus: (e: Event) => void;
+  mode: (event: MouseEvent) => void;
+  addr: (event: Event) => void;
+  drag: (event: MouseEvent) => void;
+  input: (event: Event) => void;
+  focus: (event: Event) => void;
   blur: () => void;
-  key: (e: KeyboardEvent) => void;
+  key: (event: KeyboardEvent) => void;
   upd: () => void;
-  retry: (e: MouseEvent) => void;
+  retry: (event: MouseEvent) => void;
   newPr: () => void;
   inbox: () => void;
-  bell: (e: MouseEvent) => void;
+  bell: (event: MouseEvent) => void;
   signin: () => void;
-  prof: (e: MouseEvent) => void;
+  prof: (event: MouseEvent) => void;
 }
 
 export interface ToolbarProps {
@@ -43,16 +43,20 @@ export interface ToolbarProps {
 
 const NL = '\n  ';
 
-export function Toolbar(p: ToolbarProps) {
-  const label = p.profile ? p.profile.name || p.profile.login : '';
+export function Toolbar(props: ToolbarProps) {
+  const label = props.profile ? props.profile.name || props.profile.login : '';
 
   return (
-    <header class="toolbar" data-tauri-drag-region="" onMouseDown={p.on.drag}>
+    <header
+      class="toolbar"
+      data-tauri-drag-region=""
+      onMouseDown={props.on.drag}
+    >
       {NL}
       <button
         class="tb-btn nav-btn"
         id="navbtn"
-        onClick={p.on.nav}
+        onClick={props.on.nav}
         title="Show or hide the sidebar"
       >
         <Icon n="three-bars" />
@@ -61,8 +65,8 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn"
           id="back"
-          onClick={p.on.back}
-          disabled={!p.canBack}
+          onClick={props.on.back}
+          disabled={!props.canBack}
           title="Back (⌘[)"
         >
           <Icon n="chevron-left" />
@@ -70,8 +74,8 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn"
           id="fwd"
-          onClick={p.on.fwd}
-          disabled={!p.canFwd}
+          onClick={props.on.fwd}
+          disabled={!props.canFwd}
           title="Forward (⌘])"
         >
           <Icon n="chevron-right" />
@@ -79,57 +83,59 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn"
           id="reload"
-          onClick={p.on.reload}
-          disabled={!p.hasBundle}
+          onClick={props.on.reload}
+          disabled={!props.hasBundle}
           title="Reload (⌘R)"
         >
           <Icon n="sync" />
         </button>
       </div>
       {NL}
-      <form id="addr" class="addr" onSubmit={p.on.addr}>
+      <form id="addr" class="addr" onSubmit={props.on.addr}>
         <Icon n="search" />
         <input
           id="addrinput"
           ref={useFocusTarget('addr')}
-          value={p.text}
-          onInput={p.on.input}
-          onFocus={p.on.focus}
-          onBlur={p.on.blur}
-          onKeyDown={p.on.key}
+          value={props.text}
+          onInput={props.on.input}
+          onFocus={props.on.focus}
+          onBlur={props.on.blur}
+          onKeyDown={props.on.key}
           placeholder="Open a pull request: owner/repo#123 or URL  (⌘L)"
           spellcheck={false}
           autocomplete="off"
         />
       </form>
-      {p.update && (
+      {props.update && (
         <button
           class="upd"
           id="upd"
-          onClick={p.on.upd}
+          onClick={props.on.upd}
           title="Download and install the new version, then restart"
         >
           <Icon n="sync" />{' '}
-          {p.update.busy ? 'Updating…' : `Update to v${p.update.version}`}
+          {props.update.busy
+            ? 'Updating…'
+            : `Update to v${props.update.version}`}
         </button>
       )}
       {NL}
       <div class="tb-group">
         <button
-          class={`tb-btn off-ind ${p.offline ? 'on' : ''}`}
+          class={`tb-btn off-ind ${props.offline ? 'on' : ''}`}
           id="retry"
-          onClick={p.on.retry}
+          onClick={props.on.retry}
           data-tip="Offline — can't reach GitHub. Showing the saved copy. Click to retry."
           aria-label="Offline, click to retry"
-          tabindex={p.offline ? 0 : -1}
+          tabindex={props.offline ? 0 : -1}
         >
           <Icon n="alert" />
         </button>
         <button
           class="tb-btn"
           id="external"
-          onClick={p.on.external}
-          disabled={!p.hasBundle}
+          onClick={props.on.external}
+          disabled={!props.hasBundle}
           title="Open on github.com"
         >
           <Icon n="link-external" />
@@ -137,7 +143,7 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn"
           id="newprbtn"
-          onClick={p.on.newPr}
+          onClick={props.on.newPr}
           title="New pull request"
         >
           <Icon n="plus" />
@@ -145,7 +151,7 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn"
           id="inboxbtn"
-          onClick={p.on.inbox}
+          onClick={props.on.inbox}
           title="Inbox: PRs that need you"
         >
           <Icon n="checklist" />
@@ -153,20 +159,20 @@ export function Toolbar(p: ToolbarProps) {
         <button
           class="tb-btn bell"
           id="bell"
-          onClick={p.on.bell}
+          onClick={props.on.bell}
           title="Notifications"
         >
           <Icon n="bell" />
-          {p.unread > 0 && <i class="dot">{p.unread}</i>}
+          {props.unread > 0 && <i class="dot">{props.unread}</i>}
         </button>
         <button
-          key={p.pop}
-          class={`theme-sw${p.dark ? ' dark' : ''}${p.pop ? ' pop' : ''}`}
+          key={props.pop}
+          class={`theme-sw${props.dark ? ' dark' : ''}${props.pop ? ' pop' : ''}`}
           id="mode"
-          onClick={p.on.mode}
+          onClick={props.on.mode}
           role="switch"
-          aria-checked={p.dark}
-          title={`Switch to ${p.dark ? 'light' : 'dark'} mode`}
+          aria-checked={props.dark}
+          title={`Switch to ${props.dark ? 'light' : 'dark'} mode`}
         >
           <i class="st"></i>
           <i class="st s2"></i>
@@ -179,14 +185,14 @@ export function Toolbar(p: ToolbarProps) {
             <b class="cr c3"></b>
           </span>
         </button>
-        {p.hasToken && p.profile ? (
+        {props.hasToken && props.profile ? (
           <button
             class="prof-btn"
             id="profbtn"
-            onClick={p.on.prof}
+            onClick={props.on.prof}
             title={`${label} — account menu`}
           >
-            <img src={p.avatar} alt="" />
+            <img src={props.avatar} alt="" />
             <span>{label}</span>
             <Icon n="chevron-down" s={12} />
           </button>
@@ -194,7 +200,7 @@ export function Toolbar(p: ToolbarProps) {
           <button
             class="tb-btn"
             id="signin"
-            onClick={p.on.signin}
+            onClick={props.on.signin}
             title="Access token"
           >
             <Icon n="key" />

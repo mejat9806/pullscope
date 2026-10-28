@@ -4,8 +4,8 @@ import { CommitsDialog } from './Merge';
 import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
 
-const Err = ({ m }: { m: string }) => (
-  <div id="reverr">{m ? <div class="act-err">{m}</div> : ''}</div>
+const Err = ({ m: message }: { m: string }) => (
+  <div id="reverr">{message ? <div class="act-err">{message}</div> : ''}</div>
 );
 
 export interface Btns {
@@ -16,7 +16,7 @@ export interface Btns {
 export interface ReviewDlgProps extends Btns {
   ph: string;
   ev: string;
-  onEv: (v: string) => void;
+  onEv: (value: string) => void;
   own: boolean;
 }
 
@@ -30,31 +30,33 @@ const REVS: [string, string, string][] = [
   ],
 ];
 
-export const ReviewDialog = (p: ReviewDlgProps & { err: string }) => (
+export const ReviewDialog = (props: ReviewDlgProps & { err: string }) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg wide">
       <h2>Finish your review</h2>
-      <DraftBox k="review" ph={p.ph} rows={5} submit={p.ok} />
+      <DraftBox k="review" ph={props.ph} rows={5} submit={props.ok} />
       <div class="radios">
-        {REVS.filter(([v]) => !p.own || v === 'COMMENT').map(([v, t, d]) => (
-          <label>
-            <input
-              type="radio"
-              name="rev"
-              value={v}
-              checked={p.ev === v}
-              onChange={() => p.onEv(v)}
-            />{' '}
-            <b>{t}</b> <span>{d}</span>
-          </label>
-        ))}
+        {REVS.filter(([value]) => !props.own || value === 'COMMENT').map(
+          ([otherValue, text, otherText]) => (
+            <label>
+              <input
+                type="radio"
+                name="rev"
+                value={otherValue}
+                checked={props.ev === otherValue}
+                onChange={() => props.onEv(otherValue)}
+              />{' '}
+              <b>{text}</b> <span>{otherText}</span>
+            </label>
+          ),
+        )}
       </div>
-      <Err m={p.err} />
+      <Err m={props.err} />
       <div class="btns">
-        <button class="btn" id="revcancel" onClick={p.close}>
+        <button class="btn" id="revcancel" onClick={props.close}>
           Cancel
         </button>
-        <button class="btn primary" id="revsubmit" onClick={p.ok}>
+        <button class="btn primary" id="revsubmit" onClick={props.ok}>
           Submit review
         </button>
       </div>
@@ -63,7 +65,11 @@ export const ReviewDialog = (p: ReviewDlgProps & { err: string }) => (
 );
 
 export const EditPrDialog = (
-  p: Btns & { title: string; err: string; onTitle: (v: string) => void },
+  otherValue: Btns & {
+    title: string;
+    err: string;
+    onTitle: (value: string) => void;
+  },
 ) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg wide">
@@ -72,18 +78,20 @@ export const EditPrDialog = (
       <input
         class="input"
         id="eptitle"
-        value={p.title}
-        onInput={e => p.onTitle((e.target as HTMLInputElement).value)}
+        value={otherValue.title}
+        onInput={event =>
+          otherValue.onTitle((event.target as HTMLInputElement).value)
+        }
         style="width:100%;box-sizing:border-box;height:34px"
       />
       <label class="np-l">Description</label>
       <DraftBox k="prbody" ph="Describe your changes" rows={8} />
-      <Err m={p.err} />
+      <Err m={otherValue.err} />
       <div class="btns">
-        <button class="btn" id="epcancel" onClick={p.close}>
+        <button class="btn" id="epcancel" onClick={otherValue.close}>
           Cancel
         </button>
-        <button class="btn primary" id="epsave" onClick={p.ok}>
+        <button class="btn primary" id="epsave" onClick={otherValue.ok}>
           Save
         </button>
       </div>
@@ -92,39 +100,39 @@ export const EditPrDialog = (
 );
 
 export const ConfirmDialog = (
-  p: Btns & { title: string; text: string; label: string; danger: boolean },
+  value: Btns & { title: string; text: string; label: string; danger: boolean },
 ) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg">
-      <h2>{p.title}</h2>
-      <p>{p.text}</p>
+      <h2>{value.title}</h2>
+      <p>{value.text}</p>
       <div class="btns">
-        <button class="btn" id="cfcancel" onClick={p.close}>
+        <button class="btn" id="cfcancel" onClick={value.close}>
           Cancel
         </button>
         <button
-          class={`btn ${p.danger ? 'danger' : 'primary'}`}
+          class={`btn ${value.danger ? 'danger' : 'primary'}`}
           id="cfok"
-          onClick={p.ok}
+          onClick={value.ok}
         >
-          {p.label}
+          {value.label}
         </button>
       </div>
     </div>
   </div>
 );
 
-export const EditCommentDialog = (p: Btns & { err: string }) => (
+export const EditCommentDialog = (value: Btns & { err: string }) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg wide">
       <h2>Edit comment</h2>
       <DraftBox k="editc" ph="Edit your comment" rows={6} />
-      <Err m={p.err} />
+      <Err m={value.err} />
       <div class="btns">
-        <button class="btn" id="eccancel" onClick={p.close}>
+        <button class="btn" id="eccancel" onClick={value.close}>
           Cancel
         </button>
-        <button class="btn primary" id="ecsave" onClick={p.ok}>
+        <button class="btn primary" id="ecsave" onClick={value.ok}>
           Save
         </button>
       </div>
@@ -132,17 +140,17 @@ export const EditCommentDialog = (p: Btns & { err: string }) => (
   </div>
 );
 
-export const DeleteCommentDialog = (p: Btns & { err: string }) => (
+export const DeleteCommentDialog = (value: Btns & { err: string }) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg">
       <h2>Delete this comment?</h2>
       <p style="color:var(--fgColor-muted)">This can't be undone.</p>
-      <Err m={p.err} />
+      <Err m={value.err} />
       <div class="btns">
-        <button class="btn" id="dccancel" onClick={p.close}>
+        <button class="btn" id="dccancel" onClick={value.close}>
           Cancel
         </button>
-        <button class="btn danger" id="dcdo" onClick={p.ok}>
+        <button class="btn danger" id="dcdo" onClick={value.ok}>
           Delete
         </button>
       </div>
@@ -151,10 +159,10 @@ export const DeleteCommentDialog = (p: Btns & { err: string }) => (
 );
 
 export const HideCommentDialog = (
-  p: Btns & {
+  otherValue: Btns & {
     reasons: [string, string][];
     reason: string;
-    pick: (e: Event) => void;
+    pick: (event: Event) => void;
     err: string;
   },
 ) => (
@@ -166,20 +174,23 @@ export const HideCommentDialog = (
         class="sel"
         id="hcreason"
         style="width:100%;height:34px"
-        onChange={p.pick}
+        onChange={otherValue.pick}
       >
-        {p.reasons.map(([v, l]) => (
-          <option value={v} selected={v === p.reason}>
-            {l}
+        {otherValue.reasons.map(([innerValue, line]) => (
+          <option
+            value={innerValue}
+            selected={innerValue === otherValue.reason}
+          >
+            {line}
           </option>
         ))}
       </select>
-      <Err m={p.err} />
+      <Err m={otherValue.err} />
       <div class="btns">
-        <button class="btn" id="hccancel" onClick={p.close}>
+        <button class="btn" id="hccancel" onClick={otherValue.close}>
           Cancel
         </button>
-        <button class="btn primary" id="hcdo" onClick={p.ok}>
+        <button class="btn primary" id="hcdo" onClick={otherValue.ok}>
           Hide comment
         </button>
       </div>
@@ -189,7 +200,7 @@ export const HideCommentDialog = (
 
 export interface TokenDlgProps {
   text: string;
-  input: (e: Event) => void;
+  input: (event: Event) => void;
   code: string;
   err: string;
   go: () => void;
@@ -197,7 +208,7 @@ export interface TokenDlgProps {
   save: () => void;
 }
 
-export const TokenDialog = (p: TokenDlgProps) => (
+export const TokenDialog = (props: TokenDlgProps) => (
   <div class="dlg-bg" id="dlgbg">
     <div class="dlg">
       <h2>GitHub classic token</h2>
@@ -209,21 +220,21 @@ export const TokenDialog = (p: TokenDlgProps) => (
         your OS keychain. Leave empty and save to remove it.
       </p>
       <div class="oauth-row">
-        <button class="btn primary" id="oauthgo" onClick={p.go}>
+        <button class="btn primary" id="oauthgo" onClick={props.go}>
           Sign in with GitHub
         </button>
         <span>or paste a token below</span>
       </div>
       <div id="oauthbox">
-        {p.code ? (
+        {props.code ? (
           <div class="oauth-code">
             <span>Enter this code on GitHub</span>
-            <b>{p.code}</b>
+            <b>{props.code}</b>
             <small>Waiting for approval…</small>
           </div>
-        ) : p.err ? (
+        ) : props.err ? (
           <div class="err" style="margin:8px 0">
-            {p.err}
+            {props.err}
           </div>
         ) : (
           ''
@@ -238,16 +249,16 @@ export const TokenDialog = (p: TokenDlgProps) => (
         class="input"
         id="tokeninput"
         type="password"
-        value={p.text}
-        onInput={p.input}
+        value={props.text}
+        onInput={props.input}
         placeholder="ghp_…"
         style="width:100%;box-sizing:border-box"
       />
       <div class="btns">
-        <button class="btn" id="tokcancel" onClick={p.close}>
+        <button class="btn" id="tokcancel" onClick={props.close}>
           Cancel
         </button>
-        <button class="btn primary" id="toksave" onClick={p.save}>
+        <button class="btn primary" id="toksave" onClick={props.save}>
           Save
         </button>
       </div>
@@ -260,18 +271,18 @@ export interface RepoPickProps {
   on: Set<string>;
   q: string;
   err: string;
-  toggle: (n: string) => void;
+  toggle: (name: string) => void;
   all: (on: boolean) => void;
-  input: (e: Event) => void;
+  input: (event: Event) => void;
   close: () => void;
   save: () => void;
 }
 
-export const RepoPickDialog = (p: RepoPickProps) => {
-  const q = p.q.toLowerCase();
+export const RepoPickDialog = (props: RepoPickProps) => {
+  const query = props.q.toLowerCase();
 
-  const shown = (p.repos || []).filter(r =>
-    r.full_name.toLowerCase().includes(q),
+  const shown = (props.repos || []).filter(row =>
+    row.full_name.toLowerCase().includes(query),
   );
 
   return (
@@ -287,31 +298,31 @@ export const RepoPickDialog = (p: RepoPickProps) => {
           class="input"
           id="rpq"
           placeholder="Filter…"
-          value={p.q}
-          onInput={p.input}
+          value={props.q}
+          onInput={props.input}
           style="width:100%;box-sizing:border-box;height:34px"
         />
         <div class="rp-bar">
-          <span>{p.on.size} selected</span>
-          <button class="btn" onClick={() => p.all(true)}>
+          <span>{props.on.size} selected</span>
+          <button class="btn" onClick={() => props.all(true)}>
             Select shown
           </button>
-          <button class="btn" onClick={() => p.all(false)}>
+          <button class="btn" onClick={() => props.all(false)}>
             Clear
           </button>
         </div>
         <div class="rp-list">
-          {p.repos ? (
+          {props.repos ? (
             shown.length ? (
-              shown.map(r => (
+              shown.map(row => (
                 <label class="rp-row">
                   <input
                     type="checkbox"
-                    checked={p.on.has(r.full_name)}
-                    onChange={() => p.toggle(r.full_name)}
+                    checked={props.on.has(row.full_name)}
+                    onChange={() => props.toggle(row.full_name)}
                   />{' '}
-                  <b>{r.full_name}</b>
-                  {r.private ? <i>private</i> : ''}
+                  <b>{row.full_name}</b>
+                  {row.private ? <i>private</i> : ''}
                 </label>
               ))
             ) : (
@@ -321,12 +332,12 @@ export const RepoPickDialog = (p: RepoPickProps) => {
             <div class="sb-empty">Loading repositories…</div>
           )}
         </div>
-        <Err m={p.err} />
+        <Err m={props.err} />
         <div class="btns">
-          <button class="btn" id="rpcancel" onClick={p.close}>
+          <button class="btn" id="rpcancel" onClick={props.close}>
             Cancel
           </button>
-          <button class="btn primary" id="rpsave" onClick={p.save}>
+          <button class="btn primary" id="rpsave" onClick={props.save}>
             Save
           </button>
         </div>
@@ -343,7 +354,7 @@ export interface MetaProps {
   err: string;
   busy: boolean;
   pick: (id: string) => void;
-  input: (e: Event) => void;
+  input: (event: Event) => void;
   close: () => void;
   save: () => void;
 }
@@ -354,58 +365,61 @@ const META_T: Record<string, string> = {
   milestone: 'Milestone',
 };
 
-export const MetaDialog = (p: MetaProps) => {
-  const q = p.q.toLowerCase();
-  const one = p.field === 'milestone';
-  const shown = (p.items || []).filter(r => r.name.toLowerCase().includes(q));
+export const MetaDialog = (props: MetaProps) => {
+  const query = props.q.toLowerCase();
+  const one = props.field === 'milestone';
+
+  const shown = (props.items || []).filter(row =>
+    row.name.toLowerCase().includes(query),
+  );
 
   return (
     <div class="dlg-bg" id="dlgbg">
       <div class="dlg wide">
-        <h2>{META_T[p.field]}</h2>
+        <h2>{META_T[props.field]}</h2>
         <input
           class="input"
           id="metaq"
           placeholder="Filter…"
-          value={p.q}
-          onInput={p.input}
+          value={props.q}
+          onInput={props.input}
           style="width:100%;box-sizing:border-box;height:34px"
         />
         <div class="rp-list">
-          {p.items ? (
+          {props.items ? (
             <>
               {one && (
                 <label class="rp-row">
                   <input
                     type="radio"
                     name="ms"
-                    checked={!p.on.length}
-                    onChange={() => p.pick('')}
+                    checked={!props.on.length}
+                    onChange={() => props.pick('')}
                   />{' '}
                   <b>No milestone</b>
                 </label>
               )}
               {shown.length ? (
-                shown.map(r => (
+                shown.map(row => (
                   <label class="rp-row">
                     <input
                       type={one ? 'radio' : 'checkbox'}
                       name="ms"
-                      checked={p.on.includes(r.id)}
-                      onChange={() => p.pick(r.id)}
+                      checked={props.on.includes(row.id)}
+                      onChange={() => props.pick(row.id)}
                     />
-                    {r.avatar && (
+                    {row.avatar && (
                       <img
                         class="mt-av"
-                        src={r.avatar}
+                        src={row.avatar}
                         width="20"
                         height="20"
                       />
                     )}
-                    {r.color && (
-                      <i class="mt-dot" style={`background:#${r.color}`}></i>
+                    {row.color && (
+                      <i class="mt-dot" style={`background:#${row.color}`}></i>
                     )}
-                    <b>{r.name}</b>
+                    <b>{row.name}</b>
                   </label>
                 ))
               ) : (
@@ -416,17 +430,17 @@ export const MetaDialog = (p: MetaProps) => {
             <div class="sb-empty">Loading…</div>
           )}
         </div>
-        <Err m={p.err} />
+        <Err m={props.err} />
         <div class="btns">
-          <button class="btn" onClick={p.close}>
+          <button class="btn" onClick={props.close}>
             Cancel
           </button>
           <button
             class="btn primary"
-            disabled={p.busy || !p.items}
-            onClick={p.save}
+            disabled={props.busy || !props.items}
+            onClick={props.save}
           >
-            {p.busy ? 'Saving…' : 'Save'}
+            {props.busy ? 'Saving…' : 'Save'}
           </button>
         </div>
       </div>
@@ -439,8 +453,8 @@ export { CommitsDialog };
 export type { CommitsDialogProps, CpHandlers };
 
 export const CmPop = ({
-  x,
-  y,
+  x: left,
+  y: offset,
   hr,
   edit,
   hide,
@@ -453,9 +467,9 @@ export const CmPop = ({
   edit: boolean;
   hide: boolean;
   del: boolean;
-  pick: (h: string) => void;
+  pick: (hash: string) => void;
 }) => (
-  <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}>
+  <div class="react-pop cm-pop" style={`left:${left}px;top:${offset}px`}>
     <button data-h="link" onClick={() => pick('link')}>
       Copy link
     </button>
@@ -494,19 +508,19 @@ export const CmPop = ({
 );
 
 export const ReactPop = ({
-  x,
-  y,
+  x: left,
+  y: offset,
   reacts,
   pick,
 }: {
   x: number;
   y: number;
   reacts: [string, string][];
-  pick: (c: string) => void;
+  pick: (color: string) => void;
 }) => (
-  <div class="react-pop" style={`left:${x}px;top:${y}px`}>
-    {reacts.map(([k, em]) => (
-      <button data-c={k} onClick={() => pick(k)}>
+  <div class="react-pop" style={`left:${left}px;top:${offset}px`}>
+    {reacts.map(([key, em]) => (
+      <button data-c={key} onClick={() => pick(key)}>
         {em}
       </button>
     ))}
@@ -514,15 +528,15 @@ export const ReactPop = ({
 );
 
 export const CtxPop = ({
-  x,
-  y,
+  x: left,
+  y: offset,
   pick,
 }: {
   x: number;
   y: number;
-  pick: (h: string) => void;
+  pick: (hash: string) => void;
 }) => (
-  <div class="react-pop cm-pop" style={`left:${x}px;top:${y}px`}>
+  <div class="react-pop cm-pop" style={`left:${left}px;top:${offset}px`}>
     <button data-h="new" onClick={() => pick('new')}>
       Open in new tab
     </button>
@@ -543,18 +557,18 @@ export interface PaletteProps {
   q: string;
   rows: PalRow[];
   sel: number;
-  onQ: (v: string) => void;
-  onKey: (e: KeyboardEvent) => void;
-  pick: (i: number) => void;
+  onQ: (value: string) => void;
+  onKey: (event: KeyboardEvent) => void;
+  pick: (index: number) => void;
   close: () => void;
 }
 
-export const Palette = (p: PaletteProps) => (
+export const Palette = (props: PaletteProps) => (
   <div
     class="dlg-bg palette"
-    onMouseDown={e => {
-      if (e.target === e.currentTarget) {
-        p.close();
+    onMouseDown={event => {
+      if (event.target === event.currentTarget) {
+        props.close();
       }
     }}
   >
@@ -562,26 +576,31 @@ export const Palette = (p: PaletteProps) => (
       <input
         class="pal-in"
         placeholder="Jump to a pull request — owner/repo#123, a URL, or search recent…"
-        value={p.q}
+        value={props.q}
         ref={focusEl}
-        onInput={e => p.onQ((e.target as HTMLInputElement).value)}
-        onKeyDown={p.onKey}
+        onInput={event => props.onQ((event.target as HTMLInputElement).value)}
+        onKeyDown={props.onKey}
       />
       <div
         class="pal-list"
-        onMouseDown={e => {
-          const r = (e.target as HTMLElement).closest<HTMLElement>('.pal-row');
+        onMouseDown={event => {
+          const element = (event.target as HTMLElement).closest<HTMLElement>(
+            '.pal-row',
+          );
 
-          if (r) {
-            p.pick(+r.dataset.i!);
+          if (element) {
+            props.pick(+element.dataset.i!);
           }
         }}
       >
-        {p.rows.length ? (
-          p.rows.map((r, i) => (
-            <div class={`pal-row${i === p.sel ? ' on' : ''}`} data-i={i}>
-              <b>{r.label}</b>
-              <i>{r.sub}</i>
+        {props.rows.length ? (
+          props.rows.map((palRow, index) => (
+            <div
+              class={`pal-row${index === props.sel ? ' on' : ''}`}
+              data-i={index}
+            >
+              <b>{palRow.label}</b>
+              <i>{palRow.sub}</i>
             </div>
           ))
         ) : (
@@ -613,10 +632,10 @@ export const HelpDialog = ({ close }: { close: () => void }) => (
   <div class="dlg-bg palette" onMouseDown={close}>
     <div class="dlg pal">
       <h2>Keyboard shortcuts</h2>
-      {HELP.map(([a, b]) => (
+      {HELP.map(([text, otherText]) => (
         <div class="kb-r">
-          <span>{a}</span>
-          <kbd>{b}</kbd>
+          <span>{text}</span>
+          <kbd>{otherText}</kbd>
         </div>
       ))}
     </div>

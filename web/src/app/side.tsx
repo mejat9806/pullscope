@@ -9,7 +9,7 @@ import {
 import { rerender } from './actions';
 import { openAux, openClick, openCtx, rmRecent } from './bind';
 import { folded, isFolded } from './comments';
-import { S, when } from './core';
+import { appState, when } from './core';
 import { setSlot } from './frame';
 import { loadPrs, openRepo } from './nav';
 import { render } from './pages';
@@ -22,44 +22,48 @@ import type { RcRow, SideHandlers } from '../components/Sidebar';
 import type { Cmp, PrListItem } from '../types';
 
 // The filter box keeps its caret across the repaint: the same input element stays in the tree.
-const typed = (e: Event, key: 'pf' | 'repoFilter') => {
-  S[key] = (e.target as HTMLInputElement).value;
+const typed = (event: Event, key: 'pf' | 'repoFilter') => {
+  appState[key] = (event.target as HTMLInputElement).value;
   render();
 };
 
 const on: SideHandlers = {
   side: tab => {
-    S.sideTab = tab;
+    appState.sideTab = tab;
     render();
   },
   sps: state => {
-    S.prState = state;
+    appState.prState = state;
     loadPrs();
   },
-  pf: e => typed(e, 'pf'),
-  psort: e => {
-    S.psort = (e.target as HTMLSelectElement).value;
-    localStorage.setItem('psort', S.psort);
+  pf: event => typed(event, 'pf'),
+  psort: event => {
+    appState.psort = (event.target as HTMLSelectElement).value;
+    localStorage.setItem('psort', appState.psort);
     render();
   },
-  pgroup: e => {
-    S.pgroup = (e.target as HTMLSelectElement).value;
-    localStorage.setItem('pgroup', S.pgroup);
+  pgroup: event => {
+    appState.pgroup = (event.target as HTMLSelectElement).value;
+    localStorage.setItem('pgroup', appState.pgroup);
     render();
   },
-  repoFilter: e => typed(e, 'repoFilter'),
+  repoFilter: event => typed(event, 'repoFilter'),
   repo: name => openRepo(name),
   addToken: tokenDialog,
   pickRepos: repoPickOpen,
-  grip: (e, name) =>
+  grip: (event, name) =>
     roGrip(
-      e,
+      event,
       'repos',
       '.rc[data-t]',
       name,
       () =>
-        arrange(S.repos || [], 'repos', r => r.full_name).map(r => r.full_name),
-      o => saveOrder('repos', o),
+        arrange(
+          appState.repos || [],
+          'repos',
+          repoSummary => repoSummary.full_name,
+        ).map(repoSummary => repoSummary.full_name),
+      options => saveOrder('repos', options),
     ),
   open: openClick,
   aux: openAux,
@@ -67,10 +71,10 @@ const on: SideHandlers = {
   rm: rmRecent,
 
   // Folding only flips state; the page and the sidebar both repaint from it.
-  fold: (e, k) => {
-    e.stopPropagation();
-    S.fold[k] = !isFolded(k);
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+  fold: (event, key) => {
+    event.stopPropagation();
+    appState.fold[key] = !isFolded(key);
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
     rerender();
     repaintSide();
   },
@@ -78,25 +82,25 @@ const on: SideHandlers = {
 
 function PrRows() {
   const cur =
-    S.bundle && S.view === 'pr'
-      ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+    appState.bundle && appState.view === 'pr'
+      ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
       : '';
 
-  const f = S.pf.toLowerCase();
+  const field = appState.pf.toLowerCase();
 
   const head = {
-    repo: S.repo!,
-    state: S.prState,
-    filter: S.pf,
-    sort: S.psort,
-    group: S.pgroup,
+    repo: appState.repo!,
+    state: appState.prState,
+    filter: appState.pf,
+    sort: appState.psort,
+    group: appState.pgroup,
     sorts: Object.entries(PSORT),
     groups: Object.entries(PGROUP),
   };
 
   const header = <SideHead p={head} on={on} />;
 
-  if (!S.prs) {
+  if (!appState.prs) {
     return (
       <>
         {header}
@@ -105,37 +109,43 @@ function PrRows() {
     );
   }
 
-  const list = S.prs.filter(
-    p =>
-      !f ||
-      `#${p.number} ${p.title} ${p.user.login} ${p.head?.ref || ''} ${(p.labels || []).map(l => l.name).join(' ')}`
+  const list = appState.prs.filter(
+    prListItem =>
+      !field ||
+      `#${prListItem.number} ${prListItem.title} ${prListItem.user.login} ${prListItem.head?.ref || ''} ${(prListItem.labels || []).map(label => label.name).join(' ')}`
         .toLowerCase()
-        .includes(f),
+        .includes(field),
   );
 
   const sorts: Record<string, Cmp> = {
-    updated: (a, b) => b.updated_at.localeCompare(a.updated_at),
-    created: (a, b) => b.created_at.localeCompare(a.created_at),
-    oldest: (a, b) => a.created_at.localeCompare(b.created_at),
-    number: (a, b) => b.number - a.number,
-    title: (a, b) => a.title.localeCompare(b.title),
-    author: (a, b) =>
-      a.user.login.localeCompare(b.user.login) || b.number - a.number,
+    updated: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.updated_at.localeCompare(firstPrListItem.updated_at),
+    created: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.created_at.localeCompare(firstPrListItem.created_at),
+    oldest: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.created_at.localeCompare(secondPrListItem.created_at),
+    number: (firstPrListItem, secondPrListItem) =>
+      secondPrListItem.number - firstPrListItem.number,
+    title: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.title.localeCompare(secondPrListItem.title),
+    author: (firstPrListItem, secondPrListItem) =>
+      firstPrListItem.user.login.localeCompare(secondPrListItem.user.login) ||
+      secondPrListItem.number - firstPrListItem.number,
   };
 
-  list.sort(sorts[S.psort]);
+  list.sort(sorts[appState.psort]);
 
-  const row = (p: PrListItem): RcRow => {
-    const st = prStatus(p);
-    const ref = `${S.repo}#${p.number}`;
+  const row = (prListItem: PrListItem): RcRow => {
+    const st = prStatus(prListItem);
+    const ref = `${appState.repo}#${prListItem.number}`;
 
     return {
       ref,
       on: ref === cur,
       st,
       icon: PICON[st],
-      title: p.title,
-      sub: `#${p.number} · ${p.user.login} · ${when(p.updated_at).replace(/<\/?span[^>]*>/g, '')}`,
+      title: prListItem.title,
+      sub: `#${prListItem.number} · ${prListItem.user.login} · ${when(prListItem.updated_at).replace(/<\/?span[^>]*>/g, '')}`,
     };
   };
 
@@ -143,20 +153,22 @@ function PrRows() {
     return (
       <>
         {header}
-        <div class="sb-empty">{S.pf ? 'No matches.' : 'No pull requests.'}</div>
+        <div class="sb-empty">
+          {appState.pf ? 'No matches.' : 'No pull requests.'}
+        </div>
       </>
     );
   }
 
-  if (S.pgroup === 'none') {
+  if (appState.pgroup === 'none') {
     return (
       <>
         {header}
         <div class="sb-count">
           {list.length} pull request{list.length === 1 ? '' : 's'}
         </div>
-        {list.map(p => (
-          <RcItem r={row(p)} on={on} />
+        {list.map(prListItem => (
+          <RcItem r={row(prListItem)} on={on} />
         ))}
       </>
     );
@@ -164,34 +176,35 @@ function PrRows() {
 
   const groups = new Map<string, PrListItem[]>();
 
-  const put = (k: string, p: PrListItem) =>
-    (groups.get(k) || groups.set(k, []).get(k)!).push(p);
+  const put = (key: string, prListItem: PrListItem) =>
+    (groups.get(key) || groups.set(key, []).get(key)!).push(prListItem);
 
-  list.forEach(p => {
-    if (S.pgroup === 'status') {
+  list.forEach(prListItem => {
+    if (appState.pgroup === 'status') {
       put(
         { open: 'Open', draft: 'Draft', merged: 'Merged', closed: 'Closed' }[
-          prStatus(p)
+          prStatus(prListItem)
         ],
-        p,
+        prListItem,
       );
-    } else if (S.pgroup === 'author') {
-      put(p.user.login, p);
-    } else if (S.pgroup === 'base') {
-      put(p.base?.ref || '—', p);
-    } else if ((p.labels || []).length) {
-      p.labels.forEach(l => put(l.name, p));
+    } else if (appState.pgroup === 'author') {
+      put(prListItem.user.login, prListItem);
+    } else if (appState.pgroup === 'base') {
+      put(prListItem.base?.ref || '—', prListItem);
+    } else if ((prListItem.labels || []).length) {
+      prListItem.labels.forEach(label => put(label.name, prListItem));
     } else {
-      put('No label', p);
+      put('No label', prListItem);
     }
   });
 
   const order =
-    S.pgroup === 'status'
+    appState.pgroup === 'status'
       ? ['Open', 'Draft', 'Merged', 'Closed']
       : [...groups.keys()].sort(
-          (a, b) =>
-            +(a === 'No label') - +(b === 'No label') || a.localeCompare(b),
+          (firstText, secondText) =>
+            +(firstText === 'No label') - +(secondText === 'No label') ||
+            firstText.localeCompare(secondText),
         );
 
   return (
@@ -200,16 +213,16 @@ function PrRows() {
       <PrGroups
         on={on}
         groups={order
-          .filter(k => groups.has(k))
-          .map(k => {
-            const key = `pg:${S.pgroup}:${k}`;
+          .filter(key => groups.has(key))
+          .map(otherKey => {
+            const key = `pg:${appState.pgroup}:${otherKey}`;
 
             return {
               key,
               folded: folded(key),
               closed: isFolded(key),
-              name: k,
-              rows: groups.get(k)!.map(row),
+              name: otherKey,
+              rows: groups.get(otherKey)!.map(row),
             };
           })}
       />
@@ -218,17 +231,17 @@ function PrRows() {
 }
 
 function List() {
-  if (S.sideTab === 'prs' && S.repo) {
+  if (appState.sideTab === 'prs' && appState.repo) {
     return <PrRows />;
   }
 
-  if (S.sideTab === 'recent') {
+  if (appState.sideTab === 'recent') {
     return (
       <RecentList
-        recent={S.recent}
+        recent={appState.recent}
         curRef={
-          S.bundle
-            ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+          appState.bundle
+            ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
             : ''
         }
         on={on}
@@ -236,7 +249,7 @@ function List() {
     );
   }
 
-  if (!S.hasToken) {
+  if (!appState.hasToken) {
     return (
       <div class="sb-empty">
         Add an access token to list all your repositories and their pull
@@ -250,19 +263,23 @@ function List() {
     );
   }
 
-  if (S.reposErr) {
-    return <div class="sb-empty err">{S.reposErr}</div>;
+  if (appState.reposErr) {
+    return <div class="sb-empty err">{appState.reposErr}</div>;
   }
 
-  if (!S.repos) {
+  if (!appState.repos) {
     return <div class="sb-empty">Loading repositories…</div>;
   }
 
   return (
     <RepoList
-      repos={arrange(S.repos, 'repos', r => r.full_name)}
-      repo={S.repo}
-      filter={S.repoFilter}
+      repos={arrange(
+        appState.repos,
+        'repos',
+        repoSummary => repoSummary.full_name,
+      )}
+      repo={appState.repo}
+      filter={appState.repoFilter}
       on={on}
     />
   );
@@ -270,7 +287,7 @@ function List() {
 
 export function Side() {
   return (
-    <Sidebar sideTab={S.sideTab} hasRepo={!!S.repo} on={on}>
+    <Sidebar sideTab={appState.sideTab} hasRepo={!!appState.repo} on={on}>
       <List />
     </Sidebar>
   );

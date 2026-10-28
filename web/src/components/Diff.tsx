@@ -2,7 +2,7 @@ import { whenParts } from '../app/core';
 import { DraftBox, ErrLine } from './Actions';
 import { DiffHunkTable, FoldBtn, ReactionsBar } from './Comments';
 import { flashClass, useFlash } from './flash';
-import { Av, I, SP, When } from './ui';
+import { Av, renderIcon, SP, When } from './ui';
 
 import type { Person } from '../types';
 import type { ConvHandlers, HunkRow, ReactionsProps } from './Comments';
@@ -18,24 +18,24 @@ export type SugProps =
       mine: boolean;
     };
 
-export function Sug({ s, on }: { s: SugProps; on?: ConvHandlers }) {
-  return s.kind === 'note' ? (
+export function Sug({ s: props, on }: { s: SugProps; on?: ConvHandlers }) {
+  return props.kind === 'note' ? (
     <div class="sug-row">
-      <span class="sug-note">{s.text}</span>
+      <span class="sug-note">{props.text}</span>
     </div>
   ) : (
     <div class="sug-row">
       <button
         class="btn small primary"
-        data-sug={s.id}
-        disabled={s.disabled}
-        onClick={on && (e => on.sug(e, String(s.id)))}
+        data-sug={props.id}
+        disabled={props.disabled}
+        onClick={on && (event => on.sug(event, String(props.id)))}
       >
         Apply suggestion
       </button>
       <span class="sug-note">
-        Commits to <code>{s.ref}</code>
-        {s.mine ? '' : ' (fork — needs push access)'}
+        Commits to <code>{props.ref}</code>
+        {props.mine ? '' : ' (fork — needs push access)'}
       </span>
     </div>
   );
@@ -56,29 +56,32 @@ export interface TcProps {
   flash?: FlashProps;
 }
 
-export function Tc(p: TcProps & { on?: ConvHandlers }) {
-  const { on } = p;
-  const ref = useFlash(p.flash, p.kb);
+export function Tc(props: TcProps & { on?: ConvHandlers }) {
+  const { on } = props;
+  const ref = useFlash(props.flash, props.kb);
 
   return (
     <div
       ref={ref}
-      class={`tc${p.kb ? ' kb' : ''}${flashClass(p.flash)}`}
-      id={p.anchorId ? `c-${p.id}` : undefined}
+      class={`tc${props.kb ? ' kb' : ''}${flashClass(props.flash)}`}
+      id={props.anchorId ? `c-${props.id}` : undefined}
     >
-      <a href={p.user?.html_url || '#'}>{Av(p.user, 24)}</a>
+      <a href={props.user?.html_url || '#'}>{Av(props.user, 24)}</a>
       <div style="flex:1;min-width:0">
         <div>
-          <span class="who">{p.login}</span>
+          <span class="who">{props.login}</span>
           {SP}
-          <span>{When(p.at)}</span>
-          {p.withMenu ? (
+          <span>{When(props.at)}</span>
+          {props.withMenu ? (
             <button
               class="cm-btn"
-              data-cm={p.id}
-              data-root={p.root}
+              data-cm={props.id}
+              data-root={props.root}
               title="Comment actions"
-              onClick={on && (e => on.menu(e, e.currentTarget as HTMLElement))}
+              onClick={
+                on &&
+                (event => on.menu(event, event.currentTarget as HTMLElement))
+              }
             >
               ⋯
             </button>
@@ -89,10 +92,10 @@ export function Tc(p: TcProps & { on?: ConvHandlers }) {
         <div
           class="markdown-body"
           style="margin-top:8px"
-          dangerouslySetInnerHTML={{ __html: p.bodyHtml }}
+          dangerouslySetInnerHTML={{ __html: props.bodyHtml }}
         />
-        {p.sug ? <Sug s={p.sug} on={on} /> : ''}
-        <ReactionsBar {...p.reactions} on={on?.react} />
+        {props.sug ? <Sug s={props.sug} on={on} /> : ''}
+        <ReactionsBar {...props.reactions} on={on?.react} />
       </div>
     </div>
   );
@@ -112,52 +115,54 @@ export interface ThreadRowProps {
   act: { tid: string; res: boolean } | null;
 }
 
-export function ThreadRow(p: ThreadRowProps & { on?: ConvHandlers }) {
-  const { on } = p;
+export function ThreadRow(props: ThreadRowProps & { on?: ConvHandlers }) {
+  const { on } = props;
 
   return (
     <tr class="lc-row th-row">
-      <td colspan={p.cols}>
-        <div class={`thread inl${p.folded ? ' folded' : ''}`}>
+      <td colspan={props.cols}>
+        <div class={`thread inl${props.folded ? ' folded' : ''}`}>
           <div class="thread-head">
             <FoldBtn
-              k={p.k}
+              k={props.k}
               title="Hide this thread"
-              def={p.def}
-              folded={p.folded}
+              def={props.def}
+              folded={props.folded}
               onFold={on?.fold}
             />
             <span class="th-t">
               Comment on line{' '}
               <b>
-                {p.side}
-                {p.line}
+                {props.side}
+                {props.line}
               </b>
             </span>
-            {p.outdated ? <span class="res out">Outdated</span> : ''}
-            {p.resolved ? <span class="res">Resolved</span> : ''}
+            {props.outdated ? <span class="res out">Outdated</span> : ''}
+            {props.resolved ? <span class="res">Resolved</span> : ''}
           </div>
-          {p.cards.map(c => (
-            <Tc {...c} on={on} />
+          {props.cards.map(otherProps => (
+            <Tc {...otherProps} on={on} />
           ))}
-          {p.reply ? <ReplyBox {...p.reply} on={on} /> : ''}
-          {p.act ? (
+          {props.reply ? <ReplyBox {...props.reply} on={on} /> : ''}
+          {props.act ? (
             <div class="th-foot">
               <button
                 class="thread-act"
-                data-thread={p.act.tid}
-                data-res={p.act.res ? 'unresolve' : 'resolve'}
+                data-thread={props.act.tid}
+                data-res={props.act.res ? 'unresolve' : 'resolve'}
                 onClick={
                   on &&
-                  (e =>
+                  (event =>
                     on.thread(
-                      e,
-                      p.act!.tid,
-                      p.act!.res ? 'unresolve' : 'resolve',
+                      event,
+                      props.act!.tid,
+                      props.act!.res ? 'unresolve' : 'resolve',
                     ))
                 }
               >
-                {p.act.res ? 'Unresolve conversation' : 'Resolve conversation'}
+                {props.act.res
+                  ? 'Unresolve conversation'
+                  : 'Resolve conversation'}
               </button>
             </div>
           ) : (
@@ -204,7 +209,7 @@ export function ReplyBox({
 export interface LcHandlers {
   del: (id: string) => void;
   cancel: () => void;
-  suggest: (e: Event) => void;
+  suggest: (event: Event) => void;
   add: () => void;
 }
 
@@ -216,17 +221,17 @@ export const LcCards = ({
   on?: LcHandlers;
 }) => (
   <>
-    {cards.map(c => (
+    {cards.map(item => (
       <div class="lc-card">
         <span class="lc-tag">Pending</span>
-        <div class="lc-body" dangerouslySetInnerHTML={{ __html: c.body }} />
+        <div class="lc-body" dangerouslySetInnerHTML={{ __html: item.body }} />
         <button
           class="lc-x"
-          data-lcdel={c.id}
+          data-lcdel={item.id}
           title="Delete draft comment"
-          onClick={on && (() => on.del(String(c.id)))}
+          onClick={on && (() => on.del(String(item.id)))}
         >
-          {I('x')}
+          {renderIcon('x')}
         </button>
       </div>
     ))}
@@ -299,45 +304,49 @@ export interface ReviewBlockProps {
   allRes: boolean;
 }
 
-const Actor = ({ u }: { u?: Person | null }) =>
-  u ? (
-    <a class="actor" href={u.html_url}>
-      {u.login}
+const Actor = ({ u: person }: { u?: Person | null }) =>
+  person ? (
+    <a class="actor" href={person.html_url}>
+      {person.login}
     </a>
   ) : (
     <span class="actor">ghost</span>
   );
 
-export function ReviewBlock(p: ReviewBlockProps & { on?: ConvHandlers }) {
-  const { on } = p;
+export function ReviewBlock(props: ReviewBlockProps & { on?: ConvHandlers }) {
+  const { on } = props;
 
   return (
-    <div class={`TLI rev${p.folded ? ' folded' : ''}`}>
-      <div class={`TLI-badge ${p.kind}`}>{I(p.ic)}</div>
-      <div class="TLI-avatar">{Av(p.user, 20)}</div>
+    <div class={`TLI rev${props.folded ? ' folded' : ''}`}>
+      <div class={`TLI-badge ${props.kind}`}>{renderIcon(props.ic)}</div>
+      <div class="TLI-avatar">{Av(props.user, 20)}</div>
       <div class="TLI-body">
         <div class="row">
           <FoldBtn
-            k={p.k}
+            k={props.k}
             title="Collapse / expand this review"
-            def={p.allRes}
-            folded={p.folded}
+            def={props.allRes}
+            folded={props.folded}
             onFold={on?.fold}
           />
-          <Actor u={p.user} /> <span>{p.verb}</span>{' '}
-          <a class="time" href={p.url}>
-            {p.at}
+          <Actor u={props.user} /> <span>{props.verb}</span>{' '}
+          <a class="time" href={props.url}>
+            {props.at}
           </a>
-          {p.sum ? (
-            <span class={`rev-sum${p.sum.ok ? ' ok' : ''}`}>
-              {p.sum.allRes ? <>{I('check')} All resolved</> : p.sum.text}
+          {props.sum ? (
+            <span class={`rev-sum${props.sum.ok ? ' ok' : ''}`}>
+              {props.sum.allRes ? (
+                <>{renderIcon('check')} All resolved</>
+              ) : (
+                props.sum.text
+              )}
             </span>
           ) : (
             ''
           )}
         </div>
         {'\n  '}
-        {p.bodyHtml ? (
+        {props.bodyHtml ? (
           <div
             class="cbox nocaret"
             style="margin-top:8px;color:var(--fgColor-default)"
@@ -345,55 +354,55 @@ export function ReviewBlock(p: ReviewBlockProps & { on?: ConvHandlers }) {
             <div class="cbody">
               <div
                 class="markdown-body"
-                dangerouslySetInnerHTML={{ __html: p.bodyHtml }}
+                dangerouslySetInnerHTML={{ __html: props.bodyHtml }}
               />
             </div>
           </div>
         ) : (
           ''
         )}
-        {p.threads.length ? (
+        {props.threads.length ? (
           <div>
-            {p.threads.map(t => (
-              <div class={`thread${t.folded ? ' folded' : ''}`}>
+            {props.threads.map(rvThread => (
+              <div class={`thread${rvThread.folded ? ' folded' : ''}`}>
                 <div class="thread-head">
                   <FoldBtn
-                    k={t.k}
+                    k={rvThread.k}
                     title="Hide this thread"
-                    def={t.def}
-                    folded={t.folded}
+                    def={rvThread.def}
+                    folded={rvThread.folded}
                     onFold={on?.fold}
                   />
-                  {t.path}
-                  {t.resolved ? <span class="res">Resolved</span> : ''}
-                  {t.tid ? (
+                  {rvThread.path}
+                  {rvThread.resolved ? <span class="res">Resolved</span> : ''}
+                  {rvThread.tid ? (
                     <button
                       class="thread-act"
-                      data-thread={t.tid}
-                      data-res={t.resolved ? 'unresolve' : 'resolve'}
+                      data-thread={rvThread.tid}
+                      data-res={rvThread.resolved ? 'unresolve' : 'resolve'}
                       onClick={
                         on &&
-                        (e =>
+                        (event =>
                           on.thread(
-                            e,
-                            t.tid!,
-                            t.resolved ? 'unresolve' : 'resolve',
+                            event,
+                            rvThread.tid!,
+                            rvThread.resolved ? 'unresolve' : 'resolve',
                           ))
                       }
                     >
-                      {t.resolved ? 'Unresolve' : 'Resolve conversation'}
+                      {rvThread.resolved ? 'Unresolve' : 'Resolve conversation'}
                     </button>
                   ) : (
                     ''
                   )}
                 </div>
                 <div class="diffhunk">
-                  <DiffHunkTable rows={t.hunk} />
+                  <DiffHunkTable rows={rvThread.hunk} />
                 </div>
-                {t.cards.map(c => (
-                  <Tc {...c} on={on} />
+                {rvThread.cards.map(otherProps => (
+                  <Tc {...otherProps} on={on} />
                 ))}
-                <ReplyBox {...t.reply} on={on} />
+                <ReplyBox {...rvThread.reply} on={on} />
               </div>
             ))}
           </div>

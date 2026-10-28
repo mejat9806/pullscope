@@ -1,7 +1,6 @@
 // Citadel rules this codebase does not follow, and why. Everything not listed here is enforced as in Citadel.
 export const repoOverrides = {
   // Short names are the house style here (S for state, I for icons, e for events, a/b/p/r...).
-  'id-length': 'off',
   // The UI is written with arrow functions and small helpers; converting hundreds would be churn without benefit.
   'func-style': 'off',
   // Icon and state helpers are capitalised functions (I, S) called without `new`.

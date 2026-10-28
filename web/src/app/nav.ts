@@ -1,31 +1,33 @@
 import { drafts, rerender, saveDrafts } from './actions';
 import { hasComment, stateOf } from './comments';
-import { flashLive, KEY_RECENT, S, setFlash, tauri } from './core';
+import { appState, flashLive, KEY_RECENT, setFlash, tauri } from './core';
 import { loadPr, qc, refreshPushes, remember } from './data';
 import { enterAnim } from './fun';
 import { openNewPr, render, scrollMain } from './pages';
 import { saveTabs, tabIdx, tabPut, tabSnap } from './tabs';
 
 export async function loadRepos() {
-  S.reposErr = '';
-  S.repos = null;
+  appState.reposErr = '';
+  appState.repos = null;
 
-  if (S.repoSel) {
-    S.repos = S.repoSel;
+  if (appState.repoSel) {
+    appState.repos = appState.repoSel;
     render();
 
     return;
   }
 
   try {
-    S.repos = await tauri!.invoke('list_repos');
-  } catch (e) {
-    S.reposErr = String(e);
+    appState.repos = await tauri!.invoke('list_repos');
+  } catch (error) {
+    appState.reposErr = String(error);
 
-    if (/401|Bad credentials|requires authentication/i.test(S.reposErr)) {
-      S.hasToken = false;
+    if (
+      /401|Bad credentials|requires authentication/i.test(appState.reposErr)
+    ) {
+      appState.hasToken = false;
 
-      S.gateErr =
+      appState.gateErr =
         'GitHub rejected the saved token (expired or revoked). Sign in again.';
     }
   }
@@ -34,30 +36,30 @@ export async function loadRepos() {
 }
 
 export async function openRepo(name: string, { nav = false } = {}) {
-  S.view = 'repo';
-  S.pAuthor = S.pLabel = S.pStatus = '';
-  S.repo = name;
-  S.prs = null;
-  S.error = '';
-  S.bundle = nav && S.bundle ? S.bundle : S.bundle;
+  appState.view = 'repo';
+  appState.pAuthor = appState.pLabel = appState.pStatus = '';
+  appState.repo = name;
+  appState.prs = null;
+  appState.error = '';
+  appState.bundle = nav && appState.bundle ? appState.bundle : appState.bundle;
 
   if (!nav) {
-    S.hist = S.hist.slice(0, S.hi + 1);
-    S.hist.push(`repo:${name}`);
-    S.hi = S.hist.length - 1;
+    appState.hist = appState.hist.slice(0, appState.hi + 1);
+    appState.hist.push(`repo:${name}`);
+    appState.hi = appState.hist.length - 1;
   }
 
-  S.sideTab = 'prs';
+  appState.sideTab = 'prs';
   render();
   refreshPushes(name);
 
   try {
-    S.prs = tauri
-      ? await tauri!.invoke('list_prs', { repo: name, state: S.prState })
+    appState.prs = tauri
+      ? await tauri!.invoke('list_prs', { repo: name, state: appState.prState })
       : [];
-  } catch (e) {
-    S.error = String(e);
-    S.prs = [];
+  } catch (error) {
+    appState.error = String(error);
+    appState.prs = [];
   }
 
   render();
@@ -66,13 +68,13 @@ export async function openRepo(name: string, { nav = false } = {}) {
 // Loads the sidebar's PR list without leaving the pull request being read.
 export async function loadPrs() {
   // Show the last list for this repo at once and refresh quietly, so switching tabs never blanks the sidebar.
-  const name = S.repo;
-  const ck = `${name}|${S.prState}`;
-  S.prCache = S.prCache || {};
-  const hit = S.prCache[ck];
+  const name = appState.repo;
+  const ck = `${name}|${appState.prState}`;
+  appState.prCache = appState.prCache || {};
+  const hit = appState.prCache[ck];
 
   if (hit) {
-    S.prs = hit.list;
+    appState.prs = hit.list;
 
     if (Date.now() - hit.at < 60000) {
       rerender();
@@ -80,44 +82,47 @@ export async function loadPrs() {
       return;
     }
   } else {
-    S.prs = null;
+    appState.prs = null;
   }
 
   rerender();
 
   try {
-    const r = tauri
-      ? await tauri!.invoke('list_prs', { repo: name, state: S.prState })
+    const prListItems = tauri
+      ? await tauri!.invoke('list_prs', { repo: name, state: appState.prState })
       : [];
 
-    S.prCache[ck] = { list: r, at: Date.now() };
+    appState.prCache[ck] = { list: prListItems, at: Date.now() };
 
-    if (S.repo === name) {
-      S.prs = r;
+    if (appState.repo === name) {
+      appState.prs = prListItems;
     }
   } catch {
-    if (S.repo === name && !hit) {
-      S.prs = [];
+    if (appState.repo === name && !hit) {
+      appState.prs = [];
     }
   }
 
-  if (S.repo === name) {
+  if (appState.repo === name) {
     rerender();
   }
 }
 
 export const reload = () =>
-  S.view === 'repo'
-    ? openRepo(S.repo!, { nav: true })
-    : S.bundle &&
-      openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, {
-        nav: true,
-        keepTab: true,
-        manual: true,
-      });
+  appState.view === 'repo'
+    ? openRepo(appState.repo!, { nav: true })
+    : appState.bundle &&
+      openPr(
+        `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`,
+        {
+          nav: true,
+          keepTab: true,
+          manual: true,
+        },
+      );
 
 // Notification targets are bare comment ids; the page's elements are `c-<id>`.
-const elId = (t: string) => `c-${t.replace(/^c-/, '')}`;
+const elId = (text: string) => `c-${text.replace(/^c-/, '')}`;
 
 export async function openPr(
   input: string,
@@ -137,29 +142,31 @@ export async function openPr(
     }
   }
 
-  const fromTab = S.view === 'pr' ? tabIdx() : -1;
-  const tabSwitch = !!(restore || S.fadeMain);
-  const seq = (S.openSeq = (S.openSeq || 0) + 1);
-  const stale_ = () => S.openSeq !== seq; // a newer open (tab switch) supersedes this one
+  const fromTab = appState.view === 'pr' ? tabIdx() : -1;
+  const tabSwitch = !!(restore || appState.fadeMain);
+  const seq = (appState.openSeq = (appState.openSeq || 0) + 1);
+  const stale_ = () => appState.openSeq !== seq; // a newer open (tab switch) supersedes this one
 
   if (!keepTab && !restore) {
     tabSnap();
   }
 
   // Show the tab at once; the title and state fill in when the PR arrives.
-  S.tabPending = '';
+  appState.tabPending = '';
 
   if (!keepTab) {
-    const m =
+    const match =
       String(input).match(/^([^#\s@/]+\/[^#\s@]+)#(\d+)$/) ||
       String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
 
-    if (m) {
-      const ref = `${m[1]}#${m[2]}`;
-      S.tabPending = ref;
+    if (match) {
+      const ref = `${match[1]}#${match[2]}`;
+      appState.tabPending = ref;
 
-      if (!S.tabs.some(t => t.ref === ref)) {
-        const old = S.recent.find(r => r.ref === ref);
+      if (!appState.tabs.some(tab => tab.ref === ref)) {
+        const old = appState.recent.find(
+          recentEntry => recentEntry.ref === ref,
+        );
 
         const item = {
           ref,
@@ -171,31 +178,35 @@ export async function openPr(
         };
 
         if (fromTab >= 0 && !newTab) {
-          S.tabs[fromTab] = item;
+          appState.tabs[fromTab] = item;
         } else {
-          S.tabs.splice(fromTab >= 0 ? fromTab + 1 : S.tabs.length, 0, item);
+          appState.tabs.splice(
+            fromTab >= 0 ? fromTab + 1 : appState.tabs.length,
+            0,
+            item,
+          );
         }
 
-        S.tabs = S.tabs.slice(-15);
+        appState.tabs = appState.tabs.slice(-15);
       }
     }
   }
 
-  S.error = '';
-  S.view = 'pr';
+  appState.error = '';
+  appState.view = 'pr';
 
   if (!keepTab) {
-    S.tab = restore || 'conversation';
+    appState.tab = restore || 'conversation';
   }
 
-  S.sel = null;
+  appState.sel = null;
 
   if (!keepTab) {
-    S.fr = null;
+    appState.fr = null;
   }
 
-  if (keepTab && S.focus && S.tab === 'files') {
-    S.focus = '';
+  if (keepTab && appState.focus && appState.tab === 'files') {
+    appState.focus = '';
   } // reacting or replying on the Files tab must not jump to the Conversation tab
 
   // Stale-while-revalidate: show whatever copy exists at once (memory, then disk) and only fetch when it is stale.
@@ -210,32 +221,32 @@ export async function openPr(
     (tauri && !keepTab
       ? await tauri!
           .invoke('cached_pr', { url: input })
-          .then(b => b && { data: b })
+          .then(bundle => bundle && { data: bundle })
           .catch(() => null)
       : null);
 
   const fresh = !!mem && qc.fresh(input) && !keepTab;
   const stale = !!disk && !fresh;
-  const had = fresh || stale || (keepTab && S.bundle);
+  const had = fresh || stale || (keepTab && appState.bundle);
 
   if (fresh) {
-    S.bundle = mem.data;
-    S.loading = false;
+    appState.bundle = mem.data;
+    appState.loading = false;
   } else if (disk) {
-    S.bundle = disk.data;
-    S.refreshing = false;
-    S.loading = false;
-  } else if (keepTab && S.bundle) {
-    S.refreshing = manual;
-    S.loading = false;
+    appState.bundle = disk.data;
+    appState.refreshing = false;
+    appState.loading = false;
+  } else if (keepTab && appState.bundle) {
+    appState.refreshing = manual;
+    appState.loading = false;
   } else {
-    S.loading = true;
+    appState.loading = true;
   }
 
   const hot = fresh;
-  S.keepScroll = keepTab;
+  appState.keepScroll = keepTab;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 
   if (!keepTab && !restore) {
     scrollMain(0);
@@ -243,24 +254,24 @@ export async function openPr(
 
   // Jump to the comment from the copy already on screen; the refresh below only tops it up.
   const focusNow = () => {
-    if (!S.bundle || !S.focus) {
+    if (!appState.bundle || !appState.focus) {
       return false;
     }
 
-    if (S.tab !== 'conversation' && S.tab !== 'timeline') {
-      S.tab = 'conversation';
+    if (appState.tab !== 'conversation' && appState.tab !== 'timeline') {
+      appState.tab = 'conversation';
       render();
     }
 
-    if (!hasComment(S.focus)) {
+    if (!hasComment(appState.focus)) {
       return false;
     }
 
-    setFlash(elId(S.focus), { block: 'start' });
-    S.focus = '';
-    S.keepScroll = true;
+    setFlash(elId(appState.focus), { block: 'start' });
+    appState.focus = '';
+    appState.keepScroll = true;
     render();
-    S.keepScroll = false;
+    appState.keepScroll = false;
 
     return true;
   };
@@ -274,69 +285,69 @@ export async function openPr(
       return;
     } // the user already moved on; the result stays in the cache for next time
 
-    S.bundle = got!;
+    appState.bundle = got!;
 
-    const p = got!.pull;
-    const ref = `${p.base.repo.full_name}#${p.number}`;
-    const [st, ic] = stateOf(p);
+    const pull = got!.pull;
+    const ref = `${pull.base.repo.full_name}#${pull.number}`;
+    const [st, ic] = stateOf(pull);
 
     if (!nav) {
-      S.hist = S.hist.slice(0, S.hi + 1);
-      S.hist.push(ref);
-      S.hi = S.hist.length - 1;
+      appState.hist = appState.hist.slice(0, appState.hi + 1);
+      appState.hist.push(ref);
+      appState.hi = appState.hist.length - 1;
     }
 
-    S.recent = [
-      { ref, title: p.title, state: st, icon: ic },
-      ...S.recent.filter(r => r.ref !== ref),
+    appState.recent = [
+      { ref, title: pull.title, state: st, icon: ic },
+      ...appState.recent.filter(recentEntry => recentEntry.ref !== ref),
     ].slice(0, 30);
 
-    localStorage.setItem(KEY_RECENT, JSON.stringify(S.recent));
+    localStorage.setItem(KEY_RECENT, JSON.stringify(appState.recent));
     localStorage.setItem('last', ref);
-    remember(ref, p);
+    remember(ref, pull);
 
     if (!keepTab || tabIdx() >= 0) {
-      tabPut(ref, p, { at: fromTab, newTab });
+      tabPut(ref, pull, { at: fromTab, newTab });
     }
 
-    const ti = S.tabs.find(t => t.ref === ref);
+    const ti = appState.tabs.find(tab => tab.ref === ref);
 
     if (ti) {
       ti.dot = false;
       saveTabs();
     }
 
-    if (S.repo !== p.base.repo.full_name) {
-      S.repo = p.base.repo.full_name;
-      S.sideTab = 'prs';
+    if (appState.repo !== pull.base.repo.full_name) {
+      appState.repo = pull.base.repo.full_name;
+      appState.sideTab = 'prs';
       setTimeout(loadPrs, 0);
     }
 
-    if (S.draftRef !== ref) {
+    if (appState.draftRef !== ref) {
       saveDrafts();
-      S.draftRef = ref;
-      S.draft = { ...(drafts[ref] || {}) };
+      appState.draftRef = ref;
+      appState.draft = { ...(drafts[ref] || {}) };
     }
-  } catch (e) {
+  } catch (error) {
     if (stale_()) {
       return;
     }
 
     if (!had) {
-      S.bundle = null;
+      appState.bundle = null;
     }
 
-    S.error = String(e).replace(/^Error: /, '');
+    appState.error = String(error).replace(/^Error: /, '');
   }
 
-  S.tabPending = '';
-  S.loading = false;
-  S.refreshing = false;
-  const savedScroll = restore ? S.tabs[tabIdx()]?.scroll || 0 : 0;
-  S.restoring = !!savedScroll;
-  S.keepScroll = focused || keepTab;
+  appState.tabPending = '';
+  appState.loading = false;
+  appState.refreshing = false;
+  const savedScroll = restore ? appState.tabs[tabIdx()]?.scroll || 0 : 0;
+  appState.restoring = !!savedScroll;
+  appState.keepScroll = focused || keepTab;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 
   if (savedScroll) {
     const put = () => scrollMain(savedScroll);
@@ -345,7 +356,7 @@ export async function openPr(
 
     setTimeout(() => {
       put();
-      S.restoring = false;
+      appState.restoring = false;
     }, 250);
   }
 
@@ -353,24 +364,24 @@ export async function openPr(
     enterAnim();
   }
 
-  if (S.bundle && !stale && !keepTab && !focused) {
+  if (appState.bundle && !stale && !keepTab && !focused) {
     scrollMain(0);
   }
 
-  if (S.bundle && S.focus) {
-    const id = S.focus;
-    S.focus = '';
+  if (appState.bundle && appState.focus) {
+    const id = appState.focus;
+    appState.focus = '';
 
-    if (S.tab !== 'conversation' && S.tab !== 'timeline') {
-      S.tab = 'conversation';
+    if (appState.tab !== 'conversation' && appState.tab !== 'timeline') {
+      appState.tab = 'conversation';
       render();
     }
 
     if (hasComment(id)) {
       setFlash(elId(id), { block: 'start' });
-      S.keepScroll = true;
+      appState.keepScroll = true;
       render();
-      S.keepScroll = false;
+      appState.keepScroll = false;
     }
   }
 }

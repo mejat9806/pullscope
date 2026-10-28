@@ -39,13 +39,6 @@ export const baseRules = {
       max: 32,
       properties: 'never',
       exceptions: [
-        'e',
-        'i',
-        'j',
-        'k',
-        'x',
-        'y',
-        'z',
         '_',
         '__',
         '__dirname',

@@ -1,76 +1,93 @@
-import { S } from './core';
+import { appState } from './core';
 import { pushBannerItems } from './data';
 
 import type { HomeProps } from '../components/Home';
 import type { RepoSummary } from '../types';
 
 export function homeProps(): HomeProps {
-  const tab = S.homeTab || 'repos';
-  const owner = S.homeOwner || '';
+  const tab = appState.homeTab || 'repos';
+  const owner = appState.homeOwner || '';
 
   let body: HomeProps['body'];
 
   if (tab === 'recent') {
-    const q = (S.recentFilter || '').toLowerCase();
-    const st = S.recentState || 'all';
+    const query = (appState.recentFilter || '').toLowerCase();
+    const st = appState.recentState || 'all';
 
-    const list = S.recent.filter(
-      r =>
-        (st === 'all' || r.state === st) &&
-        (!q || `${r.title} ${r.ref}`.toLowerCase().includes(q)),
+    const list = appState.recent.filter(
+      recentEntry =>
+        (st === 'all' || recentEntry.state === st) &&
+        (!query ||
+          `${recentEntry.title} ${recentEntry.ref}`
+            .toLowerCase()
+            .includes(query)),
     );
 
     body = {
       kind: 'recent',
-      filter: S.recentFilter || '',
+      filter: appState.recentFilter || '',
       state: st,
-      hasAny: S.recent.length > 0,
-      cards: list.map(r => ({
-        ref: r.ref,
-        state: r.state,
-        icon: r.icon,
-        title: r.title,
+      hasAny: appState.recent.length > 0,
+      cards: list.map(recentEntry => ({
+        ref: recentEntry.ref,
+        state: recentEntry.state,
+        icon: recentEntry.icon,
+        title: recentEntry.title,
       })),
-      emptyText: S.recent.length
+      emptyText: appState.recent.length
         ? 'No matching pull requests.'
         : 'Pull requests you open appear here.',
     };
-  } else if (!S.hasToken) {
+  } else if (!appState.hasToken) {
     body = { kind: 'addtoken' };
-  } else if (S.reposErr) {
-    body = { kind: 'error', text: String(S.reposErr) };
-  } else if (!S.repos) {
+  } else if (appState.reposErr) {
+    body = { kind: 'error', text: String(appState.reposErr) };
+  } else if (!appState.repos) {
     body = { kind: 'spinner' };
   } else {
-    const f = (S.repoFilter || '').toLowerCase();
-    const vis = S.hmVis || 'all';
-    const srt = S.hmSort || 'pushed';
-    const grp = S.hmGroup || 'none';
+    const field = (appState.repoFilter || '').toLowerCase();
+    const vis = appState.hmVis || 'all';
+    const srt = appState.hmSort || 'pushed';
+    const grp = appState.hmGroup || 'none';
 
-    let list = S.repos.filter(
-      r =>
-        (!owner || r.full_name.startsWith(`${owner}/`)) &&
-        r.full_name.toLowerCase().includes(f) &&
-        (vis === 'all' || (vis === 'private') === !!r.private),
+    let list = appState.repos.filter(
+      repoSummary =>
+        (!owner || repoSummary.full_name.startsWith(`${owner}/`)) &&
+        repoSummary.full_name.toLowerCase().includes(field) &&
+        (vis === 'all' || (vis === 'private') === !!repoSummary.private),
     );
 
-    const nm = (r: RepoSummary) => r.full_name.split('/')[1];
-    const pushed = (r: RepoSummary) => Date.parse(r.pushed_at || '0') || 0;
+    const nm = (repoSummary: RepoSummary) =>
+      repoSummary.full_name.split('/')[1];
+
+    const pushed = (repoSummary: RepoSummary) =>
+      Date.parse(repoSummary.pushed_at || '0') || 0;
 
     const sorters: Record<
       string,
-      ((a: RepoSummary, b: RepoSummary) => number) | null
+      | ((
+          firstRepoSummary: RepoSummary,
+          secondRepoSummary: RepoSummary,
+        ) => number)
+      | null
     > = {
-      name: (a, b) => nm(a).localeCompare(nm(b)),
-      namez: (a, b) => nm(b).localeCompare(nm(a)),
-      issues: (a, b) =>
-        (b.open_issues_count || 0) - (a.open_issues_count || 0) ||
-        nm(a).localeCompare(nm(b)),
-      oldest: (a, b) => pushed(a) - pushed(b),
-      owner: (a, b) => a.full_name.localeCompare(b.full_name),
-      ownerz: (a, b) =>
-        b.full_name.split('/')[0].localeCompare(a.full_name.split('/')[0]) ||
-        nm(a).localeCompare(nm(b)),
+      name: (firstRepoSummary, secondRepoSummary) =>
+        nm(firstRepoSummary).localeCompare(nm(secondRepoSummary)),
+      namez: (firstRepoSummary, secondRepoSummary) =>
+        nm(secondRepoSummary).localeCompare(nm(firstRepoSummary)),
+      issues: (firstRepoSummary, secondRepoSummary) =>
+        (secondRepoSummary.open_issues_count || 0) -
+          (firstRepoSummary.open_issues_count || 0) ||
+        nm(firstRepoSummary).localeCompare(nm(secondRepoSummary)),
+      oldest: (firstRepoSummary, secondRepoSummary) =>
+        pushed(firstRepoSummary) - pushed(secondRepoSummary),
+      owner: (firstRepoSummary, secondRepoSummary) =>
+        firstRepoSummary.full_name.localeCompare(secondRepoSummary.full_name),
+      ownerz: (firstRepoSummary, secondRepoSummary) =>
+        secondRepoSummary.full_name
+          .split('/')[0]
+          .localeCompare(firstRepoSummary.full_name.split('/')[0]) ||
+        nm(firstRepoSummary).localeCompare(nm(secondRepoSummary)),
     };
 
     const sorter = sorters[srt];
@@ -79,14 +96,14 @@ export function homeProps(): HomeProps {
       list = [...list].sort(sorter);
     }
 
-    const card = (r: RepoSummary) => ({
-      full: r.full_name,
-      name: r.full_name.split('/')[1],
-      owner: r.full_name.split('/')[0],
-      priv: !!r.private,
-      archived: !!r.archived,
-      issues: r.open_issues_count || 0,
-      desc: r.description || '',
+    const card = (repoSummary: RepoSummary) => ({
+      full: repoSummary.full_name,
+      name: repoSummary.full_name.split('/')[1],
+      owner: repoSummary.full_name.split('/')[0],
+      priv: !!repoSummary.private,
+      archived: !!repoSummary.archived,
+      issues: repoSummary.open_issues_count || 0,
+      desc: repoSummary.description || '',
     });
 
     let groups = null;
@@ -94,22 +111,25 @@ export function homeProps(): HomeProps {
     if (grp === 'owner') {
       const by = new Map<string, RepoSummary[]>();
 
-      list.forEach(r => {
-        const o = r.full_name.split('/')[0];
+      list.forEach(repoSummary => {
+        const option = repoSummary.full_name.split('/')[0];
 
-        if (!by.has(o)) {
-          by.set(o, []);
+        if (!by.has(option)) {
+          by.set(option, []);
         }
 
-        by.get(o)!.push(r);
+        by.get(option)!.push(repoSummary);
       });
 
-      groups = [...by].map(([o, rs]) => ({ owner: o, cards: rs.map(card) }));
+      groups = [...by].map(([option, rs]) => ({
+        owner: option,
+        cards: rs.map(card),
+      }));
     }
 
     body = {
       kind: 'repos',
-      filter: S.repoFilter || '',
+      filter: appState.repoFilter || '',
       vis,
       sort: srt,
       group: grp,
@@ -122,13 +142,15 @@ export function homeProps(): HomeProps {
   return {
     owner,
     tab,
-    repoCount: S.repos
-      ? S.repos.filter(r => !owner || r.full_name.startsWith(`${owner}/`))
-          .length
+    repoCount: appState.repos
+      ? appState.repos.filter(
+          repoSummary =>
+            !owner || repoSummary.full_name.startsWith(`${owner}/`),
+        ).length
       : null,
-    recentCount: S.recent.length,
+    recentCount: appState.recent.length,
     banners: pushBannerItems(),
-    err: S.error ? String(S.error) : '',
+    err: appState.error ? String(appState.error) : '',
     body,
   };
 }

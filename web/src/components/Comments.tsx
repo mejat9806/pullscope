@@ -1,6 +1,6 @@
 import { flashClass, useFlash } from './flash';
 import { useReveal } from './req';
-import { Av, I, SP, When } from './ui';
+import { Av, renderIcon, SP, When } from './ui';
 
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import type { FlashProps } from './flash';
@@ -20,32 +20,32 @@ export interface PrHeaderProps {
   sq: string[];
 }
 
-function Who({ p, st }: { p: Pull; st: string }) {
-  const plural = p.commits === 1 ? '' : 's';
+function Who({ p: pull, st }: { p: Pull; st: string }) {
+  const plural = pull.commits === 1 ? '' : 's';
 
   return st === 'merged' ? (
     <>
       <a
         class="author"
         style="text-decoration:underline;text-underline-offset:2px"
-        href={p.merged_by!.html_url}
+        href={pull.merged_by!.html_url}
       >
-        {p.merged_by!.login}
+        {pull.merged_by!.login}
       </a>{' '}
-      merged {p.commits} commit{plural} into
+      merged {pull.commits} commit{plural} into
     </>
   ) : (
     <>
-      <a class="author" href={p.user.html_url}>
-        {p.user.login}
+      <a class="author" href={pull.user.html_url}>
+        {pull.user.login}
       </a>{' '}
-      wants to merge {p.commits} commit{plural} into
+      wants to merge {pull.commits} commit{plural} into
     </>
   );
 }
 
 export interface PrHeaderHandlers {
-  tab: (k: string) => void;
+  tab: (key: string) => void;
   edit: () => void;
   copy: () => void;
   summary: () => void;
@@ -55,7 +55,7 @@ export interface PrHeaderHandlers {
 }
 
 export function PrHeader({
-  b,
+  b: bundle,
   st,
   ic,
   label,
@@ -67,38 +67,38 @@ export function PrHeader({
   sq,
   on,
 }: PrHeaderProps & { on?: PrHeaderHandlers }) {
-  const p = b.pull;
-  const n = p.number;
+  const pull = bundle.pull;
+  const count = pull.number;
 
   const at =
     st === 'merged'
-      ? p.merged_at
+      ? pull.merged_at
       : st === 'closed'
-        ? p.closed_at
-        : p.created_at;
+        ? pull.closed_at
+        : pull.created_at;
 
   const tabs: [string, string, string, number][] = [
     ['conversation', 'comment-discussion', 'Conversation', commentsTotal + 0],
-    ['timeline', 'clock', 'Timeline', b.timeline.length],
-    ['commits', 'git-commit', 'Commits', p.commits],
-    ['checks', 'checklist', 'Checks', (b.checks || []).length],
-    ['files', 'file-diff', 'Files changed', p.changed_files],
+    ['timeline', 'clock', 'Timeline', bundle.timeline.length],
+    ['commits', 'git-commit', 'Commits', pull.commits],
+    ['checks', 'checklist', 'Checks', (bundle.checks || []).length],
+    ['files', 'file-diff', 'Files changed', pull.changed_files],
   ];
 
   return (
     <>
       <div class="pr-title-area">
         <h1 class="pr-title">
-          <span>{p.title}</span>
-          <span class="num">#{n}</span>
-          {p.state === 'open' && !p.merged ? (
+          <span>{pull.title}</span>
+          <span class="num">#{count}</span>
+          {pull.state === 'open' && !pull.merged ? (
             <button
               class="copy-btn"
               id="editpr"
               onClick={on?.edit}
               title="Edit title and description"
             >
-              {I('pencil')}
+              {renderIcon('pencil')}
             </button>
           ) : (
             ''
@@ -109,55 +109,58 @@ export function PrHeader({
             onClick={on?.summary}
             title="Copy a short summary (title, status, size, reviewers, link)"
           >
-            {I('copy')}
+            {renderIcon('copy')}
           </button>
         </h1>
         {NL}
         <div class="pr-meta">
           <span class={`state-pill state-${st}`}>
-            {I(ic)}
+            {renderIcon(ic)}
             {SP}
             {label}
           </span>
           <span>
-            <Who p={p} st={st} />
+            <Who p={pull} st={st} />
           </span>
           {SP}
-          <span class="branch" title={`${p.base.repo.full_name}:${p.base.ref}`}>
-            {p.base.label}
+          <span
+            class="branch"
+            title={`${pull.base.repo.full_name}:${pull.base.ref}`}
+          >
+            {pull.base.label}
           </span>
           {SP}
           <span>from</span>
           {SP}
-          <span class="branch">{p.head.label}</span>
+          <span class="branch">{pull.head.label}</span>
           <button
             class="copy-btn"
             id="copybranch"
             onClick={on?.copy}
             aria-label="Copy head branch name to clipboard"
           >
-            {I('copy')}
+            {renderIcon('copy')}
           </button>
           <span>{When(at!)}</span>
         </div>
       </div>
       {NL}
       <div class="pr-tabs">
-        <span class="mini" title={p.title}>
-          <b>#{n}</b>
+        <span class="mini" title={pull.title}>
+          <b>#{count}</b>
           {SP}
-          {p.title}
+          {pull.title}
         </span>
         <nav>
-          {tabs.map(([k, i, t, c]) => (
+          {tabs.map(([key, text, otherText, otherCount]) => (
             <a
-              data-tab={k}
-              class={tab === k ? 'sel' : ''}
-              onClick={() => on?.tab(k)}
+              data-tab={key}
+              class={tab === key ? 'sel' : ''}
+              onClick={() => on?.tab(key)}
             >
-              {I(i)}
-              {t}
-              <span class="counter">{c}</span>
+              {renderIcon(text)}
+              {otherText}
+              <span class="counter">{otherCount}</span>
             </a>
           ))}
         </nav>
@@ -169,7 +172,7 @@ export function PrHeader({
             onClick={on?.review}
             title="Submit a review"
           >
-            {I('eye')}
+            {renderIcon('eye')}
             <span>Review</span>
           </button>
           <button
@@ -180,7 +183,7 @@ export function PrHeader({
             disabled={tab !== 'conversation' || split}
             style={tab !== 'conversation' ? 'visibility:hidden' : ''}
           >
-            {I('sidebar-expand')}
+            {renderIcon('sidebar-expand')}
             <span>Details</span>
           </button>
           <button
@@ -194,15 +197,15 @@ export function PrHeader({
             }
             disabled={!splitOk}
           >
-            {I('columns')}
+            {renderIcon('columns')}
             <span>Split view</span>
           </button>
           <div class="diffstat">
-            <span class="add">+{p.additions}</span>
-            <span class="del">-{p.deletions}</span>
+            <span class="add">+{pull.additions}</span>
+            <span class="del">-{pull.deletions}</span>
             <span class="sq">
-              {sq.map(c => (
-                <i class={c}></i>
+              {sq.map(color => (
+                <i class={color}></i>
               ))}
             </span>
           </div>
@@ -212,10 +215,10 @@ export function PrHeader({
   );
 }
 
-export type FoldFn = (e: Event, k: string, def: boolean) => void;
+export type FoldFn = (event: Event, key: string, def: boolean) => void;
 
 export function FoldBtn({
-  k,
+  k: key,
   title,
   def,
   folded,
@@ -229,14 +232,14 @@ export function FoldBtn({
 }) {
   return (
     <button
-      ref={useReveal<HTMLButtonElement>(k)}
+      ref={useReveal<HTMLButtonElement>(key)}
       class="fold-btn"
-      data-fold={k}
+      data-fold={key}
       data-def={def ? 1 : 0}
       title={title}
-      onClick={onFold && (e => onFold(e, k, def))}
+      onClick={onFold && (event => onFold(event, key, def))}
     >
-      {I(folded ? 'chevron-right' : 'chevron-down')}
+      {renderIcon(folded ? 'chevron-right' : 'chevron-down')}
     </button>
   );
 }
@@ -247,8 +250,13 @@ export interface ReactionDef {
 }
 
 export interface ReactHandlers {
-  toggle: (e: Event, kind: string, id: number | string, c: string) => void;
-  add: (e: Event, btn: HTMLElement) => void;
+  toggle: (
+    event: Event,
+    kind: string,
+    id: number | string,
+    color: string,
+  ) => void;
+  add: (event: Event, btn: HTMLElement) => void;
   hover: (kind: string, id: number | string) => void;
 }
 
@@ -260,7 +268,7 @@ export interface ReactionsProps {
 }
 
 export function ReactionsBar({
-  r,
+  r: reactions,
   kind,
   id,
   defs,
@@ -269,25 +277,25 @@ export function ReactionsBar({
   const live = !!(kind && id);
 
   const items = defs
-    .filter(({ k }) => (r?.[k] ?? 0) > 0)
-    .map(({ k, e }) =>
+    .filter(({ k: otherKind }) => (reactions?.[otherKind] ?? 0) > 0)
+    .map(({ k: otherKind, e: text }) =>
       live ? (
         <span
           class="reaction rc-btn"
           data-rck={kind}
           data-rcid={id}
-          data-rcc={k}
+          data-rcc={otherKind}
           title="Click to add or remove your reaction"
-          onClick={on && (ev => on.toggle(ev, kind, id, k))}
+          onClick={on && (ev => on.toggle(ev, kind, id, otherKind))}
           onMouseEnter={on && (() => on.hover(kind, id))}
         >
-          <span class="e">{e}</span>
-          <span>{r?.[k]}</span>
+          <span class="e">{text}</span>
+          <span>{reactions?.[otherKind]}</span>
         </span>
       ) : (
         <span class="reaction">
-          <span class="e">{e}</span>
-          <span>{r?.[k]}</span>
+          <span class="e">{text}</span>
+          <span>{reactions?.[otherKind]}</span>
         </span>
       ),
     );
@@ -302,7 +310,7 @@ export function ReactionsBar({
         onClick={on && (ev => on.add(ev, ev.currentTarget as HTMLElement))}
         onMouseEnter={on && (() => on.hover(kind, id))}
       >
-        {I('smiley')}
+        {renderIcon('smiley')}
       </button>
     </span>
   ) : null;
@@ -317,15 +325,15 @@ export function ReactionsBar({
 
 export interface ConvHandlers {
   fold: FoldFn;
-  menu: (e: Event, btn: HTMLElement) => void;
+  menu: (event: Event, btn: HTMLElement) => void;
   react: ReactHandlers;
-  thread: (e: Event, node: string, how: string) => void;
-  sug: (e: Event, id: string) => void;
+  thread: (event: Event, node: string, how: string) => void;
+  sug: (event: Event, id: string) => void;
   reply: (id: string) => void;
 }
 
 export interface CommentBoxProps {
-  onTask?: (e: MouseEvent) => void;
+  onTask?: (event: MouseEvent) => void;
   kb?: boolean;
   flash?: FlashProps;
   c: CommentLike;
@@ -340,7 +348,7 @@ export function CommentBox({
   onTask,
   kb,
   flash,
-  c,
+  c: commentLike,
   assoc,
   bodyHtml,
   folded,
@@ -348,43 +356,43 @@ export function CommentBox({
   flush,
   on,
 }: CommentBoxProps & { on?: ConvHandlers }) {
-  const u = c.user || c.actor;
-  const k = `c:${c.id}`;
+  const user = commentLike.user || commentLike.actor;
+  const key = `c:${commentLike.id}`;
   const ref = useFlash(flash, kb);
 
   return (
     <div
       ref={ref}
       class={`tl-comment${folded ? ' folded' : ''}${kb ? ' kb' : ''}${flashClass(flash)}`}
-      id={`c-${c.id ?? ''}`}
+      id={`c-${commentLike.id ?? ''}`}
       style={flush ? 'margin-bottom:0' : undefined}
     >
       <div class="avatar-col">
-        <a href={u?.html_url}>{Av(u, 40)}</a>
+        <a href={user?.html_url}>{Av(user, 40)}</a>
       </div>
       {NL}
       <div class="cbox">
         <div class="chead">
           <div>
             <FoldBtn
-              k={k}
+              k={key}
               title="Hide this comment"
               def={false}
               folded={folded}
               onFold={on?.fold}
             />
             {SP}
-            <a class="author u" href={u?.html_url}>
+            <a class="author u" href={user?.html_url}>
               <span
                 class="author"
                 style="font-weight:600;color:var(--fgColor-default)"
               >
-                {u?.login || 'ghost'}
+                {user?.login || 'ghost'}
               </span>
             </a>{' '}
             commented{SP}
-            <a class="ts" href={c.html_url || '#'}>
-              {When((c.created_at || c.submitted_at)!)}
+            <a class="ts" href={commentLike.html_url || '#'}>
+              {When((commentLike.created_at || commentLike.submitted_at)!)}
             </a>
           </div>
           {NL}
@@ -392,9 +400,12 @@ export function CommentBox({
             {assoc ? <span class="assoc">{assoc}</span> : ''}
             <button
               class="cm-btn"
-              data-cm={c.id}
+              data-cm={commentLike.id}
               title="Comment actions"
-              onClick={on && (e => on.menu(e, e.currentTarget as HTMLElement))}
+              onClick={
+                on &&
+                (event => on.menu(event, event.currentTarget as HTMLElement))
+              }
             >
               ⋯
             </button>
@@ -433,48 +444,48 @@ export function DiffHunkTable({ rows }: { rows: HunkRow[] }) {
         <col style="width:50px" />
         <col />
       </colgroup>
-      {rows.map(r => {
-        if (r.kind === 'hunk') {
+      {rows.map(hunkRow => {
+        if (hunkRow.kind === 'hunk') {
           return (
             <tr class="hunk">
               <td class="num">…</td>
               <td class="num">…</td>
-              <td class="code">{r.text}</td>
+              <td class="code">{hunkRow.text}</td>
             </tr>
           );
         }
 
-        if (r.kind === 'add') {
+        if (hunkRow.kind === 'add') {
           return (
             <tr class="add">
               <td class="num"></td>
-              <td class="num">{r.n}</td>
+              <td class="num">{hunkRow.n}</td>
               <td class="code" data-marker="+">
-                {r.text}
+                {hunkRow.text}
               </td>
             </tr>
           );
         }
 
-        if (r.kind === 'del') {
+        if (hunkRow.kind === 'del') {
           return (
             <tr class="del">
-              <td class="num">{r.o}</td>
+              <td class="num">{hunkRow.o}</td>
               <td class="num"></td>
               <td class="code" data-marker="-">
-                {r.text}
+                {hunkRow.text}
               </td>
             </tr>
           );
         }
 
-        if (r.kind === 'meta') {
+        if (hunkRow.kind === 'meta') {
           return (
             <tr>
               <td class="num"></td>
               <td class="num"></td>
               <td class="code" style="color:var(--fgColor-muted)">
-                {r.text}
+                {hunkRow.text}
               </td>
             </tr>
           );
@@ -482,10 +493,10 @@ export function DiffHunkTable({ rows }: { rows: HunkRow[] }) {
 
         return (
           <tr>
-            <td class="num">{r.o}</td>
-            <td class="num">{r.n}</td>
+            <td class="num">{hunkRow.o}</td>
+            <td class="num">{hunkRow.n}</td>
             <td class="code" data-marker=" ">
-              {r.text}
+              {hunkRow.text}
             </td>
           </tr>
         );

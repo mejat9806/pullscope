@@ -1,4 +1,4 @@
-import { S } from './core';
+import { appState } from './core';
 import { fxAdd } from './overlay';
 import { repaintShell } from './pages';
 
@@ -6,57 +6,74 @@ import { repaintShell } from './pages';
 let enterTimer: number | undefined;
 
 export function enterAnim() {
-  S.enter = true;
+  appState.enter = true;
   repaintShell({ enter: true });
   clearTimeout(enterTimer);
 
   enterTimer = setTimeout(() => {
-    S.enter = false;
+    appState.enter = false;
     repaintShell({ enter: false });
   }, 1800);
 }
 
-export function ripple(e: PointerEvent) {
-  const b = (e.target as HTMLElement).closest<
+export function ripple(event: PointerEvent) {
+  const value = (event.target as HTMLElement).closest<
     HTMLElement & { disabled?: boolean }
   >('.btn, .tb-btn, .split-btn, .who-chip, .att-tog, .reaction, .react-add');
 
-  if (!b || b.disabled) {
+  if (!value || value.disabled) {
     return;
   }
 
-  const r = b.getBoundingClientRect();
-  const d = Math.max(r.width, r.height) * 2;
-  const cs = getComputedStyle(b);
+  const rect = value.getBoundingClientRect();
+  const delta = Math.max(rect.width, rect.height) * 2;
+  const cs = getComputedStyle(value);
 
   fxAdd(
     {
       k: 'rip',
-      l: r.left,
-      t: r.top,
-      w: r.width,
-      h: r.height,
+      l: rect.left,
+      t: rect.top,
+      w: rect.width,
+      h: rect.height,
       radius: cs.borderRadius,
       color: cs.color,
-      x: e.clientX - r.left - d / 2,
-      y: e.clientY - r.top - d / 2,
-      d,
+      x: event.clientX - rect.left - delta / 2,
+      y: event.clientY - rect.top - delta / 2,
+      d: delta,
     },
     650,
   );
 
-  if (b.matches('.reaction, .react-add')) {
-    burst(e.clientX, e.clientY, b.textContent.trim().slice(0, 2) || '✨', 6);
+  if (value.matches('.reaction, .react-add')) {
+    burst(
+      event.clientX,
+      event.clientY,
+      value.textContent.trim().slice(0, 2) || '✨',
+      6,
+    );
   }
 }
 
-export function burst(x: number, y: number, ch: string, n: number) {
-  for (let i = 0; i < n; i++) {
-    const a = (Math.PI * 2 * i) / n + Math.random() * 0.6;
-    const v = 40 + Math.random() * 50;
+export function burst(
+  leftLeft: number,
+  rightOffset: number,
+  ch: string,
+  count: number,
+) {
+  for (let index = 0; index < count; index++) {
+    const first = (Math.PI * 2 * index) / count + Math.random() * 0.6;
+    const value = 40 + Math.random() * 50;
 
     fxAdd(
-      { k: 'burst', x, y, ch, dx: Math.cos(a) * v, dy: Math.sin(a) * v - 30 },
+      {
+        k: 'burst',
+        x: leftLeft,
+        y: rightOffset,
+        ch,
+        dx: Math.cos(first) * value,
+        dy: Math.sin(first) * value - 30,
+      },
       900,
     );
   }

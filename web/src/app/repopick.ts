@@ -1,57 +1,64 @@
-import { S, tauri } from './core';
+import { appState, tauri } from './core';
 import { paintDlg } from './dialogs';
 import { loadRepos } from './nav';
 import { loadInbox, render } from './pages';
 
 // The checklist needs every repository once; the sidebar, inbox and notifications then fetch only the ticked ones.
 export function repoPickOpen() {
-  S.rpick = {
+  appState.rpick = {
     all: null,
-    on: (S.repoSel || []).map(r => r.full_name),
+    on: (appState.repoSel || []).map(repoSummary => repoSummary.full_name),
     q: '',
     err: '',
   };
 
-  S.dlg = { k: 'repos' };
+  appState.dlg = { k: 'repos' };
   render();
 
   tauri
     ?.invoke('list_repos')
-    .then(l => {
-      if (S.rpick) {
-        S.rpick.all = l.filter(r => !r.archived);
+    .then(repoSummarys => {
+      if (appState.rpick) {
+        appState.rpick.all = repoSummarys.filter(
+          repoSummary => !repoSummary.archived,
+        );
+
         paintDlg();
       }
     })
-    .catch(e => {
-      if (S.rpick) {
-        S.rpick.err = String(e).replace(/^Error: /, '');
-        S.rpick.all = [];
+    .catch(value => {
+      if (appState.rpick) {
+        appState.rpick.err = String(value).replace(/^Error: /, '');
+        appState.rpick.all = [];
         paintDlg();
       }
     });
 }
 
 export function repoPickSave() {
-  const p = S.rpick;
+  const props = appState.rpick;
 
-  if (!p?.all) {
+  if (!props?.all) {
     return;
   }
 
-  const keep = new Set(p.on);
+  const keep = new Set(props.on);
 
-  const chosen = [...p.all, ...(S.repoSel || [])].filter(
-    (r, i, a) =>
-      keep.has(r.full_name) &&
-      a.findIndex(x => x.full_name === r.full_name) === i,
+  const chosen = [...props.all, ...(appState.repoSel || [])].filter(
+    (repoSummary, index, repoSummarys) =>
+      keep.has(repoSummary.full_name) &&
+      repoSummarys.findIndex(
+        otherRepoSummary =>
+          otherRepoSummary.full_name === repoSummary.full_name,
+      ) === index,
   );
 
-  S.repoSel = chosen.length && chosen.length < p.all.length ? chosen : null;
+  appState.repoSel =
+    chosen.length && chosen.length < props.all.length ? chosen : null;
 
   try {
-    if (S.repoSel) {
-      localStorage.setItem('repoSel', JSON.stringify(S.repoSel));
+    if (appState.repoSel) {
+      localStorage.setItem('repoSel', JSON.stringify(appState.repoSel));
     } else {
       localStorage.removeItem('repoSel');
     }
@@ -59,20 +66,20 @@ export function repoPickSave() {
     /* storage full */
   }
 
-  S.rpick = null;
-  S.dlg = null;
-  S.repo = null;
-  S.sideTab = 'repos';
-  S.inbox = null;
-  S.repos = S.repoSel;
+  appState.rpick = null;
+  appState.dlg = null;
+  appState.repo = null;
+  appState.sideTab = 'repos';
+  appState.inbox = null;
+  appState.repos = appState.repoSel;
 
-  if (!S.repoSel) {
+  if (!appState.repoSel) {
     loadRepos();
   } else {
     render();
   }
 
-  if (S.view === 'inbox') {
+  if (appState.view === 'inbox') {
     loadInbox(true);
   }
 }

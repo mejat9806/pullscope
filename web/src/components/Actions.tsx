@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 
 import { useOnRequest } from './req';
-import { I } from './ui';
+import { renderIcon } from './ui';
 
-export const ErrLine = ({ m }: { m: string }) =>
-  m ? <div class="act-err">{m}</div> : null;
+export const ErrLine = ({ m: message }: { m: string }) =>
+  message ? <div class="act-err">{message}</div> : null;
 
 // The rich editor is a foreign widget: the component owns its host and builds the editor (lazily, when near the viewport) on mount and destroys it on unmount.
 type Preview = { html: string } | { raw: string; err: string } | null;
@@ -17,7 +17,7 @@ export const editorMount: {
 
 // `.tt-ed` is the editor's own host (it paints its toolbar and body there); the Write/Preview tabs and the preview pane are Preact.
 export function DraftBox({
-  k,
+  k: key,
   ph,
   rows,
   submit,
@@ -30,34 +30,35 @@ export function DraftBox({
   const ref = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'write' | 'preview'>('write');
   const [pv, setPv] = useState<Preview | 'loading'>(null);
-  useOnRequest(`draft:submit:${k}`, () => submit?.());
+  useOnRequest(`draft:submit:${key}`, () => submit?.());
 
-  useOnRequest(`draft:scroll:${k}`, () =>
+  useOnRequest(`draft:scroll:${key}`, () =>
     ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
   );
 
-  useOnRequest(`draft:focus:${k}`, () => editorMount.focus?.(k));
+  useOnRequest(`draft:focus:${key}`, () => editorMount.focus?.(key));
 
-  useOnRequest(`draft:blur:${k}`, () =>
+  useOnRequest(`draft:blur:${key}`, () =>
     ref.current?.querySelector<HTMLElement>('.tt-content')?.blur(),
   );
 
   const hint = `${ph} — type / for blocks`;
 
   useEffect(
-    () => (editorMount.fn ? editorMount.fn(ref.current!, k, hint) : undefined),
+    () =>
+      editorMount.fn ? editorMount.fn(ref.current!, key, hint) : undefined,
     [],
   );
 
-  const show = (m: 'write' | 'preview') => {
-    setMode(m);
+  const show = (otherMode: 'write' | 'preview') => {
+    setMode(otherMode);
 
-    if (m === 'write') {
+    if (otherMode === 'write') {
       return;
     }
 
     setPv('loading');
-    editorMount.preview?.(k).then(setPv);
+    editorMount.preview?.(key).then(setPv);
   };
 
   // Back on the Write tab, the editor takes the caret again.
@@ -80,7 +81,7 @@ export function DraftBox({
   return (
     <div
       class={`tt${prev ? ' previewing' : ''}`}
-      data-draft={k}
+      data-draft={key}
       data-ph={hint}
       style={`--rows:${rows}`}
     >
@@ -118,10 +119,10 @@ export function DraftBox({
 
 export interface ComposerHandlers {
   toggle: () => void;
-  key: (e: KeyboardEvent) => void;
+  key: (event: KeyboardEvent) => void;
   send: () => void;
   close: () => void;
-  measure: (m: { h: number; in: string } | null) => void;
+  measure: (meta: { h: number; in: string } | null) => void;
 }
 
 export interface ComposerProps {
@@ -133,8 +134,8 @@ export interface ComposerProps {
   busy: boolean;
 }
 
-export function Composer(p: ComposerProps & { on?: ComposerHandlers }) {
-  const { on } = p;
+export function Composer(props: ComposerProps & { on?: ComposerHandlers }) {
+  const { on } = props;
   const box = useRef<HTMLDivElement>(null);
 
   // The composer reports its height and which scroller it sits in, so scrolling code can decide when to open or fold it without looking at the page.
@@ -153,7 +154,7 @@ export function Composer(p: ComposerProps & { on?: ComposerHandlers }) {
   return (
     <div
       ref={box}
-      class={`composer dock${p.open ? '' : ' collapsed'}`}
+      class={`composer dock${props.open ? '' : ' collapsed'}`}
       id="composer"
     >
       <div
@@ -165,13 +166,13 @@ export function Composer(p: ComposerProps & { on?: ComposerHandlers }) {
         onClick={on?.toggle}
         onKeyDown={on?.key}
       >
-        {I('comment')}
+        {renderIcon('comment')}
         <b>Add a comment</b>
         <span class="cbar-ph">
-          {p.draft ? `Draft: ${p.draft}` : 'Write a comment…'}
+          {props.draft ? `Draft: ${props.draft}` : 'Write a comment…'}
         </span>
         <kbd>C</kbd>
-        <span class="cbar-x">{I('chevron-down')}</span>
+        <span class="cbar-x">{renderIcon('chevron-down')}</span>
       </div>
       {'\n  '}
       <div class="composer-body">
@@ -179,29 +180,29 @@ export function Composer(p: ComposerProps & { on?: ComposerHandlers }) {
           k="comment"
           ph="Write a comment… (Markdown supported)"
           rows={4}
-          submit={p.busy ? undefined : on?.send}
+          submit={props.busy ? undefined : on?.send}
         />
-        <ErrLine m={p.err} />
+        <ErrLine m={props.err} />
         {'\n  '}
         <div class="composer-f">
           <span class="hint">⌘↵ to send · Esc to collapse</span>
           <span style="flex:1"></span>
           {'\n  '}
-          {p.merged ? (
+          {props.merged ? (
             ''
           ) : (
             <button class="btn ghost" id="doclose" onClick={on?.close}>
-              {p.closed ? 'Reopen pull request' : 'Close pull request'}
+              {props.closed ? 'Reopen pull request' : 'Close pull request'}
             </button>
           )}
           {'\n  '}
           <button
             class="btn primary"
             id="docomment"
-            disabled={p.busy}
+            disabled={props.busy}
             onClick={on?.send}
           >
-            {p.busy ? 'Sending…' : 'Comment'}
+            {props.busy ? 'Sending…' : 'Comment'}
           </button>
         </div>
       </div>
@@ -215,7 +216,7 @@ export interface MergeActHandlers {
   noauto: () => void;
   auto: () => void;
   draft: () => void;
-  method: (e: Event) => void;
+  method: (event: Event) => void;
 }
 
 export interface MergeActProps {
@@ -235,16 +236,16 @@ const METHODS: [string, string][] = [
   ['rebase', 'Rebase and merge'],
 ];
 
-export function MergeAct(p: MergeActProps & { on?: MergeActHandlers }) {
-  const { on } = p;
+export function MergeAct(props: MergeActProps & { on?: MergeActHandlers }) {
+  const { on } = props;
 
-  if (p.draft) {
+  if (props.draft) {
     return (
       <div class="merge-act">
         <button class="btn ghost" id="doclose" onClick={on?.close}>
           Close pull request
         </button>
-        <ErrLine m={p.err} />
+        <ErrLine m={props.err} />
       </div>
     );
   }
@@ -252,38 +253,38 @@ export function MergeAct(p: MergeActProps & { on?: MergeActHandlers }) {
   return (
     <div class="merge-act">
       <select class="sel" id="mmethod" onChange={on?.method}>
-        {METHODS.map(([v, t]) => (
-          <option value={v} selected={p.method === v}>
-            {t}
+        {METHODS.map(([otherValue, text]) => (
+          <option value={otherValue} selected={props.method === otherValue}>
+            {text}
           </option>
         ))}
       </select>
       <button
         class="btn primary"
         id="domerge"
-        disabled={p.busy}
+        disabled={props.busy}
         onClick={on?.merge}
       >
-        {p.busy ? 'Merging…' : 'Merge pull request'}
+        {props.busy ? 'Merging…' : 'Merge pull request'}
       </button>
       {'\n  '}
-      {p.auto ? (
+      {props.auto ? (
         <button
           class="btn"
           id="noauto"
-          title={`Auto-merge is on (${p.auto.method})`}
+          title={`Auto-merge is on (${props.auto.method})`}
           onClick={on?.noauto}
         >
-          {p.auto.busy ? 'Turning off…' : 'Disable auto-merge'}
+          {props.auto.busy ? 'Turning off…' : 'Disable auto-merge'}
         </button>
-      ) : p.canAuto ? (
+      ) : props.canAuto ? (
         <button
           class="btn"
           id="doauto"
           title="Merge automatically once required checks and reviews pass"
           onClick={on?.auto}
         >
-          {p.autoBusy ? 'Enabling…' : 'Enable auto-merge'}
+          {props.autoBusy ? 'Enabling…' : 'Enable auto-merge'}
         </button>
       ) : (
         ''
@@ -297,8 +298,8 @@ export function MergeAct(p: MergeActProps & { on?: MergeActHandlers }) {
       >
         Convert to draft
       </button>
-      <ErrLine m={p.err} />
-      <ErrLine m={p.errAuto} />
+      <ErrLine m={props.err} />
+      <ErrLine m={props.errAuto} />
     </div>
   );
 }

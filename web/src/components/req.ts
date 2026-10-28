@@ -12,48 +12,51 @@ export interface Req {
 const reqs = new Map<string, Req>();
 const subs = new Map<string, Set<() => void>>();
 
-export function request(id: string, r: Omit<Req, 'n'> = {}) {
-  reqs.set(id, { ...r, n: (reqs.get(id)?.n || 0) + 1 });
-  subs.get(id)?.forEach(f => f());
+export function request(id: string, req: Omit<Req, 'n'> = {}) {
+  reqs.set(id, { ...req, n: (reqs.get(id)?.n || 0) + 1 });
+  subs.get(id)?.forEach(handler => handler());
 }
 
 export function useOnRequest(
   id: string,
-  apply: (r: Req) => void,
+  apply: (otherRequest: Req) => void,
   layout = false,
 ) {
   const [, tick] = useState(0);
-  const r = reqs.get(id);
-  const seen = useRef(r?.n);
+  const otherRequest = reqs.get(id);
+  const seen = useRef(otherRequest?.n);
   const act = useRef(apply);
   act.current = apply;
 
   useEffect(() => {
-    const f = () => tick(t => t + 1);
+    const handler = () => tick(time => time + 1);
 
-    let s = subs.get(id);
+    let names = subs.get(id);
 
-    if (!s) {
-      subs.set(id, (s = new Set()));
+    if (!names) {
+      subs.set(id, (names = new Set()));
     }
 
-    s.add(f);
+    names.add(handler);
 
-    if (reqs.get(id)?.n !== seen.current && reqs.get(id)?.n !== r?.n) {
-      f();
+    if (
+      reqs.get(id)?.n !== seen.current &&
+      reqs.get(id)?.n !== otherRequest?.n
+    ) {
+      handler();
     } // asked between our render and this effect
 
     return () => {
-      s!.delete(f);
+      names!.delete(handler);
     };
   }, [id]);
 
   (layout ? useLayoutEffect : useEffect)(() => {
-    if (r && r.n !== seen.current) {
-      seen.current = r.n;
-      act.current(r);
+    if (otherRequest && otherRequest.n !== seen.current) {
+      seen.current = otherRequest.n;
+      act.current(otherRequest);
     }
-  }, [r?.n]);
+  }, [otherRequest?.n]);
 }
 
 // The page and each split-view pane scroll when asked (`scroll:<id>`).
@@ -62,10 +65,10 @@ export function useScroller(id: string, layout = false) {
 
   useOnRequest(
     `scroll:${id}`,
-    r =>
+    otherRequest =>
       ref.current?.scrollTo({
-        top: r.top || 0,
-        behavior: r.smooth ? 'smooth' : 'auto',
+        top: otherRequest.top || 0,
+        behavior: otherRequest.smooth ? 'smooth' : 'auto',
       }),
     layout,
   );
@@ -80,19 +83,19 @@ export const scrollTarget = (id: string, top: number, smooth: boolean) =>
 export function useFocusTarget(id: string) {
   const ref = useRef<HTMLInputElement>(null);
 
-  useOnRequest(`focus:${id}`, r => {
+  useOnRequest(`focus:${id}`, otherRequest => {
     const el = ref.current;
 
     if (!el) {
       return;
     }
 
-    if (r.a === 'blur') {
+    if (otherRequest.a === 'blur') {
       el.blur();
     } else {
       el.focus();
 
-      if (r.a === 'select') {
+      if (otherRequest.a === 'select') {
         el.select();
       }
     }
@@ -101,8 +104,8 @@ export function useFocusTarget(id: string) {
   return ref;
 }
 
-export const focusTarget = (id: string, a: 'focus' | 'select' | 'blur') =>
-  request(`focus:${id}`, { a });
+export const focusTarget = (id: string, action: 'focus' | 'select' | 'blur') =>
+  request(`focus:${id}`, { a: action });
 
 // A block that was just opened is brought on screen when part of it is cut off (`reveal:<fold key>`).
 export const reveal = (key: string) => request(`reveal:${key}`);
@@ -118,12 +121,12 @@ export function useReveal<T extends HTMLElement>(key: string) {
       return;
     }
 
-    const r = box.getBoundingClientRect();
-    const m = main.getBoundingClientRect();
+    const rect = box.getBoundingClientRect();
+    const otherRect = main.getBoundingClientRect();
 
-    if (r.bottom > m.bottom - 8 || r.top < m.top) {
+    if (rect.bottom > otherRect.bottom - 8 || rect.top < otherRect.top) {
       box.scrollIntoView({
-        block: r.height > m.height * 0.85 ? 'start' : 'center',
+        block: rect.height > otherRect.height * 0.85 ? 'start' : 'center',
         behavior: 'smooth',
       });
     }

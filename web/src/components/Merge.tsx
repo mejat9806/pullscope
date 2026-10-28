@@ -2,7 +2,7 @@ import { arrange, roCls } from '../app/reorder';
 import { ErrLine } from './Actions';
 import { FoldBtn } from './Comments';
 import { useReveal, useScroller } from './req';
-import { Av, I, SP } from './ui';
+import { Av, renderIcon, SP } from './ui';
 
 import type { ComponentChildren } from 'preact';
 import type { Person } from '../types';
@@ -18,7 +18,7 @@ export function MergedBox({ head }: { head: string }) {
             class="state-merged"
             style="background:var(--bgColor-done-emphasis)"
           >
-            {I('git-merge')}
+            {renderIcon('git-merge')}
           </span>
         </div>
         <div class="merge-card merged-card">
@@ -45,7 +45,7 @@ export function ClosedBox({ head }: { head: string }) {
           class="state-closed"
           style="background:var(--bgColor-closed-emphasis, var(--bgColor-danger-emphasis))"
         >
-          {I('git-pull-request-closed')}
+          {renderIcon('git-pull-request-closed')}
         </span>
       </div>
       <div class="merge-card">
@@ -80,8 +80,8 @@ export interface CkGroup {
 }
 
 export interface MergeBoxHandlers {
-  toggle: (e: Event, k: string) => void;
-  rerun: (e: Event) => void;
+  toggle: (event: Event, key: string) => void;
+  rerun: (event: Event) => void;
   update: () => void;
   ready: () => void;
 }
@@ -111,11 +111,11 @@ export interface MergeBoxProps {
   clean: boolean;
 }
 
-const plural = (n: number) => (n === 1 ? '' : 's');
+const plural = (count: number) => (count === 1 ? '' : 's');
 
 function Sec({
-  k,
-  h,
+  k: key,
+  h: hashs,
   rerunable,
   open,
   children,
@@ -131,16 +131,16 @@ function Sec({
   return (
     <div class="mb-sec">
       <button
-        class={`mb-h ${h[0]}`}
-        data-mb={k}
-        onClick={on && (e => on.toggle(e, k))}
+        class={`mb-h ${hashs[0]}`}
+        data-mb={key}
+        onClick={on && (event => on.toggle(event, key))}
       >
-        <span class="mb-ic">{I(h[1], 22)}</span>
+        <span class="mb-ic">{renderIcon(hashs[1], 22)}</span>
         <span class="mb-t">
-          <b>{h[2]}</b>
-          <i>{h[3] || ''}</i>
+          <b>{hashs[2]}</b>
+          <i>{hashs[3] || ''}</i>
         </span>
-        {k === 'ck' && rerunable ? (
+        {key === 'ck' && rerunable ? (
           <span
             class="btn small"
             id="rerunck"
@@ -152,38 +152,44 @@ function Sec({
         ) : (
           ''
         )}
-        {I(open ? 'chevron-up' : 'chevron-down', 16)}
+        {renderIcon(open ? 'chevron-up' : 'chevron-down', 16)}
       </button>
       {open && children ? <div class="mb-body">{children}</div> : ''}
     </div>
   );
 }
 
-function CkGroupView({ g, on }: { g: CkGroup; on?: MergeBoxHandlers }) {
+function CkGroupView({
+  g: ckGroup,
+  on,
+}: {
+  g: CkGroup;
+  on?: MergeBoxHandlers;
+}) {
   return (
     <>
       <button
         class="mb-grp"
-        data-mb={`g${g.k}`}
-        onClick={on && (e => on.toggle(e, `g${g.k}`))}
+        data-mb={`g${ckGroup.k}`}
+        onClick={on && (event => on.toggle(event, `g${ckGroup.k}`))}
       >
-        {g.title}
+        {ckGroup.title}
         {SP}
-        {I(g.open ? 'chevron-up' : 'chevron-down', 12)}
+        {renderIcon(ckGroup.open ? 'chevron-up' : 'chevron-down', 12)}
       </button>
-      {g.open
-        ? g.items.map(c => (
-            <a class={`mb-ck ${c.st}`} href={c.url || undefined}>
-              {I(c.icon, 14)}
-              <b>{c.name}</b>
-              {c.req ? (
+      {ckGroup.open
+        ? ckGroup.items.map(ckItem => (
+            <a class={`mb-ck ${ckItem.st}`} href={ckItem.url || undefined}>
+              {renderIcon(ckItem.icon, 14)}
+              <b>{ckItem.name}</b>
+              {ckItem.req ? (
                 <span class="ck-req" title="Required by branch protection">
                   Required
                 </span>
               ) : (
                 ''
               )}
-              <i>{c.desc}</i>
+              <i>{ckItem.desc}</i>
             </a>
           ))
         : ''}
@@ -191,19 +197,19 @@ function CkGroupView({ g, on }: { g: CkGroup; on?: MergeBoxHandlers }) {
   );
 }
 
-export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
-  const { rv, ck, on } = p;
+export function MergeBox(props: MergeBoxProps & { on?: MergeBoxHandlers }) {
+  const { rv, ck, on } = props;
 
   const rvBody = (
     <>
       <div class="mb-line">
-        {I('check', 14)}
+        {renderIcon('check', 14)}
         {SP}
         {rv.ap} approval{plural(rv.ap)}
       </div>
       {rv.cr ? (
         <div class="mb-line bad">
-          {I('x-circle-fill', 14)}
+          {renderIcon('x-circle-fill', 14)}
           {SP}
           {rv.cr} requested changes
         </div>
@@ -211,7 +217,7 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
         ''
       )}
       <div class="mb-line">
-        {I('person', 14)}
+        {renderIcon('person', 14)}
         {SP}
         {rv.pend} pending review{plural(rv.pend)}
         {rv.pend ? `: ${rv.pendNames}` : ''}
@@ -223,25 +229,27 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
     <div class="merge-box">
       <div class="badge">
         <span style="background:var(--bgColor-success-emphasis)">
-          {I('git-pull-request')}
+          {renderIcon('git-pull-request')}
         </span>
       </div>
       <div class="merge-card mb-card">
-        {p.draft ? (
+        {props.draft ? (
           <>
             <div class="mb-sec">
               <div class="mb-h">
-                <span class="mb-ic">{I('git-pull-request-draft', 22)}</span>
+                <span class="mb-ic">
+                  {renderIcon('git-pull-request-draft', 22)}
+                </span>
                 <span class="mb-t">
                   <b>This pull request is still a work in progress</b>
                   <i>Draft pull requests cannot be merged.</i>
                 </span>
                 <button class="btn primary" id="doready" onClick={on?.ready}>
-                  {p.busyReady ? 'Updating…' : 'Ready for review'}
+                  {props.busyReady ? 'Updating…' : 'Ready for review'}
                 </button>
               </div>
             </div>
-            <ErrLine m={p.errReady} />
+            <ErrLine m={props.errReady} />
           </>
         ) : (
           ''
@@ -251,25 +259,26 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
         </Sec>
         {ck ? (
           <Sec k="ck" h={ck.h} rerunable={ck.rerunable} open={ck.open} on={on}>
-            {ck.groups.map(g => (
-              <CkGroupView g={g} on={on} />
+            {ck.groups.map(ckGroup => (
+              <CkGroupView g={ckGroup} on={on} />
             ))}
           </Sec>
         ) : (
           ''
         )}
-        {p.behind ? (
+        {props.behind ? (
           <div class="mb-sec mb-warn">
             <div class="mb-h">
-              <span class="mb-ic">{I('alert', 22)}</span>
+              <span class="mb-ic">{renderIcon('alert', 22)}</span>
               <span class="mb-t">
                 <b>This branch is out-of-date with the base branch</b>
                 <i>
-                  Merge the latest changes from {p.baseRef} into this branch.
+                  Merge the latest changes from {props.baseRef} into this
+                  branch.
                 </i>
               </span>
               <button class="btn" id="updbranch" onClick={on?.update}>
-                {p.busyUpdate ? 'Updating…' : 'Update branch'}
+                {props.busyUpdate ? 'Updating…' : 'Update branch'}
               </button>
             </div>
           </div>
@@ -277,25 +286,25 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
           ''
         )}
         <div class="mb-sec">
-          <div class={`mb-h ${p.clean ? 'ok' : 'bad'}`}>
+          <div class={`mb-h ${props.clean ? 'ok' : 'bad'}`}>
             <span class="mb-ic">
-              {I(p.clean ? 'check-circle-fill' : 'alert', 22)}
+              {renderIcon(props.clean ? 'check-circle-fill' : 'alert', 22)}
             </span>
             <span class="mb-t">
               <b>
-                {p.clean
+                {props.clean
                   ? 'This branch has no conflicts with the base branch'
                   : 'This branch has conflicts that must be resolved'}
               </b>
               <i>
-                {p.clean
+                {props.clean
                   ? 'Merging can be performed automatically.'
                   : 'Use the web editor or the command line to resolve conflicts.'}
               </i>
             </span>
           </div>
         </div>
-        <ErrLine m={p.errUpdate} />
+        <ErrLine m={props.errUpdate} />
       </div>
     </div>
   );
@@ -312,11 +321,11 @@ export type SideKey =
   'reviewers' | 'assignees' | 'labels' | 'milestone' | 'people';
 
 export interface PrSideHandlers {
-  fold: (k: string, def: boolean) => void;
+  fold: (key: string, def: boolean) => void;
   rvtoggle: () => void;
-  rerequest: (e: MouseEvent, login: string) => void;
-  grip: (e: MouseEvent, key: SideKey) => void;
-  edit: (k: SideKey) => void;
+  rerequest: (event: MouseEvent, login: string) => void;
+  grip: (event: MouseEvent, key: SideKey) => void;
+  edit: (sideKey: SideKey) => void;
 }
 
 export interface PrSideProps {
@@ -330,28 +339,28 @@ export interface PrSideProps {
   folded: Record<SideKey, boolean>;
 }
 
-function ReviewerRow({ r, on }: { r: RvRow; on: PrSideHandlers }) {
+function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
   const ic =
-    r.st === 'req' && r.prev ? (
+    rvRow.st === 'req' && rvRow.prev ? (
       <>
         <span title="Asked to review again" style="margin-right:6px">
-          {I('sync')}
+          {renderIcon('sync')}
         </span>
-        {I(
-          r.prev === 'approved'
+        {renderIcon(
+          rvRow.prev === 'approved'
             ? 'check'
-            : r.prev === 'changes_requested'
+            : rvRow.prev === 'changes_requested'
               ? 'file-diff'
               : 'comment',
         )}
       </>
     ) : (
-      I(
-        r.st === 'approved'
+      renderIcon(
+        rvRow.st === 'approved'
           ? 'check'
-          : r.st === 'changes_requested'
+          : rvRow.st === 'changes_requested'
             ? 'file-diff'
-            : r.st === 'req'
+            : rvRow.st === 'req'
               ? 'dot-fill'
               : 'comment',
       )
@@ -359,23 +368,23 @@ function ReviewerRow({ r, on }: { r: RvRow; on: PrSideHandlers }) {
 
   return (
     <div class="reviewer">
-      <a href={r.u.html_url}>{Av(r.u, 20)}</a>
-      <a class="nm" href={r.u.html_url}>
-        {r.u.login}
+      <a href={rvRow.u.html_url}>{Av(rvRow.u, 20)}</a>
+      <a class="nm" href={rvRow.u.html_url}>
+        {rvRow.u.login}
       </a>
       <span
-        class={`st ${r.st === 'approved' ? 'ok' : r.st === 'changes_requested' ? 'bad' : ''}`}
+        class={`st ${rvRow.st === 'approved' ? 'ok' : rvRow.st === 'changes_requested' ? 'bad' : ''}`}
       >
         {ic}
       </span>
-      {r.canRe ? (
+      {rvRow.canRe ? (
         <button
           class="rerequest"
-          data-rerequest={r.u.login}
-          title={`Ask ${r.u.login} to review again`}
-          onClick={e => on.rerequest(e, r.u.login ?? '')}
+          data-rerequest={rvRow.u.login}
+          title={`Ask ${rvRow.u.login} to review again`}
+          onClick={event => on.rerequest(event, rvRow.u.login ?? '')}
         >
-          {I('sync')}
+          {renderIcon('sync')}
         </button>
       ) : (
         ''
@@ -384,15 +393,15 @@ function ReviewerRow({ r, on }: { r: RvRow; on: PrSideHandlers }) {
   );
 }
 
-export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
-  const { on } = p;
-  const rv = p.reviewers;
+export function PrSide(props: PrSideProps & { on: PrSideHandlers }) {
+  const { on } = props;
+  const rv = props.reviewers;
   const more = rv.length - 3;
 
   const rvSection = rv.length ? (
     <>
-      {rv.slice(0, 3).map(r => (
-        <ReviewerRow r={r} on={on} />
+      {rv.slice(0, 3).map(rvRow => (
+        <ReviewerRow r={rvRow} on={on} />
       ))}
       {more > 0 ? (
         <>
@@ -400,9 +409,11 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
             <span>
               +{more} more reviewer{plural(more)}
             </span>
-            {I(p.showAll ? 'chevron-up' : 'chevron-down')}
+            {renderIcon(props.showAll ? 'chevron-up' : 'chevron-down')}
           </button>
-          {p.showAll ? rv.slice(3).map(r => <ReviewerRow r={r} on={on} />) : ''}
+          {props.showAll
+            ? rv.slice(3).map(rvRow => <ReviewerRow r={rvRow} on={on} />)
+            : ''}
         </>
       ) : (
         ''
@@ -412,33 +423,41 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
     <div class="sb-none">No reviews</div>
   );
 
-  const fb = (k: SideKey, n: string) => (
-    <SideFold k={`sb:${n}`} folded={p.folded[k]} onFold={on.fold} />
+  const fb = (sideKey: SideKey, name: string) => (
+    <SideFold
+      k={`sb:${name}`}
+      folded={props.folded[sideKey]}
+      onFold={on.fold}
+    />
   );
 
-  const head = (k: SideKey, t: string) => (
+  const head = (sideKey: SideKey, text: string) => (
     <div class="sb-head">
-      {fb(k, t === 'people' ? 'people' : t)}
-      <span>{t}</span>
+      {fb(sideKey, text === 'people' ? 'people' : text)}
+      <span>{text}</span>
       <button
         class="gear-btn"
-        title={`Edit ${t.toLowerCase()}`}
-        onClick={() => on.edit(k)}
+        title={`Edit ${text.toLowerCase()}`}
+        onClick={() => on.edit(sideKey)}
       >
-        {I('gear', 16, 'gear')}
+        {renderIcon('gear', 16, 'gear')}
       </button>
     </div>
   );
 
-  const box = (k: SideKey) => `sb-item${p.folded[k] ? ' folded' : ''}`;
+  const box = (sideKey: SideKey) =>
+    `sb-item${props.folded[sideKey] ? ' folded' : ''}`;
 
-  const item = (k: SideKey, node: ComponentChildren) => (
-    <div class={`${box(k)} ro-it${roCls('side', k)}`} data-t={k}>
+  const item = (sideKey: SideKey, node: ComponentChildren) => (
+    <div
+      class={`${box(sideKey)} ro-it${roCls('side', sideKey)}`}
+      data-t={sideKey}
+    >
       {node}
       <i
         class="ro-grip"
         title="Drag to reorder"
-        onMouseDown={e => on.grip(e, k)}
+        onMouseDown={event => on.grip(event, sideKey)}
       >
         ⋮⋮
       </i>
@@ -458,12 +477,12 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
     assignees: (
       <>
         {head('assignees', 'Assignees')}
-        {p.assignees.length ? (
-          p.assignees.map(u => (
+        {props.assignees.length ? (
+          props.assignees.map(person => (
             <div class="reviewer">
-              <a href={u.html_url}>{Av(u, 20)}</a>
-              <a class="nm" href={u.html_url}>
-                {u.login}
+              <a href={person.html_url}>{Av(person, 20)}</a>
+              <a class="nm" href={person.html_url}>
+                {person.login}
               </a>
             </div>
           ))
@@ -475,13 +494,13 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
     labels: (
       <>
         {head('labels', 'Labels')}
-        {p.labels.length ? (
-          p.labels.map(l => (
+        {props.labels.length ? (
+          props.labels.map(otherItem => (
             <span
               class="pill-label"
-              style={`background:#${l.color}33;color:#${l.color};border-color:#${l.color}`}
+              style={`background:#${otherItem.color}33;color:#${otherItem.color};border-color:#${otherItem.color}`}
             >
-              {l.name}
+              {otherItem.name}
             </span>
           ))
         ) : (
@@ -492,9 +511,9 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
     milestone: (
       <>
         {head('milestone', 'Milestone')}
-        {p.milestone ? (
-          <a class="sb-link" href={p.milestone.html_url}>
-            {p.milestone.title}
+        {props.milestone ? (
+          <a class="sb-link" href={props.milestone.html_url}>
+            {props.milestone.title}
           </a>
         ) : (
           <span class="sb-none">No milestone</span>
@@ -506,13 +525,13 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
         <div class="sb-head">
           {fb('people', 'people')}
           <span>
-            {p.peopleCount} participant{plural(p.peopleCount)}
+            {props.peopleCount} participant{plural(props.peopleCount)}
           </span>
         </div>
         <div class="participants">
-          {p.people.map(u => (
-            <a href={u.html_url} title={u.login}>
-              {Av(u, 32)}
+          {props.people.map(person => (
+            <a href={person.html_url} title={person.login}>
+              {Av(person, 32)}
             </a>
           ))}
         </div>
@@ -522,7 +541,9 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
 
   return (
     <div class="pr-side-inner">
-      {arrange(SIDE_KEYS, 'side', k => k).map(k => item(k, secs[k]))}
+      {arrange(SIDE_KEYS, 'side', sideKey => sideKey).map(sideKey =>
+        item(sideKey, secs[sideKey]),
+      )}
     </div>
   );
 }
@@ -536,27 +557,27 @@ export const SIDE_KEYS: SideKey[] = [
 ];
 
 function SideFold({
-  k,
+  k: key,
   folded,
   onFold,
 }: {
   k: string;
   folded: boolean;
-  onFold: (k: string, def: boolean) => void;
+  onFold: (otherKey: string, def: boolean) => void;
 }) {
   return (
     <button
-      ref={useReveal<HTMLButtonElement>(k)}
+      ref={useReveal<HTMLButtonElement>(key)}
       class="fold-btn"
-      data-fold={k}
+      data-fold={key}
       data-def="0"
       title="Hide section"
-      onClick={e => {
-        e.stopPropagation();
-        onFold(k, false);
+      onClick={event => {
+        event.stopPropagation();
+        onFold(key, false);
       }}
     >
-      {I(folded ? 'chevron-right' : 'chevron-down')}
+      {renderIcon(folded ? 'chevron-right' : 'chevron-down')}
     </button>
   );
 }
@@ -586,12 +607,12 @@ export interface CpHandlers {
   all: () => void;
   since: () => void;
   save: () => void;
-  filter: (e: Event) => void;
-  pick: (e: Event, i: number) => void;
+  filter: (event: Event) => void;
+  pick: (event: Event, index: number) => void;
 }
 
-export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
-  const { on } = p;
+export function CommitsDialog(props: CommitsDialogProps & { on?: CpHandlers }) {
+  const { on } = props;
 
   return (
     <div
@@ -599,8 +620,8 @@ export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
       id="dlgbg"
       onMouseDown={
         on &&
-        (e => {
-          if ((e.target as HTMLElement).id === 'dlgbg') {
+        (event => {
+          if ((event.target as HTMLElement).id === 'dlgbg') {
             on.close();
           }
         })
@@ -610,30 +631,30 @@ export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
         <div class="cp-h">
           <h2>Select commits to view</h2>
           <button class="icon-btn" id="cpx" title="Close" onClick={on?.close}>
-            {I('x')}
+            {renderIcon('x')}
           </button>
         </div>
         <button
-          class={`cp-opt${p.allOn ? ' on' : ''}`}
+          class={`cp-opt${props.allOn ? ' on' : ''}`}
           id="cpall"
           onClick={on?.all}
         >
           <b>All commits</b>
           <i>
-            {p.count} commit{plural(p.count)}
+            {props.count} commit{plural(props.count)}
           </i>
         </button>
-        {p.since ? (
+        {props.since ? (
           <button
-            class={`cp-opt${p.since.on ? ' on' : ''}`}
+            class={`cp-opt${props.since.on ? ' on' : ''}`}
             id="cpsince"
-            disabled={!p.since.n}
+            disabled={!props.since.n}
             onClick={on?.since}
           >
             <b>Changes since your last review</b>
             <i>
-              {p.since.n
-                ? `${p.since.n} commit${plural(p.since.n)}`
+              {props.since.n
+                ? `${props.since.n} commit${plural(props.since.n)}`
                 : 'No new commits'}
             </i>
           </button>
@@ -647,32 +668,32 @@ export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
           class="input cp-q"
           id="cpq"
           placeholder="Filter commits…"
-          value={p.filter}
+          value={props.filter}
           onInput={on?.filter}
         />
-        <div class="cp-list" id="cplist" data-q={p.filter.toLowerCase()}>
-          {p.rows
-            .map(r => (
+        <div class="cp-list" id="cplist" data-q={props.filter.toLowerCase()}>
+          {props.rows
+            .map(cpRow => (
               <label
-                class={`cp-row${r.on ? ' on' : ''}`}
-                data-cp={r.i}
-                hidden={r.hidden}
-                onClick={on && (e => on.pick(e, r.i))}
+                class={`cp-row${cpRow.on ? ' on' : ''}`}
+                data-cp={cpRow.i}
+                hidden={cpRow.hidden}
+                onClick={on && (event => on.pick(event, cpRow.i))}
               >
-                <input type="checkbox" checked={r.on} tabindex={-1} />
+                <input type="checkbox" checked={cpRow.on} tabindex={-1} />
                 <span class="cp-t">
-                  <b>{r.title}</b>
+                  <b>{cpRow.title}</b>
                   <i>
-                    {r.by} committed {r.when}
+                    {cpRow.by} committed {cpRow.when}
                   </i>
                 </span>
-                <code>{r.sha}</code>
+                <code>{cpRow.sha}</code>
               </label>
             ))
             .reverse()}
         </div>
         <div class="btns">
-          <span class="cp-sel">{p.selLabel}</span>
+          <span class="cp-sel">{props.selLabel}</span>
           <span class="sp"></span>
           <button class="btn" id="cpcancel" onClick={on?.close}>
             Cancel
@@ -680,7 +701,7 @@ export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
           <button
             class="btn primary"
             id="cpsave"
-            disabled={!p.hasPick}
+            disabled={!props.hasPick}
             onClick={on?.save}
           >
             Save
@@ -694,12 +715,12 @@ export function CommitsDialog(p: CommitsDialogProps & { on?: CpHandlers }) {
 export interface FilesHandlers {
   commits: () => void;
   all: () => void;
-  step: (n: number) => void;
-  mode: (m: string) => void;
-  sort: (e: Event) => void;
+  step: (count: number) => void;
+  mode: (message: string) => void;
+  sort: (event: Event) => void;
   finish: () => void;
   foldAll: (open: boolean, names: string[]) => void;
-  fold: (e: Event, k: string, def: boolean) => void;
+  fold: (event: Event, key: string, def: boolean) => void;
 }
 
 export interface FcBarProps {
@@ -711,8 +732,8 @@ export interface FcBarProps {
   hasRange: boolean;
 }
 
-export function FcBar(p: FcBarProps & { on?: FilesHandlers }) {
-  const { on } = p;
+export function FcBar(props: FcBarProps & { on?: FilesHandlers }) {
+  const { on } = props;
 
   return (
     <div class="fc-bar">
@@ -722,39 +743,39 @@ export function FcBar(p: FcBarProps & { on?: FilesHandlers }) {
         title="Choose which commits to view"
         onClick={on?.commits}
       >
-        {I('git-commit')}
+        {renderIcon('git-commit')}
         {SP}
-        {p.label}
-        {p.count !== null ? (
+        {props.label}
+        {props.count !== null ? (
           <>
             {SP}
-            <span class="counter">{p.count}</span>
+            <span class="counter">{props.count}</span>
           </>
         ) : (
           ''
         )}
-        {p.code ? (
+        {props.code ? (
           <>
             {SP}
-            <code>{p.code}</code>
+            <code>{props.code}</code>
           </>
         ) : (
           ''
         )}
         {SP}▾
       </button>
-      {p.nav ? (
+      {props.nav ? (
         <div class="seg-ctl">
           <button
             data-fstep="-1"
-            disabled={p.nav.prevOff}
+            disabled={props.nav.prevOff}
             onClick={on && (() => on.step(-1))}
           >
             ‹ Prev
           </button>
           <button
             data-fstep="1"
-            disabled={p.nav.nextOff}
+            disabled={props.nav.nextOff}
             onClick={on && (() => on.step(1))}
           >
             Next ›
@@ -763,9 +784,9 @@ export function FcBar(p: FcBarProps & { on?: FilesHandlers }) {
       ) : (
         ''
       )}
-      {p.hasRange ? (
+      {props.hasRange ? (
         <>
-          <span class="fc-t">{p.title}</span>
+          <span class="fc-t">{props.title}</span>
           <button class="link-btn" id="fcall" onClick={on?.all}>
             Show all commits
           </button>
@@ -797,21 +818,21 @@ const SORTS: [string, string][] = [
   ['status', 'By status'],
 ];
 
-export function FilesBar(p: FilesBarProps & { on?: FilesHandlers }) {
-  const { on } = p;
+export function FilesBar(props: FilesBarProps & { on?: FilesHandlers }) {
+  const { on } = props;
 
   return (
     <div class="files-bar">
       <div class="seg-ctl">
         <button
-          class={p.mode === 'unified' ? 'on' : ''}
+          class={props.mode === 'unified' ? 'on' : ''}
           data-dmode="unified"
           onClick={on && (() => on.mode('unified'))}
         >
           Unified
         </button>
         <button
-          class={p.mode === 'split' ? 'on' : ''}
+          class={props.mode === 'split' ? 'on' : ''}
           data-dmode="split"
           onClick={on && (() => on.mode('split'))}
         >
@@ -824,41 +845,41 @@ export function FilesBar(p: FilesBarProps & { on?: FilesHandlers }) {
         title="Sort files"
         onChange={on?.sort}
       >
-        {SORTS.map(([v, t]) => (
-          <option value={v} selected={p.sort === v}>
-            {t}
+        {SORTS.map(([otherValue, text]) => (
+          <option value={otherValue} selected={props.sort === otherValue}>
+            {text}
           </option>
         ))}
       </select>
-      {p.total ? (
+      {props.total ? (
         <button
           class="link-btn fv-prog"
           title={
-            p.viewed === p.total
+            props.viewed === props.total
               ? 'Clear all viewed marks'
               : 'Mark every file as viewed'
           }
-          onClick={p.onViewedAll}
+          onClick={props.onViewedAll}
         >
-          {p.viewed}/{p.total} viewed
+          {props.viewed}/{props.total} viewed
         </button>
       ) : (
         ''
       )}
-      {p.pending ? (
+      {props.pending ? (
         <button class="btn small primary" id="finishrev" onClick={on?.finish}>
-          Finish review · {p.pending} comment{plural(p.pending)}
+          Finish review · {props.pending} comment{plural(props.pending)}
         </button>
       ) : (
         ''
       )}
       <button
         class="link-btn"
-        data-foldall={p.allFolded ? 'open' : 'close'}
-        data-files={p.names.join('\n')}
-        onClick={on && (() => on.foldAll(p.allFolded, p.names))}
+        data-foldall={props.allFolded ? 'open' : 'close'}
+        data-files={props.names.join('\n')}
+        onClick={on && (() => on.foldAll(props.allFolded, props.names))}
       >
-        {p.allFolded ? 'Expand all files' : 'Collapse all files'}
+        {props.allFolded ? 'Expand all files' : 'Collapse all files'}
       </button>
     </div>
   );
@@ -876,46 +897,50 @@ export interface FileHeadProps {
   children?: ComponentChildren;
 }
 
-export function FileBox(p: FileHeadProps & { on?: FilesHandlers }) {
-  const { on } = p;
-  const rv = useReveal<HTMLDivElement>(`f:${p.name}`);
+export function FileBox(props: FileHeadProps & { on?: FilesHandlers }) {
+  const { on } = props;
+  const rv = useReveal<HTMLDivElement>(`f:${props.name}`);
 
   return (
-    <div class={`file${p.folded ? ' folded' : ''}`}>
+    <div class={`file${props.folded ? ' folded' : ''}`}>
       <div
         ref={rv}
         class="file-head"
-        data-fold={`f:${p.name}`}
-        onClick={on && (e => on.fold(e, `f:${p.name}`, false))}
+        data-fold={`f:${props.name}`}
+        onClick={on && (event => on.fold(event, `f:${props.name}`, false))}
       >
         <span class="tgl">
-          {I(p.closed ? 'chevron-right' : 'chevron-down')}
+          {renderIcon(props.closed ? 'chevron-right' : 'chevron-down')}
         </span>
         <span class="stat">
-          <span class="a">+{p.add}</span>
+          <span class="a">+{props.add}</span>
           {SP}
-          <span class="d">−{p.del}</span>
+          <span class="d">−{props.del}</span>
         </span>
         <span class="sq">
-          {p.sq.map(c => (
-            <i class={c}></i>
+          {props.sq.map(color => (
+            <i class={color}></i>
           ))}
         </span>
-        <span class="path">{p.name}</span>
-        {p.onViewed ? (
+        <span class="path">{props.name}</span>
+        {props.onViewed ? (
           <label
-            class={`fv${p.viewed ? ' on' : ''}`}
+            class={`fv${props.viewed ? ' on' : ''}`}
             title="Mark this file as viewed"
-            onClick={e => e.stopPropagation()}
+            onClick={event => event.stopPropagation()}
           >
-            <input type="checkbox" checked={!!p.viewed} onChange={p.onViewed} />{' '}
+            <input
+              type="checkbox"
+              checked={!!props.viewed}
+              onChange={props.onViewed}
+            />{' '}
             Viewed
           </label>
         ) : (
           ''
         )}
       </div>
-      {p.children}
+      {props.children}
     </div>
   );
 }
@@ -924,9 +949,9 @@ export function CommitsList({ rows }: { rows: ComponentChildren[] }) {
   return (
     <div style="border:1px solid var(--borderColor-default);border-radius:6px">
       {rows.length ? (
-        rows.map(r => (
+        rows.map(value => (
           <div style="padding:16px;border-bottom:1px solid var(--borderColor-muted)">
-            {r}
+            {value}
           </div>
         ))
       ) : (
@@ -947,37 +972,37 @@ export interface CmRow {
 }
 
 export interface SplitHandlers {
-  hide: (k: string, v: boolean) => void;
+  hide: (key: string, flag: boolean) => void;
   flip: () => void;
   pick: (sha: string) => void;
-  gutter: (e: MouseEvent) => void;
+  gutter: (event: MouseEvent) => void;
   fold: FoldFn;
-  scroll: (id: string, e: Event) => void;
+  scroll: (id: string, event: Event) => void;
 }
 
-function CmItem({ c, on }: { c: CmRow; on?: SplitHandlers }) {
+function CmItem({ c: cmRow, on }: { c: CmRow; on?: SplitHandlers }) {
   return (
     <div
-      class={`cm ${c.on ? 'on' : ''}`}
-      data-sha={c.sha}
-      onClick={on && (() => on.pick(c.sha))}
+      class={`cm ${cmRow.on ? 'on' : ''}`}
+      data-sha={cmRow.sha}
+      onClick={on && (() => on.pick(cmRow.sha))}
     >
       <span class="cm-av">
-        {c.author ? Av(c.author, 24) : <i>{c.initial}</i>}
+        {cmRow.author ? Av(cmRow.author, 24) : <i>{cmRow.initial}</i>}
       </span>
       <span class="cm-t">
-        <b>{c.title}</b>
-        <i>{c.sub}</i>
+        <b>{cmRow.title}</b>
+        <i>{cmRow.sub}</i>
       </span>
-      {c.n ? (
+      {cmRow.n ? (
         <span class="cm-n">
-          {I('comment')}
-          {c.n}
+          {renderIcon('comment')}
+          {cmRow.n}
         </span>
       ) : (
         ''
       )}
-      <code>{c.sha.slice(0, 7)}</code>
+      <code>{cmRow.sha.slice(0, 7)}</code>
     </div>
   );
 }
@@ -999,7 +1024,7 @@ export interface SplitProps {
 }
 
 function Rail({
-  k,
+  k: key,
   label,
   ic,
   on,
@@ -1012,30 +1037,30 @@ function Rail({
   return (
     <button
       class="pane-rail"
-      data-show={k}
+      data-show={key}
       title={`Show ${label}`}
-      onClick={on && (() => on.hide(k, false))}
+      onClick={on && (() => on.hide(key, false))}
     >
-      {I(ic)}
+      {renderIcon(ic)}
       <span>{label}</span>
     </button>
   );
 }
 
-export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
-  const { on } = p;
+export function SplitView(props: SplitProps & { on?: SplitHandlers }) {
+  const { on } = props;
   const pl = useScroller('l');
   const pr = useScroller('r');
 
-  const left = p.hl ? (
+  const left = props.hl ? (
     <Rail k="l" label="Commits" ic="git-commit" on={on} />
   ) : (
     <section class="pane pane-l">
-      <div class={`fold-sec${p.foldList ? ' folded' : ''}`}>
+      <div class={`fold-sec${props.foldList ? ' folded' : ''}`}>
         <div class="pane-h">
-          {I('git-commit')}
+          {renderIcon('git-commit')}
           <span>Commits</span>
-          <span class="counter">{p.count}</span>
+          <span class="counter">{props.count}</span>
           <span class="sp"></span>
           <button
             class="fold-btn flip-btn"
@@ -1049,7 +1074,7 @@ export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
             k="cm-list"
             title="Collapse commit list"
             def={false}
-            folded={p.foldList}
+            folded={props.foldList}
             onFold={on?.fold}
           />
           <button
@@ -1058,58 +1083,58 @@ export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
             title="Hide this panel"
             onClick={on && (() => on.hide('l', true))}
           >
-            {I('x')}
+            {renderIcon('x')}
           </button>
         </div>
         <div class="cm-list">
           <div
-            class={`cm all ${p.allOn ? 'on' : ''}`}
+            class={`cm all ${props.allOn ? 'on' : ''}`}
             data-sha=""
             onClick={on && (() => on.pick(''))}
           >
             <span class="cm-av">
-              <i>{I('diff')}</i>
+              <i>{renderIcon('diff')}</i>
             </span>
             <span class="cm-t">
               <b>All changes</b>
-              <i>{p.allSub}</i>
+              <i>{props.allSub}</i>
             </span>
           </div>
-          {p.rows.map(c => (
-            <CmItem c={c} on={on} />
+          {props.rows.map(cmRow => (
+            <CmItem c={cmRow} on={on} />
           ))}
         </div>
       </div>
-      <div class={`fold-sec${p.foldDiff ? ' folded' : ''}`}>
+      <div class={`fold-sec${props.foldDiff ? ' folded' : ''}`}>
         <div class="pane-h sub">
-          {I('file-diff')}
-          <span>{p.subTitle}</span>
+          {renderIcon('file-diff')}
+          <span>{props.subTitle}</span>
           <span class="sp"></span>
           <FoldBtn
             k="cm-diff"
             title="Collapse changes"
             def={false}
-            folded={p.foldDiff}
+            folded={props.foldDiff}
             onFold={on?.fold}
           />
         </div>
         <div
           class="pane-body"
           ref={pl}
-          onScroll={on && (e => on.scroll('l', e))}
+          onScroll={on && (event => on.scroll('l', event))}
         >
-          {p.diff}
+          {props.diff}
         </div>
       </div>
     </section>
   );
 
-  const right = p.hr ? (
+  const right = props.hr ? (
     <Rail k="r" label="Conversation" ic="comment-discussion" on={on} />
   ) : (
     <section class="pane pane-r">
       <div class="pane-h">
-        {I('comment-discussion')}
+        {renderIcon('comment-discussion')}
         <span>Conversation</span>
         <span class="sp"></span>
         <button
@@ -1126,21 +1151,25 @@ export function SplitView(p: SplitProps & { on?: SplitHandlers }) {
           title="Hide this panel"
           onClick={on && (() => on.hide('r', true))}
         >
-          {I('x')}
+          {renderIcon('x')}
         </button>
       </div>
-      <div class="pane-body" ref={pr} onScroll={on && (e => on.scroll('r', e))}>
-        {p.right}
+      <div
+        class="pane-body"
+        ref={pr}
+        onScroll={on && (event => on.scroll('r', event))}
+      >
+        {props.right}
       </div>
     </section>
   );
 
   return (
     <div
-      class={`split ${p.hl ? 'hl' : ''} ${p.hr ? 'hr' : ''} ${p.flip ? 'flip' : ''}`}
+      class={`split ${props.hl ? 'hl' : ''} ${props.hr ? 'hr' : ''} ${props.flip ? 'flip' : ''}`}
     >
       {left}
-      {p.hl || p.hr ? (
+      {props.hl || props.hr ? (
         ''
       ) : (
         <div

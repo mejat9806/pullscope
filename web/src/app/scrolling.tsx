@@ -1,7 +1,7 @@
 import { scrollTarget } from '../components/req';
 import { ToTop } from '../components/ToTop';
 import { blurDraft, composerOpen } from './actions';
-import { S } from './core';
+import { appState } from './core';
 import { setSlot } from './frame';
 import { setComposer } from './keyboard';
 import { scrollMain } from './pages';
@@ -13,16 +13,16 @@ let lastTop = 0;
 let atEnd = false;
 
 export const toTop = (smooth = true) => {
-  if (S.scrollId && S.scrollId !== 'main') {
-    scrollTarget(S.scrollId, 0, smooth);
+  if (appState.scrollId && appState.scrollId !== 'main') {
+    scrollTarget(appState.scrollId, 0, smooth);
   } else {
     scrollMain(0, smooth);
   }
 };
 
 export const toBottom = (smooth = true) => {
-  if (S.scrollId && S.scrollId !== 'main') {
-    scrollTarget(S.scrollId, 1e7, smooth);
+  if (appState.scrollId && appState.scrollId !== 'main') {
+    scrollTarget(appState.scrollId, 1e7, smooth);
   } else {
     scrollMain(1e7, smooth);
   }
@@ -32,8 +32,8 @@ export const paintToTop = () =>
   setSlot(
     'totop',
     <ToTop
-      dir={S.toTop || ''}
-      onClick={() => (S.toTop === 'down' ? toBottom() : toTop())}
+      dir={appState.toTop || ''}
+      onClick={() => (appState.toTop === 'down' ? toBottom() : toTop())}
     />,
   );
 
@@ -46,26 +46,26 @@ export function scrollBtn(el: HTMLElement) {
         ? 'down'
         : 'up';
 
-  if ((S.toTop || '') !== next) {
-    S.toTop = next;
+  if ((appState.toTop || '') !== next) {
+    appState.toTop = next;
     paintToTop();
   }
 }
 
 export function scrolled(id: string, el: HTMLElement) {
-  S.scrollId = id;
+  appState.scrollId = id;
 
   if (id === 'main') {
-    S.mainTop = el.scrollTop;
+    appState.mainTop = el.scrollTop;
 
-    if (S.view === 'pr' && !S.restoring && !scrollRaf) {
+    if (appState.view === 'pr' && !appState.restoring && !scrollRaf) {
       scrollRaf = requestAnimationFrame(() => {
         scrollRaf = 0;
-        const t = S.tabs[tabIdx()];
+        const tab = appState.tabs[tabIdx()];
 
-        if (t) {
-          t.scroll = el.scrollTop;
-          t.tab = S.tab;
+        if (tab) {
+          tab.scroll = el.scrollTop;
+          tab.tab = appState.tab;
         }
       });
     }
@@ -74,9 +74,9 @@ export function scrolled(id: string, el: HTMLElement) {
   scrollBtn(el);
 
   // The comment bar opens by itself when you reach the end of the thread, and folds away again when you scroll back up.
-  const c = S.composerBox;
+  const item = appState.composerBox;
 
-  if (!c || c.in !== id) {
+  if (!item || item.in !== id) {
     return;
   }
 
@@ -92,10 +92,10 @@ export function scrolled(id: string, el: HTMLElement) {
     }
   }
 
-  if (dist > c.h + 60) {
+  if (dist > item.h + 60) {
     atEnd = false;
 
-    if (up && composerOpen() && !(S.draft.comment || '').trim()) {
+    if (up && composerOpen() && !(appState.draft.comment || '').trim()) {
       blurDraft('comment');
       setComposer(false);
     }
@@ -103,17 +103,17 @@ export function scrolled(id: string, el: HTMLElement) {
 }
 
 // Home goes back to the top of whatever scrolled last.
-export const homeKey = (e: KeyboardEvent) => {
+export const homeKey = (event: KeyboardEvent) => {
   if (
-    (e.key === 'Home' || e.key === 'End') &&
-    !(e.target as HTMLElement).closest?.(
+    (event.key === 'Home' || event.key === 'End') &&
+    !(event.target as HTMLElement).closest?.(
       'input, textarea, select, [contenteditable]',
     ) &&
-    S.scrollId
+    appState.scrollId
   ) {
-    e.preventDefault();
+    event.preventDefault();
 
-    if (e.key === 'Home') {
+    if (event.key === 'Home') {
       toTop();
     } else {
       toBottom();

@@ -1,18 +1,18 @@
-import { S } from './core';
+import { appState } from './core';
 import { openPr, openRepo } from './nav';
 
-export const go = (n: number) => {
-  const t = S.hi + n;
+export const go = (count: number) => {
+  const time = appState.hi + count;
 
-  if (t < 0 || t >= S.hist.length) {
+  if (time < 0 || time >= appState.hist.length) {
     return;
   }
 
-  S.hi = t;
+  appState.hi = time;
 
-  if (S.hist[t].startsWith('repo:')) {
-    openRepo(S.hist[t].slice(5), { nav: true });
+  if (appState.hist[time].startsWith('repo:')) {
+    openRepo(appState.hist[time].slice(5), { nav: true });
   } else {
-    openPr(S.hist[t], { nav: true });
+    openPr(appState.hist[time], { nav: true });
   }
 };

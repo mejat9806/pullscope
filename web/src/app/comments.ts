@@ -1,5 +1,5 @@
 import { act, prRef, rerender } from './actions';
-import { ASSOC, flashFor, REACTS, S, tauri } from './core';
+import { appState, ASSOC, flashFor, REACTS, tauri } from './core';
 import { qc } from './data';
 
 import type {
@@ -10,133 +10,143 @@ import type {
 } from '../components/Comments';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 
-export function stateOf(p: Pull) {
-  if (p.merged) {
+export function stateOf(pull: Pull) {
+  if (pull.merged) {
     return ['merged', 'git-merge', 'Merged'];
   }
 
-  if (p.state === 'closed') {
+  if (pull.state === 'closed') {
     return ['closed', 'git-pull-request-closed', 'Closed'];
   }
 
-  if (p.draft) {
+  if (pull.draft) {
     return ['draft', 'git-pull-request-draft', 'Draft'];
   }
 
   return ['open', 'git-pull-request', 'Open'];
 }
 
-export function prHeaderProps(b: Bundle): PrHeaderProps {
-  const p = b.pull;
-  const [st, ic, label] = stateOf(p);
+export function prHeaderProps(bundle: Bundle): PrHeaderProps {
+  const pull = bundle.pull;
+  const [st, ic, label] = stateOf(pull);
 
   const commentsTotal =
-    p.comments +
-    p.review_comments +
-    b.timeline.filter(e => e.event === 'reviewed').length;
+    pull.comments +
+    pull.review_comments +
+    bundle.timeline.filter(timelineEvent => timelineEvent.event === 'reviewed')
+      .length;
 
   const sq = (() => {
-    const t = p.additions + p.deletions || 1;
-    const small = t <= 5;
-    const a = small ? p.additions : Math.round((p.additions / t) * 5);
-    const d = small ? p.deletions : 5 - a;
+    const time = pull.additions + pull.deletions || 1;
+    const small = time <= 5;
+
+    const first = small
+      ? pull.additions
+      : Math.round((pull.additions / time) * 5);
+
+    const delta = small ? pull.deletions : 5 - first;
     const arr = [];
 
-    for (let i = 0; i < 5; i++) {
-      arr.push(i < a ? 'a' : i < a + d ? 'd' : '');
+    for (let index = 0; index < 5; index++) {
+      arr.push(index < first ? 'a' : index < first + delta ? 'd' : '');
     }
 
     return arr;
   })();
 
   const splitOk =
-    S.tab !== 'files' && S.tab !== 'checks' && S.tab !== 'timeline';
+    appState.tab !== 'files' &&
+    appState.tab !== 'checks' &&
+    appState.tab !== 'timeline';
 
   return {
-    b,
+    b: bundle,
     st,
     ic,
     label,
-    tab: S.tab,
-    split: S.split,
-    hideSide: !!S.hide.side,
+    tab: appState.tab,
+    split: appState.split,
+    hideSide: !!appState.hide.side,
     splitOk,
     commentsTotal,
     sq,
   };
 }
 
-export const isFolded = (k: string, def = false) =>
-  k in S.fold ? S.fold[k] : def;
+export const isFolded = (key: string, def = false) =>
+  key in appState.fold ? appState.fold[key] : def;
 
-export const folded = (k: string, def = false) =>
-  isFolded(k, def) ? ' folded' : '';
+export const folded = (key: string, def = false) =>
+  isFolded(key, def) ? ' folded' : '';
 
 export const reactionProps = (
-  r: Reactions | undefined,
+  reactions: Reactions | undefined,
   kind: string,
   id: number,
 ): ReactionsProps => ({
-  r: r || {},
+  r: reactions || {},
   kind,
   id,
-  defs: REACTS.map(([k, e]) => ({ k, e })),
+  defs: REACTS.map(([otherKind, text]) => ({ k: otherKind, e: text })),
 });
 
-export const liveTasks = (h: string) =>
-  S.hasToken
-    ? h.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, m =>
-        m.replace(/\sdisabled(="[^"]*")?/g, ''),
+export const liveTasks = (hash: string) =>
+  appState.hasToken
+    ? hash.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, message =>
+        message.replace(/\sdisabled(="[^"]*")?/g, ''),
       )
-    : h;
+    : hash;
 
-export function toggleTask(body: string, n: number) {
-  let i = -1;
+export function toggleTask(body: string, count: number) {
+  let index = -1;
   let fence = false;
 
   return body
     .split('\n')
-    .map(l => {
-      if (/^\s*(```|~~~)/.test(l)) {
+    .map(line => {
+      if (/^\s*(```|~~~)/.test(line)) {
         fence = !fence;
 
-        return l;
+        return line;
       }
 
       if (fence) {
-        return l;
+        return line;
       }
 
-      return l.replace(
+      return line.replace(
         /^(\s*(?:[-*+]|\d+[.)])\s+\[)([ xX])(\])/,
-        (m, a, x, z) => (++i === n ? a + (x === ' ' ? 'x' : ' ') + z : m),
+        (message, value, otherValue, innerValue) =>
+          ++index === count
+            ? value + (otherValue === ' ' ? 'x' : ' ') + innerValue
+            : message,
       );
     })
     .join('\n');
 }
 
 // The nth task-list checkbox of rendered comment HTML, set on or off.
-const setTaskHtml = (html: string, n: number, on: boolean) => {
-  let i = -1;
+const setTaskHtml = (html: string, count: number, on: boolean) => {
+  let index = -1;
 
-  return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, m =>
-    ++i === n
+  return html.replace(/<input[^>]*task-list-item-checkbox[^>]*>/g, message =>
+    ++index === count
       ? on
-        ? /\schecked/.test(m)
-          ? m
-          : m.replace(/<input/, '<input checked')
-        : m.replace(/\schecked(="[^"]*")?/, '')
-      : m,
+        ? /\schecked/.test(message)
+          ? message
+          : message.replace(/<input/, '<input checked')
+        : message.replace(/\schecked(="[^"]*")?/, '')
+      : message,
   );
 };
 
 // Ticking a task: the checkbox is drawn from the comment's HTML, so the new state is written there at once (the browser's own toggle is cancelled) and put back if saving fails.
-async function taskClick(e: MouseEvent) {
-  const checkbox = (e.target as HTMLElement).closest<HTMLInputElement>(
+async function taskClick(event: MouseEvent) {
+  const checkbox = (event.target as HTMLElement).closest<HTMLInputElement>(
     'input.task-list-item-checkbox',
   );
 
-  if (!checkbox || checkbox.disabled || !S.bundle) {
+  if (!checkbox || checkbox.disabled || !appState.bundle) {
     return;
   }
 
@@ -147,56 +157,59 @@ async function taskClick(e: MouseEvent) {
     return;
   }
 
-  e.preventDefault();
+  event.preventDefault();
 
   const id = box.id.replace(/^c-/, '');
-  const b = S.bundle;
+  const bundle = appState.bundle;
 
-  const c =
-    String(b.pull.id) === id
-      ? b.pull
-      : b.timeline.find(x => String(x.id) === id);
+  const value =
+    String(bundle.pull.id) === id
+      ? bundle.pull
+      : bundle.timeline.find(timelineEvent => String(timelineEvent.id) === id);
 
-  if (!c) {
+  if (!value) {
     return;
   }
 
-  const n = [...md.querySelectorAll('input.task-list-item-checkbox')].indexOf(
-    checkbox,
-  );
+  const count = [
+    ...md.querySelectorAll('input.task-list-item-checkbox'),
+  ].indexOf(checkbox);
 
-  const body = toggleTask(c.body || '', n);
+  const body = toggleTask(value.body || '', count);
 
-  if (body === (c.body || '')) {
+  if (body === (value.body || '')) {
     return;
   }
 
   const on = checkbox.checked;
-  const was = c.body_html || '';
-  c.body_html = setTaskHtml(was, n, on);
+  const was = value.body_html || '';
+  value.body_html = setTaskHtml(was, count, on);
   rerender();
 
-  const r =
-    c === b.pull
+  const actResult =
+    value === bundle.pull
       ? await act('edit', { body, extra: {} }, 'task', true)
       : await act(
           'edit_comment',
-          { id: c.id, kind: 'issue_comment', body },
+          { id: value.id, kind: 'issue_comment', body },
           'task',
           true,
         );
 
-  if (r === undefined) {
-    c.body_html = was;
+  if (actResult === undefined) {
+    value.body_html = was;
     rerender();
-    alert(`Couldn't update the checkbox: ${S.actErr?.m || 'unknown error'}`);
+
+    alert(
+      `Couldn't update the checkbox: ${appState.actErr?.m || 'unknown error'}`,
+    );
 
     return;
   }
 
-  c.body = body;
+  value.body = body;
   const key = `${prRef().repo}#${prRef().number}`;
-  qc.set(key, b);
+  qc.set(key, bundle);
   qc.m.get(key)!.at = Date.now() - 20000;
 
   tauri?.invoke('invalidate_pr', { url: key }).catch(() => {});
@@ -204,35 +217,44 @@ async function taskClick(e: MouseEvent) {
 
 // Whether a comment with this element id (`c-<id>`) is on the page.
 export function hasComment(elId: string) {
-  const b = S.bundle;
+  const bundle = appState.bundle;
   const id = elId.replace(/^c-/, '');
 
-  if (!b) {
+  if (!bundle) {
     return false;
   }
 
   return (
-    String(b.pull.id) === id ||
-    b.timeline.some(x => String(x.id) === id) ||
-    b.review_comments.some(x => String(x.id) === id)
+    String(bundle.pull.id) === id ||
+    bundle.timeline.some(timelineEvent => String(timelineEvent.id) === id) ||
+    bundle.review_comments.some(
+      reviewComment => String(reviewComment.id) === id,
+    )
   );
 }
 
 export function commentBoxProps(
-  c: CommentLike,
+  commentLike: CommentLike,
   { isPr = false, flush = false } = {},
 ): CommentBoxProps {
   return {
-    onTask: e => {
-      taskClick(e);
+    onTask: event => {
+      taskClick(event);
     },
-    kb: S.kbId === `c-${c.id}`,
-    flash: flashFor(`c-${c.id}`),
-    c,
-    assoc: ASSOC[c.author_association ?? ''],
-    bodyHtml: c.body_html && c.body_html.trim() ? liveTasks(c.body_html) : '',
-    folded: isFolded(`c:${c.id}`),
-    reactions: reactionProps(c.reactions, isPr ? 'pr' : 'issue_comment', c.id!),
+    kb: appState.kbId === `c-${commentLike.id}`,
+    flash: flashFor(`c-${commentLike.id}`),
+    c: commentLike,
+    assoc: ASSOC[commentLike.author_association ?? ''],
+    bodyHtml:
+      commentLike.body_html && commentLike.body_html.trim()
+        ? liveTasks(commentLike.body_html)
+        : '',
+    folded: isFolded(`c:${commentLike.id}`),
+    reactions: reactionProps(
+      commentLike.reactions,
+      isPr ? 'pr' : 'issue_comment',
+      commentLike.id!,
+    ),
     flush,
   };
 }
@@ -240,33 +262,33 @@ export function commentBoxProps(
 export function hunkRows(hunk: string) {
   const rows: HunkRow[] = [];
 
-  let o = 0;
-  let n = 0;
+  let offset = 0;
+  let count = 0;
 
   for (const line of hunk.split('\n')) {
     if (line.startsWith('@@')) {
-      const m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/);
+      const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)/);
 
-      if (m) {
-        o = +m[1];
-        n = +m[2];
+      if (match) {
+        offset = +match[1];
+        count = +match[2];
       }
 
       rows.push({ kind: 'hunk', text: line });
       continue;
     }
 
-    const t = line[0];
+    const text = line[0];
     const txt = line.slice(1);
 
-    if (t === '+') {
-      rows.push({ kind: 'add', n: n++, text: txt });
-    } else if (t === '-') {
-      rows.push({ kind: 'del', o: o++, text: txt });
-    } else if (t === '\\') {
+    if (text === '+') {
+      rows.push({ kind: 'add', n: count++, text: txt });
+    } else if (text === '-') {
+      rows.push({ kind: 'del', o: offset++, text: txt });
+    } else if (text === '\\') {
       rows.push({ kind: 'meta', text: line });
     } else {
-      rows.push({ kind: 'ctx', o: o++, n: n++, text: txt });
+      rows.push({ kind: 'ctx', o: offset++, n: count++, text: txt });
     }
   }
 

@@ -2,7 +2,7 @@ import { render as paint } from 'preact';
 import { useEffect, useLayoutEffect } from 'preact/hooks';
 
 import { Shell } from '../components/Shell';
-import { applyMode, S } from './core';
+import { applyMode, appState } from './core';
 
 import type { VNode } from 'preact';
 import type { ShellProps } from '../components/Shell';
@@ -24,32 +24,32 @@ const slots: Record<Slot, VNode | null> = {
 
 // Everything that used to be a document/window listener: element-level handlers on the frame root, window events for shortcuts and focus, and the pointer drags.
 export interface Globals {
-  pointerDown: (e: PointerEvent) => void;
-  clickCapture: (e: MouseEvent) => void;
-  click: (e: MouseEvent) => void;
-  mouseDown: (e: MouseEvent) => void;
-  key: (e: KeyboardEvent) => void;
-  wheel: (e: WheelEvent) => void;
+  pointerDown: (event: PointerEvent) => void;
+  clickCapture: (event: MouseEvent) => void;
+  click: (event: MouseEvent) => void;
+  mouseDown: (event: MouseEvent) => void;
+  key: (event: KeyboardEvent) => void;
+  wheel: (event: WheelEvent) => void;
   focus: () => void;
   online: () => void;
   offline: () => void;
 }
 
 export interface DragFns {
-  move: (e: MouseEvent) => void;
+  move: (event: MouseEvent) => void;
   end: () => void;
 }
 
 let globals: Globals | null = null;
 let drag: DragFns | null = null;
 
-export const setGlobals = (g: Globals) => {
-  globals = g;
+export const setGlobals = (otherGlobals: Globals) => {
+  globals = otherGlobals;
 };
 
 // A drag is state: Frame listens to the window's pointer moves for as long as one is active.
-export const beginDrag = (d: DragFns) => {
-  drag = d;
+export const beginDrag = (dragFns: DragFns) => {
+  drag = dragFns;
   repaint();
 };
 
@@ -64,61 +64,61 @@ const Frame = () => {
   });
 
   useEffect(() => {
-    const g = globals;
+    const otherGlobals = globals;
 
-    if (!g) {
+    if (!otherGlobals) {
       return;
     }
 
-    addEventListener('keydown', g.key);
-    addEventListener('wheel', g.wheel, { passive: false });
-    addEventListener('focus', g.focus);
-    addEventListener('online', g.online);
-    addEventListener('offline', g.offline);
+    addEventListener('keydown', otherGlobals.key);
+    addEventListener('wheel', otherGlobals.wheel, { passive: false });
+    addEventListener('focus', otherGlobals.focus);
+    addEventListener('online', otherGlobals.online);
+    addEventListener('offline', otherGlobals.offline);
 
     return () => {
-      removeEventListener('keydown', g.key);
-      removeEventListener('wheel', g.wheel);
-      removeEventListener('focus', g.focus);
-      removeEventListener('online', g.online);
-      removeEventListener('offline', g.offline);
+      removeEventListener('keydown', otherGlobals.key);
+      removeEventListener('wheel', otherGlobals.wheel);
+      removeEventListener('focus', otherGlobals.focus);
+      removeEventListener('online', otherGlobals.online);
+      removeEventListener('offline', otherGlobals.offline);
     };
   }, []);
 
-  const d = drag;
+  const dragFns = drag;
 
   useLayoutEffect(() => {
-    if (!d) {
+    if (!dragFns) {
       return;
     }
 
     const up = () => {
-      removeEventListener('mousemove', d.move);
+      removeEventListener('mousemove', dragFns.move);
       removeEventListener('mouseup', up);
       drag = null;
-      d.end();
+      dragFns.end();
     };
 
-    addEventListener('mousemove', d.move);
+    addEventListener('mousemove', dragFns.move);
     addEventListener('mouseup', up);
 
     return () => {
-      removeEventListener('mousemove', d.move);
+      removeEventListener('mousemove', dragFns.move);
       removeEventListener('mouseup', up);
     };
-  }, [d]);
+  }, [dragFns]);
 
-  const g = globals;
+  const innerGlobals = globals;
 
   return (
     <div
       id="frame"
-      class={S.dragging ? 'dragging' : ''}
+      class={appState.dragging ? 'dragging' : ''}
       style="display:contents"
-      onPointerDown={g?.pointerDown}
-      onClickCapture={g?.clickCapture}
-      onClick={g?.click}
-      onMouseDown={g?.mouseDown}
+      onPointerDown={innerGlobals?.pointerDown}
+      onClickCapture={innerGlobals?.clickCapture}
+      onClick={innerGlobals?.click}
+      onMouseDown={innerGlobals?.mouseDown}
     >
       <div id="top" style="display:contents">
         {slots.top}
@@ -163,8 +163,8 @@ export function repaint() {
   paint(<Frame />, app);
 }
 
-export const setSlot = (name: Slot, v: VNode | null) => {
-  slots[name] = v;
+export const setSlot = (name: Slot, node: VNode | null) => {
+  slots[name] = node;
   repaint();
 };
 
@@ -180,14 +180,14 @@ export function batch(fn: () => void) {
   }
 }
 
-export const setGate = (v: VNode | null) => {
-  gate = v;
-  shell = v ? null : shell;
+export const setGate = (node: VNode | null) => {
+  gate = node;
+  shell = node ? null : shell;
   repaint();
 };
 
-export const setShell = (p: ShellProps) => {
-  shell = p;
+export const setShell = (props: ShellProps) => {
+  shell = props;
   gate = null;
   repaint();
 };
@@ -195,6 +195,6 @@ export const setShell = (p: ShellProps) => {
 export const shellProps = () => shell;
 
 export function setDragging(on: boolean) {
-  S.dragging = on;
+  appState.dragging = on;
   repaint();
 }

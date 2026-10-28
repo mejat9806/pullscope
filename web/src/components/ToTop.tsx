@@ -1,4 +1,4 @@
-import { I } from './ui';
+import { renderIcon } from './ui';
 
 // One floating button on every long page: down to the end while you are at the top, back to the top once you are further down.
 export const ToTop = ({
@@ -15,6 +15,6 @@ export const ToTop = ({
     hidden={!dir}
     onClick={onClick}
   >
-    {I(dir === 'down' ? 'chevron-down' : 'chevron-up')}
+    {renderIcon(dir === 'down' ? 'chevron-down' : 'chevron-up')}
   </button>
 );

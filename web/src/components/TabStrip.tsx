@@ -3,11 +3,11 @@ import { Icon } from './ui';
 import type { RecentEntry, Tab } from '../types';
 
 export interface TabHandlers {
-  open: (i: number) => void;
-  aux: (e: MouseEvent, i: number) => void;
-  down: (e: MouseEvent, i: number) => void;
-  close: (e: MouseEvent, i: number) => void;
-  add: (e: MouseEvent) => void;
+  open: (index: number) => void;
+  aux: (event: MouseEvent, index: number) => void;
+  down: (event: MouseEvent, index: number) => void;
+  close: (event: MouseEvent, index: number) => void;
+  add: (event: MouseEvent) => void;
   fresh: (ref: string) => void;
   home: () => void;
   reopen: () => void;
@@ -25,15 +25,15 @@ export interface TabStripProps {
 }
 
 // While a tab is dragged it follows the pointer and the tabs it passes slide aside by its width.
-const tabShift = (d: TabStripProps['drag'], i: number) =>
-  !d
+const tabShift = (item: TabStripProps['drag'], index: number) =>
+  !item
     ? undefined
-    : i === d.from
-      ? `transform:translateX(${d.dx}px)`
-      : d.from < d.to && i > d.from && i <= d.to
-        ? `transform:translateX(-${d.w}px)`
-        : d.from > d.to && i < d.from && i >= d.to
-          ? `transform:translateX(${d.w}px)`
+    : index === item.from
+      ? `transform:translateX(${item.dx}px)`
+      : item.from < item.to && index > item.from && index <= item.to
+        ? `transform:translateX(-${item.w}px)`
+        : item.from > item.to && index < item.from && index >= item.to
+          ? `transform:translateX(${item.w}px)`
           : undefined;
 
 export function TabStrip({
@@ -48,33 +48,33 @@ export function TabStrip({
 }: TabStripProps) {
   return (
     <div class="ptabs">
-      {tabs.map((t, i) => (
+      {tabs.map((tab, index) => (
         <div
-          class={`ptab ${t.ref === cur ? 'on' : ''}${drag && drag.from === i ? ' drag' : ''}`}
-          style={tabShift(drag, i)}
-          data-tab={i}
-          onClick={e => {
-            if ((e.target as HTMLElement).closest('.pt-x')) {
+          class={`ptab ${tab.ref === cur ? 'on' : ''}${drag && drag.from === index ? ' drag' : ''}`}
+          style={tabShift(drag, index)}
+          data-tab={index}
+          onClick={event => {
+            if ((event.target as HTMLElement).closest('.pt-x')) {
               return;
             }
 
-            on.open(i);
+            on.open(index);
           }}
-          onAuxClick={e => on.aux(e, i)}
-          onMouseDown={e => on.down(e, i)}
-          title={`${t.ref} · ${t.title}`}
+          onAuxClick={event => on.aux(event, index)}
+          onMouseDown={event => on.down(event, index)}
+          title={`${tab.ref} · ${tab.title}`}
         >
-          <span class={`rc-i ${t.state}`}>
-            <Icon n={t.icon} />
+          <span class={`rc-i ${tab.state}`}>
+            <Icon n={tab.icon} />
           </span>
           <span class="pt-t">
-            <i>{t.ref.split('/').pop()}</i> {t.title}
+            <i>{tab.ref.split('/').pop()}</i> {tab.title}
           </span>
-          {t.dot && <span class="pt-dot"></span>}
+          {tab.dot && <span class="pt-dot"></span>}
           <button
             class="pt-x"
-            data-tabx={i}
-            onClick={e => on.close(e, i)}
+            data-tabx={index}
+            onClick={event => on.close(event, index)}
             aria-label="Close tab"
           >
             <Icon n="x" />
@@ -104,13 +104,16 @@ export function TabStrip({
             <Icon n="home" /> Home
           </a>
           {recents.length > 0 && <h6>Recent</h6>}
-          {recents.map(r => (
-            <a data-tabnew={r.ref} onClick={() => on.fresh(r.ref)}>
-              <span class={`rc-i ${r.state}`}>
-                <Icon n={r.icon} />
+          {recents.map(recentEntry => (
+            <a
+              data-tabnew={recentEntry.ref}
+              onClick={() => on.fresh(recentEntry.ref)}
+            >
+              <span class={`rc-i ${recentEntry.state}`}>
+                <Icon n={recentEntry.icon} />
               </span>
               <span class="pt-mt">
-                <i>{r.ref}</i> {r.title}
+                <i>{recentEntry.ref}</i> {recentEntry.title}
               </span>
             </a>
           ))}

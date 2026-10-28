@@ -24,13 +24,13 @@ export const paintOv = () =>
 let fxId = 0;
 
 export function fxDrop(id: number) {
-  OV.fx = OV.fx.filter(f => f.id !== id);
+  OV.fx = OV.fx.filter(value => value.id !== id);
   paintOv();
 }
 
-export function fxAdd(f: DistributiveOmit<Fx, 'id'>, ms = 0) {
+export function fxAdd(value: DistributiveOmit<Fx, 'id'>, ms = 0) {
   const id = ++fxId;
-  OV.fx = [...OV.fx, { ...f, id } as Fx];
+  OV.fx = [...OV.fx, { ...value, id } as Fx];
   paintOv();
 
   if (ms) {

@@ -1,4 +1,4 @@
-import { load, S } from './core';
+import { appState, load } from './core';
 import { openPr } from './nav';
 import { inboxProps, render } from './pages';
 
@@ -9,40 +9,43 @@ export interface IbView {
   sort: string;
 }
 
-const put = (k: string, v: unknown) => {
+const put = (key: string, value: unknown) => {
   try {
-    localStorage.setItem(k, JSON.stringify(v));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     /* storage full */
   }
 };
 
 export const ibPins = (): string[] =>
-  (S.ibPins ||= load<string[]>('ibpins', []));
+  (appState.ibPins ||= load<string[]>('ibpins', []));
 
 export const ibSnz = (): Record<string, { until: number; at: string }> =>
-  (S.ibSnz ||= load<Record<string, { until: number; at: string }>>(
+  (appState.ibSnz ||= load<Record<string, { until: number; at: string }>>(
     'ibsnooze',
     {},
   ));
 
 export const ibViews = (): IbView[] =>
-  (S.ibViews ||= load<IbView[]>('ibviews', []));
+  (appState.ibViews ||= load<IbView[]>('ibviews', []));
 
 // Snoozed until a time, or (until 0) until the PR has activity newer than when it was snoozed.
 export const isSnoozed = (ref: string, updated: string) => {
-  const z = ibSnz()[ref];
+  const entry = ibSnz()[ref];
 
-  return !!z && (z.until > 0 ? Date.now() < z.until : updated <= z.at);
+  return (
+    !!entry &&
+    (entry.until > 0 ? Date.now() < entry.until : updated <= entry.at)
+  );
 };
 
 export const snoozeLabel = (ref: string) => {
-  const z = ibSnz()[ref];
+  const entry = ibSnz()[ref];
 
-  return !z
+  return !entry
     ? ''
-    : z.until > 0
-      ? `Until ${new Date(z.until).toLocaleString([], {
+    : entry.until > 0
+      ? `Until ${new Date(entry.until).toLocaleString([], {
           weekday: 'short',
           hour: 'numeric',
           minute: '2-digit',
@@ -51,18 +54,22 @@ export const snoozeLabel = (ref: string) => {
 };
 
 export function ibPin(ref: string) {
-  const p = ibPins();
-  S.ibPins = p.includes(ref) ? p.filter(x => x !== ref) : [...p, ref];
-  put('ibpins', S.ibPins);
+  const paths = ibPins();
+
+  appState.ibPins = paths.includes(ref)
+    ? paths.filter(text => text !== ref)
+    : [...paths, ref];
+
+  put('ibpins', appState.ibPins);
   render();
 }
 
 const at = (days: number, hour: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setHours(hour, 0, 0, 0);
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, 0, 0, 0);
 
-  return d.getTime();
+  return date.getTime();
 };
 
 export function ibSnooze(
@@ -70,13 +77,13 @@ export function ibSnooze(
   kind: 'tomorrow' | 'week' | 'activity' | 'off',
   updated = '',
 ) {
-  const z = { ...ibSnz() };
-  S.ibSnzOpen = '';
+  const entry = { ...ibSnz() };
+  appState.ibSnzOpen = '';
 
   if (kind === 'off') {
-    delete z[ref];
+    delete entry[ref];
   } else {
-    z[ref] = {
+    entry[ref] = {
       until:
         kind === 'tomorrow'
           ? at(1, 9)
@@ -87,41 +94,41 @@ export function ibSnooze(
     };
   }
 
-  S.ibSnz = z;
-  put('ibsnooze', z);
+  appState.ibSnz = entry;
+  put('ibsnooze', entry);
   render();
 }
 
 export function viewSave(rawName: string) {
   const name = rawName.trim();
-  S.ibNaming = false;
+  appState.ibNaming = false;
 
   if (!name) {
     return render();
   }
 
-  S.ibViews = [
-    ...ibViews().filter(v => v.name !== name),
-    { name, q: S.ibQ || '', sort: S.ibSort || 'updated' },
+  appState.ibViews = [
+    ...ibViews().filter(ibView => ibView.name !== name),
+    { name, q: appState.ibQ || '', sort: appState.ibSort || 'updated' },
   ];
 
-  put('ibviews', S.ibViews);
+  put('ibviews', appState.ibViews);
   render();
 }
 
 export function viewApply(name: string) {
-  const v = ibViews().find(x => x.name === name);
+  const ibView = ibViews().find(otherIbView => otherIbView.name === name);
 
-  if (!v) {
+  if (!ibView) {
     return;
   }
 
-  S.ibQ = v.q;
-  S.ibSort = v.sort;
-  S.ibView = name;
+  appState.ibQ = ibView.q;
+  appState.ibSort = ibView.sort;
+  appState.ibView = name;
 
   try {
-    localStorage.setItem('ibsort', v.sort);
+    localStorage.setItem('ibsort', ibView.sort);
   } catch {
     /* ignore */
   }
@@ -130,11 +137,11 @@ export function viewApply(name: string) {
 }
 
 export function viewDelete(name: string) {
-  S.ibViews = ibViews().filter(v => v.name !== name);
-  put('ibviews', S.ibViews);
+  appState.ibViews = ibViews().filter(ibView => ibView.name !== name);
+  put('ibviews', appState.ibViews);
 
-  if (S.ibView === name) {
-    S.ibView = '';
+  if (appState.ibView === name) {
+    appState.ibView = '';
   }
 
   render();
@@ -143,9 +150,13 @@ export function viewDelete(name: string) {
 // Rows you can see, in screen order, so the keyboard can walk them.
 const visible = () =>
   (inboxProps().secs || [])
-    .filter(s => !s.closed)
-    .flatMap(s =>
-      s.rows.map(r => ({ ref: r.ref, sec: s.key, updated: r.updated })),
+    .filter(inboxSec => !inboxSec.closed)
+    .flatMap(inboxSec =>
+      inboxSec.rows.map(ibRow => ({
+        ref: ibRow.ref,
+        sec: inboxSec.key,
+        updated: ibRow.updated,
+      })),
     );
 
 const keep = () =>
@@ -154,20 +165,20 @@ const keep = () =>
   );
 
 // j/k or arrows move, Enter opens, p pins, s snoozes, e folds the section, / filters. Returns true when the key was used.
-export function inboxKey(e: KeyboardEvent): boolean {
+export function inboxKey(event: KeyboardEvent): boolean {
   const rows = visible();
-  const i = rows.findIndex(r => r.ref === S.ibSel);
-  const cur = rows[i];
+  const index = rows.findIndex(row => row.ref === appState.ibSel);
+  const cur = rows[index];
 
-  const move = (d: number) => {
+  const move = (delta: number) => {
     if (rows.length) {
-      S.ibSel =
+      appState.ibSel =
         rows[
           Math.max(
             0,
             Math.min(
               rows.length - 1,
-              i < 0 ? (d > 0 ? 0 : rows.length - 1) : i + d,
+              index < 0 ? (delta > 0 ? 0 : rows.length - 1) : index + delta,
             ),
           )
         ].ref;
@@ -177,34 +188,34 @@ export function inboxKey(e: KeyboardEvent): boolean {
     }
   };
 
-  if (e.key === 'j' || e.key === 'ArrowDown') {
+  if (event.key === 'j' || event.key === 'ArrowDown') {
     move(1);
-  } else if (e.key === 'k' || e.key === 'ArrowUp') {
+  } else if (event.key === 'k' || event.key === 'ArrowUp') {
     move(-1);
-  } else if (e.key === 'Enter' && cur) {
+  } else if (event.key === 'Enter' && cur) {
     openPr(cur.ref);
-  } else if (e.key === 'p' && cur) {
+  } else if (event.key === 'p' && cur) {
     ibPin(cur.ref);
-  } else if (e.key === 's' && cur) {
-    S.ibSnzOpen = S.ibSnzOpen === cur.ref ? '' : cur.ref;
+  } else if (event.key === 's' && cur) {
+    appState.ibSnzOpen = appState.ibSnzOpen === cur.ref ? '' : cur.ref;
     render();
-  } else if (e.key === 'e' && cur) {
-    S.fold[cur.sec] = !S.fold[cur.sec];
+  } else if (event.key === 'e' && cur) {
+    appState.fold[cur.sec] = !appState.fold[cur.sec];
 
     try {
-      localStorage.setItem('fold', JSON.stringify(S.fold));
+      localStorage.setItem('fold', JSON.stringify(appState.fold));
     } catch {
       /* ignore */
     }
 
     render();
-  } else if (e.key === '/') {
+  } else if (event.key === '/') {
     document.querySelector<HTMLInputElement>('.ib-bar input')?.focus();
   } else {
     return false;
   }
 
-  e.preventDefault();
+  event.preventDefault();
 
   return true;
 }

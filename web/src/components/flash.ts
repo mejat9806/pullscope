@@ -8,23 +8,23 @@ export interface FlashProps {
   pop?: boolean;
 }
 
-export const flashClass = (f?: FlashProps) =>
-  f ? ` flash${f.pop ? ' pop-in' : ''}` : '';
+export const flashClass = (props?: FlashProps) =>
+  props ? ` flash${props.pop ? ' pop-in' : ''}` : '';
 
-export function useFlash(f?: FlashProps, kb?: boolean) {
+export function useFlash(props?: FlashProps, kb?: boolean) {
   const ref = useRef<HTMLDivElement>(null);
 
   // The page keeps growing for a moment after a jump (highlighting, lazy content above the comment), so the comment is brought back into view until that settles or the reader scrolls.
   useEffect(() => {
     const el = ref.current;
 
-    if (!f || !el) {
+    if (!props || !el) {
       return;
     }
 
     el.scrollIntoView({
-      block: f.block,
-      behavior: f.smooth ? 'smooth' : 'auto',
+      block: props.block,
+      behavior: props.smooth ? 'smooth' : 'auto',
     });
 
     const main = el.closest('.main');
@@ -36,7 +36,7 @@ export function useFlash(f?: FlashProps, kb?: boolean) {
     const end = Date.now() + 1500;
 
     let moved = false;
-    let h = main.scrollHeight;
+    let height = main.scrollHeight;
 
     const stop = () => {
       moved = true;
@@ -47,9 +47,9 @@ export function useFlash(f?: FlashProps, kb?: boolean) {
         return clearInterval(timer);
       }
 
-      if (main.scrollHeight !== h) {
-        h = main.scrollHeight;
-        el.scrollIntoView({ block: f.block });
+      if (main.scrollHeight !== height) {
+        height = main.scrollHeight;
+        el.scrollIntoView({ block: props.block });
       }
     }, 50);
 
@@ -63,7 +63,7 @@ export function useFlash(f?: FlashProps, kb?: boolean) {
       removeEventListener('touchmove', stop);
       removeEventListener('keydown', stop);
     };
-  }, [f?.n]);
+  }, [props?.n]);
 
   useEffect(() => {
     if (kb) {

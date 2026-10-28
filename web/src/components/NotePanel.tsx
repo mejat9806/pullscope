@@ -12,9 +12,9 @@ export interface NoteHandlers {
   all: () => void;
   check: () => void;
   clear: () => void;
-  open: (e: MouseEvent) => void;
-  aux: (e: MouseEvent) => void;
-  ctx: (e: MouseEvent) => void;
+  open: (event: MouseEvent) => void;
+  aux: (event: MouseEvent) => void;
+  ctx: (event: MouseEvent) => void;
 }
 
 export const NotePanel = ({
@@ -42,19 +42,19 @@ export const NotePanel = ({
       </span>
     </div>
     {rows.length ? (
-      rows.map(n => (
+      rows.map(noteRow => (
         <a
-          class={`note ${n.read ? '' : 'new'}`}
-          data-open={n.ref}
-          data-target={n.target}
+          class={`note ${noteRow.read ? '' : 'new'}`}
+          data-open={noteRow.ref}
+          data-target={noteRow.target}
           onClick={on.open}
           onAuxClick={on.aux}
           onContextMenu={on.ctx}
         >
-          <b>{n.title}</b>
-          <span>{n.text}</span>
+          <b>{noteRow.title}</b>
+          <span>{noteRow.text}</span>
           <i>
-            {n.ref} · {n.when}
+            {noteRow.ref} · {noteRow.when}
           </i>
         </a>
       ))

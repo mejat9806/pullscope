@@ -1,5 +1,5 @@
 import { focusTarget } from '../components/req';
-import { $, S, tauri } from './core';
+import { appState, queryElement, tauri } from './core';
 import { openPr } from './nav';
 import { OV, paintOv } from './overlay';
 import { render, repaintShell } from './pages';
@@ -24,25 +24,25 @@ export const AC: {
   rect: DOMRect | null;
 } = { rows: [], sel: -1, nav: false, prs: {}, rect: null };
 
-export function acRows(q: string) {
-  const t = q.trim();
-  const lq = t.toLowerCase();
+export function acRows(query: string) {
+  const text = query.trim();
+  const lq = text.toLowerCase();
   const rows: AcRow[] = [];
   const seen = new Set<string | undefined>();
 
-  const add = (r: AcRow) => {
-    if (!seen.has(r.ref || r.fill)) {
-      seen.add(r.ref || r.fill);
-      rows.push(r);
+  const add = (acRow: AcRow) => {
+    if (!seen.has(acRow.ref || acRow.fill)) {
+      seen.add(acRow.ref || acRow.fill);
+      rows.push(acRow);
     }
   };
 
-  if (/^https?:\/\//i.test(t)) {
-    return /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(t)
+  if (/^https?:\/\//i.test(text)) {
+    return /github\.com\/[^/]+\/[^/]+\/pull\/\d+/.test(text)
       ? [
           {
-            ref: t,
-            label: `Open ${t.replace(/^https?:\/\/github\.com\//, '')}`,
+            ref: text,
+            label: `Open ${text.replace(/^https?:\/\/github\.com\//, '')}`,
             sub: 'Go to this pull request',
             ic: 'git-pull-request',
           },
@@ -53,17 +53,17 @@ export function acRows(q: string) {
   const pr = lq.match(/^([^#\s]+\/[^#\s]+)#(\d*)$/);
 
   const known = [
-    ...S.tabs.map(x => ({
-      ref: x.ref,
-      title: x.title,
-      state: x.state,
-      ic: x.icon,
+    ...appState.tabs.map(tab => ({
+      ref: tab.ref,
+      title: tab.title,
+      state: tab.state,
+      ic: tab.icon,
     })),
-    ...S.recent.map(x => ({
-      ref: x.ref,
-      title: x.title,
-      state: x.state,
-      ic: x.icon,
+    ...appState.recent.map(recentEntry => ({
+      ref: recentEntry.ref,
+      title: recentEntry.title,
+      state: recentEntry.state,
+      ic: recentEntry.icon,
     })),
   ];
 
@@ -73,33 +73,33 @@ export function acRows(q: string) {
 
     if (num) {
       add({
-        ref: `${t.split('#')[0]}#${num}`,
-        label: `Open ${t.split('#')[0]}#${num}`,
+        ref: `${text.split('#')[0]}#${num}`,
+        label: `Open ${text.split('#')[0]}#${num}`,
         sub: 'Go to this pull request',
         ic: 'git-pull-request',
       });
     }
 
-    const fromApi = (AC.prs[repo] || []).map(x => ({
-      ref: `${x.base?.repo?.full_name || repo}#${x.number}`,
-      title: x.title,
-      state: x.merged_at ? 'merged' : x.state,
+    const fromApi = (AC.prs[repo] || []).map(prListItem => ({
+      ref: `${prListItem.base?.repo?.full_name || repo}#${prListItem.number}`,
+      title: prListItem.title,
+      state: prListItem.merged_at ? 'merged' : prListItem.state,
       ic: 'git-pull-request',
     }));
 
     [
-      ...known.filter(x => x.ref.toLowerCase().startsWith(`${repo}#`)),
+      ...known.filter(item => item.ref.toLowerCase().startsWith(`${repo}#`)),
       ...fromApi,
     ]
-      .filter(x => x.ref.toLowerCase().split('#')[1].startsWith(num))
+      .filter(item => item.ref.toLowerCase().split('#')[1].startsWith(num))
       .slice(0, 8)
-      .forEach(x =>
+      .forEach(item =>
         add({
-          ref: x.ref,
-          label: x.title || x.ref,
-          sub: x.ref,
-          ic: x.ic || 'git-pull-request',
-          state: x.state,
+          ref: item.ref,
+          label: item.title || item.ref,
+          sub: item.ref,
+          ic: item.ic || 'git-pull-request',
+          state: item.state,
         }),
       );
 
@@ -107,33 +107,35 @@ export function acRows(q: string) {
   }
 
   known
-    .filter(x => !lq || `${x.ref} ${x.title}`.toLowerCase().includes(lq))
+    .filter(
+      item => !lq || `${item.ref} ${item.title}`.toLowerCase().includes(lq),
+    )
     .slice(0, lq ? 6 : 8)
-    .forEach(x =>
+    .forEach(item =>
       add({
-        ref: x.ref,
-        label: x.title || x.ref,
-        sub: x.ref,
-        ic: x.ic || 'git-pull-request',
-        state: x.state,
+        ref: item.ref,
+        label: item.title || item.ref,
+        sub: item.ref,
+        ic: item.ic || 'git-pull-request',
+        state: item.state,
       }),
     );
 
-  if (lq && S.repos) {
-    S.repos
-      .filter(r => r.full_name.toLowerCase().includes(lq))
+  if (lq && appState.repos) {
+    appState.repos
+      .filter(repoSummary => repoSummary.full_name.toLowerCase().includes(lq))
       .sort(
-        (a, b) =>
-          (b.full_name.toLowerCase().startsWith(lq) ? 1 : 0) -
-          (a.full_name.toLowerCase().startsWith(lq) ? 1 : 0),
+        (firstRepoSummary, secondRepoSummary) =>
+          (secondRepoSummary.full_name.toLowerCase().startsWith(lq) ? 1 : 0) -
+          (firstRepoSummary.full_name.toLowerCase().startsWith(lq) ? 1 : 0),
       )
       .slice(0, 6)
-      .forEach(r =>
+      .forEach(repoSummary =>
         add({
-          fill: `${r.full_name}#`,
-          label: r.full_name,
+          fill: `${repoSummary.full_name}#`,
+          label: repoSummary.full_name,
           sub: 'Repository: pick a pull request',
-          ic: r.private ? 'lock' : 'repo',
+          ic: repoSummary.private ? 'lock' : 'repo',
         }),
       );
   }
@@ -153,29 +155,29 @@ export function acClose() {
 
 // The input is controlled: S.addrText is what the user typed (null = show the open PR's ref) and S.addrFocus says whether suggestions may show.
 export function acDraw() {
-  if (!S.addrFocus || !AC.rect) {
+  if (!appState.addrFocus || !AC.rect) {
     return acClose();
   }
 
-  const q = S.addrText ?? '';
-  AC.rows = acRows(q);
+  const query = appState.addrText ?? '';
+  AC.rows = acRows(query);
 
-  const m = q
+  const match = query
     .trim()
     .toLowerCase()
     .match(/^([^#\s]+\/[^#\s]+)#\d*$/);
 
-  if (m && AC.prs[m[1]] === undefined && tauri) {
-    AC.prs[m[1]] = null;
+  if (match && AC.prs[match[1]] === undefined && tauri) {
+    AC.prs[match[1]] = null;
 
     tauri!
-      .invoke('list_prs', { repo: m[1], state: 'all' })
-      .then(r => {
-        AC.prs[m[1]] = r;
+      .invoke('list_prs', { repo: match[1], state: 'all' })
+      .then(prListItems => {
+        AC.prs[match[1]] = prListItems;
         acDraw();
       })
       .catch(() => {
-        AC.prs[m[1]] = [];
+        AC.prs[match[1]] = [];
       });
   }
 
@@ -184,32 +186,32 @@ export function acDraw() {
   }
 
   AC.sel = Math.min(AC.sel, AC.rows.length - 1);
-  const b = AC.rect;
+  const rect = AC.rect;
 
   OV.ac = {
     rows: AC.rows,
     sel: AC.sel,
-    left: b.left,
-    top: b.bottom + 6,
-    width: b.width,
+    left: rect.left,
+    top: rect.bottom + 6,
+    width: rect.width,
     pick: acPick,
   };
 
   paintOv();
 }
 
-const setText = (t: string | null) => {
-  S.addrText = t;
+const setText = (text: string | null) => {
+  appState.addrText = text;
   paintTop();
 };
 
-export function acPick(r: AcRow) {
-  if (!r) {
+export function acPick(acRow: AcRow) {
+  if (!acRow) {
     return;
   }
 
-  if (r.fill) {
-    setText(r.fill);
+  if (acRow.fill) {
+    setText(acRow.fill);
     focusTarget('addr', 'focus');
     AC.sel = -1;
     acDraw();
@@ -218,100 +220,105 @@ export function acPick(r: AcRow) {
   }
 
   acClose();
-  S.addrText = null;
+  appState.addrText = null;
   paintTop();
   focusTarget('addr', 'blur');
-  openPr(r.ref!);
+  openPr(acRow.ref!);
 }
 
-export const addrSubmit = (e: Event) => {
-  e.preventDefault();
-  const t = S.addrText ?? curText();
-  S.addrText = null;
+export const addrSubmit = (event: Event) => {
+  event.preventDefault();
+  const text = appState.addrText ?? curText();
+  appState.addrText = null;
   acClose();
   focusTarget('addr', 'blur');
-  openPr(t);
+  openPr(text);
 };
 
 const curText = () =>
-  S.bundle
-    ? `${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`
+  appState.bundle
+    ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}`
     : '';
 
-export const addrInput = (e: Event) => {
-  const el = e.currentTarget as HTMLInputElement;
+export const addrInput = (event: Event) => {
+  const el = event.currentTarget as HTMLInputElement;
   AC.rect = el.closest('.addr')!.getBoundingClientRect();
   AC.sel = -1;
   setText(el.value);
   acDraw();
 };
 
-export const addrFocus = (e: Event) => {
-  const el = e.currentTarget as HTMLInputElement;
+export const addrFocus = (event: Event) => {
+  const el = event.currentTarget as HTMLInputElement;
   AC.rect = el.closest('.addr')!.getBoundingClientRect();
-  S.addrFocus = true;
+  appState.addrFocus = true;
   AC.sel = -1;
   setTimeout(acDraw, 0);
 };
 
 export const addrBlur = () => {
-  S.addrFocus = false;
+  appState.addrFocus = false;
 
   setTimeout(() => {
-    if (!S.addrFocus) {
-      S.addrText = null;
+    if (!appState.addrFocus) {
+      appState.addrText = null;
       paintTop();
       acClose();
     }
   }, 120);
 };
 
-export function addrKey(e: KeyboardEvent) {
+export function addrKey(event: KeyboardEvent) {
   if (!OV.ac) {
     return;
   }
 
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    const n = AC.rows.length;
-    AC.sel = e.key === 'ArrowDown' ? (AC.sel + 1) % n : (AC.sel - 1 + n) % n;
-    acDraw();
-  } else if (e.key === 'Tab' && AC.rows.length) {
-    e.preventDefault();
-    const r = AC.rows[Math.max(0, AC.sel)];
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const count = AC.rows.length;
 
-    if (r.fill) {
-      acPick(r);
+    AC.sel =
+      event.key === 'ArrowDown'
+        ? (AC.sel + 1) % count
+        : (AC.sel - 1 + count) % count;
+
+    acDraw();
+  } else if (event.key === 'Tab' && AC.rows.length) {
+    event.preventDefault();
+    const acRow = AC.rows[Math.max(0, AC.sel)];
+
+    if (acRow.fill) {
+      acPick(acRow);
     } else {
-      setText(r.ref!);
+      setText(acRow.ref!);
       AC.sel = -1;
       acDraw();
     }
-  } else if (e.key === 'Enter' && AC.sel >= 0) {
-    e.preventDefault();
+  } else if (event.key === 'Enter' && AC.sel >= 0) {
+    event.preventDefault();
     acPick(AC.rows[AC.sel]);
-  } else if (e.key === 'Escape') {
+  } else if (event.key === 'Escape') {
     acClose();
   }
 }
 
 // Dragging the window: Tauri's drag attribute only works on the exact element it sits on, so treat every non-interactive spot of the toolbar as a handle.
-export function winDrag(e: MouseEvent) {
-  const t = e.target as HTMLElement;
+export function winDrag(event: MouseEvent) {
+  const element = event.target as HTMLElement;
   const win = window.__TAURI__?.window?.getCurrentWindow?.();
 
   if (
-    e.button !== 0 ||
-    t.closest(
+    event.button !== 0 ||
+    element.closest(
       'button, a, input, select, textarea, form, label, [contenteditable], .tb-pop, .prof-pop',
     )
   ) {
     return;
   }
 
-  e.preventDefault();
+  event.preventDefault();
 
-  if (e.detail === 2) {
+  if (event.detail === 2) {
     win?.toggleMaximize?.();
   } else {
     win?.startDragging?.();
@@ -319,8 +326,8 @@ export function winDrag(e: MouseEvent) {
 }
 
 // Branch picker for the New PR page: search, your branches first, the rest grouped by prefix with last-commit age.
-export function bpAway(e: MouseEvent) {
-  if (OV.bp && !(e.target as HTMLElement).closest('#bppop')) {
+export function bpAway(event: MouseEvent) {
+  if (OV.bp && !(event.target as HTMLElement).closest('#bppop')) {
     bpClose();
   }
 }
@@ -332,25 +339,28 @@ export function bpClose() {
   }
 }
 
-export function bpAge(t: string) {
-  if (!t) {
+export function bpAge(text: string) {
+  if (!text) {
     return '';
   }
 
-  const m = Math.max(1, Math.round((Date.now() - +new Date(t)) / 60000));
+  const minutes = Math.max(
+    1,
+    Math.round((Date.now() - +new Date(text)) / 60000),
+  );
 
-  return m < 60
-    ? `${m}m`
-    : m < 1440
-      ? `${Math.round(m / 60)}h`
-      : m < 43200
-        ? `${Math.round(m / 1440)}d`
-        : `${Math.round(m / 43200)}mo`;
+  return minutes < 60
+    ? `${minutes}m`
+    : minutes < 1440
+      ? `${Math.round(minutes / 60)}h`
+      : minutes < 43200
+        ? `${Math.round(minutes / 1440)}d`
+        : `${Math.round(minutes / 43200)}mo`;
 }
 
-export function bpGroups(br: BranchInfo, q: string, me: string): BpGroup[] {
-  const det = new Map((br.details || []).map(d => [d.name, d]));
-  const rank = new Map(br.branches.map((b, i) => [b, i]));
+export function bpGroups(br: BranchInfo, query: string, me: string): BpGroup[] {
+  const det = new Map((br.details || []).map(item => [item.name, item]));
+  const rank = new Map(br.branches.map((text, index) => [text, index]));
 
   const all = br.branches
     .map(name => ({
@@ -358,34 +368,36 @@ export function bpGroups(br: BranchInfo, q: string, me: string): BpGroup[] {
       at: det.get(name)?.at || '',
       by: det.get(name)?.by || '',
     }))
-    .sort((a, b) =>
-      b.at > a.at
+    .sort((firstItem, secondItem) =>
+      secondItem.at > firstItem.at
         ? 1
-        : b.at < a.at
+        : secondItem.at < firstItem.at
           ? -1
-          : rank.get(a.name)! - rank.get(b.name)!,
+          : rank.get(firstItem.name)! - rank.get(secondItem.name)!,
     );
 
-  if (q) {
-    const t = q.toLowerCase();
+  if (query) {
+    const text = query.toLowerCase();
 
-    return [['', all.filter(x => x.name.toLowerCase().includes(t))]];
+    return [['', all.filter(item => item.name.toLowerCase().includes(text))]];
   }
 
   const out: BpGroup[] = [];
   const used = new Set<string>();
 
-  const take = (f: (x: BpRow) => unknown) =>
-    all.filter(x => !used.has(x.name) && f(x) && used.add(x.name));
+  const take = (handler: (bpRow: BpRow) => unknown) =>
+    all.filter(
+      item => !used.has(item.name) && handler(item) && used.add(item.name),
+    );
 
-  const def = take(x => x.name === br.default);
+  const def = take(bpRow => bpRow.name === br.default);
 
   if (def.length) {
     out.push(['Default', def]);
   }
 
   const mine = me
-    ? take(x => x.by && x.by.toLowerCase() === me.toLowerCase())
+    ? take(bpRow => bpRow.by && bpRow.by.toLowerCase() === me.toLowerCase())
     : [];
 
   if (mine.length) {
@@ -395,27 +407,37 @@ export function bpGroups(br: BranchInfo, q: string, me: string): BpGroup[] {
   const rest = take(() => true);
   const pre = new Map<string, BpRow[]>();
 
-  rest.forEach(x => {
-    const k = x.name.includes('/') ? `${x.name.split('/')[0]}/` : '';
-    (pre.get(k) || pre.set(k, []).get(k)!).push(x);
+  rest.forEach(item => {
+    const key = item.name.includes('/') ? `${item.name.split('/')[0]}/` : '';
+    (pre.get(key) || pre.set(key, []).get(key)!).push(item);
   });
 
   const single: BpRow[] = [];
 
   [...pre.entries()]
-    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]))
-    .forEach(([k, l]) => {
-      if (k && l.length > 1) {
-        out.push([k, l]);
+    .sort(
+      (firstItem, secondItem) =>
+        secondItem[1].length - firstItem[1].length ||
+        firstItem[0].localeCompare(secondItem[0]),
+    )
+    .forEach(([key, bpRows]) => {
+      if (key && bpRows.length > 1) {
+        out.push([key, bpRows]);
       } else {
-        single.push(...l);
+        single.push(...bpRows);
       }
     });
 
   if (single.length) {
     out.push([
       out.length ? 'Other' : '',
-      single.sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0)),
+      single.sort((firstBpRow, secondBpRow) =>
+        secondBpRow.at > firstBpRow.at
+          ? 1
+          : secondBpRow.at < firstBpRow.at
+            ? -1
+            : 0,
+      ),
     ]);
   }
 
@@ -424,27 +446,29 @@ export function bpGroups(br: BranchInfo, q: string, me: string): BpGroup[] {
 
 export function rpGroups(
   repos: RepoSummary[],
-  q: string,
+  query: string,
   me: string,
 ): BpGroup[] {
   const all = repos
-    .filter(r => !r.archived)
-    .map(r => ({
-      name: r.full_name,
-      at: r.pushed_at || '',
-      by: r.private ? 'private' : '',
+    .filter(repoSummary => !repoSummary.archived)
+    .map(repoSummary => ({
+      name: repoSummary.full_name,
+      at: repoSummary.pushed_at || '',
+      by: repoSummary.private ? 'private' : '',
     }))
-    .sort((a, b) => (b.at > a.at ? 1 : b.at < a.at ? -1 : 0));
+    .sort((firstItem, secondItem) =>
+      secondItem.at > firstItem.at ? 1 : secondItem.at < firstItem.at ? -1 : 0,
+    );
 
-  if (q) {
-    const t = q.toLowerCase();
+  if (query) {
+    const text = query.toLowerCase();
 
-    return [['', all.filter(x => x.name.toLowerCase().includes(t))]];
+    return [['', all.filter(item => item.name.toLowerCase().includes(text))]];
   }
 
   const out: BpGroup[] = [];
   const recent = all.slice(0, 5);
-  const used = new Set(recent.map(x => x.name));
+  const used = new Set(recent.map(item => item.name));
 
   if (recent.length) {
     out.push(['Recently pushed', recent]);
@@ -453,20 +477,20 @@ export function rpGroups(
   const by = new Map<string, BpRow[]>();
 
   all
-    .filter(x => !used.has(x.name))
-    .forEach(x => {
-      const o = x.name.split('/')[0];
-      (by.get(o) || by.set(o, []).get(o)!).push(x);
+    .filter(item => !used.has(item.name))
+    .forEach(item => {
+      const option = item.name.split('/')[0];
+      (by.get(option) || by.set(option, []).get(option)!).push(item);
     });
 
   [...by.entries()]
     .sort(
-      (a, b) =>
-        +(b[0].toLowerCase() === me.toLowerCase()) -
-          +(a[0].toLowerCase() === me.toLowerCase()) ||
-        b[1].length - a[1].length,
+      (firstItem, secondItem) =>
+        +(secondItem[0].toLowerCase() === me.toLowerCase()) -
+          +(firstItem[0].toLowerCase() === me.toLowerCase()) ||
+        secondItem[1].length - firstItem[1].length,
     )
-    .forEach(([o, l]) => out.push([o, l]));
+    .forEach(([option, bpRows]) => out.push([option, bpRows]));
 
   return out;
 }
@@ -474,31 +498,31 @@ export function rpGroups(
 export function bpOpen(
   btn: HTMLElement,
   side: 'repo' | 'base' | 'head',
-  pick: (v: string) => void,
+  pick: (value: string) => void,
   repoMode = false,
 ) {
   bpClose();
 
-  const n = S.np;
-  const br = repoMode ? null : n!.branches[n!.repo];
+  const newPr = appState.np;
+  const br = repoMode ? null : newPr!.branches[newPr!.repo];
 
   if (!repoMode && !br) {
     return;
   }
 
-  const cur = repoMode ? n!.repo : n![side];
-  const me = S.profile?.login || '';
-  const r = btn.getBoundingClientRect();
-  const w = Math.max(r.width, 340);
-  const below = innerHeight - r.bottom;
-  const up = below < 300 && r.top > below;
-  const style = `left:${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px;width:${w}px;max-height:${Math.min(420, (up ? r.top : below) - 16)}px;${up ? `bottom:${innerHeight - r.top + 4}px` : `top:${r.bottom + 4}px`}`;
+  const cur = repoMode ? newPr!.repo : newPr![side];
+  const me = appState.profile?.login || '';
+  const rect = btn.getBoundingClientRect();
+  const width = Math.max(rect.width, 340);
+  const below = innerHeight - rect.bottom;
+  const up = below < 300 && rect.top > below;
+  const style = `left:${Math.max(8, Math.min(rect.left, innerWidth - width - 8))}px;width:${width}px;max-height:${Math.min(420, (up ? rect.top : below) - 16)}px;${up ? `bottom:${innerHeight - rect.top + 4}px` : `top:${rect.bottom + 4}px`}`;
 
-  const done = (v?: string) => {
+  const done = (value?: string) => {
     bpClose();
 
-    if (v && v !== cur) {
-      pick(v);
+    if (value && value !== cur) {
+      pick(value);
     }
   };
 
@@ -508,8 +532,10 @@ export function bpOpen(
     cur,
     age: bpAge,
     done,
-    groupsFor: q =>
-      repoMode ? rpGroups(S.repos || [], q, me) : bpGroups(br!, q, me),
+    groupsFor: query =>
+      repoMode
+        ? rpGroups(appState.repos || [], query, me)
+        : bpGroups(br!, query, me),
   };
 
   paintOv();
@@ -517,8 +543,8 @@ export function bpOpen(
 
 export const focusAddr = () => focusTarget('addr', 'select');
 
-export const avUrl = (u: string, n: number) =>
-  `${u}${u.includes('?') ? '&' : '?'}s=${n}`;
+export const avUrl = (url: string, count: number) =>
+  `${url}${url.includes('?') ? '&' : '?'}s=${count}`;
 
 export function loadProfile() {
   if (!tauri) {
@@ -527,12 +553,12 @@ export function loadProfile() {
 
   tauri!
     .invoke('viewer_profile')
-    .then(p => {
-      S.me = p.login;
-      S.profile = p;
+    .then(profile => {
+      appState.me = profile.login;
+      appState.profile = profile;
 
       try {
-        localStorage.setItem('profile', JSON.stringify(p));
+        localStorage.setItem('profile', JSON.stringify(profile));
       } catch {
         /* storage full */
       }
@@ -547,11 +573,11 @@ export const openExternal = (url: string) =>
 
 // Opening a PR that already has a tab goes to that tab instead of making another page.
 export function openFromList(ref: string, newTab: boolean) {
-  const have = S.tabs.some(t => t.ref === ref);
+  const have = appState.tabs.some(tab => tab.ref === ref);
 
-  if (have && !S.focus) {
+  if (have && !appState.focus) {
     if (ref === curRef()) {
-      S.tabMenu = false;
+      appState.tabMenu = false;
 
       return;
     }
@@ -565,29 +591,29 @@ export function openFromList(ref: string, newTab: boolean) {
 let stuckOn: Element | null = null;
 
 export function bindSticky() {
-  const ta = $('.pr-title-area');
-  const tb = $('.pr-tabs');
+  const ta = queryElement('.pr-title-area');
+  const tb = queryElement('.pr-tabs');
 
-  if (ta && ta === stuckOn && S.ios?.length) {
+  if (ta && ta === stuckOn && appState.ios?.length) {
     return;
   }
 
   stuckOn = ta;
 
-  if (ta && tb && !$('.is-split')) {
+  if (ta && tb && !queryElement('.is-split')) {
     const io = new IntersectionObserver(
       ([en]) => {
-        const v = !en.isIntersecting && en.boundingClientRect.bottom < 0;
+        const flag = !en.isIntersecting && en.boundingClientRect.bottom < 0;
 
-        if (!!S.stuck !== v) {
-          S.stuck = v;
-          repaintShell({ stuck: v });
+        if (!!appState.stuck !== flag) {
+          appState.stuck = flag;
+          repaintShell({ stuck: flag });
         }
       },
-      { root: $('.main'), threshold: 0 },
+      { root: queryElement('.main'), threshold: 0 },
     );
 
     io.observe(ta);
-    S.ios!.push(io);
+    appState.ios!.push(io);
   }
 }

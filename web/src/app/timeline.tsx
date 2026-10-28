@@ -17,7 +17,7 @@ import {
 } from '../components/Timeline';
 import { composerProps, mergeActProps } from './actions';
 import { commentBoxProps, isFolded } from './comments';
-import { S, setFlash } from './core';
+import { appState, setFlash } from './core';
 import { reviewBlockProps } from './diff';
 import { mergeModel } from './mergebox';
 import { render } from './pages';
@@ -52,29 +52,34 @@ import type {
 import type { MergeModel } from './mergebox';
 
 export function rangeBounds() {
-  const H = 3600e3;
+  const value = 3600e3;
   const now = Date.now();
-  const r = S.range;
+  const text = appState.range;
 
-  if (r === '1h') {
-    return [now - H, Infinity];
+  if (text === '1h') {
+    return [now - value, Infinity];
   }
 
-  if (r === '24h') {
-    return [now - 24 * H, Infinity];
+  if (text === '24h') {
+    return [now - 24 * value, Infinity];
   }
 
-  if (r === '7d') {
-    return [now - 7 * 24 * H, Infinity];
+  if (text === '7d') {
+    return [now - 7 * 24 * value, Infinity];
   }
 
-  if (r === '30d') {
-    return [now - 30 * 24 * H, Infinity];
+  if (text === '30d') {
+    return [now - 30 * 24 * value, Infinity];
   }
 
-  if (r === 'custom') {
-    const lo = S.rFrom ? new Date(`${S.rFrom}T00:00:00`).getTime() : -Infinity;
-    const hi = S.rTo ? new Date(`${S.rTo}T23:59:59.999`).getTime() : Infinity;
+  if (text === 'custom') {
+    const lo = appState.rFrom
+      ? new Date(`${appState.rFrom}T00:00:00`).getTime()
+      : -Infinity;
+
+    const hi = appState.rTo
+      ? new Date(`${appState.rTo}T23:59:59.999`).getTime()
+      : Infinity;
 
     return [lo, hi];
   }
@@ -118,100 +123,113 @@ export interface TlModel {
   composer: ComposerProps;
 }
 
-export function timelineModel(b: Bundle): TlModel {
-  const p = b.pull;
+export function timelineModel(bundle: Bundle): TlModel {
+  const pull = bundle.pull;
   const out: TlRow[] = [];
 
-  const evUser = (e: TimelineEvent) => {
-    const u = e.user || e.actor || e.author;
+  const evUser = (timelineEvent: TimelineEvent) => {
+    const value =
+      timelineEvent.user || timelineEvent.actor || timelineEvent.author;
 
-    return u?.login || (u as Person | undefined)?.name || '';
+    return value?.login || (value as Person | undefined)?.name || '';
   };
 
   const people = new Map<string, { u: Person; n: number }>();
 
-  const bump = (u?: Person | null) => {
-    if (!u?.login) {
+  const bump = (person?: Person | null) => {
+    if (!person?.login) {
       return;
     }
 
-    const r = people.get(u.login) || { u, n: 0 };
-    r.n++;
-    people.set(u.login, r);
+    const row = people.get(person.login) || { u: person, n: 0 };
+    row.n++;
+    people.set(person.login, row);
   };
 
-  bump(p.user);
+  bump(pull.user);
 
-  b.timeline.forEach(e => {
-    if (e.event === 'commented' || e.event === 'reviewed') {
-      bump(e.user);
+  bundle.timeline.forEach(timelineEvent => {
+    if (
+      timelineEvent.event === 'commented' ||
+      timelineEvent.event === 'reviewed'
+    ) {
+      bump(timelineEvent.user);
     }
   });
 
-  b.review_comments.forEach(c => bump(c.user));
-  S.who = S.who.filter(w => people.has(w));
+  bundle.review_comments.forEach(reviewComment => bump(reviewComment.user));
+  appState.who = appState.who.filter(word => people.has(word));
 
-  const { who } = S;
+  const { who } = appState;
   const on = who.length > 0;
 
   const byUser = on
-    ? b.timeline.filter(
-        e =>
-          who.includes(evUser(e)) ||
-          (e.event === 'reviewed' &&
-            b.review_comments.some(
-              c =>
-                c.pull_request_review_id === e.id &&
-                who.includes(c.user?.login),
+    ? bundle.timeline.filter(
+        timelineEvent =>
+          who.includes(evUser(timelineEvent)) ||
+          (timelineEvent.event === 'reviewed' &&
+            bundle.review_comments.some(
+              reviewComment =>
+                reviewComment.pull_request_review_id === timelineEvent.id &&
+                who.includes(reviewComment.user?.login),
             )),
       )
-    : b.timeline;
+    : bundle.timeline;
 
-  const byKind = S.unres ? byUser.filter(e => e.event === 'reviewed') : byUser;
+  const byKind = appState.unres
+    ? byUser.filter(timelineEvent => timelineEvent.event === 'reviewed')
+    : byUser;
 
   // Date filter: an event counts when its own time is in range; a review also counts when any of its comments or replies is.
-  const evTime = (e: TimelineEvent) =>
-    e.created_at || e.submitted_at || e.committer?.date || e.author?.date || '';
+  const evTime = (timelineEvent: TimelineEvent) =>
+    timelineEvent.created_at ||
+    timelineEvent.submitted_at ||
+    timelineEvent.committer?.date ||
+    timelineEvent.author?.date ||
+    '';
 
   const [rLo, rHi] = rangeBounds();
-  const rangeOn = S.range !== 'all';
+  const rangeOn = appState.range !== 'all';
 
-  const inRange = (t: string) => {
-    const x = t ? Date.parse(t) : NaN;
+  const inRange = (text: string) => {
+    const left = text ? Date.parse(text) : NaN;
 
-    return isNaN(x) || (x >= rLo && x <= rHi);
+    return isNaN(left) || (left >= rLo && left <= rHi);
   };
 
   const keep = !rangeOn
     ? byKind
     : byKind.filter(
-        e =>
-          inRange(evTime(e)) ||
-          (e.event === 'reviewed' &&
-            b.review_comments.some(
-              c => c.pull_request_review_id === e.id && inRange(c.created_at),
+        timelineEvent =>
+          inRange(evTime(timelineEvent)) ||
+          (timelineEvent.event === 'reviewed' &&
+            bundle.review_comments.some(
+              reviewComment =>
+                reviewComment.pull_request_review_id === timelineEvent.id &&
+                inRange(reviewComment.created_at),
             )) ||
-          (e.event === 'reviewed' &&
-            b.review_comments.some(
-              c =>
-                inRange(c.created_at) &&
-                b.review_comments.some(
-                  r =>
-                    r.id === c.in_reply_to_id &&
-                    r.pull_request_review_id === e.id,
+          (timelineEvent.event === 'reviewed' &&
+            bundle.review_comments.some(
+              reviewComment =>
+                inRange(reviewComment.created_at) &&
+                bundle.review_comments.some(
+                  otherReviewComment =>
+                    otherReviewComment.id === reviewComment.in_reply_to_id &&
+                    otherReviewComment.pull_request_review_id ===
+                      timelineEvent.id,
                 ),
             )),
       );
 
-  if (!S.unres && (!on || who.includes(p.user.login))) {
+  if (!appState.unres && (!on || who.includes(pull.user.login))) {
     out.push({
       t: 'comment',
       p: commentBoxProps(
         {
-          ...p,
-          created_at: p.created_at,
-          html_url: p.html_url,
-          reactions: p.reactions,
+          ...pull,
+          created_at: pull.created_at,
+          html_url: pull.html_url,
+          reactions: pull.reactions,
         },
         { isPr: true, flush: true },
       ),
@@ -221,61 +239,71 @@ export function timelineModel(b: Bundle): TlModel {
   // Long runs of commits collapse into one row (the Commits tab lists them), so comments stay reachable.
   const evs = [];
 
-  for (let i = 0; i < keep.length;) {
-    let j = i;
+  for (let index = 0; index < keep.length;) {
+    let otherIndex = index;
 
-    while (j < keep.length && keep[j].event === 'committed') {
-      j++;
+    while (otherIndex < keep.length && keep[otherIndex].event === 'committed') {
+      otherIndex++;
     }
 
-    if (j - i >= 6) {
+    if (otherIndex - index >= 6) {
       evs.push({
         event: 'commit-run',
-        n: j - i,
-        first: keep[i],
-        last: keep[j - 1],
+        n: otherIndex - index,
+        first: keep[index],
+        last: keep[otherIndex - 1],
       });
 
-      i = j;
+      index = otherIndex;
     } else {
-      evs.push(keep[i]);
-      i++;
+      evs.push(keep[index]);
+      index++;
     }
   }
 
-  if (S.sort === 'desc') {
+  if (appState.sort === 'desc') {
     evs.reverse();
   }
 
-  const info = b.commit_info || {};
+  const info = bundle.commit_info || {};
 
   const simpleRow = (
-    e: TimelineEvent,
+    timelineEvent: TimelineEvent,
     ic: string,
     text: ComponentChildren,
     kind = '',
   ) =>
     out.push({
       t: 'simple',
-      p: { actor: e.actor, ic, text, kind, at: e.created_at! },
+      p: {
+        actor: timelineEvent.actor,
+        ic,
+        text,
+        kind,
+        at: timelineEvent.created_at!,
+      },
     });
 
-  for (const e of evs) {
-    switch (e.event) {
+  for (const timelineEvent of evs) {
+    switch (timelineEvent.event) {
       case 'commented':
-        out.push({ t: 'comment', p: commentBoxProps(e as CommentLike) });
+        out.push({
+          t: 'comment',
+          p: commentBoxProps(timelineEvent as CommentLike),
+        });
+
         break;
       case 'commit-run':
         out.push({
           t: 'run',
-          n: e.n!,
-          first: e.first!.sha!.slice(0, 7),
-          last: e.last!.sha!.slice(0, 7),
+          n: timelineEvent.n!,
+          first: timelineEvent.first!.sha!.slice(0, 7),
+          last: timelineEvent.last!.sha!.slice(0, 7),
         });
 
         break;
       case 'reviewed': {
-        const rp = reviewBlockProps(e, b);
+        const rp = reviewBlockProps(timelineEvent, bundle);
 
         if (rp) {
           out.push({ t: 'review', p: rp });
@@ -288,25 +316,26 @@ export function timelineModel(b: Bundle): TlModel {
         out.push({
           t: 'committed',
           row: {
-            first: String(e.message || '').split('\n')[0],
-            sha: e.sha!,
+            first: String(timelineEvent.message || '').split('\n')[0],
+            sha: timelineEvent.sha!,
             author:
-              info[e.sha!]?.author || (e.author?.avatar_url ? e.author : null),
-            url: e.html_url!,
-            verification: e.verification,
+              info[timelineEvent.sha!]?.author ||
+              (timelineEvent.author?.avatar_url ? timelineEvent.author : null),
+            url: timelineEvent.html_url!,
+            verification: timelineEvent.verification,
           },
         });
 
         break;
       case 'referenced': {
-        const ci = info[e.commit_id!];
+        const ci = info[timelineEvent.commit_id!];
         const ml = ci ? ci.message.split('\n')[0] : '';
 
         out.push({
           t: 'referenced',
           p: {
-            actor: e.actor,
-            at: e.created_at!,
+            actor: timelineEvent.actor,
+            at: timelineEvent.created_at!,
             commit: ci
               ? { author: ci.author, html_url: ci.html_url, sha: ci.sha }
               : null,
@@ -321,49 +350,60 @@ export function timelineModel(b: Bundle): TlModel {
         out.push(
           {
             t: 'merged',
-            actor: e.actor,
-            commit: (e.commit_id || '').slice(0, 7),
-            base: p.base.label ?? '',
-            at: e.created_at!,
+            actor: timelineEvent.actor,
+            commit: (timelineEvent.commit_id || '').slice(0, 7),
+            base: pull.base.label ?? '',
+            at: timelineEvent.created_at!,
           },
           { t: 'brk' },
         );
 
         break;
       case 'closed':
-        if (!p.merged) {
-          simpleRow(e, 'git-pull-request-closed', 'closed this', 'danger');
+        if (!pull.merged) {
+          simpleRow(
+            timelineEvent,
+            'git-pull-request-closed',
+            'closed this',
+            'danger',
+          );
         }
 
         break;
       case 'reopened':
-        simpleRow(e, 'git-pull-request', 'reopened this', 'success');
+        simpleRow(
+          timelineEvent,
+          'git-pull-request',
+          'reopened this',
+          'success',
+        );
+
         break;
       case 'cross-referenced': {
-        const i = e.source?.issue;
+        const item = timelineEvent.source?.issue;
 
-        if (!i) {
+        if (!item) {
           break;
         }
 
-        const isPr = !!i.pull_request;
+        const isPr = !!item.pull_request;
 
         out.push({
           t: 'cross',
           p: {
-            actor: e.actor,
-            at: e.created_at!,
+            actor: timelineEvent.actor,
+            at: timelineEvent.created_at!,
             isPr,
-            open: i.state === 'open',
+            open: item.state === 'open',
             icon: isPr
-              ? i.state === 'open'
+              ? item.state === 'open'
                 ? 'git-pull-request'
                 : 'git-merge'
               : 'issue-opened',
-            url: i.html_url,
-            title: i.title.split('\n')[0].slice(0, 120),
-            repo: i.repository?.full_name || '',
-            number: i.number,
+            url: item.html_url,
+            title: item.title.split('\n')[0].slice(0, 120),
+            repo: item.repository?.full_name || '',
+            number: item.number,
           },
         });
 
@@ -374,53 +414,59 @@ export function timelineModel(b: Bundle): TlModel {
       case 'unlabeled':
         out.push({
           t: 'label',
-          actor: e.actor,
-          verb: e.event === 'labeled' ? 'added' : 'removed',
-          color: e.label?.color ?? '',
-          name: e.label?.name ?? '',
-          at: e.created_at!,
+          actor: timelineEvent.actor,
+          verb: timelineEvent.event === 'labeled' ? 'added' : 'removed',
+          color: timelineEvent.label?.color ?? '',
+          name: timelineEvent.label?.name ?? '',
+          at: timelineEvent.created_at!,
         });
 
         break;
       case 'assigned':
       case 'unassigned':
         simpleRow(
-          e,
+          timelineEvent,
           'person',
-          `${e.event} ${e.assignee ? e.assignee.login : ''}`,
+          `${timelineEvent.event} ${timelineEvent.assignee ? timelineEvent.assignee.login : ''}`,
         );
 
         break;
       case 'review_requested':
         simpleRow(
-          e,
+          timelineEvent,
           'eye',
-          `requested a review from ${e.requested_reviewer?.login || e.requested_team?.name || ''}`,
+          `requested a review from ${timelineEvent.requested_reviewer?.login || timelineEvent.requested_team?.name || ''}`,
         );
 
         break;
       case 'renamed':
         simpleRow(
-          e,
+          timelineEvent,
           'pencil',
           <>
-            changed the title <s>{e.rename?.from}</s> {e.rename?.to}
+            changed the title <s>{timelineEvent.rename?.from}</s>{' '}
+            {timelineEvent.rename?.to}
           </>,
         );
 
         break;
       case 'head_ref_force_pushed':
-        simpleRow(e, 'repo-push', 'force-pushed the head branch');
+        simpleRow(timelineEvent, 'repo-push', 'force-pushed the head branch');
         break;
       case 'head_ref_deleted':
-        simpleRow(e, 'git-branch', 'deleted the head branch');
+        simpleRow(timelineEvent, 'git-branch', 'deleted the head branch');
         break;
       case 'ready_for_review':
-        simpleRow(e, 'eye', 'marked this pull request as ready for review');
+        simpleRow(
+          timelineEvent,
+          'eye',
+          'marked this pull request as ready for review',
+        );
+
         break;
       case 'convert_to_draft':
         simpleRow(
-          e,
+          timelineEvent,
           'git-pull-request-draft',
           'marked this pull request as draft',
         );
@@ -428,14 +474,14 @@ export function timelineModel(b: Bundle): TlModel {
         break;
       case 'milestoned':
         simpleRow(
-          e,
+          timelineEvent,
           'milestone',
-          `added this to the ${e.milestone?.title ?? ''} milestone`,
+          `added this to the ${timelineEvent.milestone?.title ?? ''} milestone`,
         );
 
         break;
       case 'locked':
-        simpleRow(e, 'lock', 'locked this conversation');
+        simpleRow(timelineEvent, 'lock', 'locked this conversation');
         break;
       default:
         break; // subscribed, unsubscribed, mentioned: hidden by GitHub as well
@@ -448,15 +494,19 @@ export function timelineModel(b: Bundle): TlModel {
         ? {
             everyone: !on,
             people: [...people.values()]
-              .sort((x, y) => y.n - x.n)
-              .map(({ u, n }) => ({ u, n, on: who.includes(u.login!) })),
+              .sort((leftItem, rightItem) => rightItem.n - leftItem.n)
+              .map(({ u: person, n: count }) => ({
+                u: person,
+                n: count,
+                on: who.includes(person.login!),
+              })),
           }
         : null,
     range: {
-      range: S.range,
-      from: S.rFrom,
-      to: S.rTo,
-      desc: S.sort === 'desc',
+      range: appState.range,
+      from: appState.rFrom,
+      to: appState.rTo,
+      desc: appState.sort === 'desc',
     },
     rows: out,
     empty:
@@ -465,18 +515,18 @@ export function timelineModel(b: Bundle): TlModel {
           ? 'No activity in this period.'
           : 'Nothing from the selected accounts.'
         : '',
-    merge: on ? null : mergeModel(b),
-    act: mergeActProps(b),
-    composer: composerProps(b),
+    merge: on ? null : mergeModel(bundle),
+    act: mergeActProps(bundle),
+    composer: composerProps(bundle),
   };
 }
 
-export const checkState = (c: Check) =>
-  c.status !== 'completed'
+export const checkState = (check: Check) =>
+  check.status !== 'completed'
     ? 'pending'
-    : c.conclusion === 'success'
+    : check.conclusion === 'success'
       ? 'pass'
-      : ['skipped', 'neutral'].includes(c.conclusion!)
+      : ['skipped', 'neutral'].includes(check.conclusion!)
         ? 'skip'
         : 'fail';
 
@@ -487,13 +537,16 @@ export const CK: Record<string, [string, string]> = {
   skip: ['circle-slash', 'Skipped'],
 };
 
-export const reqBadge = (c: Check) =>
-  (S.bundle?.required_checks || []).includes(c.name)
+export const reqBadge = (check: Check) =>
+  (appState.bundle?.required_checks || []).includes(check.name)
     ? '<span class="ck-req" title="Required by branch protection">Required</span>'
     : '';
 
-export function checksView(b: Bundle): VNode {
-  const list = (b.checks || []).map(c => ({ ...c, st: checkState(c) }));
+export function checksView(bundle: Bundle): VNode {
+  const list = (bundle.checks || []).map(check => ({
+    ...check,
+    st: checkState(check),
+  }));
 
   if (!list.length) {
     return (
@@ -501,7 +554,8 @@ export function checksView(b: Bundle): VNode {
     );
   }
 
-  const n = (s: string) => list.filter(c => c.st === s).length;
+  const handler = (text: string) =>
+    list.filter(item => item.st === text).length;
 
   const rank: Record<string, number> = {
     fail: 0,
@@ -511,41 +565,42 @@ export function checksView(b: Bundle): VNode {
   };
 
   list.sort(
-    (x, y) =>
-      rank[x.st] - rank[y.st] || String(x.name).localeCompare(String(y.name)),
+    (leftItem, rightItem) =>
+      rank[leftItem.st] - rank[rightItem.st] ||
+      String(leftItem.name).localeCompare(String(rightItem.name)),
   );
 
-  const head = n('fail')
-    ? ['fail', `${n('fail')} failing`]
-    : n('pending')
-      ? ['pending', `${n('pending')} in progress`]
+  const head = handler('fail')
+    ? ['fail', `${handler('fail')} failing`]
+    : handler('pending')
+      ? ['pending', `${handler('pending')} in progress`]
       : ['pass', 'All checks passed'];
 
-  const dur = (c: Check) => {
-    const s = Date.parse(c.started_at!);
-    const e = Date.parse(c.completed_at!);
+  const dur = (check: Check) => {
+    const size = Date.parse(check.started_at!);
+    const value = Date.parse(check.completed_at!);
 
-    if (!s || !e || e < s) {
+    if (!size || !value || value < size) {
       return '';
     }
 
-    const t = Math.round((e - s) / 1000);
+    const time = Math.round((value - size) / 1000);
 
-    return t >= 60 ? `${Math.floor(t / 60)}m ${t % 60}s` : `${t}s`;
+    return time >= 60 ? `${Math.floor(time / 60)}m ${time % 60}s` : `${time}s`;
   };
 
-  const rows = list.map(c => ({
-    name: c.name,
-    st: c.st,
-    url: c.url,
-    desc: c.description || (c.app ? c.app : ''),
-    req: (S.bundle?.required_checks || []).includes(c.name),
+  const rows = list.map(item => ({
+    name: item.name,
+    st: item.st,
+    url: item.url,
+    desc: item.description || (item.app ? item.app : ''),
+    req: (appState.bundle?.required_checks || []).includes(item.name),
     status:
-      c.st === 'fail' && c.conclusion && c.conclusion !== 'failure'
-        ? c.conclusion.replace(/_/g, ' ')
-        : CK[c.st][1],
-    dur: dur(c),
-    icon: CK[c.st][0],
+      item.st === 'fail' && item.conclusion && item.conclusion !== 'failure'
+        ? item.conclusion.replace(/_/g, ' ')
+        : CK[item.st][1],
+    dur: dur(item),
+    icon: CK[item.st][0],
   }));
 
   return (
@@ -553,10 +608,10 @@ export function checksView(b: Bundle): VNode {
       head={[head[0], head[1]]}
       headIcon={CK[head[0]][0]}
       summary={[
-        n('fail') && `${n('fail')} failing`,
-        n('pending') && `${n('pending')} in progress`,
-        n('pass') && `${n('pass')} passed`,
-        n('skip') && `${n('skip')} skipped`,
+        handler('fail') && `${handler('fail')} failing`,
+        handler('pending') && `${handler('pending')} in progress`,
+        handler('pass') && `${handler('pass')} passed`,
+        handler('skip') && `${handler('skip')} skipped`,
       ]
         .filter(Boolean)
         .join(' · ')}
@@ -565,46 +620,54 @@ export function checksView(b: Bundle): VNode {
   );
 }
 
-export function unresolvedRoots(b: Bundle) {
-  const res = new Set(b.resolved_ids || []);
+export function unresolvedRoots(bundle: Bundle) {
+  const res = new Set(bundle.resolved_ids || []);
 
-  return b.review_comments.filter(c => !c.in_reply_to_id && !res.has(c.id));
+  return bundle.review_comments.filter(
+    reviewComment =>
+      !reviewComment.in_reply_to_id && !res.has(reviewComment.id),
+  );
 }
 
-export function attentionProps(b: Bundle) {
-  const p = b.pull;
-  const rc = b.review_comments;
-  const roots = rc.filter(c => !c.in_reply_to_id);
-  const open = unresolvedRoots(b);
-  const known = S.hasToken || (b.resolved_ids || []).length > 0;
+export function attentionProps(bundle: Bundle) {
+  const pull = bundle.pull;
+  const rc = bundle.review_comments;
+  const roots = rc.filter(reviewComment => !reviewComment.in_reply_to_id);
+  const open = unresolvedRoots(bundle);
+  const known = appState.hasToken || (bundle.resolved_ids || []).length > 0;
   const latest = new Map();
 
-  b.timeline
-    .filter(e => e.event === 'reviewed' && e.user)
-    .forEach(e => {
-      const st = e.state!.toLowerCase();
+  bundle.timeline
+    .filter(
+      timelineEvent => timelineEvent.event === 'reviewed' && timelineEvent.user,
+    )
+    .forEach(timelineEvent => {
+      const st = timelineEvent.state!.toLowerCase();
 
-      if (st === 'commented' && latest.has(e.user!.login)) {
+      if (st === 'commented' && latest.has(timelineEvent.user!.login)) {
         return;
       }
 
-      latest.set(e.user!.login, st);
+      latest.set(timelineEvent.user!.login, st);
     });
 
-  const cr = [...latest.values()].filter(s => s === 'changes_requested').length;
-  const ap = [...latest.values()].filter(s => s === 'approved').length;
-  const ck = (b.checks || []).map(checkState);
-  const fail = ck.filter(s => s === 'fail').length;
-  const pend = ck.filter(s => s === 'pending').length;
-  const pass = ck.filter(s => s === 'pass').length;
+  const cr = [...latest.values()].filter(
+    value => value === 'changes_requested',
+  ).length;
+
+  const ap = [...latest.values()].filter(value => value === 'approved').length;
+  const ck = (bundle.checks || []).map(checkState);
+  const fail = ck.filter(status => status === 'fail').length;
+  const pend = ck.filter(status => status === 'pending').length;
+  const pass = ck.filter(status => status === 'pass').length;
   const it: AttItem[] = [];
 
   const add = (
-    k: string,
+    key: string,
     ic: string,
     text: string,
     attr: Partial<AttItem> = {},
-  ) => it.push({ k, ic, text, ...attr });
+  ) => it.push({ k: key, ic, text, ...attr });
 
   if (roots.length) {
     if (!known) {
@@ -648,53 +711,55 @@ export function attentionProps(b: Bundle) {
     );
   }
 
-  if (p.merged) {
+  if (pull.merged) {
     add('done', 'git-merge', 'Merged');
-  } else if (p.state === 'closed') {
+  } else if (pull.state === 'closed') {
     add('bad', 'git-pull-request-closed', 'Closed');
-  } else if (p.mergeable === false || p.mergeable_state === 'dirty') {
+  } else if (pull.mergeable === false || pull.mergeable_state === 'dirty') {
     add('bad', 'alert', 'Has conflicts');
-  } else if (p.mergeable_state === 'clean') {
+  } else if (pull.mergeable_state === 'clean') {
     add('ok', 'git-merge', 'Ready to merge');
-  } else if (p.draft) {
+  } else if (pull.draft) {
     add('', 'git-pull-request-draft', 'Draft');
   }
 
-  return { items: it, unres: S.unres, showUnres: roots.length > 0 };
+  return { items: it, unres: appState.unres, showUnres: roots.length > 0 };
 }
 
 export function jumpUnresolved() {
-  const b = S.bundle;
-  const list = unresolvedRoots(b!);
+  const bundle = appState.bundle;
+  const list = unresolvedRoots(bundle!);
 
   if (!list.length) {
     return;
   }
 
-  const c = list[S.unIdx % list.length];
-  S.unIdx++;
+  const reviewComment = list[appState.unIdx % list.length];
+  appState.unIdx++;
 
   const first =
-    b!.review_comments.find(
-      x =>
-        x.pull_request_review_id === c.pull_request_review_id &&
-        x.path === c.path &&
-        (x.original_position ?? x.position) ===
-          (c.original_position ?? c.position),
-    ) || c;
+    bundle!.review_comments.find(
+      otherReviewComment =>
+        otherReviewComment.pull_request_review_id ===
+          reviewComment.pull_request_review_id &&
+        otherReviewComment.path === reviewComment.path &&
+        (otherReviewComment.original_position ??
+          otherReviewComment.position) ===
+          (reviewComment.original_position ?? reviewComment.position),
+    ) || reviewComment;
 
-  S.fold[`r:${c.pull_request_review_id}`] = false;
-  S.fold[`t:${first.id}`] = false;
-  S.fold[`c:${c.id}`] = false;
-  localStorage.setItem('fold', JSON.stringify(S.fold));
-  S.keepScroll = true;
+  appState.fold[`r:${reviewComment.pull_request_review_id}`] = false;
+  appState.fold[`t:${first.id}`] = false;
+  appState.fold[`c:${reviewComment.id}`] = false;
+  localStorage.setItem('fold', JSON.stringify(appState.fold));
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 
-  setFlash(`c-${c.id}`, { block: 'center', smooth: true });
-  S.keepScroll = true;
+  setFlash(`c-${reviewComment.id}`, { block: 'center', smooth: true });
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 }
 
 export interface FoldKey {
@@ -703,14 +768,17 @@ export interface FoldKey {
 }
 
 // Every fold toggle the timeline draws, so "collapse all" works from state rather than from the DOM.
-export const foldKeys = (m: TlModel): FoldKey[] =>
-  m.rows.flatMap((r): FoldKey[] =>
-    r.t === 'comment'
-      ? [{ k: `c:${r.p.c.id}`, def: false }]
-      : r.t === 'review'
+export const foldKeys = (tlModel: TlModel): FoldKey[] =>
+  tlModel.rows.flatMap((tlRow): FoldKey[] =>
+    tlRow.t === 'comment'
+      ? [{ k: `c:${tlRow.p.c.id}`, def: false }]
+      : tlRow.t === 'review'
         ? [
-            { k: r.p.k, def: r.p.allRes },
-            ...r.p.threads.map(t => ({ k: t.k, def: t.def })),
+            { k: tlRow.p.k, def: tlRow.p.allRes },
+            ...tlRow.p.threads.map(rvThread => ({
+              k: rvThread.k,
+              def: rvThread.def,
+            })),
           ]
         : [],
   );
@@ -719,80 +787,93 @@ export interface TlHandlers {
   conv: ConvHandlers;
   bars: BarHandlers;
   foldAll: (keys: FoldKey[]) => void;
-  tab: (k: string) => void;
+  tab: (key: string) => void;
   merge: MergeBoxHandlers;
   act: MergeActHandlers;
   composer: ComposerHandlers;
 }
 
-function Row({ r, on }: { r: TlRow; on?: TlHandlers }) {
-  switch (r.t) {
+function Row({ r: tlRow, on }: { r: TlRow; on?: TlHandlers }) {
+  switch (tlRow.t) {
     case 'referenced':
-      return <Referenced {...r.p} />;
+      return <Referenced {...tlRow.p} />;
     case 'comment':
-      return <CommentBox {...r.p} on={on?.conv} />;
+      return <CommentBox {...tlRow.p} on={on?.conv} />;
     case 'review':
-      return <ReviewBlock {...r.p} on={on?.conv} />;
+      return <ReviewBlock {...tlRow.p} on={on?.conv} />;
     case 'run':
       return (
-        <CommitRun n={r.n} first={r.first} last={r.last} onTab={on?.tab} />
+        <CommitRun
+          n={tlRow.n}
+          first={tlRow.first}
+          last={tlRow.last}
+          onTab={on?.tab}
+        />
       );
     case 'committed':
-      return <Committed row={<CommitRow {...r.row} />} />;
+      return <Committed row={<CommitRow {...tlRow.row} />} />;
     case 'merged':
       return (
-        <MergedRow actor={r.actor} commit={r.commit} base={r.base} at={r.at} />
+        <MergedRow
+          actor={tlRow.actor}
+          commit={tlRow.commit}
+          base={tlRow.base}
+          at={tlRow.at}
+        />
       );
     case 'brk':
       return <div class="TLI-break"></div>;
     case 'cross':
-      return <CrossRef {...r.p} />;
+      return <CrossRef {...tlRow.p} />;
     case 'label':
       return (
         <LabelRow
-          actor={r.actor}
-          verb={r.verb}
-          color={r.color}
-          name={r.name}
-          at={r.at}
+          actor={tlRow.actor}
+          verb={tlRow.verb}
+          color={tlRow.color}
+          name={tlRow.name}
+          at={tlRow.at}
         />
       );
     case 'simple':
-      return <Simple {...r.p} />;
+      return <Simple {...tlRow.p} />;
     default:
       return null;
   }
 }
 
-export function Timeline({ m, on }: { m: TlModel; on?: TlHandlers }) {
+export function Timeline({ m: tlModel, on }: { m: TlModel; on?: TlHandlers }) {
   const box =
-    m.merge &&
-    (m.merge.kind === 'merged' ? (
-      <MergedBox head={m.merge.head} />
-    ) : m.merge.kind === 'closed' ? (
-      <ClosedBox head={m.merge.head} />
+    tlModel.merge &&
+    (tlModel.merge.kind === 'merged' ? (
+      <MergedBox head={tlModel.merge.head} />
+    ) : tlModel.merge.kind === 'closed' ? (
+      <ClosedBox head={tlModel.merge.head} />
     ) : (
-      <MergeBox {...m.merge.p} on={on?.merge} />
+      <MergeBox {...tlModel.merge.p} on={on?.merge} />
     ));
 
-  const keys = foldKeys(m);
+  const keys = foldKeys(tlModel);
 
   return (
     <>
-      <Bars who={m.who} range={m.range} on={on?.bars} />
+      <Bars who={tlModel.who} range={tlModel.range} on={on?.bars} />
       <FoldBar
-        folded={keys.length > 0 && keys.every(x => isFolded(x.k, x.def))}
+        folded={
+          keys.length > 0 &&
+          keys.every(foldKey => isFolded(foldKey.k, foldKey.def))
+        }
         onClick={() => on?.foldAll(keys)}
       />
       <div class="TL">
-        {m.rows.map(r => (
-          <Row r={r} on={on} />
+        {tlModel.rows.map(tlRow => (
+          <Row r={tlRow} on={on} />
         ))}
-        {m.empty ? <div class="diff-empty">{m.empty}</div> : ''}
+        {tlModel.empty ? <div class="diff-empty">{tlModel.empty}</div> : ''}
       </div>
       {box}
-      {m.act ? <MergeAct {...m.act} on={on?.act} /> : ''}
-      <Composer {...m.composer} on={on?.composer} />
+      {tlModel.act ? <MergeAct {...tlModel.act} on={on?.act} /> : ''}
+      <Composer {...tlModel.composer} on={on?.composer} />
     </>
   );
 }

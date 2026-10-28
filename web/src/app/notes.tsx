@@ -1,6 +1,6 @@
 import { NotePanel } from '../components/NotePanel';
 import { openAux, openClick, openCtx } from './bind';
-import { S, whenParts } from './core';
+import { appState, whenParts } from './core';
 import { pollNotes } from './data';
 import { setSlot } from './frame';
 import { render, saveNotes } from './pages';
@@ -13,15 +13,15 @@ export function paintNotes() {
   setSlot(
     'notes',
     <NotePanel
-      open={S.bell}
-      rows={S.notes.map(n => ({
-        id: n.id,
-        ref: n.ref,
-        target: n.target || '',
-        read: !!n.read,
-        title: n.title,
-        text: n.text,
-        when: whenParts(n.at).text,
+      open={appState.bell}
+      rows={appState.notes.map(note => ({
+        id: note.id,
+        ref: note.ref,
+        target: note.target || '',
+        read: !!note.read,
+        title: note.title,
+        text: note.text,
+        when: whenParts(note.at).text,
       }))}
       on={noteOn}
     />,
@@ -29,11 +29,11 @@ export function paintNotes() {
 }
 
 export function setBell(open: boolean) {
-  S.bell = open;
+  appState.bell = open;
 
-  if (!open && S.notes.some(n => !n.read)) {
-    S.notes.forEach(n => {
-      n.read = true;
+  if (!open && appState.notes.some(note => !note.read)) {
+    appState.notes.forEach(note => {
+      note.read = true;
     });
 
     saveNotes();
@@ -44,32 +44,32 @@ export function setBell(open: boolean) {
 }
 
 const keepRender = () => {
-  S.keepScroll = true;
+  appState.keepScroll = true;
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
-const row = (e: Event) => e.currentTarget as HTMLElement;
+const row = (event: Event) => event.currentTarget as HTMLElement;
 
 function noteAll() {
-  S.bell = false;
-  S.view = 'notes';
-  S.nav = false;
+  appState.bell = false;
+  appState.view = 'notes';
+  appState.nav = false;
   render();
 }
 
 function noteClear() {
-  S.notes = [];
+  appState.notes = [];
   localStorage.setItem('notes', '[]');
   keepRender();
 }
 
-function noteOpen(e: MouseEvent) {
-  openClick(row(e), e);
-  S.bell = false;
+function noteOpen(event: MouseEvent) {
+  openClick(row(event), event);
+  appState.bell = false;
 
-  S.notes.forEach(n => {
-    n.read = true;
+  appState.notes.forEach(note => {
+    note.read = true;
   });
 
   saveNotes();
@@ -82,15 +82,15 @@ const noteOn: NoteHandlers = {
   },
   clear: noteClear,
   open: noteOpen,
-  aux: e => openAux(row(e), e),
-  ctx: e => openCtx(row(e), e),
+  aux: event => openAux(row(event), event),
+  ctx: event => openCtx(row(event), event),
 };
 
 // Click outside (or Esc) closes the drawer; closing marks everything read.
-export function notesAway(e: MouseEvent) {
+export function notesAway(event: MouseEvent) {
   if (
-    !S.bell ||
-    (e.target as HTMLElement).closest<HTMLElement>('.note-panel, #bell')
+    !appState.bell ||
+    (event.target as HTMLElement).closest<HTMLElement>('.note-panel, #bell')
   ) {
     return;
   }
@@ -98,8 +98,8 @@ export function notesAway(e: MouseEvent) {
   setBell(false);
 }
 
-export const notesKey = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && S.bell) {
+export const notesKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && appState.bell) {
     setBell(false);
   }
 };

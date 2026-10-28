@@ -1,8 +1,8 @@
-import { I, SP } from './ui';
+import { renderIcon, SP } from './ui';
 
 import type { ComponentChildren } from 'preact';
 
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const cap = (text: string) => text[0].toUpperCase() + text.slice(1);
 
 export interface RecentCard {
   ref: string;
@@ -30,18 +30,18 @@ export interface PushBanner {
 }
 
 export interface HomeHandlers {
-  tab: (t: string) => void;
-  vis: (v: string) => void;
-  sort: (e: Event) => void;
-  group: (e: Event) => void;
-  repoFilter: (e: Event) => void;
-  recentFilter: (e: Event) => void;
-  rstate: (s: string) => void;
+  tab: (text: string) => void;
+  vis: (value: string) => void;
+  sort: (event: Event) => void;
+  group: (event: Event) => void;
+  repoFilter: (event: Event) => void;
+  recentFilter: (event: Event) => void;
+  rstate: (text: string) => void;
   repo: (full: string) => void;
-  open: (el: HTMLElement, e: MouseEvent) => void;
-  aux: (el: HTMLElement, e: MouseEvent) => void;
-  ctx: (el: HTMLElement, e: MouseEvent) => void;
-  rm: (e: MouseEvent, ref: string) => void;
+  open: (el: HTMLElement, event: MouseEvent) => void;
+  aux: (el: HTMLElement, event: MouseEvent) => void;
+  ctx: (el: HTMLElement, event: MouseEvent) => void;
+  rm: (event: MouseEvent, ref: string) => void;
   addToken: () => void;
   compare: (repo: string, branch: string) => void;
   dismiss: (key: string) => void;
@@ -87,15 +87,15 @@ export function Banners({
 }) {
   return (
     <>
-      {items.map(p => (
+      {items.map(pushBanner => (
         <div class="push-banner">
-          {I('git-branch')}
+          {renderIcon('git-branch')}
           <span>
-            <b>{p.branch}</b> had recent pushes {p.ago}
-            {p.showRepo ? (
+            <b>{pushBanner.branch}</b> had recent pushes {pushBanner.ago}
+            {pushBanner.showRepo ? (
               <>
                 {' '}
-                <i>· {p.repo}</i>
+                <i>· {pushBanner.repo}</i>
               </>
             ) : (
               ''
@@ -104,18 +104,18 @@ export function Banners({
           <span class="sp"></span>
           <button
             class="btn small primary"
-            data-compare={`${p.repo}@${p.branch}`}
-            onClick={() => on.compare(p.repo, p.branch)}
+            data-compare={`${pushBanner.repo}@${pushBanner.branch}`}
+            onClick={() => on.compare(pushBanner.repo, pushBanner.branch)}
           >
             Compare &amp; pull request
           </button>
           <button
             class="push-x"
-            data-pdismiss={p.key}
-            onClick={() => on.dismiss(p.key)}
+            data-pdismiss={pushBanner.key}
+            onClick={() => on.dismiss(pushBanner.key)}
             title="Dismiss"
           >
-            {I('x')}
+            {renderIcon('x')}
           </button>
         </div>
       ))}
@@ -123,41 +123,53 @@ export function Banners({
   );
 }
 
-function Card({ r, on }: { r: RepoCard; on: HomeHandlers }) {
+function Card({ r: repoCard, on }: { r: RepoCard; on: HomeHandlers }) {
   return (
-    <a class="hm-card" data-repo={r.full} onClick={() => on.repo(r.full)}>
+    <a
+      class="hm-card"
+      data-repo={repoCard.full}
+      onClick={() => on.repo(repoCard.full)}
+    >
       <span class="rc-i" style="color:var(--fgColor-muted)">
-        {I(r.priv ? 'lock' : 'repo')}
+        {renderIcon(repoCard.priv ? 'lock' : 'repo')}
       </span>
       <span class="hm-t">
-        <b>{r.name}</b>
+        <b>{repoCard.name}</b>
         <i>
-          {r.owner}
-          {r.archived ? ' · archived' : ''}
-          {r.issues ? ` · ${r.issues} open` : ''}
+          {repoCard.owner}
+          {repoCard.archived ? ' · archived' : ''}
+          {repoCard.issues ? ` · ${repoCard.issues} open` : ''}
         </i>
-        {r.desc ? <em>{r.desc}</em> : ''}
+        {repoCard.desc ? <em>{repoCard.desc}</em> : ''}
       </span>
     </a>
   );
 }
 
-function Opt({ v, cur, t }: { v: string; cur: string; t: string }) {
+function Opt({
+  v: otherValue,
+  cur,
+  t: text,
+}: {
+  v: string;
+  cur: string;
+  t: string;
+}) {
   return (
-    <option value={v} selected={cur === v}>
-      {t}
+    <option value={otherValue} selected={cur === otherValue}>
+      {text}
     </option>
   );
 }
 
 function Body({
-  b,
+  b: otherValue,
   on,
 }: {
   b: HomeProps['body'];
   on: HomeHandlers;
 }): ComponentChildren {
-  if (b.kind === 'addtoken') {
+  if (otherValue.kind === 'addtoken') {
     return (
       <div class="diff-empty">
         Add an access token to list all your repositories and their pull
@@ -171,11 +183,11 @@ function Body({
     );
   }
 
-  if (b.kind === 'error') {
-    return <div class="diff-empty err">{b.text}</div>;
+  if (otherValue.kind === 'error') {
+    return <div class="diff-empty err">{otherValue.text}</div>;
   }
 
-  if (b.kind === 'spinner') {
+  if (otherValue.kind === 'spinner') {
     return (
       <div class="spinner" style="margin:48px auto">
         Loading repositories…
@@ -183,26 +195,26 @@ function Body({
     );
   }
 
-  if (b.kind === 'recent') {
+  if (otherValue.kind === 'recent') {
     return (
       <>
-        {b.hasAny ? (
+        {otherValue.hasAny ? (
           <div class="hm-fbar">
             <input
               class="input hm-filter"
               id="hmrfilter"
               placeholder="Filter by title or repo…"
-              value={b.filter}
+              value={otherValue.filter}
               onInput={on.recentFilter}
             />
             <div class="seg-ctl">
-              {['all', 'open', 'merged', 'closed'].map(x => (
+              {['all', 'open', 'merged', 'closed'].map(text => (
                 <button
-                  class={b.state === x ? 'on' : ''}
-                  data-rstate={x}
-                  onClick={() => on.rstate(x)}
+                  class={otherValue.state === text ? 'on' : ''}
+                  data-rstate={text}
+                  onClick={() => on.rstate(text)}
                 >
-                  {cap(x)}
+                  {cap(text)}
                 </button>
               ))}
             </div>
@@ -210,52 +222,54 @@ function Body({
         ) : (
           ''
         )}
-        {b.cards.length ? (
+        {otherValue.cards.length ? (
           <div class="hm-grid">
-            {b.cards.map(r => (
+            {otherValue.cards.map(recentCard => (
               <a
                 class="hm-card"
-                data-open={r.ref}
-                onClick={e => on.open(e.currentTarget, e)}
-                onAuxClick={e => on.aux(e.currentTarget, e)}
-                onContextMenu={e => on.ctx(e.currentTarget, e)}
+                data-open={recentCard.ref}
+                onClick={event => on.open(event.currentTarget, event)}
+                onAuxClick={event => on.aux(event.currentTarget, event)}
+                onContextMenu={event => on.ctx(event.currentTarget, event)}
               >
-                <span class={`rc-i ${r.state}`}>{I(r.icon)}</span>
+                <span class={`rc-i ${recentCard.state}`}>
+                  {renderIcon(recentCard.icon)}
+                </span>
                 <span class="hm-t">
-                  <b>{r.title}</b>
-                  <i>{r.ref}</i>
+                  <b>{recentCard.title}</b>
+                  <i>{recentCard.ref}</i>
                 </span>
                 <button
                   class="rc-x"
-                  data-rm={r.ref}
-                  onClick={e => on.rm(e, r.ref)}
+                  data-rm={recentCard.ref}
+                  onClick={event => on.rm(event, recentCard.ref)}
                   title="Remove"
                 >
-                  {I('x')}
+                  {renderIcon('x')}
                 </button>
               </a>
             ))}
           </div>
         ) : (
-          <div class="diff-empty">{b.emptyText}</div>
+          <div class="diff-empty">{otherValue.emptyText}</div>
         )}
       </>
     );
   }
 
-  const grid = b.none ? (
+  const grid = otherValue.none ? (
     <div class="diff-empty">No matching repositories.</div>
-  ) : b.groups ? (
+  ) : otherValue.groups ? (
     <>
-      {b.groups.map(g => (
+      {otherValue.groups.map(group => (
         <>
           <h3 class="hm-grp">
-            {g.owner}
-            <span>{g.cards.length}</span>
+            {group.owner}
+            <span>{group.cards.length}</span>
           </h3>
           <div class="hm-grid">
-            {g.cards.map(r => (
-              <Card r={r} on={on} />
+            {group.cards.map(repoCard => (
+              <Card r={repoCard} on={on} />
             ))}
           </div>
         </>
@@ -263,8 +277,8 @@ function Body({
     </>
   ) : (
     <div class="hm-grid">
-      {b.cards.map(r => (
-        <Card r={r} on={on} />
+      {otherValue.cards.map(repoCard => (
+        <Card r={repoCard} on={on} />
       ))}
     </div>
   );
@@ -276,32 +290,32 @@ function Body({
           class="input hm-filter"
           id="hmfilter"
           placeholder="Find a repository…"
-          value={b.filter}
+          value={otherValue.filter}
           onInput={on.repoFilter}
         />
         <div class="seg-ctl">
-          {['all', 'public', 'private'].map(x => (
+          {['all', 'public', 'private'].map(text => (
             <button
-              class={b.vis === x ? 'on' : ''}
-              data-hvis={x}
-              onClick={() => on.vis(x)}
+              class={otherValue.vis === text ? 'on' : ''}
+              data-hvis={text}
+              onClick={() => on.vis(text)}
             >
-              {cap(x)}
+              {cap(text)}
             </button>
           ))}
         </div>
         <select class="input" id="hmsort" title="Sort" onChange={on.sort}>
-          <Opt v="pushed" cur={b.sort} t="Recently pushed" />
-          <Opt v="oldest" cur={b.sort} t="Least recently pushed" />
-          <Opt v="name" cur={b.sort} t="Name A–Z" />
-          <Opt v="namez" cur={b.sort} t="Name Z–A" />
-          <Opt v="owner" cur={b.sort} t="Owner A–Z" />
-          <Opt v="ownerz" cur={b.sort} t="Owner Z–A" />
-          <Opt v="issues" cur={b.sort} t="Most open issues" />
+          <Opt v="pushed" cur={otherValue.sort} t="Recently pushed" />
+          <Opt v="oldest" cur={otherValue.sort} t="Least recently pushed" />
+          <Opt v="name" cur={otherValue.sort} t="Name A–Z" />
+          <Opt v="namez" cur={otherValue.sort} t="Name Z–A" />
+          <Opt v="owner" cur={otherValue.sort} t="Owner A–Z" />
+          <Opt v="ownerz" cur={otherValue.sort} t="Owner Z–A" />
+          <Opt v="issues" cur={otherValue.sort} t="Most open issues" />
         </select>
         <select class="input" id="hmgroup" title="Group" onChange={on.group}>
-          <Opt v="none" cur={b.group} t="No grouping" />
-          <Opt v="owner" cur={b.group} t="Group by owner" />
+          <Opt v="none" cur={otherValue.group} t="No grouping" />
+          <Opt v="owner" cur={otherValue.group} t="Group by owner" />
         </select>
       </div>
       {grid}
@@ -309,14 +323,14 @@ function Body({
   );
 }
 
-export function Home({ p, on }: { p: HomeProps; on: HomeHandlers }) {
+export function Home({ p: props, on }: { p: HomeProps; on: HomeHandlers }) {
   return (
     <div class="notes-page hm-page">
       <div class="np-head">
         <h1>
-          {I('home')}
+          {renderIcon('home')}
           {SP}
-          {p.owner || 'Home'}
+          {props.owner || 'Home'}
         </h1>
       </div>
       {'\n  '}
@@ -324,32 +338,32 @@ export function Home({ p, on }: { p: HomeProps; on: HomeHandlers }) {
         Open a pull request: type <code>owner/repo#123</code> or paste a URL in
         the bar above.
       </p>
-      {p.banners.length ? (
+      {props.banners.length ? (
         <div class="push-wrap">
-          <Banners items={p.banners} on={on} />
+          <Banners items={props.banners} on={on} />
         </div>
       ) : (
         ''
       )}
-      {p.err ? <div class="err">{p.err}</div> : ''}
+      {props.err ? <div class="err">{props.err}</div> : ''}
       <div class="np-tabs">
         <button
-          class={p.tab === 'repos' ? 'sel' : ''}
+          class={props.tab === 'repos' ? 'sel' : ''}
           data-htab="repos"
           onClick={() => on.tab('repos')}
         >
-          {I('repo')} Repositories
-          {p.repoCount !== null ? <span>{p.repoCount}</span> : ''}
+          {renderIcon('repo')} Repositories
+          {props.repoCount !== null ? <span>{props.repoCount}</span> : ''}
         </button>
         <button
-          class={p.tab === 'recent' ? 'sel' : ''}
+          class={props.tab === 'recent' ? 'sel' : ''}
           data-htab="recent"
           onClick={() => on.tab('recent')}
         >
-          {I('clock')} Recent<span>{p.recentCount}</span>
+          {renderIcon('clock')} Recent<span>{props.recentCount}</span>
         </button>
       </div>
-      <Body b={p.body} on={on} />
+      <Body b={props.body} on={on} />
     </div>
   );
 }

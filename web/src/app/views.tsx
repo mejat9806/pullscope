@@ -3,7 +3,7 @@ import { Crumbs, PrListPage } from '../components/PrList';
 import { rerender, saveDrafts, setBusy, syncDraft } from './actions';
 import { bpOpen } from './addressbar';
 import { openAux, openClick, openCtx } from './bind';
-import { S, tauri } from './core';
+import { appState, tauri } from './core';
 import { pollNotes, pushDis } from './data';
 import { confetti } from './fun';
 import { crumbs } from './home';
@@ -37,16 +37,16 @@ import type { NpListKey } from '../types';
 
 const open = { open: openClick, aux: openAux, ctx: openCtx };
 
-const typedPf = (e: Event) => {
-  S.pf = (e.target as HTMLInputElement).value;
+const typedPf = (event: Event) => {
+  appState.pf = (event.target as HTMLInputElement).value;
   render();
 };
 
 const prl: PrListHandlers = {
   ...open,
-  ps: s => {
-    S.prState = s;
-    openRepo(S.repo!, { nav: true });
+  ps: text => {
+    appState.prState = text;
+    openRepo(appState.repo!, { nav: true });
   },
   compare: (repo, br) => openNewPr(repo, br),
   dismiss: key => {
@@ -55,25 +55,25 @@ const prl: PrListHandlers = {
     rerender();
   },
   filter: typedPf,
-  author: e => {
-    S.pAuthor = (e.target as HTMLSelectElement).value;
+  author: event => {
+    appState.pAuthor = (event.target as HTMLSelectElement).value;
     render();
   },
-  label: e => {
-    S.pLabel = (e.target as HTMLSelectElement).value;
+  label: event => {
+    appState.pLabel = (event.target as HTMLSelectElement).value;
     render();
   },
-  status: e => {
-    S.pStatus = (e.target as HTMLSelectElement).value;
+  status: event => {
+    appState.pStatus = (event.target as HTMLSelectElement).value;
     render();
   },
-  sort: e => {
-    S.psort = (e.target as HTMLSelectElement).value;
-    localStorage.setItem('psort', S.psort);
+  sort: event => {
+    appState.psort = (event.target as HTMLSelectElement).value;
+    localStorage.setItem('psort', appState.psort);
     render();
   },
   clear: () => {
-    S.pf = S.pAuthor = S.pLabel = S.pStatus = '';
+    appState.pf = appState.pAuthor = appState.pLabel = appState.pStatus = '';
     render();
   },
 };
@@ -81,17 +81,21 @@ const prl: PrListHandlers = {
 export function RepoView() {
   return (
     <>
-      <Crumbs repo={S.repo!} trail={[{ t: 'Pull requests' }]} on={crumbs} />
+      <Crumbs
+        repo={appState.repo!}
+        trail={[{ t: 'Pull requests' }]}
+        on={crumbs}
+      />
       <PrListPage p={prListProps()} on={prl} />
     </>
   );
 }
 
 const keep = (fn: () => void) => {
-  S.keepScroll = true;
+  appState.keepScroll = true;
   fn();
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
 const notes: NotesHandlers = {
@@ -99,34 +103,40 @@ const notes: NotesHandlers = {
   check: () => pollNotes(),
   readAll: () =>
     keep(() => {
-      S.notes.forEach(n => (n.read = true));
+      appState.notes.forEach(note => (note.read = true));
       saveNotes();
     }),
   clear: () =>
     keep(() => {
-      S.notes = [];
+      appState.notes = [];
       saveNotes();
     }),
-  filter: f =>
+  filter: field =>
     keep(() => {
-      S.nf = f;
+      appState.nf = field;
     }),
-  read: (e, id) => {
-    e.stopPropagation();
-    const n = S.notes.find(x => String(x.id) === String(id));
+  read: (event, id) => {
+    event.stopPropagation();
 
-    if (n) {
+    const note = appState.notes.find(
+      otherNote => String(otherNote.id) === String(id),
+    );
+
+    if (note) {
       keep(() => {
-        n.read = !n.read;
+        note.read = !note.read;
         saveNotes();
       });
     }
   },
-  del: (e, id) => {
-    e.stopPropagation();
+  del: (event, id) => {
+    event.stopPropagation();
 
     keep(() => {
-      S.notes = S.notes.filter(x => String(x.id) !== String(id));
+      appState.notes = appState.notes.filter(
+        note => String(note.id) !== String(id),
+      );
+
       saveNotes();
     });
   },
@@ -143,7 +153,7 @@ export function NotesView() {
 
 const foldSave = () => {
   try {
-    localStorage.setItem('fold', JSON.stringify(S.fold));
+    localStorage.setItem('fold', JSON.stringify(appState.fold));
   } catch {
     /* storage full */
   }
@@ -151,12 +161,12 @@ const foldSave = () => {
   render();
 };
 
-const ibSave = (o: string[]) => {
-  S.ibOrder = o.length ? o : undefined;
+const ibSave = (options: string[]) => {
+  appState.ibOrder = options.length ? options : undefined;
 
   try {
-    if (o.length) {
-      localStorage.setItem('iborder', JSON.stringify(o));
+    if (options.length) {
+      localStorage.setItem('iborder', JSON.stringify(options));
     } else {
       localStorage.removeItem('iborder');
     }
@@ -169,61 +179,65 @@ const ibSave = (o: string[]) => {
 
 const IB_SEL = '.ib-sec[data-t]';
 
-const ibGrip = (e: MouseEvent, title: string) =>
-  roGrip(e, 'ib', IB_SEL, title, ibOrder, ibSave);
+const ibGrip = (event: MouseEvent, title: string) =>
+  roGrip(event, 'ib', IB_SEL, title, ibOrder, ibSave);
 
 const inbox: InboxHandlers = {
   ...open,
   refresh: () => loadInbox(true),
-  sort: e => {
-    S.ibSort = (e.target as HTMLSelectElement).value;
+  sort: event => {
+    appState.ibSort = (event.target as HTMLSelectElement).value;
 
     try {
-      localStorage.setItem('ibsort', S.ibSort);
+      localStorage.setItem('ibsort', appState.ibSort);
     } catch {
       /* ignore */
     }
 
     render();
   },
-  query: e => {
-    S.ibQ = (e.target as HTMLInputElement).value;
+  query: event => {
+    appState.ibQ = (event.target as HTMLInputElement).value;
     render();
   },
-  fold: k => {
-    S.fold[k] = !S.fold[k];
+  fold: key => {
+    appState.fold[key] = !appState.fold[key];
     foldSave();
   },
-  move: (t, by) => {
-    const o = ibOrder();
-    const i = o.indexOf(t);
-    const j = i + by;
+  move: (text, by) => {
+    const options = ibOrder();
+    const index = options.indexOf(text);
+    const otherIndex = index + by;
 
-    if (i < 0 || j < 0 || j >= o.length) {
+    if (index < 0 || otherIndex < 0 || otherIndex >= options.length) {
       return;
     }
 
-    [o[i], o[j]] = [o[j], o[i]];
-    roMove(IB_SEL, t, () => ibSave(o));
+    [options[index], options[otherIndex]] = [
+      options[otherIndex],
+      options[index],
+    ];
+
+    roMove(IB_SEL, text, () => ibSave(options));
   },
   grip: ibGrip,
   resetOrder: () => ibSave([]),
   pin: ibPin,
   snooze: ibSnooze,
-  snoozeMenu: r => {
-    S.ibSnzOpen = S.ibSnzOpen === r ? '' : r;
+  snoozeMenu: text => {
+    appState.ibSnzOpen = appState.ibSnzOpen === text ? '' : text;
     render();
   },
   viewApply,
   viewSave,
   viewDelete,
   viewNaming: on => {
-    S.ibNaming = on;
+    appState.ibNaming = on;
     render();
   },
   foldAll: closed => {
-    IB_TITLES.forEach(t => {
-      S.fold[ibSecKey(t)] = closed;
+    IB_TITLES.forEach(text => {
+      appState.fold[ibSecKey(text)] = closed;
     });
 
     foldSave();
@@ -239,28 +253,28 @@ export function InboxView() {
   );
 }
 
-const np = () => S.np!;
+const np = () => appState.np!;
 
-const npSet = (f: () => void) => {
-  f();
+const npSet = (handler: () => void) => {
+  handler();
   np().key = `${np().repo}|${np().base}|${np().head}`;
 };
 
-const val = (e: Event) => (e.target as HTMLInputElement).value;
+const val = (event: Event) => (event.target as HTMLInputElement).value;
 
 const newpr: NewPrHandlers = {
   cancel: () => {
-    S.view = S.bundle ? 'pr' : 'home';
-    delete S.draft.newpr;
+    appState.view = appState.bundle ? 'pr' : 'home';
+    delete appState.draft.newpr;
     render();
   },
-  repo: e =>
+  repo: event =>
     bpOpen(
-      e.currentTarget as HTMLElement,
+      event.currentTarget as HTMLElement,
       'repo',
-      v => {
+      value => {
         npSet(() => {
-          np().repo = v;
+          np().repo = value;
           np().base = '';
           np().head = '';
           np().cmp = null;
@@ -273,27 +287,27 @@ const newpr: NewPrHandlers = {
       },
       true,
     ),
-  repoIn: e => {
+  repoIn: event => {
     npSet(() => {
-      np().repo = val(e).trim();
+      np().repo = val(event).trim();
       np().base = '';
       np().head = '';
     });
 
     npLoadBranches(np().repo);
   },
-  base: e =>
-    bpOpen(e.currentTarget as HTMLElement, 'base', v => {
+  base: event =>
+    bpOpen(event.currentTarget as HTMLElement, 'base', value => {
       npSet(() => {
-        np().base = v;
+        np().base = value;
       });
 
       npCompare();
     }),
-  head: e =>
-    bpOpen(e.currentTarget as HTMLElement, 'head', v => {
+  head: event =>
+    bpOpen(event.currentTarget as HTMLElement, 'head', value => {
       npSet(() => {
-        np().head = v;
+        np().head = value;
         np().titleTouched = false;
       });
 
@@ -306,16 +320,16 @@ const newpr: NewPrHandlers = {
 
     npCompare();
   },
-  tpl: e => {
-    const n = np();
-    const sel = e.target as HTMLSelectElement;
-    const t = n.tpl[`${n.repo}|${n.base}`] || [];
-    const cur = (S.draft.newpr || '').trim();
-    const next = sel.value === '-1' ? '' : t[+sel.value].body;
+  tpl: event => {
+    const newPr = np();
+    const sel = event.target as HTMLSelectElement;
+    const templates = newPr.tpl[`${newPr.repo}|${newPr.base}`] || [];
+    const cur = (appState.draft.newpr || '').trim();
+    const next = sel.value === '-1' ? '' : templates[+sel.value].body;
 
     if (
       cur &&
-      cur !== n.tplText.trim() &&
+      cur !== newPr.tplText.trim() &&
       !confirm('Replace what you have written with this template?')
     ) {
       rerender();
@@ -323,84 +337,86 @@ const newpr: NewPrHandlers = {
       return;
     }
 
-    S.draft.newpr = n.tplText = next;
+    appState.draft.newpr = newPr.tplText = next;
     saveDrafts();
     bumpNp();
     rerender();
     syncDraft('newpr');
   },
-  title: e => {
-    np().title = val(e);
+  title: event => {
+    np().title = val(event);
     np().titleTouched = true;
     render();
   },
-  draft: e => {
-    np().draft = (e.target as HTMLInputElement).checked;
+  draft: event => {
+    np().draft = (event.target as HTMLInputElement).checked;
     render();
   },
-  add: (k: NpListKey, e) => {
-    if (val(e)) {
-      np()[k].push(val(e));
+  add: (npListKey: NpListKey, event) => {
+    if (val(event)) {
+      np()[npListKey].push(val(event));
       render();
     }
   },
-  del: (k: NpListKey, v) => {
-    np()[k] = np()[k].filter((x: string) => x !== v);
+  del: (npListKey: NpListKey, value) => {
+    np()[npListKey] = np()[npListKey].filter((text: string) => text !== value);
     render();
   },
-  mile: e => {
-    np().milestone = val(e);
+  mile: event => {
+    np().milestone = val(event);
   },
-  issues: e => {
-    np().issues = val(e);
+  issues: event => {
+    np().issues = val(event);
   },
   create: async () => {
-    const n = np();
+    const newPr = np();
     const sel = '#npcreate';
     setBusy(sel, true);
-    n.err = '';
+    newPr.err = '';
 
     try {
-      const nums = [...new Set(n.issues.match(/\d+/g) || [])];
+      const nums = [...new Set(newPr.issues.match(/\d+/g) || [])];
 
       const body = (
-        (S.draft.newpr || '').trim() +
-        (nums.length ? `\n\n${nums.map(x => `Closes #${x}`).join('\n')}` : '')
+        (appState.draft.newpr || '').trim() +
+        (nums.length
+          ? `\n\n${nums.map(text => `Closes #${text}`).join('\n')}`
+          : '')
       ).trim();
 
       const extra = {
-        reviewers: n.reviewers,
-        assignees: n.assignees,
-        labels: n.labels,
-        milestone: n.milestone ? Number(n.milestone) : null,
+        reviewers: newPr.reviewers,
+        assignees: newPr.assignees,
+        labels: newPr.labels,
+        milestone: newPr.milestone ? Number(newPr.milestone) : null,
       };
 
-      const r = await tauri!.invoke('create_pr', {
-        repo: n.repo,
-        base: n.base,
-        head: n.head,
-        title: n.title,
+      const createdPr = await tauri!.invoke('create_pr', {
+        repo: newPr.repo,
+        base: newPr.base,
+        head: newPr.head,
+        title: newPr.title,
         body,
-        draft: n.draft,
+        draft: newPr.draft,
         extra,
       });
 
-      const warn = r.warnings?.length
-        ? `Created, but ${r.warnings.join(' · ')}`
+      const warn = createdPr.warnings?.length
+        ? `Created, but ${createdPr.warnings.join(' · ')}`
         : '';
 
-      delete S.draft.newpr;
+      delete appState.draft.newpr;
       saveDrafts();
-      S.np = null;
+      appState.np = null;
       confetti();
-      await openPr(`${n.repo}#${r.number}`, { nav: true });
+      await openPr(`${newPr.repo}#${createdPr.number}`, { nav: true });
 
       if (warn) {
-        S.actErr = { k: 'comment', m: warn };
+        appState.actErr = { k: 'comment', m: warn };
         rerender();
       }
     } catch (err) {
-      n.err = String(err).replace(/^Error: /, '');
+      newPr.err = String(err).replace(/^Error: /, '');
     } finally {
       setBusy(sel, false);
     }

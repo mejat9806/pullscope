@@ -7,8 +7,8 @@ let level = 1;
 
 const view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
 
-const apply = (z: number) => {
-  level = Math.min(MAX, Math.max(MIN, Math.round(z * 100) / 100));
+const apply = (zoom: number) => {
+  level = Math.min(MAX, Math.max(MIN, Math.round(zoom * 100) / 100));
 
   view()
     ?.setZoom(level)
@@ -37,29 +37,29 @@ export const restoreZoom = () => {
   }
 };
 
-export const zoomWheel = (e: WheelEvent) => {
-  if (!(e.ctrlKey || e.metaKey) || !e.deltaY) {
+export const zoomWheel = (event: WheelEvent) => {
+  if (!(event.ctrlKey || event.metaKey) || !event.deltaY) {
     return;
   }
 
-  e.preventDefault();
-  apply(level * (e.deltaY < 0 ? 1.1 : 1 / 1.1));
+  event.preventDefault();
+  apply(level * (event.deltaY < 0 ? 1.1 : 1 / 1.1));
 };
 
-export const zoomKey = (e: KeyboardEvent) => {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey) {
+export const zoomKey = (event: KeyboardEvent) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) {
     return;
   }
 
-  if (e.key === '=' || e.key === '+') {
+  if (event.key === '=' || event.key === '+') {
     apply(level * 1.1);
-  } else if (e.key === '-') {
+  } else if (event.key === '-') {
     apply(level / 1.1);
-  } else if (e.key === '0') {
+  } else if (event.key === '0') {
     apply(1);
   } else {
     return;
   }
 
-  e.preventDefault();
+  event.preventDefault();
 };

@@ -13,7 +13,7 @@ import {
   winDrag,
 } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
-import { isDark, isOff, S, tauri } from './core';
+import { appState, isDark, isOff, tauri } from './core';
 import { closePop, openPop } from './dialogs';
 import { beginDrag, setSlot } from './frame';
 import { openPr, reload } from './nav';
@@ -28,22 +28,22 @@ import type { TabHandlers } from '../components/TabStrip';
 import type { ToolbarHandlers } from '../components/Toolbar';
 
 const keep = (fn: () => void) => {
-  S.keepScroll = true;
+  appState.keepScroll = true;
   fn();
   render();
-  S.keepScroll = false;
+  appState.keepScroll = false;
 };
 
-const mode = (e: MouseEvent) => {
-  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  const x = r.left + r.width / 2;
-  const y = r.top + r.height / 2;
-  S.mode = isDark() ? 'light' : 'dark';
-  localStorage.setItem('mode', S.mode);
+const mode = (event: MouseEvent) => {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  const left = rect.left + rect.width / 2;
+  const offset = rect.top + rect.height / 2;
+  appState.mode = isDark() ? 'light' : 'dark';
+  localStorage.setItem('mode', appState.mode);
 
   // The switch, its label and the page colours all come from S.mode; the view transition just wraps the repaint.
   const swap = () => {
-    S.themePop = (S.themePop || 0) + 1;
+    appState.themePop = (appState.themePop || 0) + 1;
 
     keep(() => {});
   };
@@ -55,8 +55,8 @@ const mode = (e: MouseEvent) => {
   }
 
   const end = Math.hypot(
-    Math.max(x, innerWidth - x),
-    Math.max(y, innerHeight - y),
+    Math.max(left, innerWidth - left),
+    Math.max(offset, innerHeight - offset),
   );
 
   document.startViewTransition(swap).ready.then(
@@ -64,8 +64,8 @@ const mode = (e: MouseEvent) => {
       document.documentElement.animate(
         {
           clipPath: [
-            `circle(0px at ${x}px ${y}px)`,
-            `circle(${end}px at ${x}px ${y}px)`,
+            `circle(0px at ${left}px ${offset}px)`,
+            `circle(${end}px at ${left}px ${offset}px)`,
           ],
         },
         {
@@ -84,37 +84,37 @@ document.documentElement.classList.toggle(
   localStorage.getItem('dense') === '1',
 );
 
-const prof = (e: MouseEvent) => {
-  e.stopPropagation();
+const prof = (event: MouseEvent) => {
+  event.stopPropagation();
 
-  if (S.pop?.k === 'prof') {
+  if (appState.pop?.k === 'prof') {
     closePop();
 
     return;
   }
 
-  const pr = S.profile!;
-  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const pr = appState.profile!;
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
   openPop({
     k: 'prof',
-    right: Math.max(8, innerWidth - r.right),
-    top: r.bottom + 6,
+    right: Math.max(8, innerWidth - rect.right),
+    top: rect.bottom + 6,
     name: pr.name || pr.login,
-    ver: S.ver,
+    ver: appState.ver,
     dense: dense(),
     login: pr.login,
     avatar: avUrl(pr.avatar_url!, 80),
-    pick: async h => {
+    pick: async hash => {
       closePop();
 
-      if (h === 'profile') {
+      if (hash === 'profile') {
         openExternal(pr.html_url!);
-      } else if (h === 'token') {
+      } else if (hash === 'token') {
         tokenDialog();
-      } else if (h === 'repos') {
+      } else if (hash === 'repos') {
         repoPickOpen();
-      } else if (h === 'dense') {
+      } else if (hash === 'dense') {
         document.documentElement.classList.toggle('dense', !dense());
 
         try {
@@ -129,10 +129,10 @@ const prof = (e: MouseEvent) => {
           /* ignore */
         }
 
-        S.hasToken = false;
-        S.profile = null;
-        S.me = '';
-        S.repos = null;
+        appState.hasToken = false;
+        appState.profile = null;
+        appState.me = '';
+        appState.repos = null;
 
         try {
           localStorage.removeItem('profile');
@@ -147,14 +147,14 @@ const prof = (e: MouseEvent) => {
 };
 
 const tb: ToolbarHandlers = {
-  nav: e => {
-    e.stopPropagation();
+  nav: event => {
+    event.stopPropagation();
 
     if (matchMedia('(min-width: 901px)').matches) {
-      S.hide.nav = !S.hide.nav;
+      appState.hide.nav = !appState.hide.nav;
 
       try {
-        localStorage.setItem('hide', JSON.stringify(S.hide));
+        localStorage.setItem('hide', JSON.stringify(appState.hide));
       } catch {
         /* storage full */
       }
@@ -165,50 +165,50 @@ const tb: ToolbarHandlers = {
     }
 
     keep(() => {
-      S.nav = !S.nav;
+      appState.nav = !appState.nav;
     });
   },
   back: () => go(-1),
   fwd: () => go(1),
   reload,
-  external: () => openExternal(S.bundle!.pull.html_url),
+  external: () => openExternal(appState.bundle!.pull.html_url),
   mode,
-  drag: e => winDrag(e),
-  addr: e => addrSubmit(e),
-  input: e => addrInput(e),
-  focus: e => addrFocus(e),
+  drag: event => winDrag(event),
+  addr: event => addrSubmit(event),
+  input: event => addrInput(event),
+  focus: event => addrFocus(event),
   blur: () => addrBlur(),
-  key: e => addrKey(e),
+  key: event => addrKey(event),
   upd: async () => {
-    const u = S.update;
+    const item = appState.update;
 
-    if (!u || u.busy) {
+    if (!item || item.busy) {
       return;
     }
 
-    u.busy = true;
+    item.busy = true;
     render();
 
     try {
-      await u.obj.downloadAndInstall();
+      await item.obj.downloadAndInstall();
       await window.__TAURI__!.process.relaunch();
-    } catch (e) {
-      u.busy = false;
-      S.actErr = { k: 'update', m: `Update failed: ${String(e)}` };
+    } catch (error) {
+      item.busy = false;
+      appState.actErr = { k: 'update', m: `Update failed: ${String(error)}` };
       render();
     }
   },
   retry: ev => {
     const sel = btnSel(ev.currentTarget as HTMLElement);
     setBusy(sel, true);
-    S.offline = navigator.onLine === false;
+    appState.offline = navigator.onLine === false;
     Promise.resolve(reload()).finally(() => setBusy(sel, false));
   },
   newPr: () => openNewPr(),
   inbox: openInbox,
-  bell: e => {
-    e.stopPropagation();
-    setBell(!S.bell);
+  bell: event => {
+    event.stopPropagation();
+    setBell(!appState.bell);
   },
   signin: tokenDialog,
   prof,
@@ -218,28 +218,28 @@ const tb: ToolbarHandlers = {
 let swallowClick = false;
 
 // Drag a tab sideways to reorder (pointer based, so it also works where the webview swallows HTML5 drag and drop). The drag is state (S.drag) that the tab strip draws.
-const tabDown = (e: MouseEvent, from: number) => {
-  const el = e.currentTarget as HTMLElement;
+const tabDown = (event: MouseEvent, from: number) => {
+  const el = event.currentTarget as HTMLElement;
 
   if (
-    e.button !== 0 ||
-    (e.target as HTMLElement).closest<HTMLElement>('.pt-x')
+    event.button !== 0 ||
+    (event.target as HTMLElement).closest<HTMLElement>('.pt-x')
   ) {
     return;
   }
 
-  const x0 = e.clientX;
-  const w = el.offsetWidth;
+  const x0 = event.clientX;
+  const width = el.offsetWidth;
 
   let moved = false;
   let to = from;
 
   const mids = [
     ...el.parentElement!.querySelectorAll<HTMLElement>('.ptab'),
-  ].map(t => {
-    const r = t.getBoundingClientRect();
+  ].map(element => {
+    const rect = element.getBoundingClientRect();
 
-    return r.left + r.width / 2;
+    return rect.left + rect.width / 2;
   });
 
   const mv = (ev: MouseEvent) => {
@@ -252,8 +252,12 @@ const tabDown = (e: MouseEvent, from: number) => {
       setDragging(true);
     }
 
-    to = mids.reduce((best, m, i) => (ev.clientX > m ? i : best), 0);
-    S.drag = { from, to, dx: ev.clientX - x0, w };
+    to = mids.reduce(
+      (best, minutes, index) => (ev.clientX > minutes ? index : best),
+      0,
+    );
+
+    appState.drag = { from, to, dx: ev.clientX - x0, w: width };
     paintTop();
   };
 
@@ -270,11 +274,11 @@ const tabDown = (e: MouseEvent, from: number) => {
       swallowClick = false;
     }, 0);
 
-    S.drag = null;
+    appState.drag = null;
 
     if (to !== from) {
-      const [t] = S.tabs.splice(from, 1);
-      S.tabs.splice(to, 0, t);
+      const [tab] = appState.tabs.splice(from, 1);
+      appState.tabs.splice(to, 0, tab);
       saveTabs();
     }
 
@@ -285,96 +289,102 @@ const tabDown = (e: MouseEvent, from: number) => {
 };
 
 const ts: TabHandlers = {
-  open: i => {
+  open: index => {
     if (swallowClick) {
       return;
     }
 
-    const t = S.tabs[i];
+    const tab = appState.tabs[index];
 
-    if (t.ref !== curRef()) {
-      if (fastTab(t.ref)) {
+    if (tab.ref !== curRef()) {
+      if (fastTab(tab.ref)) {
         return;
       }
 
       stashCurrent();
       tabSnap();
-      S.fadeMain = true;
-      S.tabMenu = false;
-      openPr(t.ref, { nav: true, restore: t.tab });
+      appState.fadeMain = true;
+      appState.tabMenu = false;
+      openPr(tab.ref, { nav: true, restore: tab.tab });
     }
   },
-  aux: (e, i) => {
-    if (e.button === 1) {
-      e.preventDefault();
-      closeTab(i);
+  aux: (event, index) => {
+    if (event.button === 1) {
+      event.preventDefault();
+      closeTab(index);
     }
   },
   down: tabDown,
-  close: (e, i) => {
-    e.stopPropagation();
-    closeTab(i);
+  close: (event, index) => {
+    event.stopPropagation();
+    closeTab(index);
   },
-  add: e => {
-    e.stopPropagation();
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  add: event => {
+    event.stopPropagation();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
 
-    S.tabMenuAt = {
-      top: r.bottom + 4,
-      left: Math.min(r.left, innerWidth - 350),
+    appState.tabMenuAt = {
+      top: rect.bottom + 4,
+      left: Math.min(rect.left, innerWidth - 350),
     };
 
-    S.tabMenu = !S.tabMenu;
+    appState.tabMenu = !appState.tabMenu;
     rerender();
   },
   fresh: ref => openFromList(ref, true),
   home: () => {
-    S.tabMenu = false;
-    S.view = 'home';
+    appState.tabMenu = false;
+    appState.view = 'home';
     render();
   },
   reopen: () => {
-    S.tabMenu = false;
+    appState.tabMenu = false;
     reopenTab();
   },
 };
 
 export function Top() {
-  const b = S.bundle;
-  const pr = S.profile;
-  const open = new Set(S.tabs.map(t => t.ref));
+  const bundle = appState.bundle;
+  const pr = appState.profile;
+  const open = new Set(appState.tabs.map(tab => tab.ref));
 
   return (
     <>
-      {S.refreshing && <div class="refreshing-bar"></div>}
+      {appState.refreshing && <div class="refreshing-bar"></div>}
       <Toolbar
         text={
-          S.addrText ??
-          (b ? `${b.pull.base.repo.full_name}#${b.pull.number}` : '')
+          appState.addrText ??
+          (bundle
+            ? `${bundle.pull.base.repo.full_name}#${bundle.pull.number}`
+            : '')
         }
-        hasBundle={!!b}
-        canBack={!(S.hist.length < 2 || S.hi < 1)}
-        canFwd={!(S.hi >= S.hist.length - 1)}
+        hasBundle={!!bundle}
+        canBack={!(appState.hist.length < 2 || appState.hi < 1)}
+        canFwd={!(appState.hi >= appState.hist.length - 1)}
         update={
-          S.update ? { busy: S.update.busy, version: S.update.version } : null
+          appState.update
+            ? { busy: appState.update.busy, version: appState.update.version }
+            : null
         }
         offline={isOff()}
-        unread={S.notes.filter(n => !n.read).length}
+        unread={appState.notes.filter(note => !note.read).length}
         dark={isDark()}
-        pop={S.themePop || 0}
+        pop={appState.themePop || 0}
         profile={pr}
-        hasToken={S.hasToken}
-        avatar={S.hasToken && pr ? avUrl(pr.avatar_url!, 56) : ''}
+        hasToken={appState.hasToken}
+        avatar={appState.hasToken && pr ? avUrl(pr.avatar_url!, 56) : ''}
         on={tb}
       />
       <TabStrip
-        tabs={S.tabs}
-        cur={S.tabPending || curRef()}
-        recents={S.recent.filter(r => !open.has(r.ref)).slice(0, 8)}
-        menu={S.tabMenu}
-        menuAt={S.tabMenuAt || null}
-        drag={S.drag || null}
-        closedFirst={S.closed.length ? S.closed[0].ref : null}
+        tabs={appState.tabs}
+        cur={appState.tabPending || curRef()}
+        recents={appState.recent
+          .filter(recentEntry => !open.has(recentEntry.ref))
+          .slice(0, 8)}
+        menu={appState.tabMenu}
+        menuAt={appState.tabMenuAt || null}
+        drag={appState.drag || null}
+        closedFirst={appState.closed.length ? appState.closed[0].ref : null}
         on={ts}
       />
     </>

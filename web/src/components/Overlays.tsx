@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 
-import { I } from './ui';
+import { renderIcon } from './ui';
 
 import type { AcRow, BpGroup } from '../types';
 
@@ -12,38 +12,39 @@ export interface ProfPopProps {
   avatar: string;
   ver?: string;
   dense?: boolean;
-  pick: (h: string) => void;
+  pick: (hash: string) => void;
 }
 
-export const ProfPop = (p: ProfPopProps) => (
+export const ProfPop = (props: ProfPopProps) => (
   <div
     class="react-pop cm-pop prof-pop"
-    style={`right:${p.right}px;top:${p.top}px`}
+    style={`right:${props.right}px;top:${props.top}px`}
   >
     <div class="pp-h">
-      <img src={p.avatar} alt="" />
+      <img src={props.avatar} alt="" />
       <div>
-        <b>{p.name}</b>
-        <i>@{p.login}</i>
+        <b>{props.name}</b>
+        <i>@{props.login}</i>
       </div>
     </div>
-    <button data-h="profile" onClick={() => p.pick('profile')}>
-      {I('link-external')} Your GitHub profile
+    <button data-h="profile" onClick={() => props.pick('profile')}>
+      {renderIcon('link-external')} Your GitHub profile
     </button>
-    <button data-h="repos" onClick={() => p.pick('repos')}>
-      {I('repo')} Choose repositories…
+    <button data-h="repos" onClick={() => props.pick('repos')}>
+      {renderIcon('repo')} Choose repositories…
     </button>
-    <button data-h="dense" onClick={() => p.pick('dense')}>
-      {I('checklist')} {p.dense ? 'Comfortable lists' : 'Compact lists'}
+    <button data-h="dense" onClick={() => props.pick('dense')}>
+      {renderIcon('checklist')}{' '}
+      {props.dense ? 'Comfortable lists' : 'Compact lists'}
     </button>
-    <button data-h="token" onClick={() => p.pick('token')}>
-      {I('key')} Access token…
+    <button data-h="token" onClick={() => props.pick('token')}>
+      {renderIcon('key')} Access token…
     </button>
-    <button data-h="out" class="danger" onClick={() => p.pick('out')}>
+    <button data-h="out" class="danger" onClick={() => props.pick('out')}>
       Sign out
     </button>
     <div class="pp-ver">
-      Signed in with token{p.ver ? ` · Pullscope v${p.ver}` : ''}
+      Signed in with token{props.ver ? ` · Pullscope v${props.ver}` : ''}
     </div>
   </div>
 );
@@ -54,10 +55,10 @@ export interface AcPopProps {
   left: number;
   top: number;
   width: number;
-  pick: (r: AcRow) => void;
+  pick: (acRow: AcRow) => void;
 }
 
-export function AcPop(p: AcPopProps) {
+export function AcPop(props: AcPopProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,22 +70,27 @@ export function AcPop(p: AcPopProps) {
       id="acpop"
       class="acpop"
       ref={ref}
-      style={`left:${p.left}px;top:${p.top}px;width:${p.width}px`}
-      onMouseDown={e => {
-        e.preventDefault();
-        const r = (e.target as HTMLElement).closest<HTMLElement>('.ac-row');
+      style={`left:${props.left}px;top:${props.top}px;width:${props.width}px`}
+      onMouseDown={event => {
+        event.preventDefault();
 
-        if (r) {
-          p.pick(p.rows[+r.dataset.i!]);
+        const element = (event.target as HTMLElement).closest<HTMLElement>(
+          '.ac-row',
+        );
+
+        if (element) {
+          props.pick(props.rows[+element.dataset.i!]);
         }
       }}
     >
-      {p.rows.map((r, i) => (
-        <div class={`ac-row${i === p.sel ? ' on' : ''}`} data-i={i}>
-          <span class={`ac-i ${r.state || ''}`}>{I(r.ic!)}</span>
+      {props.rows.map((acRow, index) => (
+        <div class={`ac-row${index === props.sel ? ' on' : ''}`} data-i={index}>
+          <span class={`ac-i ${acRow.state || ''}`}>
+            {renderIcon(acRow.ic!)}
+          </span>
           <span class="ac-t">
-            <b>{r.label}</b>
-            <i>{r.sub}</i>
+            <b>{acRow.label}</b>
+            <i>{acRow.sub}</i>
           </span>
         </div>
       ))}
@@ -96,20 +102,20 @@ export interface BpPopProps {
   repoMode: boolean;
   style: string;
   cur: string;
-  groupsFor: (q: string) => BpGroup[];
-  age: (t: string) => string;
-  done: (v?: string) => void;
+  groupsFor: (query: string) => BpGroup[];
+  age: (text: string) => string;
+  done: (value?: string) => void;
 }
 
 // Branch / repository picker: the query and the highlighted row are its own state; the caller only learns the final choice.
-export function BpPop(p: BpPopProps) {
-  const [q, setQ] = useState('');
+export function BpPop(props: BpPopProps) {
+  const [query, setQ] = useState('');
   const [act, setAct] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
   const inp = useRef<HTMLInputElement>(null);
-  const groups = p.groupsFor(q.trim());
-  const rows = groups.flatMap(([, l]) => l);
-  const a = Math.max(0, Math.min(act, rows.length - 1));
+  const groups = props.groupsFor(query.trim());
+  const rows = groups.flatMap(([, bpRows]) => bpRows);
+  const first = Math.max(0, Math.min(act, rows.length - 1));
 
   useEffect(() => {
     inp.current?.focus();
@@ -119,34 +125,39 @@ export function BpPop(p: BpPopProps) {
     ref.current?.querySelector('.act')?.scrollIntoView({ block: 'nearest' });
   });
 
-  let i = 0;
+  let index = 0;
 
   return (
-    <div id="bppop" class="bp-pop" ref={ref} style={p.style}>
+    <div id="bppop" class="bp-pop" ref={ref} style={props.style}>
       <input
         class="bp-q"
         ref={inp}
-        placeholder={p.repoMode ? 'Filter repositories…' : 'Filter branches…'}
+        placeholder={
+          props.repoMode ? 'Filter repositories…' : 'Filter branches…'
+        }
         spellcheck={false}
-        value={q}
-        onInput={e => {
-          setQ((e.target as HTMLInputElement).value);
+        value={query}
+        onInput={event => {
+          setQ((event.target as HTMLInputElement).value);
           setAct(0);
         }}
-        onKeyDown={e => {
-          if (e.key === 'Escape') {
-            e.preventDefault();
-            p.done();
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            p.done(rows[a]?.name);
-          } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-            e.preventDefault();
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault();
+            props.done();
+          } else if (event.key === 'Enter') {
+            event.preventDefault();
+            props.done(rows[first]?.name);
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
 
             setAct(
               Math.max(
                 0,
-                Math.min(rows.length - 1, a + (e.key === 'ArrowDown' ? 1 : -1)),
+                Math.min(
+                  rows.length - 1,
+                  first + (event.key === 'ArrowDown' ? 1 : -1),
+                ),
               ),
             );
           }
@@ -154,34 +165,36 @@ export function BpPop(p: BpPopProps) {
       />
       <div class="bp-list">
         {groups.length && rows.length ? (
-          groups.map(([h, l]) => (
+          groups.map(([hash, bpRows]) => (
             <>
-              {h ? (
+              {hash ? (
                 <div class="bp-h">
-                  {h}
-                  <span>{l.length}</span>
+                  {hash}
+                  <span>{bpRows.length}</span>
                 </div>
               ) : (
                 ''
               )}
-              {l.map(x => {
-                const idx = i++;
+              {bpRows.map(bpRow => {
+                const idx = index++;
 
                 return (
                   <div
-                    class={`bp-r${idx === a ? ' act' : ''}${x.name === p.cur ? ' cur' : ''}`}
-                    data-b={x.name}
-                    onClick={() => p.done(x.name)}
+                    class={`bp-r${idx === first ? ' act' : ''}${bpRow.name === props.cur ? ' cur' : ''}`}
+                    data-b={bpRow.name}
+                    onClick={() => props.done(bpRow.name)}
                     onMouseMove={() => {
-                      if (idx !== a) {
+                      if (idx !== first) {
                         setAct(idx);
                       }
                     }}
                   >
-                    <span class="bp-ck">{x.name === p.cur ? '✓' : ''}</span>
-                    <span class="bp-n">{x.name}</span>
-                    {x.by ? <span class="bp-by">{x.by}</span> : ''}
-                    <span class="bp-t">{p.age(x.at)}</span>
+                    <span class="bp-ck">
+                      {bpRow.name === props.cur ? '✓' : ''}
+                    </span>
+                    <span class="bp-n">{bpRow.name}</span>
+                    {bpRow.by ? <span class="bp-by">{bpRow.by}</span> : ''}
+                    <span class="bp-t">{props.age(bpRow.at)}</span>
                   </div>
                 );
               })}
@@ -221,12 +234,20 @@ export type Fx =
     }
   | { id: number; k: 'conf'; w: number; h: number };
 
-function Confetti({ w, h, done }: { w: number; h: number; done: () => void }) {
+function Confetti({
+  w: otherWidth,
+  h: otherHeight,
+  done,
+}: {
+  w: number;
+  h: number;
+  done: () => void;
+}) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const c = ref.current!;
-    const g = c.getContext('2d')!;
+    const canvas = ref.current!;
+    const context = canvas.getContext('2d')!;
 
     const cols = [
       '#0969da',
@@ -238,8 +259,8 @@ function Confetti({ w, h, done }: { w: number; h: number; done: () => void }) {
     ];
 
     const ps = Array.from({ length: 160 }, () => ({
-      x: w / 2,
-      y: h * 0.6,
+      x: otherWidth / 2,
+      y: otherHeight * 0.6,
       vx: (Math.random() - 0.5) * 18,
       vy: -8 - Math.random() * 14,
       r: 4 + Math.random() * 5,
@@ -248,41 +269,48 @@ function Confetti({ w, h, done }: { w: number; h: number; done: () => void }) {
       c: cols[(Math.random() * cols.length) | 0],
     }));
 
-    let t = 0;
+    let time = 0;
     let raf = 0;
 
-    const f = () => {
-      g.clearRect(0, 0, c.width, c.height);
-      t++;
+    const handler = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      time++;
 
-      ps.forEach(p => {
-        p.vy += 0.35;
-        p.vx *= 0.99;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.a += p.va;
-        g.save();
-        g.translate(p.x, p.y);
-        g.rotate(p.a);
-        g.fillStyle = p.c;
-        g.globalAlpha = Math.max(0, 1 - t / 130);
-        g.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
-        g.restore();
+      ps.forEach(props => {
+        props.vy += 0.35;
+        props.vx *= 0.99;
+        props.x += props.vx;
+        props.y += props.vy;
+        props.a += props.va;
+        context.save();
+        context.translate(props.x, props.y);
+        context.rotate(props.a);
+        context.fillStyle = props.c;
+        context.globalAlpha = Math.max(0, 1 - time / 130);
+        context.fillRect(-props.r, -props.r / 2, props.r * 2, props.r);
+        context.restore();
       });
 
-      if (t < 130) {
-        raf = requestAnimationFrame(f);
+      if (time < 130) {
+        raf = requestAnimationFrame(handler);
       } else {
         done();
       }
     };
 
-    f();
+    handler();
 
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  return <canvas class="confetti" ref={ref} width={w} height={h}></canvas>;
+  return (
+    <canvas
+      class="confetti"
+      ref={ref}
+      width={otherWidth}
+      height={otherHeight}
+    ></canvas>
+  );
 }
 
 export const FxLayer = ({
@@ -293,27 +321,32 @@ export const FxLayer = ({
   drop: (id: number) => void;
 }) => (
   <>
-    {items.map(f =>
-      f.k === 'rip' ? (
+    {items.map(value =>
+      value.k === 'rip' ? (
         <div
-          key={f.id}
-          style={`position:fixed;z-index:999;overflow:hidden;pointer-events:none;left:${f.l}px;top:${f.t}px;width:${f.w}px;height:${f.h}px;border-radius:${f.radius};color:${f.color}`}
+          key={value.id}
+          style={`position:fixed;z-index:999;overflow:hidden;pointer-events:none;left:${value.l}px;top:${value.t}px;width:${value.w}px;height:${value.h}px;border-radius:${value.radius};color:${value.color}`}
         >
           <span
             class="ripple"
-            style={`width:${f.d}px;height:${f.d}px;left:${f.x}px;top:${f.y}px`}
+            style={`width:${value.d}px;height:${value.d}px;left:${value.x}px;top:${value.y}px`}
           ></span>
         </div>
-      ) : f.k === 'burst' ? (
+      ) : value.k === 'burst' ? (
         <span
-          key={f.id}
+          key={value.id}
           class="burst"
-          style={`left:${f.x}px;top:${f.y}px;--dx:${f.dx}px;--dy:${f.dy}px`}
+          style={`left:${value.x}px;top:${value.y}px;--dx:${value.dx}px;--dy:${value.dy}px`}
         >
-          {f.ch}
+          {value.ch}
         </span>
       ) : (
-        <Confetti key={f.id} w={f.w} h={f.h} done={() => drop(f.id)} />
+        <Confetti
+          key={value.id}
+          w={value.w}
+          h={value.h}
+          done={() => drop(value.id)}
+        />
       ),
     )}
   </>
