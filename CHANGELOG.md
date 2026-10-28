@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.3]
+
 ### Added
 - **Appearance settings** (account menu → *Appearance…*): choose the font (System, Classic, Serif, Rounded, Monospace), the reading text size, the code size in diffs, the whole-window zoom and comfortable or compact lists, with a live preview and a Reset button. Saved on this machine.
 
