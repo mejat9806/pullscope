@@ -3062,7 +3062,7 @@
   var VISIBLE_REVIEWERS = 5;
   function ReviewerRow({ r: rvRow, on: on3 }) {
     const ic = rvRow.st === "req" && rvRow.prev ? /* @__PURE__ */ u3(S, { children: [
-      /* @__PURE__ */ u3("span", { title: "Asked to review again", style: "margin-right:6px", children: renderIcon("sync") }),
+      /* @__PURE__ */ u3("span", { class: "again", title: "Asked to review again", children: renderIcon("sync") }),
       renderIcon(
         rvRow.prev === "approved" ? "check" : rvRow.prev === "changes_requested" ? "file-diff" : "comment"
       )

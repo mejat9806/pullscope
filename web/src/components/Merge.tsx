@@ -345,7 +345,7 @@ function ReviewerRow({ r: rvRow, on }: { r: RvRow; on: PrSideHandlers }) {
   const ic =
     rvRow.st === 'req' && rvRow.prev ? (
       <>
-        <span title="Asked to review again" style="margin-right:6px">
+        <span class="again" title="Asked to review again">
           {renderIcon('sync')}
         </span>
         {renderIcon(
