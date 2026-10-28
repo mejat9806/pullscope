@@ -144,7 +144,7 @@ export function inboxProps(): InboxProps {
   const sec = (title: string, sub: string, list: InboxItem[]) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x) => !q || `${x.title} ${x.repo} ${x.user} #${x.number}`.toLowerCase().includes(q)).sort(cmp).map(row) });
   const all = d ? [sec('Review requested', 'Waiting on you', d.requested), sec('Ready to merge', 'Your approved pull requests', d.ready), sec('Mentioned', 'Open PRs where you were @mentioned', d.mentioned || []), sec('Participated', 'Open PRs you commented on or reviewed', d.participated || []), sec('Your pull requests', 'Open PRs you opened', d.mine), sec('Recently closed or merged', 'PRs you were involved in', d.closed || [])] : null;
   const order = ibOrder();
-  return ({ loading: !!I.loading, err: I.err || '', sort: S.ibSort || 'updated', sorts: IB_SORTS, q: S.ibQ || '', custom: !!S.ibOrder?.length, secs: all ? all.sort((x, y) => order.indexOf(x.title) - order.indexOf(y.title)).map((x, i, l) => ({ ...x, first: i === 0, last: i === l.length - 1 })) : null });
+  return ({ loading: !!I.loading, err: I.err || '', sort: S.ibSort || 'updated', sorts: IB_SORTS, q: S.ibQ || '', custom: !!S.ibOrder?.length, secs: all ? all.sort((x, y) => order.indexOf(x.title) - order.indexOf(y.title)).map((x, i, l) => ({ ...x, first: i === 0, last: i === l.length - 1, lift: S.ibDrag === x.title, over: S.ibDrag && S.ibOver?.title === x.title && S.ibDrag !== x.title ? (S.ibOver.after ? 'after' : 'before') : '' })) : null });
 }
 
 

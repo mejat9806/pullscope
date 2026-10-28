@@ -5,6 +5,7 @@ import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/
 import { openAux, openClick, openCtx } from './bind';
 import { rerender, saveDrafts, setBusy, syncDraft } from './actions';
 import { bpOpen } from './addressbar';
+import { beginDrag, setDragging } from './frame';
 import { S, tauri } from './core';
 import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
@@ -52,14 +53,43 @@ export function NotesView() {
 
 const foldSave = () => { try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ } render(); };
 const ibSave = (o: string[]) => { S.ibOrder = o.length ? o : undefined; try { if (o.length) localStorage.setItem('iborder', JSON.stringify(o)); else localStorage.removeItem('iborder'); } catch { /* storage full */ } render(); };
+// Sections slide to their new places (FLIP) and the moved one flashes, so it is clear what changed.
+const secTops = () => new Map([...document.querySelectorAll<HTMLElement>('.ib-sec[data-t]')].map((e) => [e.dataset.t!, e.getBoundingClientRect().top]));
+function ibMove(title: string, o: string[]) {
+  const before = secTops(); ibSave(o);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll<HTMLElement>('.ib-sec[data-t]').forEach((e) => {
+    const dy = (before.get(e.dataset.t!) ?? 0) - e.getBoundingClientRect().top;
+    if (Math.abs(dy) > 1) e.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+    if (e.dataset.t === title) { e.classList.add('ib-moved'); setTimeout(() => e.classList.remove('ib-moved'), 1400); }
+  })));
+}
+// Grab a section by its grip: the others show where it would land, and letting go moves it.
+function ibGrip(e: MouseEvent, title: string) {
+  e.preventDefault(); e.stopPropagation(); const y0 = e.clientY; let started = false;
+  const over = (y: number) => {
+    const secs = [...document.querySelectorAll<HTMLElement>('.ib-sec[data-t]')].filter((x) => x.dataset.t !== title);
+    const hit = secs.find((x) => { const r = x.getBoundingClientRect(); return y >= r.top && y <= r.bottom; }) || secs.reduce<HTMLElement | null>((b, x) => (!b || Math.abs(x.getBoundingClientRect().top - y) < Math.abs(b.getBoundingClientRect().top - y) ? x : b), null);
+    if (!hit) return null; const r = hit.getBoundingClientRect(); return { title: hit.dataset.t!, after: y > r.top + Math.min(r.height / 2, 60) };
+  };
+  beginDrag({
+    move: (ev) => {
+      if (!started) { if (Math.abs(ev.clientY - y0) < 5) return; started = true; S.ibDrag = title; setDragging(true); }
+      const o = over(ev.clientY); if (o?.title !== S.ibOver?.title || o?.after !== S.ibOver?.after) { S.ibOver = o; render(); }
+    },
+    end: () => {
+      const to = S.ibOver; setDragging(false); const was = started; S.ibDrag = ''; S.ibOver = null;
+      if (!was || !to) { if (was) render(); return; }
+      const o = ibOrder().filter((x) => x !== title); o.splice(o.indexOf(to.title) + (to.after ? 1 : 0), 0, title); ibMove(title, o);
+    },
+  });
+}
 const inbox: InboxHandlers = {
   ...open, refresh: () => loadInbox(true),
   sort: (e) => { S.ibSort = (e.target as HTMLSelectElement).value; try { localStorage.setItem('ibsort', S.ibSort); } catch { /* ignore */ } render(); },
   query: (e) => { S.ibQ = (e.target as HTMLInputElement).value; render(); },
   fold: (k) => { S.fold[k] = !S.fold[k]; foldSave(); },
-  move: (t, by) => { const o = ibOrder(), i = o.indexOf(t), j = i + by; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; ibSave(o); },
-  dragStart: (e, t) => { S.ibDrag = t; e.dataTransfer?.setData('text/plain', t); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; },
-  drop: (e, to) => { e.preventDefault(); const from = S.ibDrag; S.ibDrag = ''; if (!from || from === to) return; const o = ibOrder().filter((x) => x !== from); o.splice(o.indexOf(to), 0, from); ibSave(o); },
+  move: (t, by) => { const o = ibOrder(), i = o.indexOf(t), j = i + by; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; ibMove(t, o); },
+  grip: ibGrip,
   resetOrder: () => ibSave([]),
   foldAll: (closed) => { IB_TITLES.forEach((t) => { S.fold[ibSecKey(t)] = closed; }); foldSave(); },
 };

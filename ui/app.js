@@ -3164,9 +3164,9 @@
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: `ib-sec${s3.closed ? " closed" : ""}`, onDragOver: (e3) => e3.preventDefault(), onDrop: (e3) => on3.drop(e3, s3.title), children: [
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { "data-t": s3.title, class: `ib-sec${s3.closed ? " closed" : ""}${s3.lift ? " ib-lift" : ""}${s3.over ? " ib-over-" + s3.over : ""}`, children: [
       /* @__PURE__ */ u3("h2", { class: "ib-h", onClick: () => on3.fold(s3.key), children: [
-        /* @__PURE__ */ u3("i", { class: "ib-grip", draggable: true, title: "Drag to move this section", onClick: (e3) => e3.stopPropagation(), onDragStart: (e3) => on3.dragStart(e3, s3.title), children: "\u22EE\u22EE" }),
+        /* @__PURE__ */ u3("i", { class: "ib-grip", title: "Drag to move this section", onClick: (e3) => e3.stopPropagation(), onMouseDown: (e3) => on3.grip(e3, s3.title), children: "\u22EE\u22EE" }),
         I2(s3.closed ? "chevron-right" : "chevron-down"),
         s3.title,
         /* @__PURE__ */ u3("span", { children: s3.rows.length }),
@@ -3197,7 +3197,7 @@
           ] }) : ""
         ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: q3 ? "No matches." : "Nothing here. Nice." })
       ] })
-    ] }));
+    ] }, s3.title));
     const allClosed = !!secs && secs.every((s3) => s3.closed);
     return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
       /* @__PURE__ */ u3("div", { class: "np-head", children: [
@@ -5193,6 +5193,64 @@
     }
     render();
   };
+  var secTops = () => new Map([...document.querySelectorAll(".ib-sec[data-t]")].map((e3) => [e3.dataset.t, e3.getBoundingClientRect().top]));
+  function ibMove(title, o3) {
+    const before = secTops();
+    ibSave(o3);
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(".ib-sec[data-t]").forEach((e3) => {
+      const dy = (before.get(e3.dataset.t) ?? 0) - e3.getBoundingClientRect().top;
+      if (Math.abs(dy) > 1) e3.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
+      if (e3.dataset.t === title) {
+        e3.classList.add("ib-moved");
+        setTimeout(() => e3.classList.remove("ib-moved"), 1400);
+      }
+    })));
+  }
+  function ibGrip(e3, title) {
+    e3.preventDefault();
+    e3.stopPropagation();
+    const y0 = e3.clientY;
+    let started = false;
+    const over = (y3) => {
+      const secs = [...document.querySelectorAll(".ib-sec[data-t]")].filter((x2) => x2.dataset.t !== title);
+      const hit = secs.find((x2) => {
+        const r4 = x2.getBoundingClientRect();
+        return y3 >= r4.top && y3 <= r4.bottom;
+      }) || secs.reduce((b2, x2) => !b2 || Math.abs(x2.getBoundingClientRect().top - y3) < Math.abs(b2.getBoundingClientRect().top - y3) ? x2 : b2, null);
+      if (!hit) return null;
+      const r3 = hit.getBoundingClientRect();
+      return { title: hit.dataset.t, after: y3 > r3.top + Math.min(r3.height / 2, 60) };
+    };
+    beginDrag({
+      move: (ev) => {
+        if (!started) {
+          if (Math.abs(ev.clientY - y0) < 5) return;
+          started = true;
+          S.ibDrag = title;
+          setDragging(true);
+        }
+        const o3 = over(ev.clientY);
+        if (o3?.title !== S.ibOver?.title || o3?.after !== S.ibOver?.after) {
+          S.ibOver = o3;
+          render();
+        }
+      },
+      end: () => {
+        const to = S.ibOver;
+        setDragging(false);
+        const was = started;
+        S.ibDrag = "";
+        S.ibOver = null;
+        if (!was || !to) {
+          if (was) render();
+          return;
+        }
+        const o3 = ibOrder().filter((x2) => x2 !== title);
+        o3.splice(o3.indexOf(to.title) + (to.after ? 1 : 0), 0, title);
+        ibMove(title, o3);
+      }
+    });
+  }
   var inbox = {
     ...open,
     refresh: () => loadInbox(true),
@@ -5216,22 +5274,9 @@
       const o3 = ibOrder(), i3 = o3.indexOf(t3), j3 = i3 + by;
       if (i3 < 0 || j3 < 0 || j3 >= o3.length) return;
       [o3[i3], o3[j3]] = [o3[j3], o3[i3]];
-      ibSave(o3);
+      ibMove(t3, o3);
     },
-    dragStart: (e3, t3) => {
-      S.ibDrag = t3;
-      e3.dataTransfer?.setData("text/plain", t3);
-      if (e3.dataTransfer) e3.dataTransfer.effectAllowed = "move";
-    },
-    drop: (e3, to) => {
-      e3.preventDefault();
-      const from = S.ibDrag;
-      S.ibDrag = "";
-      if (!from || from === to) return;
-      const o3 = ibOrder().filter((x2) => x2 !== from);
-      o3.splice(o3.indexOf(to), 0, from);
-      ibSave(o3);
-    },
+    grip: ibGrip,
     resetOrder: () => ibSave([]),
     foldAll: (closed) => {
       IB_TITLES.forEach((t3) => {
@@ -5542,7 +5587,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3)).sort(cmp).map(row2) });
     const all = d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null;
     const order = ibOrder();
-    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1 })) : null };
+    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1, lift: S.ibDrag === x2.title, over: S.ibDrag && S.ibOver?.title === x2.title && S.ibDrag !== x2.title ? S.ibOver.after ? "after" : "before" : "" })) : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {

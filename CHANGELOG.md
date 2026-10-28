@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+- Inbox sections now drag by their grip with the mouse; the section slides into place, the drop spot is highlighted and the moved section flashes.
+
 ### Added
 - Rearrange the Inbox: drag a section by its grip, or use the up and down arrows on its heading. The order is remembered, and *Reset order* restores the default.
 - A scroll button on every long page: a down arrow at the top jumps to the bottom, and once you are further down it becomes an up arrow back to the top. `End` also jumps to the bottom (`Home` to the top).
