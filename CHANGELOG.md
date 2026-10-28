@@ -4,17 +4,17 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
-- The gear in the PR side panel now works: edit Labels, Assignees and Milestone from a picker and save them to GitHub (needs a token that can write to the repository).
-
-- Rearrange the repository list and the pull request side panel (Reviewers, Labels, …) by dragging the ⋮⋮ grip; the order is remembered.
-
-- Inbox sections now drag by their grip with the mouse; the section slides into place, the drop spot is highlighted and the moved section flashes.
+## [1.2.0]
 
 ### Added
-- Rearrange the Inbox: drag a section by its grip, or use the up and down arrows on its heading. The order is remembered, and *Reset order* restores the default.
-- A scroll button on every long page: a down arrow at the top jumps to the bottom, and once you are further down it becomes an up arrow back to the top. `End` also jumps to the bottom (`Home` to the top).
-- The Inbox has three more sections: **Mentioned** (open PRs where you were @mentioned), **Participated** (open PRs you commented on or reviewed) and **Recently closed or merged** (PRs you were involved in). A PR appears only in the first section that matches. They follow your chosen repositories.
-- The Inbox is easier to scan: click a section heading to collapse it (or use *Collapse all*), sort every section (newest or oldest activity, most comments, repository, author, title), and filter by title, repository, author or PR number. Mentioned and Participated now come before *Your pull requests*. Collapsed sections and the sort are remembered.
+- **Rearrange with drag and drop.** Drag the ⋮⋮ grip to reorder the Inbox sections, the repository list in the sidebar, and the blocks in a pull request's side panel (Reviewers, Assignees, Labels, Milestone, Participants). The order is remembered. Inbox sections can also be moved with the up and down arrows, and *Reset order* restores the default. Items slide into place and a thin line shows where the dragged item will land.
+- **Edit Labels, Assignees and Milestone.** The gear in the pull request side panel now works: pick from the repository's list and save to GitHub (your token needs write access to the repository).
+- **More Inbox sections:** *Mentioned* (open PRs where you were @mentioned), *Participated* (open PRs you commented on or reviewed) and *Recently closed or merged*. A PR appears only in the first section that matches, and they follow your chosen repositories.
+- **An easier-to-scan Inbox:** click a section heading to collapse it (or use *Collapse all*), sort every section (newest or oldest activity, most comments, repository, author, title) and filter by title, repository, author or PR number. Collapsed sections and the sort are remembered.
+- **Scroll button on every long page:** a down arrow at the top jumps to the bottom, and further down it becomes an up arrow back to the top. `End` and `Home` do the same.
+
+### Changed
+- Clicking the dimmed area outside a dialog closes it.
 
 ## [1.1.0]
 
