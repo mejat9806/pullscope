@@ -4,7 +4,14 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.2]
+
+### Added
+- **Tooltips on every button**, so each one says what it does (for example *Hide it until tomorrow morning* or *Merge this pull request into the base branch*).
+
 ### Changed
+- **Reviewers list:** people who gave a verdict come first (changes requested, approved, commented), people still to answer next and bots last. Five reviewers show before the *more reviewers* fold, a pending reviewer's dot is yellow, and the status icons now line up in the same two columns on every row.
+- **Re-request button:** the grey refresh button is always visible and turns blue on hover. A reviewer you already asked to review again shows a yellow clock instead, so the two no longer look alike.
 - Developer tooling: one-letter names are gone from the web code (`S` is now `appState`, `e` is `event`, `b` is `bundle`, and so on) and ESLint's `id-length` rule keeps them out. No behaviour change.
 
 ## [1.3.1]

@@ -1,6 +1,6 @@
 [package]
 name = "github-pr-view"
-version = "1.3.1"
+version = "1.3.2"
 edition = "2021"
 description = "Native desktop recreation of GitHub's pull request page"
 
