@@ -1036,3 +1036,5 @@ table.diff { contain: layout paint; }
 .ro-over-before::before { top: -3px; } .ro-over-after::after { bottom: -3px; }
 .ro-lift { outline: none; opacity: .5; }
 .ro-moved { animation: none; background: none; box-shadow: none; }
+/* Side panel: grip sits at the left edge of the header, clear of the gear. */
+.sb-item > .ro-grip { right: auto; left: 2px; top: 10px; padding: 3px 2px; }
