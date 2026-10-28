@@ -44,11 +44,22 @@ pub async fn get(c: &reqwest::Client, url: &str, token: Option<&str>) -> Result<
         .get(url)
         .header("Accept", "application/vnd.github.full+json")
         .header("X-GitHub-Api-Version", "2022-11-28");
-    if let Some(t) = token.filter(|t| !t.is_empty()) {
+    let token = token.filter(|t| !t.is_empty());
+    if let Some(t) = token {
         req = req.bearer_auth(t);
+    }
+    let cached = etag::load(url, token);
+    if let Some((tag, _)) = &cached {
+        req = req.header("If-None-Match", tag);
     }
     let resp = req.send().await.map_err(|e| e.to_string())?;
     let status = resp.status();
+    if status == reqwest::StatusCode::NOT_MODIFIED {
+        if let Some((_, body)) = cached {
+            return Ok(body);
+        }
+    }
+    let tag = resp.headers().get("etag").and_then(|v| v.to_str().ok()).map(String::from);
     let remaining = resp.headers().get("x-ratelimit-remaining").and_then(|v| v.to_str().ok()).map(String::from);
     let body: Value = resp.json().await.map_err(|e| e.to_string())?;
     if !status.is_success() {
@@ -66,6 +77,9 @@ pub async fn get(c: &reqwest::Client, url: &str, token: Option<&str>) -> Result<
             ""
         };
         return Err(format!("GitHub API {status}: {msg}{hint}"));
+    }
+    if let Some(tag) = tag {
+        etag::store(url, token, &tag, &body);
     }
     Ok(body)
 }
@@ -229,18 +243,67 @@ pub async fn fetch_bundle(pr: &PrRef, token: Option<&str>) -> Result<Value, Stri
     }))
 }
 
-/// ~/Library/Caches/github-pr-view/<owner>_<repo>_<n>.json
-pub fn cache_path(pr: &PrRef) -> Option<std::path::PathBuf> {
-    let name = format!("{}_{}_{}.json", pr.owner, pr.repo, pr.number);
+fn cache_dir() -> Option<std::path::PathBuf> {
+    if let Some(d) = std::env::var_os("GITHUB_PR_VIEW_CACHE_DIR") {
+        return Some(std::path::PathBuf::from(d));
+    }
     let home = || std::env::var_os("HOME").map(std::path::PathBuf::from);
-    let dir = if cfg!(target_os = "macos") {
+    Some(if cfg!(target_os = "macos") {
         home()?.join("Library/Caches/github-pr-view")
     } else if cfg!(windows) {
         std::path::PathBuf::from(std::env::var_os("LOCALAPPDATA")?).join("github-pr-view").join("cache")
     } else {
         std::env::var_os("XDG_CACHE_HOME").map(std::path::PathBuf::from).or_else(|| home().map(|h| h.join(".cache")))?.join("github-pr-view")
-    };
-    Some(dir.join(name))
+    })
+}
+
+/// ~/Library/Caches/github-pr-view/<owner>_<repo>_<n>.json
+pub fn cache_path(pr: &PrRef) -> Option<std::path::PathBuf> {
+    Some(cache_dir()?.join(format!("{}_{}_{}.json", pr.owner, pr.repo, pr.number)))
+}
+
+/// Conditional-request cache: the last 200 body per URL (and token) with its ETag. A 304 reply costs no rate limit.
+mod etag {
+    use serde_json::Value;
+    use std::hash::{Hash, Hasher};
+    use std::path::PathBuf;
+
+    const MAX_AGE: std::time::Duration = std::time::Duration::from_secs(14 * 24 * 3600);
+
+    fn dir() -> Option<PathBuf> {
+        let d = super::cache_dir()?.join("etag");
+        static PRUNED: std::sync::Once = std::sync::Once::new();
+        PRUNED.call_once(|| {
+            for f in std::fs::read_dir(&d).into_iter().flatten().flatten() {
+                let old = f.metadata().and_then(|m| m.modified()).ok().and_then(|t| t.elapsed().ok()).is_some_and(|a| a > MAX_AGE);
+                if old {
+                    let _ = std::fs::remove_file(f.path());
+                }
+            }
+        });
+        Some(d)
+    }
+
+    /// Keyed by URL and token so one login never sees another's private data.
+    fn file(url: &str, token: Option<&str>) -> Option<PathBuf> {
+        let mut h = std::collections::hash_map::DefaultHasher::new();
+        (url, token.unwrap_or("")).hash(&mut h);
+        Some(dir()?.join(format!("{:016x}.json", h.finish())))
+    }
+
+    pub fn load(url: &str, token: Option<&str>) -> Option<(String, Value)> {
+        let v: Value = serde_json::from_slice(&std::fs::read(file(url, token)?).ok()?).ok()?;
+        Some((v["etag"].as_str()?.to_string(), v["body"].clone()))
+    }
+
+    pub fn store(url: &str, token: Option<&str>, etag: &str, body: &Value) {
+        let Some(f) = file(url, token) else { return };
+        let _ = std::fs::create_dir_all(f.parent().unwrap());
+        let tmp = f.with_extension(format!("{}.tmp", std::process::id()));
+        if std::fs::write(&tmp, serde_json::to_vec(&serde_json::json!({ "etag": etag, "body": body })).unwrap_or_default()).is_ok() {
+            let _ = std::fs::rename(&tmp, &f);
+        }
+    }
 }
 
 const SERVICE: &str = "github-pr-view";
@@ -341,6 +404,37 @@ mod tests {
         let url = serve_once("404 Not Found", r#"{"message":"Not Found"}"#, "").await;
         let e = get(&client(), &url, Some("t")).await.unwrap_err();
         assert!(e.contains("cannot see this repository"), "{e}");
+    }
+
+    /// First hit answers 200 + ETag; the next must send If-None-Match and gets a bodiless 304.
+    #[tokio::test]
+    async fn get_reuses_cached_body_on_not_modified() {
+        let dir = std::env::temp_dir().join(format!("gpv-etag-{}", std::process::id()));
+        std::env::set_var("GITHUB_PR_VIEW_CACHE_DIR", &dir);
+        let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("http://{}/etag-test", l.local_addr().unwrap());
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(vec![]));
+        let log = seen.clone();
+        tokio::spawn(async move {
+            for n in 0..2 {
+                let (mut s, _) = l.accept().await.unwrap();
+                let mut buf = [0u8; 4096];
+                let k = s.read(&mut buf).await.unwrap();
+                log.lock().unwrap().push(String::from_utf8_lossy(&buf[..k]).to_lowercase().contains("if-none-match: \"v1\""));
+                let r = if n == 0 {
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nETag: \"v1\"\r\nContent-Length: 10\r\nConnection: close\r\n\r\n{\"n\":\"hi\"}".to_string()
+                } else {
+                    "HTTP/1.1 304 Not Modified\r\nConnection: close\r\n\r\n".to_string()
+                };
+                s.write_all(r.as_bytes()).await.unwrap();
+            }
+        });
+        let a = get(&client(), &url, Some("tok")).await.unwrap();
+        let b = get(&client(), &url, Some("tok")).await.unwrap();
+        assert_eq!(a, b);
+        assert_eq!(b["n"], "hi");
+        assert_eq!(*seen.lock().unwrap(), vec![false, true]);
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[tokio::test]
