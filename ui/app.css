@@ -1038,3 +1038,6 @@ table.diff { contain: layout paint; }
 .ro-moved { animation: none; background: none; box-shadow: none; }
 /* Side panel: grip sits at the left edge of the header, clear of the gear. */
 .sb-item > .ro-grip { right: auto; left: 2px; top: 10px; padding: 3px 2px; }
+/* Bigger, easier-to-grab grips. */
+.ro-grip, .ib-grip { font-size: 20px; letter-spacing: -1px; padding: 6px 8px; min-width: 22px; text-align: center; }
+.sb-item > .ro-grip { left: 0; top: 6px; padding: 6px 4px; min-width: 0; }
