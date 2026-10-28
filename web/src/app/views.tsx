@@ -1,6 +1,6 @@
 import { Crumbs, PrListPage } from '../components/PrList';
 import type { PrListHandlers } from '../components/PrList';
-import { InboxPage, NewPr, NotesPage } from '../components/Pages';
+import { GhNotifPage, InboxPage, InboxTabs, NewPr, NotesPage } from '../components/Pages';
 import type { InboxHandlers, NewPrHandlers, NotesHandlers } from '../components/Pages';
 import { openAux, openClick, openCtx } from './bind';
 import { rerender, saveDrafts, setBusy, syncDraft } from './actions';
@@ -9,6 +9,7 @@ import { S, tauri } from './core';
 import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
 import { crumbs } from './home';
+import { ghOn, ghProps } from './ghnotif';
 import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
 import { openPr, openRepo } from './nav';
 import type { NpListKey } from '../types';
@@ -53,7 +54,8 @@ export function NotesView() {
 const inbox: InboxHandlers = { ...open, refresh: () => loadInbox(true) };
 
 export function InboxView() {
-  return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} on={crumbs} /><InboxPage p={inboxProps()} on={inbox} /></>;
+  const tab = S.ibTab === 'feed' ? 'feed' : 'prs';
+  return <><Crumbs repo="" trail={[{ t: 'Inbox' }]} on={crumbs} /><InboxTabs tab={tab} on={ghOn} />{tab === 'feed' ? <GhNotifPage p={ghProps()} on={ghOn} /> : <InboxPage p={inboxProps()} on={inbox} />}</>;
 }
 
 const np = () => S.np!;

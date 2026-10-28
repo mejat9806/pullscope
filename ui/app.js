@@ -1017,7 +1017,7 @@
       " into"
     ] });
   }
-  function PrHeader({ b: b2, st, ic, label, tab, split, hideSide: hideSide2, splitOk, commentsTotal, sq, on: on3 }) {
+  function PrHeader({ b: b2, st, ic, label: label2, tab, split, hideSide: hideSide2, splitOk, commentsTotal, sq, on: on3 }) {
     const p3 = b2.pull, n2 = p3.number;
     const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
     const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
@@ -1036,7 +1036,7 @@
           /* @__PURE__ */ u3("span", { class: `state-pill state-${st}`, children: [
             I2(ic),
             SP,
-            label
+            label2
           ] }),
           /* @__PURE__ */ u3("span", { children: /* @__PURE__ */ u3(Who, { p: p3, st }) }),
           SP,
@@ -1510,10 +1510,10 @@
       /* @__PURE__ */ u3("code", { children: c3.sha.slice(0, 7) })
     ] });
   }
-  function Rail({ k: k3, label, ic, on: on3 }) {
-    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label}`, onClick: on3 && (() => on3.hide(k3, false)), children: [
+  function Rail({ k: k3, label: label2, ic, on: on3 }) {
+    return /* @__PURE__ */ u3("button", { class: "pane-rail", "data-show": k3, title: `Show ${label2}`, onClick: on3 && (() => on3.hide(k3, false)), children: [
       I2(ic),
-      /* @__PURE__ */ u3("span", { children: label })
+      /* @__PURE__ */ u3("span", { children: label2 })
     ] });
   }
   function SplitView(p3) {
@@ -1968,7 +1968,7 @@
     return ["open", "git-pull-request", "Open"];
   }
   function prHeaderProps(b2) {
-    const p3 = b2.pull, [st, ic, label] = stateOf(p3);
+    const p3 = b2.pull, [st, ic, label2] = stateOf(p3);
     const commentsTotal = p3.comments + p3.review_comments + b2.timeline.filter((e3) => e3.event === "reviewed").length;
     const sq = (() => {
       const t3 = p3.additions + p3.deletions || 1;
@@ -1980,7 +1980,7 @@
       return arr;
     })();
     const splitOk = S.tab !== "files" && S.tab !== "checks" && S.tab !== "timeline";
-    return { b: b2, st, ic, label, tab: S.tab, split: S.split, hideSide: !!S.hide.side, splitOk, commentsTotal, sq };
+    return { b: b2, st, ic, label: label2, tab: S.tab, split: S.split, hideSide: !!S.hide.side, splitOk, commentsTotal, sq };
   }
   var isFolded = (k3, def = false) => k3 in S.fold ? S.fold[k3] : def;
   var folded = (k3, def = false) => isFolded(k3, def) ? " folded" : "";
@@ -3174,6 +3174,90 @@
           "Inbox"
         ] }),
         /* @__PURE__ */ u3("div", { class: "np-tools", children: /* @__PURE__ */ u3("button", { class: "btn small", id: "ibrefresh", onClick: on3.refresh, disabled: loading, children: loading ? "Loading\u2026" : "Refresh" }) })
+      ] }),
+      body
+    ] });
+  }
+  var InboxTabs = ({ tab, on: on3 }) => /* @__PURE__ */ u3("div", { class: "seg ib-tabs", children: [
+    /* @__PURE__ */ u3("button", { class: tab === "prs" ? "on" : "", onClick: () => on3.tab("prs"), children: "Pull requests" }),
+    /* @__PURE__ */ u3("button", { class: tab === "feed" ? "on" : "", onClick: () => on3.tab("feed"), children: "Notifications" })
+  ] });
+  function GhNotifPage({ p: p3, on: on3 }) {
+    const f4 = p3.f, chip = (on_, t3, fn) => /* @__PURE__ */ u3("button", { class: `nf-chip${on_ ? " on" : ""}`, onClick: fn, children: t3 });
+    const body = p3.err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: p3.err }) : !p3.groups ? /* @__PURE__ */ u3("div", { class: "skel", children: [
+      /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
+      /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
+    ] }) : p3.total ? p3.groups.map((g2) => /* @__PURE__ */ u3("section", { class: "ib-sec", children: [
+      g2.name ? /* @__PURE__ */ u3("h2", { children: [
+        g2.name,
+        /* @__PURE__ */ u3("span", { children: g2.rows.length })
+      ] }) : "",
+      g2.rows.map((r3) => /* @__PURE__ */ u3("div", { class: `ib-row nf-row${r3.unread ? " unread" : ""}`, onClick: () => on3.open(r3.id), children: [
+        /* @__PURE__ */ u3("span", { class: "nf-ic", children: I2(r3.icon) }),
+        /* @__PURE__ */ u3("span", { class: "ib-t", children: [
+          /* @__PURE__ */ u3("b", { children: r3.title }),
+          /* @__PURE__ */ u3("i", { children: r3.sub })
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "nf-acts", children: [
+          r3.unread ? /* @__PURE__ */ u3("button", { class: "btn small", title: "Mark as read", onClick: (e3) => {
+            e3.stopPropagation();
+            on3.read(r3.id);
+          }, children: "Read" }) : "",
+          /* @__PURE__ */ u3("button", { class: "btn small", title: "Remove from your notifications", onClick: (e3) => {
+            e3.stopPropagation();
+            on3.done(r3.id);
+          }, children: "Done" }),
+          /* @__PURE__ */ u3("button", { class: "btn small", title: "Unsubscribe from this thread", onClick: (e3) => {
+            e3.stopPropagation();
+            on3.mute(r3.id);
+          }, children: "Mute" })
+        ] })
+      ] }))
+    ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: f4.all ? "No notifications match." : "No unread pull request notifications. Nice." });
+    return /* @__PURE__ */ u3("div", { class: "notes-page", children: [
+      /* @__PURE__ */ u3("div", { class: "np-head", children: [
+        /* @__PURE__ */ u3("h1", { children: [
+          I2("bell"),
+          SP,
+          "Pull request notifications"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "np-tools", children: [
+          /* @__PURE__ */ u3("button", { class: "btn small", onClick: on3.readAll, disabled: !p3.unread, children: "Mark all as read" }),
+          /* @__PURE__ */ u3("button", { class: "btn small", id: "nfrefresh", onClick: on3.refresh, disabled: p3.loading, children: p3.loading ? "Loading\u2026" : "Refresh" })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("div", { class: "nf-bar", children: [
+        /* @__PURE__ */ u3("input", { class: "input", placeholder: "Filter by title or repository\u2026", value: f4.q, onInput: on3.query }),
+        /* @__PURE__ */ u3("div", { class: "nf-chips", children: [
+          /* @__PURE__ */ u3("b", { children: "Reason" }),
+          p3.reasons.map(([k3, t3]) => chip(f4.reasons.includes(k3), t3, () => on3.reason(k3))),
+          f4.reasons.length || f4.q ? /* @__PURE__ */ u3("button", { class: "nf-chip", onClick: on3.clear, children: "Clear filters" }) : ""
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "nf-set", children: [
+          /* @__PURE__ */ u3("label", { children: [
+            /* @__PURE__ */ u3("input", { type: "checkbox", checked: f4.all, onChange: on3.all }),
+            " Show read notifications"
+          ] }),
+          /* @__PURE__ */ u3("label", { children: [
+            /* @__PURE__ */ u3("input", { type: "checkbox", checked: f4.group, onChange: on3.group }),
+            " Group by repository"
+          ] }),
+          p3.hasChosen ? /* @__PURE__ */ u3("label", { children: [
+            /* @__PURE__ */ u3("input", { type: "checkbox", checked: f4.chosenOnly, onChange: on3.chosen }),
+            " Only chosen repositories"
+          ] }) : "",
+          /* @__PURE__ */ u3("label", { children: [
+            /* @__PURE__ */ u3("input", { type: "checkbox", checked: f4.markOnOpen, onChange: on3.markOnOpen }),
+            " Mark as read when opened"
+          ] }),
+          /* @__PURE__ */ u3("span", { class: "nf-n", children: [
+            p3.unread,
+            " unread \xB7 ",
+            p3.total,
+            " shown"
+          ] })
+        ] })
       ] }),
       body
     ] });
@@ -4457,7 +4541,7 @@
   // src/components/Toolbar.tsx
   var NL2 = "\n  ";
   function Toolbar(p3) {
-    const label = p3.profile ? p3.profile.name || p3.profile.login : "";
+    const label2 = p3.profile ? p3.profile.name || p3.profile.login : "";
     return /* @__PURE__ */ u3("header", { class: "toolbar", "data-tauri-drag-region": "", onMouseDown: p3.on.drag, children: [
       NL2,
       /* @__PURE__ */ u3("button", { class: "tb-btn nav-btn", id: "navbtn", onClick: p3.on.nav, title: "Show or hide the sidebar", children: /* @__PURE__ */ u3(Icon, { n: "three-bars" }) }),
@@ -4498,9 +4582,9 @@
             /* @__PURE__ */ u3("b", { class: "cr c3" })
           ] })
         ] }, p3.pop),
-        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label} \u2014 account menu`, children: [
+        p3.hasToken && p3.profile ? /* @__PURE__ */ u3("button", { class: "prof-btn", id: "profbtn", onClick: p3.on.prof, title: `${label2} \u2014 account menu`, children: [
           /* @__PURE__ */ u3("img", { src: p3.avatar, alt: "" }),
-          /* @__PURE__ */ u3("span", { children: label }),
+          /* @__PURE__ */ u3("span", { children: label2 }),
           /* @__PURE__ */ u3(Icon, { n: "chevron-down", s: 12 })
         ] }) : /* @__PURE__ */ u3("button", { class: "tb-btn", id: "signin", onClick: p3.on.signin, title: "Access token", children: /* @__PURE__ */ u3(Icon, { n: "key" }) })
       ] })
@@ -4812,10 +4896,10 @@
       /* @__PURE__ */ u3("button", { class: "rc-x", "data-rm": r3.ref, onClick: (e3) => on3.rm(e3, r3.ref), title: "Remove", children: /* @__PURE__ */ u3(Icon, { n: "x" }) })
     ] })) });
   }
-  function RepoList({ repos, repo, filter, on: on3 }) {
-    const f4 = filter.toLowerCase(), shown2 = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
+  function RepoList({ repos, repo, filter: filter2, on: on3 }) {
+    const f4 = filter2.toLowerCase(), shown2 = repos.filter((r3) => r3.full_name.toLowerCase().includes(f4));
     return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter, onInput: on3.repoFilter }),
+      /* @__PURE__ */ u3("input", { class: "input sb-filter", id: "repofilter", placeholder: "Find a repository\u2026", value: filter2, onInput: on3.repoFilter }),
       /* @__PURE__ */ u3("button", { class: "sb-btn", id: "pickrepos", onClick: on3.pickRepos, children: "Choose repositories\u2026" }),
       shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("a", { class: `rc ${repo === r3.full_name ? "on" : ""}`, "data-repo": r3.full_name, onClick: () => on3.repo(r3.full_name), children: [
         /* @__PURE__ */ u3("span", { class: `rc-i ${r3.private ? "closed" : ""}`, style: "color:var(--fgColor-muted)", children: /* @__PURE__ */ u3(Icon, { n: r3.private ? "lock" : "repo" }) }),
@@ -5037,6 +5121,148 @@
   }
   var confetti = () => fxAdd({ k: "conf", w: innerWidth, h: innerHeight });
 
+  // src/app/ghnotif.ts
+  var REASONS = [["review_requested", "Review requested"], ["mention", "Mentioned"], ["team_mention", "Team mentioned"], ["assign", "Assigned"], ["author", "You opened"], ["comment", "Commented"], ["subscribed", "Watching"], ["ci_activity", "CI activity"], ["state_change", "State change"], ["approval_requested", "Approval requested"], ["security_alert", "Security alert"]];
+  var label = (list, k3) => list.find(([v3]) => v3 === k3)?.[1] || k3.replace(/_/g, " ");
+  var DEFAULT = { all: false, reasons: [], q: "", chosenOnly: true, group: false, markOnOpen: true };
+  var filter = () => S.gnf = S.gnf || { ...DEFAULT, ...load("gnf", {}), q: "" };
+  var save = () => {
+    try {
+      localStorage.setItem("gnf", JSON.stringify({ ...filter(), q: "" }));
+    } catch {
+    }
+    render();
+  };
+  async function loadGh(force = false) {
+    const g2 = S.gh = S.gh || { list: null, err: "", loading: false };
+    if (g2.loading && !force) return;
+    g2.loading = true;
+    g2.err = "";
+    render();
+    try {
+      g2.list = tauri ? await tauri.invoke("gh_notifs", { all: filter().all }) : [];
+    } catch (e3) {
+      g2.err = String(e3).replace(/^Error: /, "");
+    }
+    g2.loading = false;
+    render();
+  }
+  var openFeedTab = () => {
+    S.ibTab = "feed";
+    if (!S.gh?.list) loadGh();
+    else render();
+  };
+  async function act2(n2, action) {
+    const g2 = S.gh;
+    const was = g2.list;
+    g2.list = (g2.list || []).flatMap((x2) => x2.id !== n2.id ? [x2] : action === "read" ? [{ ...x2, unread: false }] : []);
+    render();
+    try {
+      await tauri.invoke("gh_notif_act", { id: n2.id, action });
+    } catch (e3) {
+      g2.list = was;
+      g2.err = String(e3).replace(/^Error: /, "");
+      render();
+    }
+  }
+  var find = (id) => S.gh?.list?.find((x2) => x2.id === id);
+  var toggle = (list, v3) => list.includes(v3) ? list.filter((x2) => x2 !== v3) : [...list, v3];
+  function ghProps() {
+    const g2 = S.gh || { list: null, err: "", loading: true }, f4 = filter(), q3 = f4.q.toLowerCase(), chosen = new Set(selNames().map((r3) => r3.toLowerCase()));
+    const shown2 = (g2.list || []).filter((n2) => (!f4.reasons.length || f4.reasons.includes(n2.reason)) && (!f4.chosenOnly || !chosen.size || chosen.has(n2.repo.toLowerCase())) && (!q3 || `${n2.title} ${n2.repo}`.toLowerCase().includes(q3)));
+    const row2 = (n2) => ({ id: n2.id, unread: n2.unread, icon: "git-pull-request", title: n2.title, sub: `${f4.group ? "" : n2.repo + " \xB7 "}${label(REASONS, n2.reason)} \xB7 ${when(n2.updated_at).replace(/<\/?span[^>]*>/g, "")}` });
+    const by = /* @__PURE__ */ new Map();
+    shown2.forEach((n2) => {
+      const k3 = f4.group ? n2.repo : "";
+      (by.get(k3) || by.set(k3, []).get(k3)).push(n2);
+    });
+    return {
+      loading: g2.loading,
+      err: g2.err,
+      groups: g2.list ? [...by.entries()].map(([name, l3]) => ({ name, rows: l3.map(row2) })) : null,
+      total: shown2.length,
+      unread: shown2.filter((n2) => n2.unread).length,
+      f: f4,
+      reasons: REASONS,
+      hasChosen: chosen.size > 0
+    };
+  }
+  var ghOn = {
+    refresh: () => loadGh(true),
+    open: (id) => {
+      const n2 = find(id);
+      if (!n2) return;
+      if (n2.unread && filter().markOnOpen) act2(n2, "read");
+      if (n2.number) openPr(`${n2.repo}#${n2.number}`);
+      else openExternal(n2.url);
+    },
+    read: (id) => {
+      const n2 = find(id);
+      if (n2) act2(n2, "read");
+    },
+    done: (id) => {
+      const n2 = find(id);
+      if (n2) act2(n2, "done");
+    },
+    mute: (id) => {
+      const n2 = find(id);
+      if (n2) act2(n2, "mute");
+    },
+    readAll: async () => {
+      const g2 = S.gh;
+      if (!g2?.list || !tauri) return;
+      const was = g2.list;
+      g2.list = g2.list.map((n2) => ({ ...n2, unread: false }));
+      render();
+      try {
+        await tauri.invoke("gh_notif_read_all", {});
+      } catch (e3) {
+        g2.list = was;
+        g2.err = String(e3).replace(/^Error: /, "");
+        render();
+      }
+    },
+    reason: (r3) => {
+      filter().reasons = toggle(filter().reasons, r3);
+      save();
+    },
+    query: (e3) => {
+      filter().q = e3.target.value;
+      render();
+    },
+    all: () => {
+      filter().all = !filter().all;
+      try {
+        localStorage.setItem("gnf", JSON.stringify({ ...filter(), q: "" }));
+      } catch {
+      }
+      loadGh(true);
+    },
+    chosen: () => {
+      filter().chosenOnly = !filter().chosenOnly;
+      save();
+    },
+    group: () => {
+      filter().group = !filter().group;
+      save();
+    },
+    markOnOpen: () => {
+      filter().markOnOpen = !filter().markOnOpen;
+      save();
+    },
+    clear: () => {
+      Object.assign(filter(), { reasons: [], q: "" });
+      save();
+    },
+    tab: (t3) => {
+      if (t3 === "feed") openFeedTab();
+      else {
+        S.ibTab = "prs";
+        render();
+      }
+    }
+  };
+
   // src/app/views.tsx
   var open = { open: openClick, aux: openAux, ctx: openCtx };
   var typedPf = (e3) => {
@@ -5128,9 +5354,11 @@
   }
   var inbox = { ...open, refresh: () => loadInbox(true) };
   function InboxView() {
+    const tab = S.ibTab === "feed" ? "feed" : "prs";
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3(Crumbs, { repo: "", trail: [{ t: "Inbox" }], on: crumbs }),
-      /* @__PURE__ */ u3(InboxPage, { p: inboxProps(), on: inbox })
+      /* @__PURE__ */ u3(InboxTabs, { tab, on: ghOn }),
+      tab === "feed" ? /* @__PURE__ */ u3(GhNotifPage, { p: ghProps(), on: ghOn }) : /* @__PURE__ */ u3(InboxPage, { p: inboxProps(), on: inbox })
     ] });
   }
   var np = () => S.np;
@@ -5823,8 +6051,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       return { raw: md, err: String(e3).replace(/^Error: /, "") };
     }
   }
-  function confirmDlg(title, text, label, danger, fn) {
-    S.dlg = { k: "confirm", title, text, label, danger, ok: async () => {
+  function confirmDlg(title, text, label2, danger, fn) {
+    S.dlg = { k: "confirm", title, text, label: label2, danger, ok: async () => {
       S.dlg = null;
       render();
       await fn();
@@ -5896,12 +6124,12 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     const sel = S.lastSel ?? null;
     setBusy(sel, true);
     try {
-      return await act2(action, args, key, inDialog);
+      return await act22(action, args, key, inDialog);
     } finally {
       setBusy(sel, false);
     }
   }
-  async function act2(action, args, key, inDialog = false) {
+  async function act22(action, args, key, inDialog = false) {
     S.actErr = null;
     if (!tauri) {
       S.actErr = { k: key, m: "Writing needs the desktop app." };

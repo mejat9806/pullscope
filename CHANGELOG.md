@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- Inbox → **Notifications** tab: your GitHub pull request notifications, with **Read**, **Done** and **Mute** (unsubscribe) per item and *Mark all as read*. Filter by reason (review requested, mentioned, assigned, …) and title or repository; settings for showing read items, grouping by repository, limiting to your chosen repositories, and marking as read when opened. Needs a token with the `notifications` scope.
+
 ## [1.1.0]
 
 ### Added

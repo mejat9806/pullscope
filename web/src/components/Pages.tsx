@@ -1,6 +1,6 @@
 import { DraftBox } from './Actions';
 import type { ComponentChildren } from 'preact';
-import type { NpListKey, Template } from '../types';
+import type { NotifFilter, NpListKey, Template } from '../types';
 import { I, SP } from './ui';
 
 export interface NoteRow { id: number | string; read: boolean; ref: string; target: string; title: string; text: string; when: string }
@@ -65,6 +65,26 @@ export function InboxPage({ p: { loading, err, secs }, on }: { p: InboxProps; on
   const body: ComponentChildren = err ? <div class="diff-empty err">{err}</div> : !secs ? <div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>
     : secs.map((s) => <section class="ib-sec"><h2>{s.title}<span>{s.rows.length}</span></h2><p>{s.sub}</p>{s.rows.length ? s.rows.map((r) => <a class="ib-row" data-open={r.ref} onClick={(e) => on.open(e.currentTarget, e)} onAuxClick={(e) => on.aux(e.currentTarget, e)} onContextMenu={(e) => on.ctx(e.currentTarget, e)}><img src={r.avatar} alt="" /><span class="ib-t"><b>{r.title}</b><i>{r.sub}</i></span>{r.fresh ? <span class="ib-new">New activity</span> : ''}{r.comments ? <span class="ib-c">{I('comment')}{SP}{r.comments}</span> : ''}</a>) : <div class="ib-none">Nothing here. Nice.</div>}</section>);
   return <div class="notes-page"><div class="np-head"><h1>{I('checklist')}{SP}Inbox</h1><div class="np-tools"><button class="btn small" id="ibrefresh" onClick={on.refresh} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button></div></div>{body}</div>;
+}
+
+export interface GhRow { id: string; unread: boolean; icon: string; title: string; sub: string }
+export interface GhNotifProps { loading: boolean; err: string; groups: { name: string; rows: GhRow[] }[] | null; total: number; unread: number; f: NotifFilter; reasons: [string, string][]; hasChosen: boolean }
+export interface GhNotifHandlers {
+  refresh: () => void; open: (id: string) => void; read: (id: string) => void; done: (id: string) => void; mute: (id: string) => void; readAll: () => void
+  reason: (r: string) => void; query: (e: Event) => void; all: () => void; chosen: () => void; group: () => void; markOnOpen: () => void; clear: () => void; tab: (t: string) => void
+}
+export const InboxTabs = ({ tab, on }: { tab: string; on: GhNotifHandlers }) => <div class="seg ib-tabs"><button class={tab === 'prs' ? 'on' : ''} onClick={() => on.tab('prs')}>Pull requests</button><button class={tab === 'feed' ? 'on' : ''} onClick={() => on.tab('feed')}>Notifications</button></div>;
+export function GhNotifPage({ p, on }: { p: GhNotifProps; on: GhNotifHandlers }) {
+  const f = p.f, chip = (on_: boolean, t: string, fn: () => void) => <button class={`nf-chip${on_ ? ' on' : ''}`} onClick={fn}>{t}</button>;
+  const body: ComponentChildren = p.err ? <div class="diff-empty err">{p.err}</div> : !p.groups ? <div class="skel"><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div>
+    : p.total ? p.groups.map((g) => <section class="ib-sec">{g.name ? <h2>{g.name}<span>{g.rows.length}</span></h2> : ''}{g.rows.map((r) => <div class={`ib-row nf-row${r.unread ? ' unread' : ''}`} onClick={() => on.open(r.id)}>
+      <span class="nf-ic">{I(r.icon)}</span><span class="ib-t"><b>{r.title}</b><i>{r.sub}</i></span>
+      <span class="nf-acts">{r.unread ? <button class="btn small" title="Mark as read" onClick={(e) => { e.stopPropagation(); on.read(r.id); }}>Read</button> : ''}<button class="btn small" title="Remove from your notifications" onClick={(e) => { e.stopPropagation(); on.done(r.id); }}>Done</button><button class="btn small" title="Unsubscribe from this thread" onClick={(e) => { e.stopPropagation(); on.mute(r.id); }}>Mute</button></span></div>)}</section>)
+      : <div class="ib-none">{f.all ? 'No notifications match.' : 'No unread pull request notifications. Nice.'}</div>;
+  return <div class="notes-page"><div class="np-head"><h1>{I('bell')}{SP}Pull request notifications</h1><div class="np-tools"><button class="btn small" onClick={on.readAll} disabled={!p.unread}>Mark all as read</button><button class="btn small" id="nfrefresh" onClick={on.refresh} disabled={p.loading}>{p.loading ? 'Loading…' : 'Refresh'}</button></div></div>
+    <div class="nf-bar"><input class="input" placeholder="Filter by title or repository…" value={f.q} onInput={on.query} />
+      <div class="nf-chips"><b>Reason</b>{p.reasons.map(([k, t]) => chip(f.reasons.includes(k), t, () => on.reason(k)))}{f.reasons.length || f.q ? <button class="nf-chip" onClick={on.clear}>Clear filters</button> : ''}</div>
+      <div class="nf-set"><label><input type="checkbox" checked={f.all} onChange={on.all} /> Show read notifications</label><label><input type="checkbox" checked={f.group} onChange={on.group} /> Group by repository</label>{p.hasChosen ? <label><input type="checkbox" checked={f.chosenOnly} onChange={on.chosen} /> Only chosen repositories</label> : ''}<label><input type="checkbox" checked={f.markOnOpen} onChange={on.markOnOpen} /> Mark as read when opened</label><span class="nf-n">{p.unread} unread · {p.total} shown</span></div></div>{body}</div>;
 }
 
 export const Skeleton = () => (<div class="skel" aria-busy="true"><div class="sk sk-crumb"></div><div class="sk sk-title"></div><div class="sk sk-pill"></div><div class="sk sk-line w60"></div><div class="sk-tabs"><i class="sk"></i><i class="sk"></i><i class="sk"></i></div>{[0, 1, 2].map((i) => <div class="sk-row" style={`--i:${i}`}><div class="sk sk-av"></div><div class="sk-card"><div class="sk sk-line w40"></div><div class="sk sk-line"></div><div class="sk sk-line w80"></div><div class="sk sk-line w60"></div></div></div>)}</div>);

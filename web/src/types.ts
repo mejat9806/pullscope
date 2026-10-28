@@ -59,6 +59,10 @@ export interface RepoSummary { full_name: string; private: boolean; archived: bo
 export interface PrListItem { closed_at?: string | null; number: number; title: string; state: string; draft?: boolean; merged?: boolean; merged_at?: string | null; user: User; updated_at: string; created_at: string; labels: Label[]; html_url: string; comments?: number; head?: Ref; base?: Ref }
 export interface Push { branch: string; at: string; actor: string | null; repo: string }
 export interface InboxItem { repo: string; number: number; title: string; user: string; avatar: string; updated_at: string; draft: boolean; comments: number; url: string }
+export interface GhNotif { id: string; unread: boolean; reason: string; updated_at: string; repo: string; title: string; kind: string; number: number | null; url: string }
+// Feed filters and settings; an empty reasons list means "all of them".
+export interface NotifFilter { all: boolean; reasons: string[]; q: string; chosenOnly: boolean; group: boolean; markOnOpen: boolean }
+export interface GhState { list: GhNotif[] | null; err: string; loading: boolean }
 export interface Inbox { requested: InboxItem[]; mine: InboxItem[]; ready: InboxItem[] }
 export interface Dialog { kind: string; [field: string]: unknown }
 export type Mode = 'auto' | 'light' | 'dark';
@@ -72,7 +76,7 @@ export interface AppState {
   sbw: number; pf: string; psort: string; pgroup: string; who: string[]; unres: boolean; range: string; rFrom: string; rTo: string; sort: 'asc' | 'desc';
   unIdx: number; nav: boolean; busy: string; actErr: ActErr | null;
   // set after startup
-  np?: NewPr | null; keepScroll?: boolean; themePop?: number; scrollId?: string; addrText?: string | null; tokenText?: string; ver?: string; repoSel?: RepoSummary[] | null; rpick?: { all: RepoSummary[] | null; on: string[]; q: string; err: string } | null; hideReason?: string; method?: string; addrFocus?: boolean; composerBox?: { h: number; in: string } | null; toTop?: boolean; mainTop?: number; enter?: boolean; stuck?: boolean; dragging?: boolean; flashPop?: boolean; drag?: { from: number; to: number; dx: number; w: number } | null; tabMenuAt?: { top: number; left: number } | null; busySels?: string[]; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
+  np?: NewPr | null; keepScroll?: boolean; themePop?: number; scrollId?: string; addrText?: string | null; tokenText?: string; gh?: GhState; gnf?: NotifFilter; ibTab?: string; ver?: string; repoSel?: RepoSummary[] | null; rpick?: { all: RepoSummary[] | null; on: string[]; q: string; err: string } | null; hideReason?: string; method?: string; addrFocus?: boolean; composerBox?: { h: number; in: string } | null; toTop?: boolean; mainTop?: number; enter?: boolean; stuck?: boolean; dragging?: boolean; flashPop?: boolean; drag?: { from: number; to: number; dx: number; w: number } | null; tabMenuAt?: { top: number; left: number } | null; busySels?: string[]; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
   refreshing?: boolean; diffMode?: string; inbox?: InboxState | null; alive: Map<string, Alive>; oauthLive?: boolean; lcOpen?: string | null; openSeq?: number; me?: string;
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flash?: { id: string; n: number; block: 'start' | 'center'; smooth?: boolean; pop?: boolean } | null; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
@@ -91,7 +95,7 @@ export interface DeviceCode { device_code: string; user_code: string; verificati
 export interface CreatedPr { number: number; html_url: string; warnings: string[] }
 
 export interface Commands {
-  cached_pr: Bundle | null; fetch_pr: Bundle; invalidate_pr: void; inbox: Inbox; list_branches: BranchInfo; compare_branches: CompareResult;
+  cached_pr: Bundle | null; fetch_pr: Bundle; invalidate_pr: void; inbox: Inbox; gh_notifs: GhNotif[]; gh_notif_act: void; gh_notif_read_all: void; list_branches: BranchInfo; compare_branches: CompareResult;
   recent_pushes: Push[]; render_markdown: string; repo_meta: RepoMeta; pr_templates: Template[]; create_pr: CreatedPr; list_repos: RepoSummary[];
   list_prs: PrListItem[]; fetch_commit: { files: FileChange[] }; fetch_range: { files: FileChange[] }; viewer_profile: Profile; viewer_login: string;
   my_reactions: string[]; toggle_reaction: { added: boolean }; pr_action: unknown; check_pr: CheckResult; set_unread: void; notify: void;
