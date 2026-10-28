@@ -54,7 +54,9 @@ pub async fn get(c: &reqwest::Client, url: &str, token: Option<&str>) -> Result<
     if !status.is_success() {
         let msg = body["message"].as_str().unwrap_or("request failed");
         let has_token = token.is_some_and(|t| !t.is_empty());
-        let hint = if remaining.as_deref() == Some("0") {
+        let hint = if remaining.as_deref() == Some("0") && has_token {
+            " (rate limit exhausted — it resets within the hour)"
+        } else if remaining.as_deref() == Some("0") {
             " (rate limit exhausted — add a token)"
         } else if status == reqwest::StatusCode::NOT_FOUND && !has_token {
             " — if this repository is private, add an access token with the key button (⌘,)"
