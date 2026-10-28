@@ -15,7 +15,8 @@ import TaskItem from '@tiptap/extension-task-item';
 import BubbleMenu from '@tiptap/extension-bubble-menu';
 import Suggestion from '@tiptap/suggestion';
 import { Markdown } from 'tiptap-markdown';
-import { PluginKey } from '@tiptap/pm/state';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { DOMParser as PMParser } from '@tiptap/pm/model';
 
 
 // One popup menu per trigger character ("/", "@", ":"): shows items, handles arrows/enter/esc.
@@ -65,6 +66,19 @@ const EmojiRule = Extension.create({
 });
 const mentionExt = (people) => suggest('mention', '@', (q) => people.filter((p) => p.toLowerCase().startsWith(q) || p.toLowerCase().includes(q)).slice(0, 8), (p) => `<b>@${p}</b>`, (c, p) => c.insertContent('@' + p + ' '));
 
+// tiptap-markdown parses pasted text inline-only, so fences, lists and headings arrive as literal text. Parse it as full markdown.
+const MarkdownPaste = Extension.create({
+  name: 'markdownPaste', priority: 1000,
+  addProseMirrorPlugins() {
+    const ed = this.editor;
+    return [new Plugin({ props: { clipboardTextParser: (text, context, plain) => {
+      if (plain) return null;
+      const dom = new window.DOMParser().parseFromString(`<body>${ed.storage.markdown.parser.parse(text, { inline: false })}</body>`, 'text/html').body;
+      return PMParser.fromSchema(ed.schema).parseSlice(dom, { context });
+    } } })];
+  },
+});
+
 window.createEditor = (host, { value = '', placeholder = '', people = [], onChange = () => {}, onSubmit = () => {} } = {}) => {
   host.innerHTML = '<div class="tt-bar"></div><div class="tt-body"></div>';
   const bar = host.querySelector('.tt-bar'), body = host.querySelector('.tt-body');
@@ -82,7 +96,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
       Link.extend({ inclusive: false }).configure({ openOnClick: false, autolink: true }),
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
-      Emoji, EmojiRule, mentionExt(people),
+      Emoji, EmojiRule, mentionExt(people), MarkdownPaste,
       Markdown.configure({ html: false, tightLists: true, bulletListMarker: '-', linkify: true, breaks: true, transformPastedText: true }),
     ],
     content: value,
