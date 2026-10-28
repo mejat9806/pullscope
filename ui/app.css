@@ -1041,3 +1041,5 @@ table.diff { contain: layout paint; }
 /* Bigger, easier-to-grab grips. */
 .ro-grip, .ib-grip { font-size: 20px; letter-spacing: -1px; padding: 6px 8px; min-width: 22px; text-align: center; }
 .sb-item > .ro-grip { left: 0; top: 6px; padding: 6px 4px; min-width: 0; }
+/* Side panel: grip sits just left of the gear, clear of the chevron and the card edge. */
+.sb-item > .ro-grip { left: auto; right: 54px; top: 8px; padding: 6px 8px; }
