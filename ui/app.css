@@ -1021,4 +1021,4 @@ table.diff { contain: layout paint; }
 .nf-chip { border: 1px solid var(--borderColor-default); background: transparent; color: var(--fgColor-default); border-radius: 14px; padding: 2px 10px; font-size: 12px; cursor: pointer; } .nf-chip.on { background: var(--bgColor-accent-muted); border-color: var(--borderColor-accent-emphasis); color: var(--fgColor-accent); }
 .nf-set { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 12px; color: var(--fgColor-muted); } .nf-set label { display: flex; gap: 6px; align-items: center; cursor: pointer; } .nf-n { margin-left: auto; }
 .nf-row { cursor: pointer; } .nf-row.unread .ib-t b { font-weight: 700; } .nf-row:not(.unread) { opacity: .72; } .nf-ic { color: var(--fgColor-muted); display: flex; width: 20px; } .nf-row.unread .nf-ic { color: var(--fgColor-accent); }
-.nf-acts { display: none; gap: 4px; margin-left: auto; } .nf-row:hover .nf-acts { display: flex; }
+.nf-acts { display: flex; flex: none; gap: 6px; margin-left: auto; }
