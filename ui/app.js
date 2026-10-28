@@ -4303,6 +4303,14 @@
     S.pop = null;
     paintPop();
   }
+  var downOn = null;
+  document.addEventListener("mousedown", (e3) => {
+    downOn = e3.target;
+  }, true);
+  document.addEventListener("click", (e3) => {
+    const t3 = e3.target;
+    if (S.dlg && t3 === downOn && t3.id === "dlgbg") closeDlg();
+  }, true);
 
   // src/app/bind.ts
   S.alive = /* @__PURE__ */ new Map();

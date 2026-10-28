@@ -56,3 +56,8 @@ const paintPop = () => setSlot('pop', <Pops />);
 export function openPop(p: NonNullable<typeof S.pop>) { S.pop = p; paintPop(); }
 export function closePop() { if (!S.pop) return; S.pop = null; paintPop(); }
 // Whatever opens a popup stops its own click, so any later click (inside or outside) dismisses it.
+
+// Clicking the dimmed area outside a dialog closes it. Press and release must both land there, so selecting text and letting go outside does not.
+let downOn: EventTarget | null = null;
+document.addEventListener('mousedown', (e) => { downOn = e.target; }, true);
+document.addEventListener('click', (e) => { const t = e.target as HTMLElement; if (S.dlg && t === downOn && t.id === 'dlgbg') closeDlg(); }, true);
