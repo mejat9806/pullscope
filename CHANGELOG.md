@@ -11,6 +11,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 - The profile menu shows the app version.
 - Issue templates for bug reports and feature requests.
 
+### Changed
+- The "Signed in with token" bar that floated over the sidebar list is gone; the status is shown in the profile menu.
+
 ## [1.0.0]
 
 ### Changed
