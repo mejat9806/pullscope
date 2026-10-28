@@ -38,7 +38,7 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 - **Split view**: commits and their diff beside the conversation, resizable, with a flip button and per-pane collapse.
 - Collapse or expand every conversation, review and thread in one click.
 - **Zoom** the whole interface with `Ctrl/⌘` + mouse wheel or `Ctrl/⌘` + `+` / `-` / `0`; the level is remembered.
-- Filter the conversation by person, by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates) and flip it **newest first / oldest first**. A scroll-to-top button (or `Home`) appears on long threads.
+- Filter the conversation by person, by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates) and flip it **newest first / oldest first**. A scroll button (or `Home` / `End`) appears on every long page: a down arrow at the top, an up arrow further down.
 - **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them.
 
 ![Files changed](docs/screenshots/files-split.png)
@@ -67,8 +67,10 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 
 **Stay on top of things**
 - **Choose repositories**: tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
+- **Rearrange**: drag the ⋮⋮ grip to reorder the Inbox sections, the sidebar's repository list and the blocks of a PR's side panel. The order is remembered.
+- **Edit PR details**: the gear on a PR's Assignees, Labels and Milestone opens a picker and saves to GitHub (the token needs write access).
 - **Home**: all your repositories and recently opened PRs as a full page. Breadcrumbs on every page.
-- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in.
+- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in. Sections collapse, every section sorts, a filter box narrows them, and you can drag a section by its grip (or use the arrows) to put what matters to you first.
 - Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), an unread count in the menu bar / tray, and a quiet offline indicator that falls back to the last saved copy.
 - Keyboard shortcuts (press `?` in the app).
 
