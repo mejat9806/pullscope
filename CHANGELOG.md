@@ -4,6 +4,14 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Inbox: pin and snooze.** Hover a row for a bookmark (pin it into a *Pinned* section on top) and a clock (snooze until tomorrow, next week or new activity). Snoozed PRs wait in a *Snoozed* section and come back by themselves.
+- **Inbox keyboard control:** `j`/`k` or the arrow keys move, `Enter` opens, `p` pins, `s` snoozes, `e` folds the section, `/` jumps to the filter.
+- **Saved views:** save the Inbox filter and sort under a name and pick it again later.
+- **Viewed files:** tick *Viewed* on a file in the Files tab to fold it away; the header shows how many are done (`5/12 viewed`). A mark is dropped when the file changes.
+- **Copy summary:** a button beside the PR title copies the title, status, size, reviewers and link.
+- **Compact lists:** profile menu → *Compact lists* for denser rows.
+
 ## [1.2.0]
 
 ### Added

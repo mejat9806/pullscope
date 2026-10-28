@@ -1054,3 +1054,9 @@ table.diff { contain: layout paint; }
 .ib-acts button { background: none; border: 1px solid var(--borderColor-muted); color: var(--fgColor-muted); border-radius: 6px; padding: 3px 8px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; } .ib-acts button:hover, .ib-acts button.on { color: var(--fgColor-default); background: var(--bgColor-neutral-muted); }
 .ib-snz { font-size: 12px; color: var(--fgColor-muted); white-space: nowrap; }
 .ib-views { display: inline-flex; gap: 8px; align-items: center; margin-left: auto; } .ib-views input { height: 30px; }
+/* Viewed marks on the Files tab. */
+.fv { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fgColor-muted); cursor: pointer; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--borderColor-muted); } .fv.on { color: var(--fgColor-success); border-color: var(--fgColor-success); }
+.fv-prog { font-size: 12px; margin-left: 8px; }
+/* Compact lists (profile menu). */
+.dense .ib-row { padding-top: 4px; padding-bottom: 4px; } .dense .ib-row img { width: 20px; height: 20px; } .dense .ib-sec > p { display: none; }
+.dense .rc, .dense .pg .rc { padding-top: 3px; padding-bottom: 3px; } .dense .sb-item { padding-top: 6px; padding-bottom: 6px; }

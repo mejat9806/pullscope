@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import type { AcRow, BpGroup } from '../types';
 import { I } from './ui';
 
-export interface ProfPopProps { right: number; top: number; name: string; login: string; avatar: string; ver?: string; pick: (h: string) => void }
+export interface ProfPopProps { right: number; top: number; name: string; login: string; avatar: string; ver?: string; dense?: boolean; pick: (h: string) => void }
 export const ProfPop = (p: ProfPopProps) => <div class="react-pop cm-pop prof-pop" style={`right:${p.right}px;top:${p.top}px`}>
   <div class="pp-h"><img src={p.avatar} alt="" /><div><b>{p.name}</b><i>@{p.login}</i></div></div>
   <button data-h="profile" onClick={() => p.pick('profile')}>{I('link-external')} Your GitHub profile</button>
   <button data-h="repos" onClick={() => p.pick('repos')}>{I('repo')} Choose repositories…</button>
+  <button data-h="dense" onClick={() => p.pick('dense')}>{I('checklist')} {p.dense ? 'Comfortable lists' : 'Compact lists'}</button>
   <button data-h="token" onClick={() => p.pick('token')}>{I('key')} Access token…</button>
   <button data-h="out" class="danger" onClick={() => p.pick('out')}>Sign out</button>
   <div class="pp-ver">Signed in with token{p.ver ? ` · Pullscope v${p.ver}` : ''}</div></div>;

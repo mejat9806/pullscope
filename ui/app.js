@@ -552,10 +552,10 @@
     return ref;
   }
   var focusTarget = (id, a3) => request("focus:" + id, { a: a3 });
-  var reveal = (key) => request("reveal:" + key);
-  function useReveal(key) {
+  var reveal = (key2) => request("reveal:" + key2);
+  function useReveal(key2) {
     const ref = A2(null);
-    useOnRequest("reveal:" + key, () => {
+    useOnRequest("reveal:" + key2, () => {
       const box = ref.current, main = box?.closest(".main");
       if (!box || !main) return;
       const r3 = box.getBoundingClientRect(), m3 = main.getBoundingClientRect();
@@ -808,6 +808,11 @@
       I2("repo"),
       " Choose repositories\u2026"
     ] }),
+    /* @__PURE__ */ u3("button", { "data-h": "dense", onClick: () => p3.pick("dense"), children: [
+      I2("checklist"),
+      " ",
+      p3.dense ? "Comfortable lists" : "Compact lists"
+    ] }),
     /* @__PURE__ */ u3("button", { "data-h": "token", onClick: () => p3.pick("token"), children: [
       I2("key"),
       " Access token\u2026"
@@ -1037,7 +1042,7 @@
   }
   function PrHeader({ b: b2, st, ic, label, tab, split, hideSide: hideSide2, splitOk, commentsTotal, sq, on: on3 }) {
     const p3 = b2.pull, n2 = p3.number;
-    const at = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
+    const at2 = st === "merged" ? p3.merged_at : st === "closed" ? p3.closed_at : p3.created_at;
     const tabs = [["conversation", "comment-discussion", "Conversation", commentsTotal + 0], ["timeline", "clock", "Timeline", b2.timeline.length], ["commits", "git-commit", "Commits", p3.commits], ["checks", "checklist", "Checks", (b2.checks || []).length], ["files", "file-diff", "Files changed", p3.changed_files]];
     return /* @__PURE__ */ u3(S2, { children: [
       /* @__PURE__ */ u3("div", { class: "pr-title-area", children: [
@@ -1047,7 +1052,8 @@
             "#",
             n2
           ] }),
-          p3.state === "open" && !p3.merged ? /* @__PURE__ */ u3("button", { class: "copy-btn", id: "editpr", onClick: on3?.edit, title: "Edit title and description", children: I2("pencil") }) : ""
+          p3.state === "open" && !p3.merged ? /* @__PURE__ */ u3("button", { class: "copy-btn", id: "editpr", onClick: on3?.edit, title: "Edit title and description", children: I2("pencil") }) : "",
+          /* @__PURE__ */ u3("button", { class: "copy-btn", id: "prsummary", onClick: on3?.summary, title: "Copy a short summary (title, status, size, reviewers, link)", children: I2("copy") })
         ] }),
         NL,
         /* @__PURE__ */ u3("div", { class: "pr-meta", children: [
@@ -1064,7 +1070,7 @@
           SP,
           /* @__PURE__ */ u3("span", { class: "branch", children: p3.head.label }),
           /* @__PURE__ */ u3("button", { class: "copy-btn", id: "copybranch", onClick: on3?.copy, "aria-label": "Copy head branch name to clipboard", children: I2("copy") }),
-          /* @__PURE__ */ u3("span", { children: When(at) })
+          /* @__PURE__ */ u3("span", { children: When(at2) })
         ] })
       ] }),
       NL,
@@ -1209,38 +1215,38 @@
     }
     render();
   };
-  var arrange = (items, id, key) => {
+  var arrange = (items, id, key2) => {
     const saved = savedOrder(id), rank = (t3) => {
-      const i3 = saved.indexOf(key(t3));
+      const i3 = saved.indexOf(key2(t3));
       return i3 < 0 ? saved.length + items.indexOf(t3) : i3;
     };
     return [...items].sort((a3, b2) => rank(a3) - rank(b2));
   };
-  var roCls = (id, key) => {
+  var roCls = (id, key2) => {
     const r3 = S.ro;
     if (!r3 || r3.id !== id) return "";
-    return (r3.key === key ? " ro-lift" : "") + (r3.key !== key && r3.over?.title === key ? r3.over.after ? " ro-over-after" : " ro-over-before" : "");
+    return (r3.key === key2 ? " ro-lift" : "") + (r3.key !== key2 && r3.over?.title === key2 ? r3.over.after ? " ro-over-after" : " ro-over-before" : "");
   };
   var tops = (sel) => new Map([...document.querySelectorAll(sel)].map((e3) => [e3.dataset.t, e3.getBoundingClientRect().top]));
-  function roMove(sel, key, save) {
+  function roMove(sel, key2, save2) {
     const before = tops(sel);
-    save();
+    save2();
     requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll(sel).forEach((e3) => {
       const dy = (before.get(e3.dataset.t) ?? 0) - e3.getBoundingClientRect().top;
       if (Math.abs(dy) > 1) e3.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }], { duration: 320, easing: "cubic-bezier(.2,.8,.2,1)" });
-      if (e3.dataset.t === key) {
+      if (e3.dataset.t === key2) {
         e3.classList.add("ro-moved");
         setTimeout(() => e3.classList.remove("ro-moved"), 1400);
       }
     })));
   }
-  function roGrip(e3, id, sel, key, order, commit) {
+  function roGrip(e3, id, sel, key2, order, commit) {
     e3.preventDefault();
     e3.stopPropagation();
     const y0 = e3.clientY;
     let started = false;
     const over = (y3) => {
-      const els = [...document.querySelectorAll(sel)].filter((x2) => x2.dataset.t !== key);
+      const els = [...document.querySelectorAll(sel)].filter((x2) => x2.dataset.t !== key2);
       const hit = els.find((x2) => {
         const r4 = x2.getBoundingClientRect();
         return y3 >= r4.top && y3 <= r4.bottom;
@@ -1254,12 +1260,12 @@
         if (!started) {
           if (Math.abs(ev.clientY - y0) < 5) return;
           started = true;
-          S.ro = { id, key, over: null };
+          S.ro = { id, key: key2, over: null };
           setDragging(true);
         }
         const o3 = over(ev.clientY), cur = S.ro?.over;
         if (o3?.title !== cur?.title || o3?.after !== cur?.after) {
-          S.ro = { id, key, over: o3 };
+          S.ro = { id, key: key2, over: o3 };
           render();
         }
       },
@@ -1269,9 +1275,9 @@
         S.ro = null;
         if (!started) return;
         if (!to) return render();
-        const o3 = order().filter((x2) => x2 !== key);
-        o3.splice(o3.indexOf(to.title) + (to.after ? 1 : 0), 0, key);
-        roMove(sel, key, () => commit(o3));
+        const o3 = order().filter((x2) => x2 !== key2);
+        o3.splice(o3.indexOf(to.title) + (to.after ? 1 : 0), 0, key2);
+        roMove(sel, key2, () => commit(o3));
       }
     });
   }
@@ -1564,6 +1570,12 @@
         /* @__PURE__ */ u3("button", { class: p3.mode === "split" ? "on" : "", "data-dmode": "split", onClick: on3 && (() => on3.mode("split")), children: "Split" })
       ] }),
       /* @__PURE__ */ u3("select", { class: "input fsort", id: "fsort", title: "Sort files", onChange: on3?.sort, children: SORTS.map(([v3, t3]) => /* @__PURE__ */ u3("option", { value: v3, selected: p3.sort === v3, children: t3 })) }),
+      p3.total ? /* @__PURE__ */ u3("button", { class: "link-btn fv-prog", title: p3.viewed === p3.total ? "Clear all viewed marks" : "Mark every file as viewed", onClick: p3.onViewedAll, children: [
+        p3.viewed,
+        "/",
+        p3.total,
+        " viewed"
+      ] }) : "",
       p3.pending ? /* @__PURE__ */ u3("button", { class: "btn small primary", id: "finishrev", onClick: on3?.finish, children: [
         "Finish review \xB7 ",
         p3.pending,
@@ -1590,7 +1602,11 @@
           ] })
         ] }),
         /* @__PURE__ */ u3("span", { class: "sq", children: p3.sq.map((c3) => /* @__PURE__ */ u3("i", { class: c3 })) }),
-        /* @__PURE__ */ u3("span", { class: "path", children: p3.name })
+        /* @__PURE__ */ u3("span", { class: "path", children: p3.name }),
+        p3.onViewed ? /* @__PURE__ */ u3("label", { class: `fv${p3.viewed ? " on" : ""}`, title: "Mark this file as viewed", onClick: (e3) => e3.stopPropagation(), children: [
+          /* @__PURE__ */ u3("input", { type: "checkbox", checked: !!p3.viewed, onChange: p3.onViewed }),
+          " Viewed"
+        ] }) : ""
       ] }),
       p3.children
     ] });
@@ -1953,7 +1969,7 @@
       /* @__PURE__ */ u3("span", { children: folded2 ? "Expand all conversations" : "Collapse all conversations" })
     ] }) });
   }
-  var Time = ({ at }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at).text });
+  var Time = ({ at: at2 }) => /* @__PURE__ */ u3("a", { class: "time", children: whenParts(at2).text });
   var actor = (u4) => u4 ? /* @__PURE__ */ u3("a", { class: "actor", href: u4.html_url, children: u4.login }) : /* @__PURE__ */ u3("span", { class: "actor", children: "ghost" });
   function CommitRun({ n: n2, first, last, onTab }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
@@ -1990,7 +2006,7 @@
       /* @__PURE__ */ u3("a", { href: "#", children: m3[3] })
     ] }) : /* @__PURE__ */ u3("a", { href: url, children: msg });
   };
-  function Referenced({ actor: a3, at, commit: ci, msg }) {
+  function Referenced({ actor: a3, at: at2, commit: ci, msg }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("cross-reference") }),
       /* @__PURE__ */ u3("div", { class: "TLI-body stack", children: [
@@ -1999,7 +2015,7 @@
           SP,
           /* @__PURE__ */ u3("span", { children: "added a commit that referenced this pull request" }),
           SP,
-          /* @__PURE__ */ u3(Time, { at })
+          /* @__PURE__ */ u3(Time, { at: at2 })
         ] }),
         ci ? /* @__PURE__ */ u3("div", { class: "line2", children: /* @__PURE__ */ u3("div", { class: "commit-row", children: [
           /* @__PURE__ */ u3("span", { class: "TLI-avatar", style: "margin:0 8px 0 0", children: Av(ci.author || a3, 20) }),
@@ -2012,7 +2028,7 @@
       ] })
     ] });
   }
-  function MergedRow({ actor: a3, commit, base, at }) {
+  function MergedRow({ actor: a3, commit, base, at: at2 }) {
     return /* @__PURE__ */ u3("div", { class: "TLI mergedrow", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge done", children: I2("git-merge") }),
       /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
@@ -2026,7 +2042,7 @@
           /* @__PURE__ */ u3("span", { class: "branch", children: base })
         ] }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u3(Time, { at: at2 })
       ] }) })
     ] });
   }
@@ -2059,7 +2075,7 @@
       ] })
     ] });
   }
-  function LabelRow({ actor: a3, verb, color, name, at }) {
+  function LabelRow({ actor: a3, verb, color, name, at: at2 }) {
     return /* @__PURE__ */ u3("div", { class: "TLI condensed", children: [
       /* @__PURE__ */ u3("div", { class: "TLI-badge", children: I2("tag") }),
       /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
@@ -2072,11 +2088,11 @@
         SP,
         /* @__PURE__ */ u3("span", { children: "label" }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u3(Time, { at: at2 })
       ] })
     ] });
   }
-  function Simple({ actor: a3, ic, text, kind, at }) {
+  function Simple({ actor: a3, ic, text, kind, at: at2 }) {
     return /* @__PURE__ */ u3("div", { class: "TLI", children: [
       /* @__PURE__ */ u3("div", { class: `TLI-badge ${kind}`, children: I2(ic) }),
       /* @__PURE__ */ u3("div", { class: "TLI-avatar", children: Av(a3, 20) }),
@@ -2085,7 +2101,7 @@
         SP,
         /* @__PURE__ */ u3("span", { children: text }),
         SP,
-        /* @__PURE__ */ u3(Time, { at })
+        /* @__PURE__ */ u3(Time, { at: at2 })
       ] }) })
     ] });
   }
@@ -2189,10 +2205,10 @@
       return;
     }
     c3.body = body;
-    const key = `${prRef().repo}#${prRef().number}`;
-    qc.set(key, b2);
-    qc.m.get(key).at = Date.now() - 2e4;
-    tauri?.invoke("invalidate_pr", { url: key }).catch(() => {
+    const key2 = `${prRef().repo}#${prRef().number}`;
+    qc.set(key2, b2);
+    qc.m.get(key2).at = Date.now() - 2e4;
+    tauri?.invoke("invalidate_pr", { url: key2 }).catch(() => {
     });
   }
   function hasComment(elId2) {
@@ -2369,14 +2385,14 @@
     return (S.bundle?.review_comments || []).filter((c3) => c3.path === path);
   }
   function lineThreads(path, line, side, cols, on3) {
-    const all = threadsFor(path);
-    if (!all.length) return [];
-    const roots = all.filter((c3) => !c3.in_reply_to_id && (c3.line ?? c3.original_line) === line && (c3.side || "RIGHT") === side);
+    const all2 = threadsFor(path);
+    if (!all2.length) return [];
+    const roots = all2.filter((c3) => !c3.in_reply_to_id && (c3.line ?? c3.original_line) === line && (c3.side || "RIGHT") === side);
     if (!roots.length) return [];
     const res = new Set(S.bundle.resolved_ids || []);
     const b2 = S.bundle, card = (c3, rootId) => ({ user: c3.user, login: c3.user?.login || "ghost", at: c3.created_at, id: c3.id, root: rootId, withMenu: !!S.hasToken, bodyHtml: c3.body_html || esc(c3.body || ""), reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: null, anchorId: false });
     return roots.map((r3) => {
-      const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all.filter((c3) => c3.in_reply_to_id === r3.id)];
+      const isRes = res.has(r3.id), tid = (b2.thread_ids || {})[r3.id], list = [r3, ...all2.filter((c3) => c3.in_reply_to_id === r3.id)];
       const p3 = { cols, k: "t:" + r3.id, def: isRes, folded: isFolded("t:" + r3.id, isRes), side: side === "LEFT" ? "L" : "R", line, outdated: r3.line == null, resolved: isRes, cards: list.map((c3) => card(c3, r3.id)), reply: S.hasToken ? { rid: r3.id, ph: "Write a reply", err: errMsg("reply-" + r3.id) } : null, act: tid && S.hasToken ? { tid, res: isRes } : null };
       return /* @__PURE__ */ u3(ThreadRow, { ...p3, on: on3.conv });
     });
@@ -2394,10 +2410,10 @@
   function diffTable(patch, path, canComment, on3) {
     const open2 = S.lcOpen && String(S.lcOpen).includes(path);
     if (open2) return diffTableBuild(patch, path, canComment, on3);
-    const key = `${(S.busySels || []).join(",")}|${S.flash?.id}${S.flash?.n}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key);
+    const key2 = `${(S.busySels || []).join(",")}|${S.flash?.id}${S.flash?.n}|${window.hlLine ? 1 : 0}|${S.diffMode}|${canComment ? 1 : 0}|${path}|${JSON.stringify(pendList().filter((c3) => c3.path === path))}|${threadsFor(path).map((c3) => c3.id + ":" + (c3.updated_at || "") + JSON.stringify(c3.reactions || {}) + ((S.bundle.resolved_ids || []).includes(c3.id) ? "r" : "") + (isFolded("t:" + c3.id, (S.bundle.resolved_ids || []).includes(c3.id)) ? "f" : "")).join(",")}|${S.hasToken ? 1 : 0}|${S.actErr && String(S.actErr.k).startsWith("reply-") ? S.actErr.k + S.actErr.m : ""}`, hit = diffCache.get(key2);
     if (hit && hit.patch === patch) return hit.node;
     const node = diffTableBuild(patch, path, canComment, on3);
-    diffCache.set(key, { patch, node });
+    diffCache.set(key2, { patch, node });
     if (diffCache.size > 400) diffCache.delete(diffCache.keys().next().value);
     return node;
   }
@@ -2529,8 +2545,8 @@
     const hasBody = e3.body_html && e3.body_html.trim();
     const byPath = {};
     cs.forEach((c3) => (byPath[`${c3.path}\0${c3.original_position ?? c3.position}`] ||= []).push(c3));
-    const all = Object.values(byPath).map((l3) => l3.sort((x2, y3) => (x2.in_reply_to_id ? 1 : 0) - (y3.in_reply_to_id ? 1 : 0) || x2.id - y3.id)), allRes = all.length > 0 && all.every(isRes), nres = all.filter(isRes).length, rk = "r:" + e3.id;
-    const lists = S.unres ? all.filter((l3) => !isRes(l3)) : all;
+    const all2 = Object.values(byPath).map((l3) => l3.sort((x2, y3) => (x2.in_reply_to_id ? 1 : 0) - (y3.in_reply_to_id ? 1 : 0) || x2.id - y3.id)), allRes = all2.length > 0 && all2.every(isRes), nres = all2.filter(isRes).length, rk = "r:" + e3.id;
+    const lists = S.unres ? all2.filter((l3) => !isRes(l3)) : all2;
     if (S.unres && !lists.length) return null;
     const threads = lists.map((list) => ({
       folded: isFolded("t:" + list[0].id, isRes(list)),
@@ -2543,8 +2559,47 @@
       cards: list.map((c3) => ({ user: c3.user, login: c3.user.login, at: c3.created_at, id: c3.id, root: list[0].id, withMenu: true, bodyHtml: c3.body_html || "", reactions: reactionProps(c3.reactions, "review_comment", c3.id), sug: suggestProps(c3, b2, list), anchorId: true, kb: S.kbId === "c-" + c3.id, flash: flashFor("c-" + c3.id) })),
       reply: { rid: list[0].id, ph: "Reply\u2026", err: errMsg("reply-" + list[0].id) }
     }));
-    const sum = all.length ? { ok: allRes, allRes, text: `${all.length} thread${all.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}` } : null;
+    const sum = all2.length ? { ok: allRes, allRes, text: `${all2.length} thread${all2.length === 1 ? "" : "s"}${nres ? ` \xB7 ${nres} resolved` : ""}` } : null;
     return { folded: isFolded(rk, allRes), k: rk, kind, ic, user: e3.user, verb, url: e3.html_url ?? "", at: whenParts(e3.submitted_at).text, sum, bodyHtml: hasBody ? e3.body_html : "", threads, allRes };
+  }
+
+  // src/app/viewed.ts
+  var stamp = (f4) => f4.sha || `${f4.additions}/${f4.deletions}`;
+  var key = () => `${S.bundle?.pull.base.repo.full_name}#${S.bundle?.pull.number}`;
+  var all = () => S.viewed ||= load("viewed", {});
+  var save = () => {
+    try {
+      localStorage.setItem("viewed", JSON.stringify(all()));
+    } catch {
+    }
+  };
+  var isViewed = (f4) => all()[key()]?.[f4.filename] === stamp(f4);
+  var viewedCount = (files) => files.filter(isViewed).length;
+  function toggleViewed(f4) {
+    const m3 = all()[key()] ||= {}, on3 = !isViewed(f4);
+    if (on3) m3[f4.filename] = stamp(f4);
+    else delete m3[f4.filename];
+    S.fold["f:" + f4.filename] = on3;
+    try {
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+    } catch {
+    }
+    save();
+    rerender();
+  }
+  function viewedAll(files, on3) {
+    const m3 = all()[key()] ||= {};
+    files.forEach((f4) => {
+      if (on3) m3[f4.filename] = stamp(f4);
+      else delete m3[f4.filename];
+      S.fold["f:" + f4.filename] = on3;
+    });
+    try {
+      localStorage.setItem("fold", JSON.stringify(S.fold));
+    } catch {
+    }
+    save();
+    rerender();
   }
 
   // src/app/fold.ts
@@ -2598,17 +2653,17 @@
       const x2 = t3 ? Date.parse(t3) : NaN;
       return isNaN(x2) || x2 >= rLo && x2 <= rHi;
     };
-    const keep4 = !rangeOn ? byKind : byKind.filter((e3) => inRange(evTime(e3)) || e3.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e3.id && inRange(c3.created_at)) || e3.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e3.id)));
+    const keep5 = !rangeOn ? byKind : byKind.filter((e3) => inRange(evTime(e3)) || e3.event === "reviewed" && b2.review_comments.some((c3) => c3.pull_request_review_id === e3.id && inRange(c3.created_at)) || e3.event === "reviewed" && b2.review_comments.some((c3) => inRange(c3.created_at) && b2.review_comments.some((r3) => r3.id === c3.in_reply_to_id && r3.pull_request_review_id === e3.id)));
     if (!S.unres && (!on3 || who.includes(p3.user.login))) out.push({ t: "comment", p: commentBoxProps({ ...p3, created_at: p3.created_at, html_url: p3.html_url, reactions: p3.reactions }, { isPr: true, flush: true }) });
     const evs = [];
-    for (let i3 = 0; i3 < keep4.length; ) {
+    for (let i3 = 0; i3 < keep5.length; ) {
       let j3 = i3;
-      while (j3 < keep4.length && keep4[j3].event === "committed") j3++;
+      while (j3 < keep5.length && keep5[j3].event === "committed") j3++;
       if (j3 - i3 >= 6) {
-        evs.push({ event: "commit-run", n: j3 - i3, first: keep4[i3], last: keep4[j3 - 1] });
+        evs.push({ event: "commit-run", n: j3 - i3, first: keep5[i3], last: keep5[j3 - 1] });
         i3 = j3;
       } else {
-        evs.push(keep4[i3]);
+        evs.push(keep5[i3]);
         i3++;
       }
     }
@@ -2921,6 +2976,102 @@
   // src/components/ToTop.tsx
   var ToTop = ({ dir, onClick }) => /* @__PURE__ */ u3("button", { id: "totop", title: dir === "down" ? "Scroll to bottom" : "Back to top", "aria-label": dir === "down" ? "Scroll to bottom" : "Back to top", hidden: !dir, onClick, children: I2(dir === "down" ? "chevron-down" : "chevron-up") });
 
+  // src/app/inboxtools.ts
+  var put = (k3, v3) => {
+    try {
+      localStorage.setItem(k3, JSON.stringify(v3));
+    } catch {
+    }
+  };
+  var ibPins = () => S.ibPins ||= load("ibpins", []);
+  var ibSnz = () => S.ibSnz ||= load("ibsnooze", {});
+  var ibViews = () => S.ibViews ||= load("ibviews", []);
+  var isSnoozed = (ref, updated) => {
+    const z3 = ibSnz()[ref];
+    return !!z3 && (z3.until > 0 ? Date.now() < z3.until : updated <= z3.at);
+  };
+  var snoozeLabel = (ref) => {
+    const z3 = ibSnz()[ref];
+    return !z3 ? "" : z3.until > 0 ? "Until " + new Date(z3.until).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : "Until new activity";
+  };
+  function ibPin(ref) {
+    const p3 = ibPins();
+    S.ibPins = p3.includes(ref) ? p3.filter((x2) => x2 !== ref) : [...p3, ref];
+    put("ibpins", S.ibPins);
+    render();
+  }
+  var at = (days, hour) => {
+    const d3 = /* @__PURE__ */ new Date();
+    d3.setDate(d3.getDate() + days);
+    d3.setHours(hour, 0, 0, 0);
+    return d3.getTime();
+  };
+  function ibSnooze(ref, kind, updated = "") {
+    const z3 = { ...ibSnz() };
+    S.ibSnzOpen = "";
+    if (kind === "off") delete z3[ref];
+    else z3[ref] = { until: kind === "tomorrow" ? at(1, 9) : kind === "week" ? at((8 - (/* @__PURE__ */ new Date()).getDay()) % 7 || 7, 9) : 0, at: updated };
+    S.ibSnz = z3;
+    put("ibsnooze", z3);
+    render();
+  }
+  function viewSave(name) {
+    name = name.trim();
+    S.ibNaming = false;
+    if (!name) return render();
+    S.ibViews = [...ibViews().filter((v3) => v3.name !== name), { name, q: S.ibQ || "", sort: S.ibSort || "updated" }];
+    put("ibviews", S.ibViews);
+    render();
+  }
+  function viewApply(name) {
+    const v3 = ibViews().find((x2) => x2.name === name);
+    if (!v3) return;
+    S.ibQ = v3.q;
+    S.ibSort = v3.sort;
+    S.ibView = name;
+    try {
+      localStorage.setItem("ibsort", v3.sort);
+    } catch {
+    }
+    render();
+  }
+  function viewDelete(name) {
+    S.ibViews = ibViews().filter((v3) => v3.name !== name);
+    put("ibviews", S.ibViews);
+    if (S.ibView === name) S.ibView = "";
+    render();
+  }
+  var visible = () => (inboxProps().secs || []).filter((s3) => !s3.closed).flatMap((s3) => s3.rows.map((r3) => ({ ref: r3.ref, sec: s3.key, updated: r3.updated })));
+  var keep2 = () => requestAnimationFrame(() => document.querySelector(".ib-row.sel")?.scrollIntoView({ block: "nearest" }));
+  function inboxKey(e3) {
+    const rows = visible(), i3 = rows.findIndex((r3) => r3.ref === S.ibSel), cur = rows[i3];
+    const move = (d3) => {
+      if (rows.length) {
+        S.ibSel = rows[Math.max(0, Math.min(rows.length - 1, i3 < 0 ? d3 > 0 ? 0 : rows.length - 1 : i3 + d3))].ref;
+        render();
+        keep2();
+      }
+    };
+    if (e3.key === "j" || e3.key === "ArrowDown") move(1);
+    else if (e3.key === "k" || e3.key === "ArrowUp") move(-1);
+    else if (e3.key === "Enter" && cur) openPr(cur.ref);
+    else if (e3.key === "p" && cur) ibPin(cur.ref);
+    else if (e3.key === "s" && cur) {
+      S.ibSnzOpen = S.ibSnzOpen === cur.ref ? "" : cur.ref;
+      render();
+    } else if (e3.key === "e" && cur) {
+      S.fold[cur.sec] = !S.fold[cur.sec];
+      try {
+        localStorage.setItem("fold", JSON.stringify(S.fold));
+      } catch {
+      }
+      render();
+    } else if (e3.key === "/") document.querySelector(".ib-bar input")?.focus();
+    else return false;
+    e3.preventDefault();
+    return true;
+  }
+
   // src/components/Home.tsx
   var cap = (s3) => s3[0].toUpperCase() + s3.slice(1);
   function Banners({ items, on: on3 }) {
@@ -3046,9 +3197,9 @@
 
   // src/components/PrList.tsx
   var cap2 = (s3) => s3[0].toUpperCase() + s3.slice(1);
-  function Opts({ arr, v: v3, all }) {
+  function Opts({ arr, v: v3, all: all2 }) {
     return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3("option", { value: "", children: all }),
+      /* @__PURE__ */ u3("option", { value: "", children: all2 }),
       arr.map((x2) => /* @__PURE__ */ u3("option", { value: x2, selected: x2 === v3, children: x2 }))
     ] });
   }
@@ -3307,7 +3458,27 @@
       ] })
     ] }, p3.seq);
   }
-  function InboxPage({ p: { loading, err, secs, sort, sorts, q: q3, custom }, on: on3 }) {
+  function ViewsBar({ views, view: view2, naming, on: on3 }) {
+    if (naming) return /* @__PURE__ */ u3("span", { class: "ib-views", children: [
+      /* @__PURE__ */ u3("input", { class: "input", placeholder: "Name this view", autofocus: true, ref: (el) => el?.focus(), onKeyDown: (e3) => {
+        if (e3.key === "Enter") on3.viewSave(e3.target.value);
+        else if (e3.key === "Escape") on3.viewNaming(false);
+      } }),
+      /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.viewNaming(false), children: "Cancel" })
+    ] });
+    return /* @__PURE__ */ u3("span", { class: "ib-views", children: [
+      views.length ? /* @__PURE__ */ u3("label", { children: [
+        "View",
+        /* @__PURE__ */ u3("select", { class: "input", onChange: (e3) => on3.viewApply(e3.target.value), children: [
+          /* @__PURE__ */ u3("option", { value: "", children: "Choose\u2026" }),
+          views.map((v3) => /* @__PURE__ */ u3("option", { value: v3, selected: v3 === view2, children: v3 }))
+        ] })
+      ] }) : null,
+      /* @__PURE__ */ u3("button", { class: "btn small", title: "Save the current filter and sort as a view", onClick: () => on3.viewNaming(true), children: "Save view" }),
+      view2 ? /* @__PURE__ */ u3("button", { class: "btn small", title: `Delete view \u201C${view2}\u201D`, onClick: () => on3.viewDelete(view2), children: "Delete view" }) : null
+    ] });
+  }
+  function InboxPage({ p: { loading, err, secs, sort, sorts, q: q3, custom, views, view: view2, naming }, on: on3 }) {
     const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
@@ -3331,18 +3502,29 @@
       ] }),
       s3.closed ? "" : /* @__PURE__ */ u3(S2, { children: [
         /* @__PURE__ */ u3("p", { children: s3.sub }),
-        s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: "ib-row", "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
+        s3.rows.length ? s3.rows.map((r3) => /* @__PURE__ */ u3("a", { class: `ib-row${r3.sel ? " sel" : ""}${r3.pinned ? " pinned" : ""}`, "data-open": r3.ref, onClick: (e3) => on3.open(e3.currentTarget, e3), onAuxClick: (e3) => on3.aux(e3.currentTarget, e3), onContextMenu: (e3) => on3.ctx(e3.currentTarget, e3), children: [
           /* @__PURE__ */ u3("img", { src: r3.avatar, alt: "" }),
           /* @__PURE__ */ u3("span", { class: "ib-t", children: [
             /* @__PURE__ */ u3("b", { children: r3.title }),
             /* @__PURE__ */ u3("i", { children: r3.sub })
           ] }),
           r3.fresh ? /* @__PURE__ */ u3("span", { class: "ib-new", children: "New activity" }) : "",
+          r3.snz ? /* @__PURE__ */ u3("span", { class: "ib-snz", children: r3.snz }) : "",
           r3.comments ? /* @__PURE__ */ u3("span", { class: "ib-c", children: [
             I2("comment"),
             SP,
             r3.comments
-          ] }) : ""
+          ] }) : "",
+          /* @__PURE__ */ u3("span", { class: "ib-acts", onClick: (e3) => e3.stopPropagation(), children: [
+            r3.snzOpen ? /* @__PURE__ */ u3(S2, { children: [
+              r3.snz ? /* @__PURE__ */ u3("button", { onClick: () => on3.snooze(r3.ref, "off", r3.updated), children: "Wake" }) : "",
+              /* @__PURE__ */ u3("button", { onClick: () => on3.snooze(r3.ref, "tomorrow", r3.updated), children: "Tomorrow" }),
+              /* @__PURE__ */ u3("button", { onClick: () => on3.snooze(r3.ref, "week", r3.updated), children: "Next week" }),
+              /* @__PURE__ */ u3("button", { onClick: () => on3.snooze(r3.ref, "activity", r3.updated), children: "Until activity" })
+            ] }) : null,
+            /* @__PURE__ */ u3("button", { class: r3.pinned ? "on" : "", title: r3.pinned ? "Unpin" : "Pin to the top", onClick: () => on3.pin(r3.ref), children: I2("bookmark") }),
+            /* @__PURE__ */ u3("button", { title: "Snooze", onClick: () => on3.snoozeMenu(r3.ref), children: I2("clock") })
+          ] })
         ] })) : /* @__PURE__ */ u3("div", { class: "ib-none", children: q3 ? "No matches." : "Nothing here. Nice." })
       ] })
     ] }, s3.title));
@@ -3363,7 +3545,8 @@
           /* @__PURE__ */ u3("select", { class: "input", onChange: on3.sort, children: sorts.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === sort, children: t3 })) })
         ] }),
         /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.foldAll(!allClosed), disabled: !secs, children: allClosed ? "Expand all" : "Collapse all" }),
-        custom ? /* @__PURE__ */ u3("button", { class: "btn small", onClick: on3.resetOrder, children: "Reset order" }) : ""
+        custom ? /* @__PURE__ */ u3("button", { class: "btn small", onClick: on3.resetOrder, children: "Reset order" }) : "",
+        /* @__PURE__ */ u3(ViewsBar, { views, view: view2, naming, on: on3 })
       ] }),
       body
     ] });
@@ -3587,8 +3770,8 @@
     rm: rmRecent,
     addToken: tokenDialog,
     compare: (repo, br) => openNewPr(repo, br),
-    dismiss: (key) => {
-      pushDis[key] = 1;
+    dismiss: (key2) => {
+      pushDis[key2] = 1;
       localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
       rerender();
     }
@@ -3601,6 +3784,18 @@
   }
 
   // src/app/pr.tsx
+  function prSummary(b2) {
+    const p3 = b2.pull, [, , label] = stateOf(p3), latest = /* @__PURE__ */ new Map();
+    b2.timeline.filter((e3) => e3.event === "reviewed" && e3.user).forEach((e3) => {
+      const st = e3.state.toLowerCase();
+      if (st !== "commented" || !latest.has(e3.user.login)) latest.set(e3.user.login, st);
+    });
+    const by = (s3) => [...latest].filter(([, v3]) => v3 === s3).map(([u4]) => u4);
+    const rv = [by("approved").length ? `approved by ${by("approved").join(", ")}` : "", by("changes_requested").length ? `changes requested by ${by("changes_requested").join(", ")}` : ""].filter(Boolean).join("; ") || "no reviews yet";
+    return `${p3.title} (${p3.base.repo.full_name}#${p3.number})
+${label} \xB7 by ${p3.user.login} \xB7 +${p3.additions} \u2212${p3.deletions} in ${p3.changed_files ?? b2.files.length} files \xB7 ${rv}
+${p3.html_url}`;
+  }
   var hide = (k3, v3) => keep(() => {
     S.hide[k3] = v3;
     localStorage.setItem("hide", JSON.stringify(S.hide));
@@ -3615,6 +3810,9 @@
       navigator.clipboard?.writeText(S.bundle.pull.head.ref);
     },
     review: reviewDialog,
+    summary: () => {
+      navigator.clipboard?.writeText(prSummary(S.bundle));
+    },
     side: () => keep(() => {
       S.hide.side = !S.hide.side;
       localStorage.setItem("hide", JSON.stringify(S.hide));
@@ -3802,6 +4000,7 @@
       return;
     }
     if (e3.metaKey || e3.ctrlKey || e3.altKey || typing(e3.target) || $(".palette, .dlg-bg")) return;
+    if (S.view === "inbox" && inboxKey(e3)) return;
     if (e3.key === "j") kbStep(1);
     else if (e3.key === "k") kbStep(-1);
     else if (e3.key === "]") kbStep(1, openThreads);
@@ -3826,9 +4025,9 @@
         return;
       }
       e3.preventDefault();
-      const key = host.dataset.draft;
-      scrollDraft(key);
-      focusDraft(key);
+      const key2 = host.dataset.draft;
+      scrollDraft(key2);
+      focusDraft(key2);
     }
   }
 
@@ -3984,8 +4183,8 @@
   function sinceReview(b2) {
     const cs = commitList(b2), mine = b2.timeline.filter((e3) => e3.event === "reviewed" && e3.user?.login === S.me && e3.commit_id);
     if (!S.me || !mine.length) return null;
-    const at = cs.findIndex((c3) => c3.sha === mine[mine.length - 1].commit_id);
-    return at < 0 ? null : { at, n: cs.length - 1 - at };
+    const at2 = cs.findIndex((c3) => c3.sha === mine[mine.length - 1].commit_id);
+    return at2 < 0 ? null : { at: at2, n: cs.length - 1 - at2 };
   }
   function commitsDialogProps() {
     const b2 = S.bundle, cs = commitList(b2), pick = S.cpick || S.fr, sr = sinceReview(b2), q3 = (S.cfilter || "").toLowerCase();
@@ -4032,9 +4231,9 @@
       S.autoFoldFor = pid;
       let budget = 1200;
       for (const f4 of files) {
-        const n2 = f4.additions + f4.deletions, key = "f:" + f4.filename;
-        if (key in S.fold || hasC(f4)) continue;
-        if (n2 > 400 || n2 > budget) S.fold[key] = true;
+        const n2 = f4.additions + f4.deletions, key2 = "f:" + f4.filename;
+        if (key2 in S.fold || hasC(f4)) continue;
+        if (n2 > 400 || n2 > budget) S.fold[key2] = true;
         else budget -= n2;
       }
     }
@@ -4043,13 +4242,13 @@
     const so = { path: null, pathz: (x2, y3) => y3.filename.localeCompare(x2.filename), most: (x2, y3) => y3.additions + y3.deletions - (x2.additions + x2.deletions), least: (x2, y3) => x2.additions + x2.deletions - (y3.additions + y3.deletions), comments: (x2, y3) => cnt(y3) - cnt(x2), status: (x2, y3) => String(x2.status).localeCompare(String(y3.status)) || x2.filename.localeCompare(y3.filename) };
     const srtFn = so[srt];
     if (srtFn) files = [...files].sort(srtFn);
-    const all = files.every((f4) => S.fold["f:" + f4.filename]);
+    const all2 = files.every((f4) => S.fold["f:" + f4.filename]);
     return /* @__PURE__ */ u3(S2, { children: [
-      /* @__PURE__ */ u3(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all, names: files.map((f4) => f4.filename), on: filesOn }),
+      /* @__PURE__ */ u3(FilesBar, { mode: S.diffMode ?? "", sort: srt, pending: pendList().length, allFolded: all2, names: files.map((f4) => f4.filename), viewed: viewedCount(files), total: files.length, onViewedAll: () => viewedAll(files, viewedCount(files) !== files.length), on: filesOn }),
       files.map((f4) => {
         const t3 = f4.additions + f4.deletions || 1, a3 = Math.round(f4.additions / t3 * 5), d3 = Math.min(5 - a3, Math.round(f4.deletions / t3 * 5));
         const sq = Array.from({ length: 5 }, (_3, i3) => i3 < a3 ? "a" : i3 < a3 + d3 ? "d" : "");
-        return /* @__PURE__ */ u3(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, on: filesOn, children: !shown2(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
+        return /* @__PURE__ */ u3(FileBox, { name: f4.filename, folded: isFolded("f:" + f4.filename), closed: !!S.fold["f:" + f4.filename], add: f4.additions, del: f4.deletions, sq, viewed: isViewed(f4), onViewed: () => toggleViewed(f4), on: filesOn, children: !shown2(f4) ? "" : f4.patch ? diffTable(f4.patch, f4.filename, canComment && b0open(), diffOn) : /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Binary file or diff too large to display." }) });
       })
     ] });
   }
@@ -4156,7 +4355,7 @@
   function repoPickSave() {
     const p3 = S.rpick;
     if (!p3?.all) return;
-    const keep4 = new Set(p3.on), chosen = [...p3.all, ...S.repoSel || []].filter((r3, i3, a3) => keep4.has(r3.full_name) && a3.findIndex((x2) => x2.full_name === r3.full_name) === i3);
+    const keep5 = new Set(p3.on), chosen = [...p3.all, ...S.repoSel || []].filter((r3, i3, a3) => keep5.has(r3.full_name) && a3.findIndex((x2) => x2.full_name === r3.full_name) === i3);
     S.repoSel = chosen.length && chosen.length < p3.all.length ? chosen : null;
     try {
       if (S.repoSel) localStorage.setItem("repoSel", JSON.stringify(S.repoSel));
@@ -4751,7 +4950,7 @@
   };
 
   // src/app/top.tsx
-  var keep2 = (fn) => {
+  var keep3 = (fn) => {
     S.keepScroll = true;
     fn();
     render();
@@ -4763,7 +4962,7 @@
     localStorage.setItem("mode", S.mode);
     const swap = () => {
       S.themePop = (S.themePop || 0) + 1;
-      keep2(() => {
+      keep3(() => {
       });
     };
     if (!document.startViewTransition) {
@@ -4773,6 +4972,8 @@
     const end = Math.hypot(Math.max(x2, innerWidth - x2), Math.max(y3, innerHeight - y3));
     document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x2}px ${y3}px)`, `circle(${end}px at ${x2}px ${y3}px)`] }, { duration: 750, easing: "cubic-bezier(.4,0,.2,1)", pseudoElement: "::view-transition-new(root)" }).finished);
   };
+  var dense = () => document.documentElement.classList.contains("dense");
+  document.documentElement.classList.toggle("dense", localStorage.getItem("dense") === "1");
   var prof = (e3) => {
     e3.stopPropagation();
     if (S.pop?.k === "prof") {
@@ -4780,12 +4981,18 @@
       return;
     }
     const pr = S.profile, r3 = e3.currentTarget.getBoundingClientRect();
-    openPop({ k: "prof", right: Math.max(8, innerWidth - r3.right), top: r3.bottom + 6, name: pr.name || pr.login, ver: S.ver, login: pr.login, avatar: avUrl(pr.avatar_url, 80), pick: async (h3) => {
+    openPop({ k: "prof", right: Math.max(8, innerWidth - r3.right), top: r3.bottom + 6, name: pr.name || pr.login, ver: S.ver, dense: dense(), login: pr.login, avatar: avUrl(pr.avatar_url, 80), pick: async (h3) => {
       closePop();
       if (h3 === "profile") openExternal(pr.html_url);
       else if (h3 === "token") tokenDialog();
       else if (h3 === "repos") repoPickOpen();
-      else {
+      else if (h3 === "dense") {
+        document.documentElement.classList.toggle("dense", !dense());
+        try {
+          localStorage.setItem("dense", dense() ? "1" : "0");
+        } catch {
+        }
+      } else {
         try {
           await tauri?.invoke("set_token", { token: "" });
         } catch {
@@ -4811,11 +5018,11 @@
           localStorage.setItem("hide", JSON.stringify(S.hide));
         } catch {
         }
-        keep2(() => {
+        keep3(() => {
         });
         return;
       }
-      keep2(() => {
+      keep3(() => {
         S.nav = !S.nav;
       });
     },
@@ -5141,8 +5348,8 @@
   }
 
   // src/app/side.tsx
-  var typed = (e3, key) => {
-    S[key] = e3.target.value;
+  var typed = (e3, key2) => {
+    S[key2] = e3.target.value;
     render();
   };
   var on2 = {
@@ -5212,20 +5419,20 @@
       ] }),
       list.map((p3) => /* @__PURE__ */ u3(RcItem, { r: row2(p3), on: on2 }))
     ] });
-    const groups = /* @__PURE__ */ new Map(), put = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
+    const groups = /* @__PURE__ */ new Map(), put2 = (k3, p3) => (groups.get(k3) || groups.set(k3, []).get(k3)).push(p3);
     list.forEach((p3) => {
-      if (S.pgroup === "status") put({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }[prStatus(p3)], p3);
-      else if (S.pgroup === "author") put(p3.user.login, p3);
-      else if (S.pgroup === "base") put(p3.base?.ref || "\u2014", p3);
-      else if ((p3.labels || []).length) p3.labels.forEach((l3) => put(l3.name, p3));
-      else put("No label", p3);
+      if (S.pgroup === "status") put2({ open: "Open", draft: "Draft", merged: "Merged", closed: "Closed" }[prStatus(p3)], p3);
+      else if (S.pgroup === "author") put2(p3.user.login, p3);
+      else if (S.pgroup === "base") put2(p3.base?.ref || "\u2014", p3);
+      else if ((p3.labels || []).length) p3.labels.forEach((l3) => put2(l3.name, p3));
+      else put2("No label", p3);
     });
     const order = S.pgroup === "status" ? ["Open", "Draft", "Merged", "Closed"] : [...groups.keys()].sort((a3, b2) => +(a3 === "No label") - +(b2 === "No label") || a3.localeCompare(b2));
     return /* @__PURE__ */ u3(S2, { children: [
       header,
       /* @__PURE__ */ u3(PrGroups, { on: on2, groups: order.filter((k3) => groups.has(k3)).map((k3) => {
-        const key = "pg:" + S.pgroup + ":" + k3;
-        return { key, folded: folded(key), closed: isFolded(key), name: k3, rows: groups.get(k3).map(row2) };
+        const key2 = "pg:" + S.pgroup + ":" + k3;
+        return { key: key2, folded: folded(key2), closed: isFolded(key2), name: k3, rows: groups.get(k3).map(row2) };
       }) })
     ] });
   }
@@ -5287,8 +5494,8 @@
       openRepo(S.repo, { nav: true });
     },
     compare: (repo, br) => openNewPr(repo, br),
-    dismiss: (key) => {
-      pushDis[key] = 1;
+    dismiss: (key2) => {
+      pushDis[key2] = 1;
       localStorage.setItem("pushdismiss", JSON.stringify(pushDis));
       rerender();
     },
@@ -5321,7 +5528,7 @@
       /* @__PURE__ */ u3(PrListPage, { p: prListProps(), on: prl })
     ] });
   }
-  var keep3 = (fn) => {
+  var keep4 = (fn) => {
     S.keepScroll = true;
     fn();
     render();
@@ -5330,28 +5537,28 @@
   var notes = {
     ...open,
     check: () => pollNotes(),
-    readAll: () => keep3(() => {
+    readAll: () => keep4(() => {
       S.notes.forEach((n2) => n2.read = true);
       saveNotes();
     }),
-    clear: () => keep3(() => {
+    clear: () => keep4(() => {
       S.notes = [];
       saveNotes();
     }),
-    filter: (f4) => keep3(() => {
+    filter: (f4) => keep4(() => {
       S.nf = f4;
     }),
     read: (e3, id) => {
       e3.stopPropagation();
       const n2 = S.notes.find((x2) => String(x2.id) === String(id));
-      if (n2) keep3(() => {
+      if (n2) keep4(() => {
         n2.read = !n2.read;
         saveNotes();
       });
     },
     del: (e3, id) => {
       e3.stopPropagation();
-      keep3(() => {
+      keep4(() => {
         S.notes = S.notes.filter((x2) => String(x2.id) !== String(id));
         saveNotes();
       });
@@ -5408,6 +5615,19 @@
     },
     grip: ibGrip,
     resetOrder: () => ibSave([]),
+    pin: ibPin,
+    snooze: ibSnooze,
+    snoozeMenu: (r3) => {
+      S.ibSnzOpen = S.ibSnzOpen === r3 ? "" : r3;
+      render();
+    },
+    viewApply,
+    viewSave,
+    viewDelete,
+    viewNaming: (on3) => {
+      S.ibNaming = on3;
+      render();
+    },
     foldAll: (closed) => {
       IB_TITLES.forEach((t3) => {
         S.fold[ibSecKey(t3)] = closed;
@@ -5646,17 +5866,17 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     n2.cmp = null;
     npLoadTemplates();
     if (!n2.repo || !n2.base || !n2.head || n2.base === n2.head) return rerender();
-    const key = `${n2.repo}|${n2.base}|${n2.head}`;
-    n2.key = key;
+    const key2 = `${n2.repo}|${n2.base}|${n2.head}`;
+    n2.key = key2;
     n2.cmp = "loading";
     rerender();
     try {
       const r3 = await tauri.invoke("compare_branches", { repo: n2.repo, base: n2.base, head: n2.head });
-      if (S.np.key !== key) return;
+      if (S.np.key !== key2) return;
       n2.cmp = r3;
       if (!n2.titleTouched) n2.title = r3.commits.length === 1 ? r3.commits[0] : npHuman(n2.head);
     } catch (e3) {
-      if (S.np.key !== key) return;
+      if (S.np.key !== key2) return;
       n2.cmp = String(e3).replace(/^Error: /, "");
     }
     rerender();
@@ -5686,38 +5906,46 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   }
   var IB_SORTS = [["updated", "Newest activity"], ["oldest", "Oldest activity"], ["comments", "Most comments"], ["repo", "Repository"], ["author", "Author"], ["title", "Title"]];
   var ibCmp = (k3) => {
-    const t3 = (x2, y3) => x2.localeCompare(y3, void 0, { sensitivity: "base" }), at = (a3, b2) => b2.updated_at > a3.updated_at ? 1 : b2.updated_at < a3.updated_at ? -1 : 0;
+    const t3 = (x2, y3) => x2.localeCompare(y3, void 0, { sensitivity: "base" }), at2 = (a3, b2) => b2.updated_at > a3.updated_at ? 1 : b2.updated_at < a3.updated_at ? -1 : 0;
     switch (k3) {
       case "oldest":
-        return (a3, b2) => at(b2, a3);
+        return (a3, b2) => at2(b2, a3);
       case "comments":
-        return (a3, b2) => (b2.comments || 0) - (a3.comments || 0) || at(a3, b2);
+        return (a3, b2) => (b2.comments || 0) - (a3.comments || 0) || at2(a3, b2);
       case "repo":
-        return (a3, b2) => t3(a3.repo, b2.repo) || at(a3, b2);
+        return (a3, b2) => t3(a3.repo, b2.repo) || at2(a3, b2);
       case "author":
-        return (a3, b2) => t3(a3.user, b2.user) || at(a3, b2);
+        return (a3, b2) => t3(a3.user, b2.user) || at2(a3, b2);
       case "title":
         return (a3, b2) => t3(a3.title, b2.title);
       default:
-        return at;
+        return at2;
     }
   };
   var ibSecKey = (title) => "ib:" + title;
-  var IB_TITLES = ["Review requested", "Ready to merge", "Mentioned", "Participated", "Your pull requests", "Recently closed or merged"];
+  var IB_TITLES = ["Pinned", "Review requested", "Ready to merge", "Mentioned", "Participated", "Your pull requests", "Recently closed or merged", "Snoozed"];
   var ibOrder = () => {
     const saved = S.ibOrder || [];
-    return [...saved.filter((t3) => IB_TITLES.includes(t3)), ...IB_TITLES.filter((t3) => !saved.includes(t3))];
+    return [...saved.includes("Pinned") ? [] : ["Pinned"], ...saved.filter((t3) => IB_TITLES.includes(t3)), ...IB_TITLES.filter((t3) => !saved.includes(t3) && t3 !== "Pinned")];
   };
   function inboxProps() {
     const I3 = S.inbox || { loading: true }, d3 = I3.data, q3 = (S.ibQ || "").toLowerCase(), cmp = ibCmp(S.ibSort || "updated");
+    const pins = ibPins();
     const row2 = (p3) => {
       const ref = `${p3.repo}#${p3.number}`, was = seen[ref]?.at;
-      return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
+      return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0, updated: p3.updated_at, pinned: pins.includes(ref), snz: snoozeLabel(ref), sel: S.ibSel === ref, snzOpen: S.ibSnzOpen === ref };
     };
-    const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3)).sort(cmp).map(row2) });
-    const all = d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null;
+    const refOf = (x2) => `${x2.repo}#${x2.number}`, match = (x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3);
+    const lists = d3 ? [["Review requested", "Waiting on you", d3.requested], ["Ready to merge", "Your approved pull requests", d3.ready], ["Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []], ["Participated", "Open PRs you commented on or reviewed", d3.participated || []], ["Your pull requests", "Open PRs you opened", d3.mine], ["Recently closed or merged", "PRs you were involved in", d3.closed || []]] : [];
+    const everything = /* @__PURE__ */ new Map();
+    lists.forEach(([, , l3]) => l3.forEach((x2) => everything.has(refOf(x2)) || everything.set(refOf(x2), x2)));
+    const snoozed = [...everything.values()].filter((x2) => isSnoozed(refOf(x2), x2.updated_at)), hidden = new Set(snoozed.map(refOf));
+    const pinned = [...everything.values()].filter((x2) => pins.includes(refOf(x2)) && !hidden.has(refOf(x2)));
+    const taken = /* @__PURE__ */ new Set([...hidden, ...pinned.map(refOf)]);
+    const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter(match).sort(cmp).map(row2) });
+    const all2 = d3 ? [...pinned.length ? [sec("Pinned", "Kept on top", pinned)] : [], ...lists.map(([t3, s3, l3]) => sec(t3, s3, l3.filter((x2) => !taken.has(refOf(x2))))), ...snoozed.length ? [sec("Snoozed", "Hidden until their time is up or they have new activity", snoozed)] : []] : null;
     const order = ibOrder();
-    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1, ro: roCls("ib", x2.title) })) : null };
+    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, views: ibViews().map((v3) => v3.name), view: S.ibView || "", naming: !!S.ibNaming, secs: all2 ? all2.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1, ro: roCls("ib", x2.title) })) : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {
@@ -5787,12 +6015,12 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       return;
     }
     const stash = S.stash, live2 = stash ? stash.vnode : liveView(), ref = curRef();
-    const key = S.loading ? "loading" : S.view === "pr" && S.bundle ? "pr:" + ref : S.view || "home";
+    const key2 = S.loading ? "loading" : S.view === "pr" && S.bundle ? "pr:" + ref : S.view || "home";
     if (S.view === "pr" && S.bundle && !S.loading && live2) shown = { ref, vnode: live2 };
-    const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
+    const kept = [...S.alive].filter(([r3]) => "pr:" + r3 !== key2).map(([r3, a3]) => ({ key: "pr:" + r3, children: a3.vnode }));
     batch(() => {
       paintTop();
-      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key, children: live2 }, onPage: followLink, onGrip: (e3) => gripDown(e3), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e3) => scrolled("main", e3.currentTarget), onMeasure: (el) => {
+      setShell({ nav: !!S.nav, navHidden: !!S.hide.nav, sbw: S.sbw, lw: S.lw, fade: !!S.fadeMain, enter: !!S.enter, stuck: !!S.stuck, active: { key: key2, children: live2 }, onPage: followLink, onGrip: (e3) => gripDown(e3), onGripReset: () => gripReset(), onScrim: () => scrimTap(), onScroll: (e3) => scrolled("main", e3.currentTarget), onMeasure: (el) => {
         if (S.scrollId === "main" || !S.scrollId) scrollBtn(el);
       }, kept });
       paintSide();
@@ -5958,12 +6186,12 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   }
   function bpGroups(br, q3, me) {
     const det = new Map((br.details || []).map((d3) => [d3.name, d3])), rank = new Map(br.branches.map((b2, i3) => [b2, i3]));
-    const all = br.branches.map((name) => ({ name, at: det.get(name)?.at || "", by: det.get(name)?.by || "" })).sort((a3, b2) => b2.at > a3.at ? 1 : b2.at < a3.at ? -1 : rank.get(a3.name) - rank.get(b2.name));
+    const all2 = br.branches.map((name) => ({ name, at: det.get(name)?.at || "", by: det.get(name)?.by || "" })).sort((a3, b2) => b2.at > a3.at ? 1 : b2.at < a3.at ? -1 : rank.get(a3.name) - rank.get(b2.name));
     if (q3) {
       const t3 = q3.toLowerCase();
-      return [["", all.filter((x2) => x2.name.toLowerCase().includes(t3))]];
+      return [["", all2.filter((x2) => x2.name.toLowerCase().includes(t3))]];
     }
-    const out = [], used = /* @__PURE__ */ new Set(), take = (f4) => all.filter((x2) => !used.has(x2.name) && f4(x2) && used.add(x2.name));
+    const out = [], used = /* @__PURE__ */ new Set(), take = (f4) => all2.filter((x2) => !used.has(x2.name) && f4(x2) && used.add(x2.name));
     const def = take((x2) => x2.name === br.default);
     if (def.length) out.push(["Default", def]);
     const mine = me ? take((x2) => x2.by && x2.by.toLowerCase() === me.toLowerCase()) : [];
@@ -5982,15 +6210,15 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     return out;
   }
   function rpGroups(repos, q3, me) {
-    const all = repos.filter((r3) => !r3.archived).map((r3) => ({ name: r3.full_name, at: r3.pushed_at || "", by: r3.private ? "private" : "" })).sort((a3, b2) => b2.at > a3.at ? 1 : b2.at < a3.at ? -1 : 0);
+    const all2 = repos.filter((r3) => !r3.archived).map((r3) => ({ name: r3.full_name, at: r3.pushed_at || "", by: r3.private ? "private" : "" })).sort((a3, b2) => b2.at > a3.at ? 1 : b2.at < a3.at ? -1 : 0);
     if (q3) {
       const t3 = q3.toLowerCase();
-      return [["", all.filter((x2) => x2.name.toLowerCase().includes(t3))]];
+      return [["", all2.filter((x2) => x2.name.toLowerCase().includes(t3))]];
     }
-    const out = [], recent = all.slice(0, 5), used = new Set(recent.map((x2) => x2.name));
+    const out = [], recent = all2.slice(0, 5), used = new Set(recent.map((x2) => x2.name));
     if (recent.length) out.push(["Recently pushed", recent]);
     const by = /* @__PURE__ */ new Map();
-    all.filter((x2) => !used.has(x2.name)).forEach((x2) => {
+    all2.filter((x2) => !used.has(x2.name)).forEach((x2) => {
       const o3 = x2.name.split("/")[0];
       (by.get(o3) || by.set(o3, []).get(o3)).push(x2);
     });
@@ -6128,8 +6356,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     } };
     render();
   }
-  async function previewDraft(key) {
-    const md = (S.draft[key] || "").trim();
+  async function previewDraft(key2) {
+    const md = (S.draft[key2] || "").trim();
     if (!md) return null;
     try {
       if (!tauri) throw new Error("offline");
@@ -6208,23 +6436,23 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     r3.added === false ? set.delete(c3) : set.add(c3);
     await refreshPr(kind === "pr" ? "" : rid);
   }
-  async function act(action, args, key, inDialog = false) {
+  async function act(action, args, key2, inDialog = false) {
     const sel = S.lastSel ?? null;
     setBusy(sel, true);
     try {
-      return await act2(action, args, key, inDialog);
+      return await act2(action, args, key2, inDialog);
     } finally {
       setBusy(sel, false);
     }
   }
-  async function act2(action, args, key, inDialog = false) {
+  async function act2(action, args, key2, inDialog = false) {
     S.actErr = null;
     if (!tauri) {
-      S.actErr = { k: key, m: "Writing needs the desktop app." };
+      S.actErr = { k: key2, m: "Writing needs the desktop app." };
       render();
       return void 0;
     }
-    S.busy = key;
+    S.busy = key2;
     if (!inDialog) render();
     try {
       const r3 = action === "react" ? await tauri.invoke("toggle_reaction", { ...prRef(), kind: args.kind, id: args.id, content: args.content }) : await tauri.invoke("pr_action", { ...prRef(), action, body: null, id: null, event: null, method: null, kind: null, content: null, extra: null, ...args });
@@ -6233,7 +6461,7 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       return r3 ?? {};
     } catch (e3) {
       S.busy = "";
-      S.actErr = { k: key, m: String(e3).replace(/^Error: /, "") };
+      S.actErr = { k: key2, m: String(e3).replace(/^Error: /, "") };
       render();
       return void 0;
     }
@@ -6292,8 +6520,8 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
     if (how === "edit") return kind === "pr" ? editPrDialog() : editCommentDialog(c3, kind);
     if (how === "hide") return hideCommentDialog(c3);
     if (how === "del") return deleteCommentDialog(c3, kind);
-    const key = root ? "reply-" + root : "comment", q3 = (c3.body || "").split("\n").map((l3) => "> " + l3).join("\n");
-    S.draft[key] = (S.draft[key] ? S.draft[key] + "\n\n" : "") + `@${(c3.user || c3.actor || {}).login || ""}
+    const key2 = root ? "reply-" + root : "comment", q3 = (c3.body || "").split("\n").map((l3) => "> " + l3).join("\n");
+    S.draft[key2] = (S.draft[key2] ? S.draft[key2] + "\n\n" : "") + `@${(c3.user || c3.actor || {}).login || ""}
 
 ${q3}
 
@@ -6302,8 +6530,8 @@ ${q3}
     S.keepScroll = true;
     render();
     S.keepScroll = false;
-    syncDraft(key);
-    setTimeout(() => scrollDraft(key), 50);
+    syncDraft(key2);
+    setTimeout(() => scrollDraft(key2), 50);
   }
   function addLocal(kind, r3, rootId) {
     const b2 = S.bundle;
@@ -6532,36 +6760,36 @@ ${ev.currentTarget.dataset.code}
   };
   var live = /* @__PURE__ */ new Map();
   var wantFocus = /* @__PURE__ */ new Set();
-  editorMount.focus = (key) => {
-    const ed = [...live].find(([, k3]) => k3 === key)?.[0];
+  editorMount.focus = (key2) => {
+    const ed = [...live].find(([, k3]) => k3 === key2)?.[0];
     if (ed) ed.focus?.();
-    else wantFocus.add(key);
+    else wantFocus.add(key2);
   };
-  var focusDraft = (key) => request("draft:focus:" + key);
-  var scrollDraft = (key) => request("draft:scroll:" + key);
-  var blurDraft = (key) => request("draft:blur:" + key);
-  function syncDraft(key) {
+  var focusDraft = (key2) => request("draft:focus:" + key2);
+  var scrollDraft = (key2) => request("draft:scroll:" + key2);
+  var blurDraft = (key2) => request("draft:blur:" + key2);
+  function syncDraft(key2) {
     live.forEach((k3, ed) => {
-      if (k3 === key) ed.setMarkdown?.(S.draft[key] || "");
+      if (k3 === key2) ed.setMarkdown?.(S.draft[key2] || "");
     });
   }
   editorMount.preview = previewDraft;
-  editorMount.fn = (host, key, ph) => {
+  editorMount.fn = (host, key2, ph) => {
     if (!window.createEditor) {
       host.innerHTML = '<div class="act-err">Editor failed to load.</div>';
       return () => {
       };
     }
-    const send = () => request("draft:submit:" + key);
+    const send = () => request("draft:submit:" + key2);
     let ed = null, gone = false;
     const mount = () => {
       if (gone) return;
-      ed = window.createEditor(host, { value: S.draft[key] || "", placeholder: ph, people: peopleList(), onChange: (md) => {
-        S.draft[key] = md;
+      ed = window.createEditor(host, { value: S.draft[key2] || "", placeholder: ph, people: peopleList(), onChange: (md) => {
+        S.draft[key2] = md;
         saveDrafts();
       }, onSubmit: send });
-      live.set(ed, key);
-      if (wantFocus.delete(key)) ed.focus?.();
+      live.set(ed, key2);
+      if (wantFocus.delete(key2)) ed.focus?.();
     };
     const io = new IntersectionObserver((en) => {
       if (en.some((x2) => x2.isIntersecting)) {
@@ -6755,11 +6983,11 @@ ${ev.currentTarget.dataset.code}
     render();
     S.keepScroll = false;
     if (savedScroll) {
-      const put = () => scrollMain(savedScroll);
-      put();
-      requestAnimationFrame(put);
+      const put2 = () => scrollMain(savedScroll);
+      put2();
+      requestAnimationFrame(put2);
       setTimeout(() => {
-        put();
+        put2();
         S.restoring = false;
       }, 250);
     }

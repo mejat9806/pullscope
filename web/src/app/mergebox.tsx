@@ -8,6 +8,7 @@ import { errMsg, rerender } from './actions';
 import { isFolded } from './comments';
 import { S, tauri, when, $ } from './core';
 import { diffTable, pendList } from './diff';
+import { isViewed, toggleViewed, viewedAll, viewedCount } from './viewed';
 import { attOn, convOn, diffOn, filesOn, tlOn } from './handlers';
 import { render, repaintShell, setDragging } from './pages';
 import { scrolled } from './scrolling';
@@ -125,11 +126,11 @@ export function filesList(files: FileChange[], canComment = false): VNode {
   const srtFn = so[srt]; if (srtFn) files = [...files].sort(srtFn);
   const all = files.every((f) => S.fold['f:' + f.filename]);
   return <>
-    <FilesBar mode={S.diffMode ?? ''} sort={srt} pending={pendList().length} allFolded={all} names={files.map((f) => f.filename)} on={filesOn} />
+    <FilesBar mode={S.diffMode ?? ''} sort={srt} pending={pendList().length} allFolded={all} names={files.map((f) => f.filename)} viewed={viewedCount(files)} total={files.length} onViewedAll={() => viewedAll(files, viewedCount(files) !== files.length)} on={filesOn} />
     {files.map((f) => {
       const t = f.additions + f.deletions || 1, a = Math.round((f.additions / t) * 5), d = Math.min(5 - a, Math.round((f.deletions / t) * 5));
       const sq = Array.from({ length: 5 }, (_, i) => (i < a ? 'a' : i < a + d ? 'd' : ''));
-      return <FileBox name={f.filename} folded={isFolded('f:' + f.filename)} closed={!!S.fold['f:' + f.filename]} add={f.additions} del={f.deletions} sq={sq} on={filesOn}>{!shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open(), diffOn) : <div class="diff-empty">Binary file or diff too large to display.</div>}</FileBox>;
+      return <FileBox name={f.filename} folded={isFolded('f:' + f.filename)} closed={!!S.fold['f:' + f.filename]} add={f.additions} del={f.deletions} sq={sq} viewed={isViewed(f)} onViewed={() => toggleViewed(f)} on={filesOn}>{!shown(f) ? '' : f.patch ? diffTable(f.patch, f.filename, canComment && b0open(), diffOn) : <div class="diff-empty">Binary file or diff too large to display.</div>}</FileBox>;
     })}
   </>;
 }

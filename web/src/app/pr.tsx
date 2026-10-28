@@ -12,10 +12,19 @@ import { arrange, roGrip, saveOrder } from './reorder';
 import { editPrDialog, rerender, rerequestReview, reviewDialog } from './actions';
 import { attOn, keep, openTab, tlOn } from './handlers';
 import { S, esc, icon } from './core';
-import { isFolded, prHeaderProps } from './comments';
+import { isFolded, prHeaderProps, stateOf } from './comments';
 import { crumbs } from './home';
 import { filesView, commitsView, sidebarProps, splitView } from './mergebox';
 import { Timeline, attentionProps, checksView, timelineModel } from './timeline';
+
+// A few plain lines to paste into a standup or chat: what it is, where it stands and who has reviewed.
+function prSummary(b: NonNullable<typeof S.bundle>) {
+  const p = b.pull, [, , label] = stateOf(p), latest = new Map<string, string>();
+  b.timeline.filter((e) => e.event === 'reviewed' && e.user).forEach((e) => { const st = e.state!.toLowerCase(); if (st !== 'commented' || !latest.has(e.user!.login)) latest.set(e.user!.login, st); });
+  const by = (s: string) => [...latest].filter(([, v]) => v === s).map(([u]) => u);
+  const rv = [by('approved').length ? `approved by ${by('approved').join(', ')}` : '', by('changes_requested').length ? `changes requested by ${by('changes_requested').join(', ')}` : ''].filter(Boolean).join('; ') || 'no reviews yet';
+  return `${p.title} (${p.base.repo.full_name}#${p.number})\n${label} · by ${p.user.login} · +${p.additions} −${p.deletions} in ${p.changed_files ?? b.files.length} files · ${rv}\n${p.html_url}`;
+}
 
 const hide = (k: string, v: boolean) => keep(() => { S.hide[k] = v; localStorage.setItem('hide', JSON.stringify(S.hide)); });
 
@@ -26,6 +35,7 @@ const head: PrHeaderHandlers = {
   edit: editPrDialog,
   copy: () => { navigator.clipboard?.writeText(S.bundle!.pull.head.ref); },
   review: reviewDialog,
+  summary: () => { navigator.clipboard?.writeText(prSummary(S.bundle!)); },
   side: () => keep(() => { S.hide.side = !S.hide.side; localStorage.setItem('hide', JSON.stringify(S.hide)); }),
   split: () => keep(() => { S.split = !S.split; localStorage.setItem('split', S.split ? '1' : '0'); }),
 };

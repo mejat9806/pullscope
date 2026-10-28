@@ -28,12 +28,14 @@ const mode = (e: MouseEvent) => {
     document.startViewTransition(swap).ready.then(() => document.documentElement.animate({ clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] }, { duration: 750, easing: 'cubic-bezier(.4,0,.2,1)', pseudoElement: '::view-transition-new(root)' }).finished);
 };
 
+const dense = () => document.documentElement.classList.contains('dense');
+document.documentElement.classList.toggle('dense', localStorage.getItem('dense') === '1');
 const prof = (e: MouseEvent) => {
   e.stopPropagation(); if (S.pop?.k === 'prof') { closePop(); return; }
   const pr = S.profile!, r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  openPop({ k: 'prof', right: Math.max(8, innerWidth - r.right), top: r.bottom + 6, name: pr.name || pr.login, ver: S.ver, login: pr.login, avatar: avUrl(pr.avatar_url!, 80), pick: async (h) => {
+  openPop({ k: 'prof', right: Math.max(8, innerWidth - r.right), top: r.bottom + 6, name: pr.name || pr.login, ver: S.ver, dense: dense(), login: pr.login, avatar: avUrl(pr.avatar_url!, 80), pick: async (h) => {
     closePop();
-    if (h === 'profile') openExternal(pr.html_url!); else if (h === 'token') tokenDialog(); else if (h === 'repos') repoPickOpen();
+    if (h === 'profile') openExternal(pr.html_url!); else if (h === 'token') tokenDialog(); else if (h === 'repos') repoPickOpen(); else if (h === 'dense') { document.documentElement.classList.toggle('dense', !dense()); try { localStorage.setItem('dense', dense() ? '1' : '0'); } catch { /* ignore */ } }
     else { try { await tauri?.invoke('set_token', { token: '' }); } catch { /* ignore */ } S.hasToken = false; S.profile = null; S.me = ''; S.repos = null; try { localStorage.removeItem('profile'); } catch { /* ignore */ } render(); }
   } });
 };
