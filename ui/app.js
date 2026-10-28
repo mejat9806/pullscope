@@ -948,7 +948,32 @@
   function useFlash(f4, kb) {
     const ref = A2(null);
     h2(() => {
-      if (f4) ref.current?.scrollIntoView({ block: f4.block, behavior: f4.smooth ? "smooth" : "auto" });
+      const el = ref.current;
+      if (!f4 || !el) return;
+      el.scrollIntoView({ block: f4.block, behavior: f4.smooth ? "smooth" : "auto" });
+      const main = el.closest(".main");
+      if (!main) return;
+      const end = Date.now() + 1500;
+      let moved = false, h3 = main.scrollHeight;
+      const stop = () => {
+        moved = true;
+      };
+      const timer = setInterval(() => {
+        if (moved || Date.now() > end) return clearInterval(timer);
+        if (main.scrollHeight !== h3) {
+          h3 = main.scrollHeight;
+          el.scrollIntoView({ block: f4.block });
+        }
+      }, 50);
+      addEventListener("wheel", stop, { passive: true });
+      addEventListener("touchmove", stop, { passive: true });
+      addEventListener("keydown", stop);
+      return () => {
+        clearInterval(timer);
+        removeEventListener("wheel", stop);
+        removeEventListener("touchmove", stop);
+        removeEventListener("keydown", stop);
+      };
     }, [f4?.n]);
     h2(() => {
       if (kb) ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
