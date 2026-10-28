@@ -43,7 +43,7 @@
     } catch {
       return null;
     }
-  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel(), ibSort: localStorage.getItem("ibsort") || "updated" };
+  })(), bundle: null, tab: "conversation", mode: localStorage.getItem("mode") || "auto", error: "", loading: false, showAllReviewers: true, recent: [], hist: [], hi: -1, hasToken: false, sideTab: "repos", repos: null, reposErr: "", repoFilter: "", repo: null, prs: null, prState: "open", split: localStorage.getItem("split") === "1", sel: null, cdiff: {}, rdiff: {}, fr: null, lw: +(localStorage.getItem("lw") || 46), notes: load("notes", []), bell: false, fold: load("fold", {}), hide: load("hide", {}), draft: {}, sbw: +(localStorage.getItem("sbw") || 260), pf: "", psort: localStorage.getItem("psort") || "updated", pgroup: localStorage.getItem("pgroup") || "none", who: [], unres: false, range: "all", rFrom: "", rTo: "", sort: localStorage.getItem("csort") === "desc" ? "desc" : "asc", unIdx: 0, nav: false, busy: "", actErr: null, tabs: [], alive: /* @__PURE__ */ new Map(), tabMenu: false, closed: [], pushes: {}, repoSel: loadRepoSel(), ibSort: localStorage.getItem("ibsort") || "updated", ibOrder: load("iborder", []) };
   S.recent = (() => {
     try {
       return JSON.parse(localStorage.getItem("recent") ?? "null") || [];
@@ -3159,16 +3159,27 @@
       ] })
     ] }, p3.seq);
   }
-  function InboxPage({ p: { loading, err, secs, sort, sorts, q: q3 }, on: on3 }) {
+  function InboxPage({ p: { loading, err, secs, sort, sorts, q: q3, custom }, on: on3 }) {
     const body = err ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: err }) : !secs ? /* @__PURE__ */ u3("div", { class: "skel", children: [
       /* @__PURE__ */ u3("div", { class: "sk sk-line" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w80" }),
       /* @__PURE__ */ u3("div", { class: "sk sk-line w60" })
-    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: `ib-sec${s3.closed ? " closed" : ""}`, children: [
+    ] }) : secs.map((s3) => /* @__PURE__ */ u3("section", { class: `ib-sec${s3.closed ? " closed" : ""}`, onDragOver: (e3) => e3.preventDefault(), onDrop: (e3) => on3.drop(e3, s3.title), children: [
       /* @__PURE__ */ u3("h2", { class: "ib-h", onClick: () => on3.fold(s3.key), children: [
+        /* @__PURE__ */ u3("i", { class: "ib-grip", draggable: true, title: "Drag to move this section", onClick: (e3) => e3.stopPropagation(), onDragStart: (e3) => on3.dragStart(e3, s3.title), children: "\u22EE\u22EE" }),
         I2(s3.closed ? "chevron-right" : "chevron-down"),
         s3.title,
-        /* @__PURE__ */ u3("span", { children: s3.rows.length })
+        /* @__PURE__ */ u3("span", { children: s3.rows.length }),
+        /* @__PURE__ */ u3("em", { class: "ib-mv", children: [
+          /* @__PURE__ */ u3("button", { title: "Move up", disabled: s3.first, onClick: (e3) => {
+            e3.stopPropagation();
+            on3.move(s3.title, -1);
+          }, children: I2("chevron-up") }),
+          /* @__PURE__ */ u3("button", { title: "Move down", disabled: s3.last, onClick: (e3) => {
+            e3.stopPropagation();
+            on3.move(s3.title, 1);
+          }, children: I2("chevron-down") })
+        ] })
       ] }),
       s3.closed ? "" : /* @__PURE__ */ u3(S2, { children: [
         /* @__PURE__ */ u3("p", { children: s3.sub }),
@@ -3203,7 +3214,8 @@
           "Sort",
           /* @__PURE__ */ u3("select", { class: "input", onChange: on3.sort, children: sorts.map(([k3, t3]) => /* @__PURE__ */ u3("option", { value: k3, selected: k3 === sort, children: t3 })) })
         ] }),
-        /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.foldAll(!allClosed), disabled: !secs, children: allClosed ? "Expand all" : "Collapse all" })
+        /* @__PURE__ */ u3("button", { class: "btn small", onClick: () => on3.foldAll(!allClosed), disabled: !secs, children: allClosed ? "Expand all" : "Collapse all" }),
+        custom ? /* @__PURE__ */ u3("button", { class: "btn small", onClick: on3.resetOrder, children: "Reset order" }) : ""
       ] }),
       body
     ] });
@@ -5172,6 +5184,15 @@
     }
     render();
   };
+  var ibSave = (o3) => {
+    S.ibOrder = o3.length ? o3 : void 0;
+    try {
+      if (o3.length) localStorage.setItem("iborder", JSON.stringify(o3));
+      else localStorage.removeItem("iborder");
+    } catch {
+    }
+    render();
+  };
   var inbox = {
     ...open,
     refresh: () => loadInbox(true),
@@ -5191,6 +5212,27 @@
       S.fold[k3] = !S.fold[k3];
       foldSave();
     },
+    move: (t3, by) => {
+      const o3 = ibOrder(), i3 = o3.indexOf(t3), j3 = i3 + by;
+      if (i3 < 0 || j3 < 0 || j3 >= o3.length) return;
+      [o3[i3], o3[j3]] = [o3[j3], o3[i3]];
+      ibSave(o3);
+    },
+    dragStart: (e3, t3) => {
+      S.ibDrag = t3;
+      e3.dataTransfer?.setData("text/plain", t3);
+      if (e3.dataTransfer) e3.dataTransfer.effectAllowed = "move";
+    },
+    drop: (e3, to) => {
+      e3.preventDefault();
+      const from = S.ibDrag;
+      S.ibDrag = "";
+      if (!from || from === to) return;
+      const o3 = ibOrder().filter((x2) => x2 !== from);
+      o3.splice(o3.indexOf(to), 0, from);
+      ibSave(o3);
+    },
+    resetOrder: () => ibSave([]),
     foldAll: (closed) => {
       IB_TITLES.forEach((t3) => {
         S.fold[ibSecKey(t3)] = closed;
@@ -5487,6 +5529,10 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
   };
   var ibSecKey = (title) => "ib:" + title;
   var IB_TITLES = ["Review requested", "Ready to merge", "Mentioned", "Participated", "Your pull requests", "Recently closed or merged"];
+  var ibOrder = () => {
+    const saved = S.ibOrder || [];
+    return [...saved.filter((t3) => IB_TITLES.includes(t3)), ...IB_TITLES.filter((t3) => !saved.includes(t3))];
+  };
   function inboxProps() {
     const I3 = S.inbox || { loading: true }, d3 = I3.data, q3 = (S.ibQ || "").toLowerCase(), cmp = ibCmp(S.ibSort || "updated");
     const row2 = (p3) => {
@@ -5494,7 +5540,9 @@ ${nums.map((x2) => `Closes #${x2}`).join("\n")}` : "")).trim();
       return { ref, avatar: p3.avatar, title: p3.title, sub: `${ref} \xB7 ${p3.user} \xB7 ${when(p3.updated_at).replace(/<\/?span[^>]*>/g, "")}${p3.draft ? " \xB7 Draft" : ""}`, fresh: !!(was && p3.updated_at > was), comments: p3.comments || 0 };
     };
     const sec = (title, sub, list) => ({ title, sub, key: ibSecKey(title), closed: !!S.fold[ibSecKey(title)], rows: list.filter((x2) => !q3 || `${x2.title} ${x2.repo} ${x2.user} #${x2.number}`.toLowerCase().includes(q3)).sort(cmp).map(row2) });
-    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", secs: d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null };
+    const all = d3 ? [sec("Review requested", "Waiting on you", d3.requested), sec("Ready to merge", "Your approved pull requests", d3.ready), sec("Mentioned", "Open PRs where you were @mentioned", d3.mentioned || []), sec("Participated", "Open PRs you commented on or reviewed", d3.participated || []), sec("Your pull requests", "Open PRs you opened", d3.mine), sec("Recently closed or merged", "PRs you were involved in", d3.closed || [])] : null;
+    const order = ibOrder();
+    return { loading: !!I3.loading, err: I3.err || "", sort: S.ibSort || "updated", sorts: IB_SORTS, q: S.ibQ || "", custom: !!S.ibOrder?.length, secs: all ? all.sort((x2, y3) => order.indexOf(x2.title) - order.indexOf(y3.title)).map((x2, i3, l3) => ({ ...x2, first: i3 === 0, last: i3 === l3.length - 1 })) : null };
   }
   var needSignIn = () => tauri && S.authChecked && !S.hasToken || new URLSearchParams(location.search).get("gate") === "1";
   function scrollMain(top, smooth = false) {

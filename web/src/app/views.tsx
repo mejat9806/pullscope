@@ -9,7 +9,7 @@ import { S, tauri } from './core';
 import { confetti } from './fun';
 import { pollNotes, pushDis } from './data';
 import { crumbs } from './home';
-import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, IB_TITLES, ibSecKey, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
+import { bumpNp, newPrProps, npCompare, npLoadBranches, openNewPr, IB_TITLES, ibOrder, ibSecKey, inboxProps, loadInbox, notesProps, render, saveNotes } from './pages';
 import { openPr, openRepo } from './nav';
 import type { NpListKey } from '../types';
 import { prListProps } from './prlist';
@@ -51,11 +51,16 @@ export function NotesView() {
 }
 
 const foldSave = () => { try { localStorage.setItem('fold', JSON.stringify(S.fold)); } catch { /* storage full */ } render(); };
+const ibSave = (o: string[]) => { S.ibOrder = o.length ? o : undefined; try { if (o.length) localStorage.setItem('iborder', JSON.stringify(o)); else localStorage.removeItem('iborder'); } catch { /* storage full */ } render(); };
 const inbox: InboxHandlers = {
   ...open, refresh: () => loadInbox(true),
   sort: (e) => { S.ibSort = (e.target as HTMLSelectElement).value; try { localStorage.setItem('ibsort', S.ibSort); } catch { /* ignore */ } render(); },
   query: (e) => { S.ibQ = (e.target as HTMLInputElement).value; render(); },
   fold: (k) => { S.fold[k] = !S.fold[k]; foldSave(); },
+  move: (t, by) => { const o = ibOrder(), i = o.indexOf(t), j = i + by; if (i < 0 || j < 0 || j >= o.length) return; [o[i], o[j]] = [o[j], o[i]]; ibSave(o); },
+  dragStart: (e, t) => { S.ibDrag = t; e.dataTransfer?.setData('text/plain', t); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; },
+  drop: (e, to) => { e.preventDefault(); const from = S.ibDrag; S.ibDrag = ''; if (!from || from === to) return; const o = ibOrder().filter((x) => x !== from); o.splice(o.indexOf(to), 0, from); ibSave(o); },
+  resetOrder: () => ibSave([]),
   foldAll: (closed) => { IB_TITLES.forEach((t) => { S.fold[ibSecKey(t)] = closed; }); foldSave(); },
 };
 
