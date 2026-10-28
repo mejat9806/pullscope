@@ -44,6 +44,15 @@ jobs:
         with:
           node-version: 20
 
+      - name: Release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          awk -v v="$v" '/^## \[/ { on = index($0, "[" v "]") } on && !/^## \[/' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "No changelog entry for $v." > notes.md
+          { echo 'body<<EOF_NOTES'; cat notes.md; echo 'EOF_NOTES'; } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,6 +62,7 @@ jobs:
           tauriScript: npx --yes @tauri-apps/cli@2
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           releaseName: Pullscope ${{ github.ref_name }}
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: true
           uploadUpdaterJson: true
           args: ${{ matrix.args }}
