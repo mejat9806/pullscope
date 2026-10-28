@@ -1986,8 +1986,8 @@
     tauri?.invoke("invalidate_pr", { url: key }).catch(() => {
     });
   }
-  function hasComment(elId) {
-    const b2 = S.bundle, id = elId.replace(/^c-/, "");
+  function hasComment(elId2) {
+    const b2 = S.bundle, id = elId2.replace(/^c-/, "");
     if (!b2) return false;
     return String(b2.pull.id) === id || b2.timeline.some((x2) => String(x2.id) === id) || b2.review_comments.some((x2) => String(x2.id) === id);
   }
@@ -6213,6 +6213,7 @@ ${ev.currentTarget.dataset.code}
     if (S.repo === name) rerender();
   }
   var reload = () => S.view === "repo" ? openRepo(S.repo, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
+  var elId = (t3) => "c-" + t3.replace(/^c-/, "");
   async function openPr(input, { nav = false, keepTab = false, manual = false, newTab = false, restore = "" } = {}) {
     {
       const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/);
@@ -6270,7 +6271,7 @@ ${ev.currentTarget.dataset.code}
         render();
       }
       if (!hasComment(S.focus)) return false;
-      setFlash(S.focus, { block: "start" });
+      setFlash(elId(S.focus), { block: "start" });
       S.focus = "";
       S.keepScroll = true;
       render();
@@ -6340,7 +6341,7 @@ ${ev.currentTarget.dataset.code}
         render();
       }
       if (hasComment(id)) {
-        setFlash(id, { block: "start" });
+        setFlash(elId(id), { block: "start" });
         S.keepScroll = true;
         render();
         S.keepScroll = false;

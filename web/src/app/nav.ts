@@ -34,6 +34,9 @@ export async function loadPrs() {
 export const reload = () => S.view === 'repo' ? openRepo(S.repo!, { nav: true }) : S.bundle && openPr(`${S.bundle.pull.base.repo.full_name}#${S.bundle.pull.number}`, { nav: true, keepTab: true, manual: true });
 
 
+// Notification targets are bare comment ids; the page's elements are `c-<id>`.
+const elId = (t: string) => 'c-' + t.replace(/^c-/, '');
+
 export async function openPr(input: string, { nav = false, keepTab = false, manual = false, newTab = false, restore = '' } = {}) {
   { const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/); if (bm) return openNewPr(bm[1], bm[2]); }
   const fromTab = S.view === 'pr' ? tabIdx() : -1, tabSwitch = !!(restore || S.fadeMain);
@@ -62,7 +65,7 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
     if (!S.bundle || !S.focus) return false;
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
     if (!hasComment(S.focus)) return false;
-    setFlash(S.focus, { block: 'start' }); S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false; return true;
+    setFlash(elId(S.focus), { block: 'start' }); S.focus = ''; S.keepScroll = true; render(); S.keepScroll = false; return true;
   };
   const focused = focusNow();
   try {
@@ -84,6 +87,6 @@ export async function openPr(input: string, { nav = false, keepTab = false, manu
   if (S.bundle && S.focus) {
     const id = S.focus; S.focus = '';
     if (S.tab !== 'conversation' && S.tab !== 'timeline') { S.tab = 'conversation'; render(); }
-    if (hasComment(id)) { setFlash(id, { block: 'start' }); S.keepScroll = true; render(); S.keepScroll = false; }
+    if (hasComment(id)) { setFlash(elId(id), { block: 'start' }); S.keepScroll = true; render(); S.keepScroll = false; }
   }
 }
