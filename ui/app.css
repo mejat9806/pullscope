@@ -1043,3 +1043,7 @@ table.diff { contain: layout paint; }
 .sb-item > .ro-grip { left: 0; top: 6px; padding: 6px 4px; min-width: 0; }
 /* Side panel: grip sits just left of the gear, clear of the chevron and the card edge. */
 .sb-item > .ro-grip { left: auto; right: 54px; top: 8px; padding: 6px 8px; }
+/* Gear is now a real button; the drag grip is the right-most item of each block. */
+.gear-btn { background: none; border: 0; color: var(--fgColor-muted); cursor: pointer; padding: 6px; border-radius: 6px; display: inline-flex; } .gear-btn:hover { background: var(--bgColor-neutral-muted); color: var(--fgColor-default); }
+.sb-item > .ro-grip { right: 6px; top: 6px; } .sb-item .sb-head { padding-right: 34px; }
+.mt-av { border-radius: 50%; } .mt-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }

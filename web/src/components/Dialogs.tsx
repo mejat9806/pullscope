@@ -35,6 +35,16 @@ export const RepoPickDialog = (p: RepoPickProps) => {
     <Err m={p.err} /><div class="btns"><button class="btn" id="rpcancel" onClick={p.close}>Cancel</button><button class="btn primary" id="rpsave" onClick={p.save}>Save</button></div></div></div>;
 };
 
+export interface MetaProps { field: string; items: { id: string; name: string; color?: string; avatar?: string }[] | null; on: string[]; q: string; err: string; busy: boolean; pick: (id: string) => void; input: (e: Event) => void; close: () => void; save: () => void }
+const META_T: Record<string, string> = { labels: 'Labels', assignees: 'Assignees', milestone: 'Milestone' };
+export const MetaDialog = (p: MetaProps) => {
+  const q = p.q.toLowerCase(), one = p.field === 'milestone', shown = (p.items || []).filter((r) => r.name.toLowerCase().includes(q));
+  return <div class="dlg-bg" id="dlgbg"><div class="dlg wide"><h2>{META_T[p.field]}</h2>
+    <input class="input" id="metaq" placeholder="Filter…" value={p.q} onInput={p.input} style="width:100%;box-sizing:border-box;height:34px" />
+    <div class="rp-list">{p.items ? <>{one && <label class="rp-row"><input type="radio" name="ms" checked={!p.on.length} onChange={() => p.pick('')} /> <b>No milestone</b></label>}{shown.length ? shown.map((r) => <label class="rp-row"><input type={one ? 'radio' : 'checkbox'} name="ms" checked={p.on.includes(r.id)} onChange={() => p.pick(r.id)} />{r.avatar && <img class="mt-av" src={r.avatar} width="20" height="20" />}{r.color && <i class="mt-dot" style={`background:#${r.color}`}></i>}<b>{r.name}</b></label>) : <div class="sb-empty">None found.</div>}</> : <div class="sb-empty">Loading…</div>}</div>
+    <Err m={p.err} /><div class="btns"><button class="btn" onClick={p.close}>Cancel</button><button class="btn primary" disabled={p.busy || !p.items} onClick={p.save}>{p.busy ? 'Saving…' : 'Save'}</button></div></div></div>;
+};
+
 export { CommitsDialog };
 export type { CommitsDialogProps, CpHandlers };
 

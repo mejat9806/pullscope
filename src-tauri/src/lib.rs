@@ -581,6 +581,38 @@ async fn pr_action(repo: String, number: u64, action: String, body: Option<Strin
     r
 }
 
+/// Choices for the gear in the PR side panel: the repository's labels, people who can be assigned, or open milestones.
+#[tauri::command]
+async fn pr_meta_options(repo: String, field: String) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    let token = github::load_token().ok_or("Add an access token (key button) to edit this.")?;
+    let tail = match field.as_str() { "labels" => "labels?per_page=100", "assignees" => "assignees?per_page=100", "milestone" => "milestones?state=open&per_page=100", _ => return Err("unknown field".into()) };
+    let items = github::get_paged(&github::client(), &format!("https://api.github.com/repos/{repo}/{tail}"), Some(&token), 5).await?;
+    Ok(serde_json::Value::Array(items.into_iter().map(|i| match field.as_str() {
+        "labels" => serde_json::json!({ "id": i["name"], "name": i["name"], "color": i["color"] }),
+        "assignees" => serde_json::json!({ "id": i["login"], "name": i["login"], "avatar": i["avatar_url"] }),
+        _ => serde_json::json!({ "id": i["number"].to_string(), "name": i["title"] }),
+    }).collect()))
+}
+
+/// Replace a pull request's labels or assignees, or set (or clear) its milestone.
+#[tauri::command]
+async fn pr_meta_set(repo: String, number: u64, field: String, values: Vec<String>) -> Result<serde_json::Value, String> {
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    if values.len() > 100 || values.iter().any(|v| v.len() > 200 || v.chars().any(char::is_control)) { return Err("bad value".into()); }
+    let payload = match field.as_str() {
+        "labels" => serde_json::json!({ "labels": values }),
+        "assignees" => serde_json::json!({ "assignees": values }),
+        "milestone" => serde_json::json!({ "milestone": values.first().map(|v| v.parse::<u64>()).transpose().map_err(|_| "bad milestone")? }),
+        _ => return Err("unknown field".into()),
+    };
+    let token = github::load_token();
+    let r = github::send(&github::client(), reqwest::Method::PATCH, &format!("https://api.github.com/repos/{repo}/issues/{number}"), token.as_deref(), payload).await?;
+    PR_CACHE.invalidate(&format!("{repo}#{number}").to_lowercase()).await;
+    PR_LIST_CACHE.invalidate_all();
+    Ok(r)
+}
+
 /// Cheap activity snapshot of one PR, used by the notification poller.
 #[tauri::command]
 async fn check_pr(repo: String, number: u64, since: Option<String>) -> Result<serde_json::Value, String> {
@@ -746,7 +778,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

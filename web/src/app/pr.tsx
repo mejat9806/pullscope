@@ -7,6 +7,7 @@ import { PrSide, SIDE_KEYS } from '../components/Merge';
 import type { PrSideHandlers } from '../components/Merge';
 import { Attention } from '../components/Timeline';
 import { I } from '../components/ui';
+import { metaOpen } from './meta';
 import { arrange, roGrip, saveOrder } from './reorder';
 import { editPrDialog, rerender, rerequestReview, reviewDialog } from './actions';
 import { attOn, keep, openTab, tlOn } from './handlers';
@@ -33,6 +34,7 @@ const sideOn: PrSideHandlers = {
   fold: (k, def) => { S.fold[k] = !isFolded(k, def); localStorage.setItem('fold', JSON.stringify(S.fold)); rerender(); },
   rvtoggle: () => { S.showAllReviewers = !S.showAllReviewers; rerender(); },
   rerequest: rerequestReview,
+  edit: (k) => { if (k === 'labels' || k === 'assignees' || k === 'milestone') metaOpen(k); },
   grip: (e, k) => roGrip(e, 'side', '.pr-side-inner > .ro-it', k, () => arrange(SIDE_KEYS, 'side', (x) => x), (o) => saveOrder('side', o)),
 };
 

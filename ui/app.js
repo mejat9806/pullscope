@@ -1433,7 +1433,7 @@
     const head2 = (k3, t3) => /* @__PURE__ */ u3("div", { class: "sb-head", children: [
       fb(k3, t3 === "people" ? "people" : t3),
       /* @__PURE__ */ u3("span", { children: t3 }),
-      I2("gear", 16, "gear")
+      /* @__PURE__ */ u3("button", { class: "gear-btn", title: `Edit ${t3.toLowerCase()}`, onClick: () => on3.edit(k3), children: I2("gear", 16, "gear") })
     ] });
     const box = (k3) => `sb-item${p3.folded[k3] ? " folded" : ""}`;
     const item = (k3, node) => /* @__PURE__ */ u3("div", { class: box(k3) + " ro-it" + roCls("side", k3), "data-t": k3, children: [
@@ -1790,6 +1790,32 @@
       ] })
     ] }) });
   };
+  var META_T = { labels: "Labels", assignees: "Assignees", milestone: "Milestone" };
+  var MetaDialog = (p3) => {
+    const q3 = p3.q.toLowerCase(), one = p3.field === "milestone", shown2 = (p3.items || []).filter((r3) => r3.name.toLowerCase().includes(q3));
+    return /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide", children: [
+      /* @__PURE__ */ u3("h2", { children: META_T[p3.field] }),
+      /* @__PURE__ */ u3("input", { class: "input", id: "metaq", placeholder: "Filter\u2026", value: p3.q, onInput: p3.input, style: "width:100%;box-sizing:border-box;height:34px" }),
+      /* @__PURE__ */ u3("div", { class: "rp-list", children: p3.items ? /* @__PURE__ */ u3(S2, { children: [
+        one && /* @__PURE__ */ u3("label", { class: "rp-row", children: [
+          /* @__PURE__ */ u3("input", { type: "radio", name: "ms", checked: !p3.on.length, onChange: () => p3.pick("") }),
+          " ",
+          /* @__PURE__ */ u3("b", { children: "No milestone" })
+        ] }),
+        shown2.length ? shown2.map((r3) => /* @__PURE__ */ u3("label", { class: "rp-row", children: [
+          /* @__PURE__ */ u3("input", { type: one ? "radio" : "checkbox", name: "ms", checked: p3.on.includes(r3.id), onChange: () => p3.pick(r3.id) }),
+          r3.avatar && /* @__PURE__ */ u3("img", { class: "mt-av", src: r3.avatar, width: "20", height: "20" }),
+          r3.color && /* @__PURE__ */ u3("i", { class: "mt-dot", style: `background:#${r3.color}` }),
+          /* @__PURE__ */ u3("b", { children: r3.name })
+        ] })) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "None found." })
+      ] }) : /* @__PURE__ */ u3("div", { class: "sb-empty", children: "Loading\u2026" }) }),
+      /* @__PURE__ */ u3(Err, { m: p3.err }),
+      /* @__PURE__ */ u3("div", { class: "btns", children: [
+        /* @__PURE__ */ u3("button", { class: "btn", onClick: p3.close, children: "Cancel" }),
+        /* @__PURE__ */ u3("button", { class: "btn primary", disabled: p3.busy || !p3.items, onClick: p3.save, children: p3.busy ? "Saving\u2026" : "Save" })
+      ] })
+    ] }) });
+  };
   var CmPop = ({ x: x2, y: y3, hr, edit, hide: hide2, del, pick }) => /* @__PURE__ */ u3("div", { class: "react-pop cm-pop", style: `left:${x2}px;top:${y3}px`, children: [
     /* @__PURE__ */ u3("button", { "data-h": "link", onClick: () => pick("link"), children: "Copy link" }),
     /* @__PURE__ */ u3("button", { "data-h": "md", onClick: () => pick("md"), children: "Copy Markdown" }),
@@ -1829,6 +1855,44 @@
       /* @__PURE__ */ u3("kbd", { children: b2 })
     ] }))
   ] }) });
+
+  // src/app/meta.ts
+  function metaOpen(field) {
+    const p3 = S.bundle.pull;
+    const on3 = field === "labels" ? p3.labels.map((l3) => l3.name) : field === "assignees" ? p3.assignees.map((u4) => u4.login) : p3.milestone ? [String(p3.milestone.number ?? "")] : [];
+    S.meta = { field, items: null, on: on3, q: "", err: "", busy: false };
+    S.dlg = { k: "meta" };
+    render();
+    tauri?.invoke("pr_meta_options", { repo: prRef().repo, field }).then((l3) => {
+      if (S.meta) {
+        S.meta.items = l3;
+        paintDlg();
+      }
+    }).catch((e3) => {
+      if (S.meta) {
+        S.meta.err = String(e3).replace(/^Error: /, "");
+        S.meta.items = [];
+        paintDlg();
+      }
+    });
+  }
+  async function metaSave() {
+    const m3 = S.meta;
+    if (!m3 || m3.busy || !tauri) return;
+    m3.busy = true;
+    m3.err = "";
+    paintDlg();
+    try {
+      await tauri.invoke("pr_meta_set", { ...prRef(), field: m3.field, values: m3.on });
+      S.meta = null;
+      S.dlg = null;
+      await refreshPr();
+    } catch (e3) {
+      m3.busy = false;
+      m3.err = String(e3).replace(/^Error: /, "");
+      paintDlg();
+    }
+  }
 
   // src/components/Timeline.tsx
   function CommitRow({ first, sha, author, url, verification }) {
@@ -3571,6 +3635,9 @@
       rerender();
     },
     rerequest: rerequestReview,
+    edit: (k3) => {
+      if (k3 === "labels" || k3 === "assignees" || k3 === "milestone") metaOpen(k3);
+    },
     grip: (e3, k3) => roGrip(e3, "side", ".pr-side-inner > .ro-it", k3, () => arrange(SIDE_KEYS, "side", (x2) => x2), (o3) => saveOrder("side", o3))
   };
   function Header() {
@@ -4134,7 +4201,7 @@
     const d3 = S.dlg;
     if (!d3) return null;
     const close = () => closeDlg(), ok = () => {
-      d3.k !== "commits" && d3.k !== "token" && d3.k !== "repos" && d3.ok();
+      d3.k !== "commits" && d3.k !== "token" && d3.k !== "repos" && d3.k !== "meta" && d3.ok();
     };
     switch (d3.k) {
       case "commits":
@@ -4165,6 +4232,30 @@
             },
             input: (e3) => {
               rp.q = e3.currentTarget.value;
+              paintDlg();
+            }
+          }
+        );
+      }
+      case "meta": {
+        const m3 = S.meta;
+        return /* @__PURE__ */ u3(
+          MetaDialog,
+          {
+            field: m3.field,
+            items: m3.items,
+            on: m3.on,
+            q: m3.q,
+            err: m3.err,
+            busy: m3.busy,
+            close,
+            save: metaSave,
+            pick: (id) => {
+              m3.on = m3.field === "milestone" ? id ? [id] : [] : m3.on.includes(id) ? m3.on.filter((x2) => x2 !== id) : [...m3.on, id];
+              paintDlg();
+            },
+            input: (e3) => {
+              m3.q = e3.currentTarget.value;
               paintDlg();
             }
           }

@@ -12,7 +12,7 @@ export interface Pull {
   head: Ref; base: Ref; labels: Label[]; assignees: User[]; requested_reviewers: User[]; requested_teams?: { name: string; slug?: string }[];
   mergeable: boolean | null; mergeable_state?: string; rebaseable?: boolean; additions: number; deletions: number; changed_files: number;
   comments: number; review_comments: number; commits: number; author_association?: string; reactions?: Reactions; merge_commit_sha?: string | null;
-  auto_merge?: { merge_method?: string } | null; milestone?: { title: string; html_url?: string } | null; locked?: boolean;
+  auto_merge?: { merge_method?: string } | null; milestone?: { title: string; html_url?: string; number?: number } | null; locked?: boolean;
   stack?: { base: Ref; id: number; number: number; position: number; size: number };
 }
 
@@ -72,7 +72,7 @@ export interface AppState {
   sbw: number; pf: string; psort: string; pgroup: string; who: string[]; unres: boolean; range: string; rFrom: string; rTo: string; sort: 'asc' | 'desc';
   unIdx: number; nav: boolean; busy: string; actErr: ActErr | null;
   // set after startup
-  np?: NewPr | null; keepScroll?: boolean; themePop?: number; scrollId?: string; addrText?: string | null; tokenText?: string; ibSort?: string; ibOrder?: string[]; ro?: { id: string; key: string; over: { title: string; after: boolean } | null } | null; ibQ?: string; ver?: string; repoSel?: RepoSummary[] | null; rpick?: { all: RepoSummary[] | null; on: string[]; q: string; err: string } | null; hideReason?: string; method?: string; addrFocus?: boolean; composerBox?: { h: number; in: string } | null; toTop?: '' | 'up' | 'down'; mainTop?: number; enter?: boolean; stuck?: boolean; dragging?: boolean; flashPop?: boolean; drag?: { from: number; to: number; dx: number; w: number } | null; tabMenuAt?: { top: number; left: number } | null; busySels?: string[]; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
+  np?: NewPr | null; keepScroll?: boolean; themePop?: number; scrollId?: string; addrText?: string | null; tokenText?: string; ibSort?: string; ibOrder?: string[]; meta?: { field: 'labels' | 'assignees' | 'milestone'; items: MetaItem[] | null; on: string[]; q: string; err: string; busy: boolean } | null; ro?: { id: string; key: string; over: { title: string; after: boolean } | null } | null; ibQ?: string; ver?: string; repoSel?: RepoSummary[] | null; rpick?: { all: RepoSummary[] | null; on: string[]; q: string; err: string } | null; hideReason?: string; method?: string; addrFocus?: boolean; composerBox?: { h: number; in: string } | null; toTop?: '' | 'up' | 'down'; mainTop?: number; enter?: boolean; stuck?: boolean; dragging?: boolean; flashPop?: boolean; drag?: { from: number; to: number; dx: number; w: number } | null; tabMenuAt?: { top: number; left: number } | null; busySels?: string[]; dlg?: Dlg | null; pop?: Pop | null; pal?: { k: 'pal'; q: string; sel: number } | { k: 'help' } | null; view?: string; tabs: Tab[]; tabMenu: boolean; closed: { ref: string; tab: string }[]; focus?: string;
   refreshing?: boolean; diffMode?: string; inbox?: InboxState | null; alive: Map<string, Alive>; oauthLive?: boolean; lcOpen?: string | null; openSeq?: number; me?: string;
   mbOpen?: Set<string>; flip?: boolean; fadeMain?: boolean; draftRef?: string; cpick?: FrRange | null; update?: { version: string; obj: UpdateHandle; busy?: boolean } | null; pending?: Record<string, PendingComment[]>; pStatus?: string; pLabel?: string;
   pAuthor?: string; flash?: { id: string; n: number; block: 'start' | 'center'; smooth?: boolean; pop?: boolean } | null; tabPending?: string; offline?: boolean; homeOwner?: string; gateErr?: string; pushes: Record<string, Push[]>; prCache?: Record<string, { list: PrListItem[]; at: number }>;
@@ -90,11 +90,12 @@ export interface CheckResult { fresh: FreshItem[]; title: string; state: 'open' 
 export interface DeviceCode { device_code: string; user_code: string; verification_uri: string; interval: number; expires_in: number }
 export interface CreatedPr { number: number; html_url: string; warnings: string[] }
 
+export interface MetaItem { id: string; name: string; color?: string; avatar?: string }
 export interface Commands {
   cached_pr: Bundle | null; fetch_pr: Bundle; invalidate_pr: void; inbox: Inbox; list_branches: BranchInfo; compare_branches: CompareResult;
   recent_pushes: Push[]; render_markdown: string; repo_meta: RepoMeta; pr_templates: Template[]; create_pr: CreatedPr; list_repos: RepoSummary[];
   list_prs: PrListItem[]; fetch_commit: { files: FileChange[] }; fetch_range: { files: FileChange[] }; viewer_profile: Profile; viewer_login: string;
-  my_reactions: string[]; toggle_reaction: { added: boolean }; pr_action: unknown; check_pr: CheckResult; set_unread: void; notify: void;
+  my_reactions: string[]; toggle_reaction: { added: boolean }; pr_action: unknown; pr_meta_options: MetaItem[]; pr_meta_set: unknown; check_pr: CheckResult; set_unread: void; notify: void;
   open_external: void; initial_arg: string | null; has_token: boolean; set_token: void; device_start: DeviceCode; device_poll: 'ok' | 'pending' | 'slow_down';
 }
 export type NpListKey = 'reviewers' | 'assignees' | 'labels'
@@ -128,6 +129,7 @@ export type Dlg =
   | { k: 'commits' }
   | { k: 'token' }
   | { k: 'repos' }
+  | { k: 'meta' }
   | { k: 'review'; ev: string; ok: () => void | Promise<void> }
   | { k: 'editpr'; title: string; ok: () => void | Promise<void> }
   | { k: 'confirm'; title: string; text: string; label: string; danger: boolean; ok: () => void | Promise<void> }

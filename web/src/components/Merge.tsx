@@ -49,7 +49,7 @@ export function MergeBox(p: MergeBoxProps & { on?: MergeBoxHandlers }) {
 
 export interface RvRow { u: Person; st: string; prev?: string; canRe: boolean }
 export type SideKey = 'reviewers' | 'assignees' | 'labels' | 'milestone' | 'people';
-export interface PrSideHandlers { fold: (k: string, def: boolean) => void; rvtoggle: () => void; rerequest: (e: MouseEvent, login: string) => void; grip: (e: MouseEvent, key: SideKey) => void }
+export interface PrSideHandlers { fold: (k: string, def: boolean) => void; rvtoggle: () => void; rerequest: (e: MouseEvent, login: string) => void; grip: (e: MouseEvent, key: SideKey) => void; edit: (k: SideKey) => void }
 export interface PrSideProps {
   reviewers: RvRow[]; showAll: boolean;
   assignees: Person[]; labels: { name: string; color: string }[];
@@ -71,7 +71,7 @@ export function PrSide(p: PrSideProps & { on: PrSideHandlers }) {
     ? <>{rv.slice(0, 3).map((r) => <ReviewerRow r={r} on={on} />)}{more > 0 ? <><button class="sb-toggle" id="rvtoggle" onClick={on.rvtoggle}><span>+{more} more reviewer{plural(more)}</span>{I(p.showAll ? 'chevron-up' : 'chevron-down')}</button>{p.showAll ? rv.slice(3).map((r) => <ReviewerRow r={r} on={on} />) : ''}</> : ''}</>
     : <div class="sb-none">No reviews</div>;
   const fb = (k: SideKey, n: string) => <SideFold k={'sb:' + n} folded={p.folded[k]} onFold={on.fold} />;
-  const head = (k: SideKey, t: string) => <div class="sb-head">{fb(k, t === 'people' ? 'people' : t)}<span>{t}</span>{I('gear', 16, 'gear')}</div>;
+  const head = (k: SideKey, t: string) => <div class="sb-head">{fb(k, t === 'people' ? 'people' : t)}<span>{t}</span><button class="gear-btn" title={`Edit ${t.toLowerCase()}`} onClick={() => on.edit(k)}>{I('gear', 16, 'gear')}</button></div>;
   const box = (k: SideKey) => `sb-item${p.folded[k] ? ' folded' : ''}`;
   const item = (k: SideKey, node: ComponentChildren) => <div class={box(k) + ' ro-it' + roCls('side', k)} data-t={k}>{node}<i class="ro-grip" title="Drag to reorder" onMouseDown={(e) => on.grip(e, k)}>⋮⋮</i></div>;
   const secs: Record<SideKey, ComponentChildren> = {
