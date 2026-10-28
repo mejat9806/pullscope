@@ -83,7 +83,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
       Emoji, EmojiRule, mentionExt(people),
-      Markdown.configure({ html: false, tightLists: true, bulletListMarker: '-', linkify: true, breaks: true }),
+      Markdown.configure({ html: false, tightLists: true, bulletListMarker: '-', linkify: true, breaks: true, transformPastedText: true }),
     ],
     content: value,
     editorProps: {
