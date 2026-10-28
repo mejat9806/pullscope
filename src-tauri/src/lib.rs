@@ -107,67 +107,6 @@ async fn inbox(force: Option<bool>, repos: Option<Vec<String>>) -> Result<serde_
     }).await.map_err(|e: Arc<String>| (*e).clone())
 }
 
-/// Browser link for a notification's subject (the API gives an api.github.com URL).
-fn notif_link(repo: &str, kind: &str, api_url: &str) -> String {
-    let id = api_url.rsplit('/').next().unwrap_or("");
-    match kind {
-        "PullRequest" if id.chars().all(|c| c.is_ascii_digit()) && !id.is_empty() => format!("https://github.com/{repo}/pull/{id}"),
-        "Issue" if id.chars().all(|c| c.is_ascii_digit()) && !id.is_empty() => format!("https://github.com/{repo}/issues/{id}"),
-        "Commit" if !id.is_empty() => format!("https://github.com/{repo}/commit/{id}"),
-        "Release" => format!("https://github.com/{repo}/releases"),
-        "Discussion" => format!("https://github.com/{repo}/discussions"),
-        "CheckSuite" => format!("https://github.com/{repo}/actions"),
-        _ => format!("https://github.com/{repo}"),
-    }
-}
-
-/// Your GitHub notifications for pull requests (issues, releases, CI and the rest are left out: this app is about reviews).
-#[tauri::command]
-async fn gh_notifs(all: bool) -> Result<serde_json::Value, String> {
-    let token = github::load_token().ok_or("Add an access token to see your GitHub notifications.")?;
-    let c = github::client();
-    let url = format!("https://api.github.com/notifications?all={all}");
-    let list = github::get_paged(&c, &url, Some(&token), 2).await.map_err(|e| if e.contains("403") || e.contains("401") { format!("{e} — notifications need a token with the `notifications` scope") } else { e })?;
-    let out: Vec<Value> = list.into_iter().filter(|n| n["subject"]["type"] == "PullRequest").map(|n| {
-        let repo = n["repository"]["full_name"].as_str().unwrap_or("").to_string();
-        let kind = n["subject"]["type"].as_str().unwrap_or("").to_string();
-        let api = n["subject"]["url"].as_str().unwrap_or("");
-        let number = if kind == "PullRequest" { api.rsplit('/').next().and_then(|x| x.parse::<u64>().ok()) } else { None };
-        serde_json::json!({ "id": n["id"], "unread": n["unread"], "reason": n["reason"], "updated_at": n["updated_at"], "repo": repo,
-            "title": n["subject"]["title"], "kind": kind, "number": number, "url": notif_link(&repo, &kind, api) })
-    }).collect();
-    Ok(Value::Array(out))
-}
-
-/// `read` marks a thread read, `done` removes it from the inbox, `mute` unsubscribes from the thread (and marks it read).
-#[tauri::command]
-async fn gh_notif_act(id: String, action: String) -> Result<(), String> {
-    use reqwest::Method;
-    if id.is_empty() || !id.chars().all(|c| c.is_ascii_digit()) { return Err("bad notification".into()); }
-    let token = github::load_token().ok_or("Add an access token first.")?;
-    let c = github::client();
-    let url = format!("https://api.github.com/notifications/threads/{id}");
-    match action.as_str() {
-        "read" => { github::send(&c, Method::PATCH, &url, Some(&token), serde_json::json!({})).await?; }
-        "done" => { github::send(&c, Method::DELETE, &url, Some(&token), serde_json::json!({})).await?; }
-        "mute" => {
-            github::send(&c, Method::PUT, &format!("{url}/subscription"), Some(&token), serde_json::json!({ "ignored": true })).await?;
-            github::send(&c, Method::PATCH, &url, Some(&token), serde_json::json!({})).await?;
-        }
-        _ => return Err("bad action".into()),
-    }
-    Ok(())
-}
-
-/// Marks every notification read (optionally only one repository's).
-#[tauri::command]
-async fn gh_notif_read_all(repo: Option<String>) -> Result<(), String> {
-    let token = github::load_token().ok_or("Add an access token first.")?;
-    let url = match repo { Some(r) if valid_repo(&r) => format!("https://api.github.com/repos/{r}/notifications"), Some(_) => return Err("bad repository".into()), None => "https://api.github.com/notifications".to_string() };
-    github::send(&github::client(), reqwest::Method::PUT, &url, Some(&token), serde_json::json!({ "read": true })).await?;
-    Ok(())
-}
-
 fn valid_repo(repo: &str) -> bool { repo.matches('/').count() == 1 && !repo.contains("..") && repo.chars().all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c)) }
 fn valid_ref(r: &str) -> bool { !r.is_empty() && !r.contains("..") && r.chars().all(|c| c.is_ascii_alphanumeric() || "-_./".contains(c)) }
 
@@ -798,21 +737,13 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![gh_notifs, gh_notif_act, gh_notif_read_all, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn notification_subjects_link_to_their_pages() {
-        assert_eq!(super::notif_link("o/r", "PullRequest", "https://api.github.com/repos/o/r/pulls/12"), "https://github.com/o/r/pull/12");
-        assert_eq!(super::notif_link("o/r", "Issue", "https://api.github.com/repos/o/r/issues/7"), "https://github.com/o/r/issues/7");
-        assert_eq!(super::notif_link("o/r", "Release", "https://api.github.com/repos/o/r/releases/9"), "https://github.com/o/r/releases");
-        assert_eq!(super::notif_link("o/r", "Whatever", ""), "https://github.com/o/r");
-    }
-
     #[test]
     fn finds_pr_templates() {
         let l: Vec<serde_json::Value> = serde_json::from_str(r#"[{"name":"PULL_REQUEST_TEMPLATE.md","path":".github/PULL_REQUEST_TEMPLATE.md","type":"file"},{"name":"README.md","path":"README.md","type":"file"},{"name":"PULL_REQUEST_TEMPLATE","path":".github/PULL_REQUEST_TEMPLATE","type":"dir"}]"#).unwrap();
