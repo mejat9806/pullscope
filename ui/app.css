@@ -1026,3 +1026,8 @@ table.diff { contain: layout paint; }
 .ib-grip { padding: 2px 6px; border-radius: 6px; } .ib-grip:hover { background: var(--bgColor-neutral-muted); color: var(--fgColor-default); } .ib-h { align-items: center; }
 .ro-grip { cursor: grab; opacity: 0; color: var(--fgColor-muted); font-style: normal; font-size: 13px; line-height: 1; padding: 3px 5px; border-radius: 6px; user-select: none; transition: opacity .12s; } .ro-grip:hover { background: var(--bgColor-neutral-muted); color: var(--fgColor-default); }
 .rc:hover .ro-grip, .sb-item:hover .ro-grip, .ro-lift .ro-grip { opacity: 1; } .rc .ro-grip { margin-left: auto; } .sb-item.ro-it { position: relative; } .sb-item > .ro-grip { position: absolute; top: 8px; right: 6px; }
+/* Tight lists: keep the drop line and the lifted outline inside the item so they never cover neighbours. */
+.rc.ro-lift, .sb-item.ro-lift { outline-offset: -2px; border-radius: 8px; }
+.rc.ro-over-before::before, .sb-item.ro-over-before::before { top: -1px; height: 3px; box-shadow: none; }
+.rc.ro-over-after::after, .sb-item.ro-over-after::after { bottom: -1px; height: 3px; box-shadow: none; }
+.ro-moved { z-index: 0; }
