@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Changed
+- The app checks for updates every hour (was every 6 hours), so the green update button appears without relaunching.
+
 ## [1.3.6]
 
 ### Added

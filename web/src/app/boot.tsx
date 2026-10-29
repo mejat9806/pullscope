@@ -154,7 +154,7 @@ if (new URLSearchParams(location.search).get('demonote')) {
   render();
 }
 
-// Check GitHub Releases for a newer signed build a few seconds after launch, then again every 6 hours.
+// Check GitHub Releases for a newer signed build a few seconds after launch, then again every hour.
 export async function checkUpdate() {
   const up = window.__TAURI__?.updater;
 
@@ -179,7 +179,7 @@ export async function checkUpdate() {
 
 if (tauri) {
   setTimeout(checkUpdate, 6000);
-  setInterval(checkUpdate, 6 * 3600 * 1000);
+  setInterval(checkUpdate, 3600 * 1000);
 }
 
 paintToTop();
