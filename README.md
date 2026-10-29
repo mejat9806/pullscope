@@ -124,7 +124,7 @@ Build and install a macOS app bundle into `/Applications`:
 bash scripts/bundle.sh
 ```
 
-The frontend is TypeScript + Preact under `web/`, bundled by esbuild into the committed `ui/app.js`. After editing it run `cd web && npm ci && npm run check && npm run build` (`npm run watch` while developing); `check` runs `tsc --noEmit` under `strict` and rejects explicit `any`.
+The frontend is TypeScript + Preact under `web/`, bundled by esbuild into `ui/app.js`, which is generated and not committed (`bundle.sh` and the release workflow build it). Build it once after cloning and after editing, with `cd web && npm ci && npm run check && npm run build` (`npm run watch` while developing); `check` runs `tsc --noEmit` under `strict` and rejects explicit `any`.
 
 **Code style** (ported from the Citadel monorepo and adapted): Prettier (`web/.prettierrc`: 80 columns, single quotes, trailing commas, `arrowParens: avoid`) and ESLint 9 flat config (`web/eslint.config.mjs`, rules in `web/eslint/base-rules.mjs`, the ones this codebase does not follow, with reasons, in `web/eslint/overrides.mjs`). Run `npm run format` and `npm run lint` (`lint:fix` for auto-fixes) in `web/`; CI runs `check`, `lint` and `format:check`. Names must say what they hold: single-letter names are rejected (`id-length`), and so are `cb` and `callback`, so write `event`, `bundle` or `appState`, not `e`, `b` or `S`. Disable a rule only with a comment saying why.
 
@@ -156,7 +156,7 @@ Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds installers
 | `src-tauri/src/github.rs` | Fetches a PR, its timeline, files, review comments, checks and thread state from the REST and GraphQL APIs |
 | `src-tauri/src/lib.rs` | Tauri commands: write actions, branches, create PR, notifications, inbox, markdown preview |
 | `web/` | Frontend source (TypeScript, Preact, esbuild): `src/app/*` modules, `src/components/*` Preact components, `src/types.ts` domain types |
-| `ui/app.js`, `ui/app.css` | Built frontend bundle (generated from `web/`, committed) and styles |
+| `ui/app.js`, `ui/app.css` | Built frontend bundle (generated from `web/`, gitignored) and styles |
 | `editor/` | Source of the rich text editor and highlighter bundles |
 | `CHANGELOG.md` | Release notes per version; the tag's section becomes the GitHub release body |
 | `scripts/` | `bundle.sh` builds and installs the macOS app |

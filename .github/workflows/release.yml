@@ -44,6 +44,12 @@ jobs:
         with:
           node-version: 20
 
+      - name: Build the frontend bundle (ui/app.js is not committed)
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
       - name: Release notes from CHANGELOG.md
         id: notes
         shell: bash

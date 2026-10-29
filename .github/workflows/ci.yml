@@ -83,5 +83,3 @@ jobs:
         working-directory: web
       - run: npm run build
         working-directory: web
-      - name: Committed ui/app.js is up to date
-        run: git diff --exit-code ui/app.js
