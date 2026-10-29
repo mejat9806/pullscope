@@ -1,5 +1,6 @@
 import { focusDraft, rerender, scrollDraft, setDiffMode } from './actions';
 import { appState, qa, queryElement } from './core';
+import { openFind } from './find';
 import { inboxKey } from './inboxtools';
 import { flipSides } from './mergebox';
 import { openNewPr } from './pages';
@@ -101,6 +102,13 @@ export function shortcut(event: KeyboardEvent) {
 
   if ((event.metaKey || event.ctrlKey) && !event.altKey) {
     const key = event.key.toLowerCase();
+
+    if (key === 'f' && !event.shiftKey) {
+      event.preventDefault();
+      openFind();
+
+      return;
+    }
 
     if (key === 't' && !event.shiftKey) {
       event.preventDefault();

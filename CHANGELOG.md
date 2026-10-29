@@ -4,6 +4,12 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Find in page** with `⌘F` / `Ctrl+F`: highlights every match in the current view, with a match counter and next/previous. (Requested in issue #5.)
+
+### Fixed
+- Opening a repository now lists **open** pull requests, as GitHub does, instead of keeping the Closed or All choice from the previously opened repository. (Reported in issue #4.)
+
 ## [1.3.5]
 
 ### Added

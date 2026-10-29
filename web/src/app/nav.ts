@@ -38,6 +38,12 @@ export async function loadRepos() {
 export async function openRepo(name: string, { nav = false } = {}) {
   appState.view = 'repo';
   appState.pAuthor = appState.pLabel = appState.pStatus = '';
+
+  // Like GitHub, a repository opened afresh lists open pull requests; Back and Forward keep the chosen state.
+  if (!nav) {
+    appState.prState = 'open';
+  }
+
   appState.repo = name;
   appState.prs = null;
   appState.error = '';

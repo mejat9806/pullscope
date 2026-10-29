@@ -1117,3 +1117,12 @@ table.diff { contain: layout paint; }
 .pt-colors button { width: 18px; height: 18px; border-radius: 50%; border: 2px solid transparent; padding: 0; cursor: pointer; }
 .pt-colors button.on { border-color: var(--fgColor-default); }
 .pt-ctx { width: 240px; }
+
+/* find in page (⌘F) */
+.findbar { position: fixed; top: 64px; right: 16px; z-index: 80; display: flex; align-items: center; gap: 6px; padding: 6px 8px; background: var(--bgColor-default); border: .5px solid var(--borderColor-default); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.28); animation: menuIn .16s ease-out; }
+.findbar input { width: 200px; height: 28px; padding: 0 8px; border: 1px solid var(--borderColor-default); border-radius: 6px; background: var(--bgColor-default); color: var(--fgColor-default); font-size: 13px; }
+.findbar-count { min-width: 54px; font-size: 12px; text-align: center; color: var(--fgColor-muted); }
+.findbar button { width: 26px; height: 26px; border: 0; border-radius: 6px; background: transparent; color: var(--fgColor-default); cursor: pointer; }
+.findbar button:hover { background: var(--control-transparent-bgColor-hover, rgba(128,128,128,.14)); }
+::highlight(find-all) { background: rgba(255, 213, 0, .4); color: inherit; }
+::highlight(find-current) { background: #ff9632; color: #000; }

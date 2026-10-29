@@ -6174,6 +6174,158 @@
     }
   );
 
+  // src/app/find.ts
+  var MATCH_LIMIT = 2e3;
+  var SKIPPED_TAGS = /* @__PURE__ */ new Set([
+    "SCRIPT",
+    "STYLE",
+    "TEXTAREA",
+    "INPUT",
+    "SELECT"
+  ]);
+  var bar = null;
+  var input = null;
+  var counter = null;
+  var matches = [];
+  var current2 = -1;
+  var searchedFor = "";
+  var registry = () => CSS.highlights;
+  var paint = () => {
+    const highlights = registry();
+    const HighlightClass = window.Highlight;
+    if (!highlights || !HighlightClass) {
+      return;
+    }
+    highlights.delete("find-all");
+    highlights.delete("find-current");
+    if (matches.length) {
+      highlights.set("find-all", new HighlightClass(...matches));
+    }
+    if (matches[current2]) {
+      highlights.set("find-current", new HighlightClass(matches[current2]));
+    }
+  };
+  var showCount = () => {
+    if (!counter) {
+      return;
+    }
+    counter.textContent = matches.length ? `${current2 + 1}/${matches.length}${matches.length >= MATCH_LIMIT ? "+" : ""}` : input?.value ? "No results" : "";
+  };
+  var isVisible = (element) => element.checkVisibility ? element.checkVisibility() : true;
+  var collect = (query) => {
+    const found = [];
+    const needle = query.toLowerCase();
+    const walker = document.createTreeWalker(
+      document.getElementById("app") ?? document.body,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) => {
+          const parent = node.parentElement;
+          return parent && !SKIPPED_TAGS.has(parent.tagName) && node.nodeValue && isVisible(parent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      }
+    );
+    for (let node = walker.nextNode(); node && found.length < MATCH_LIMIT; node = walker.nextNode()) {
+      const text = (node.nodeValue ?? "").toLowerCase();
+      for (let start = text.indexOf(needle); start !== -1 && found.length < MATCH_LIMIT; start = text.indexOf(needle, start + needle.length)) {
+        const range = document.createRange();
+        range.setStart(node, start);
+        range.setEnd(node, start + needle.length);
+        found.push(range);
+      }
+    }
+    return found;
+  };
+  var reveal2 = () => {
+    const range = matches[current2];
+    if (!range) {
+      return;
+    }
+    range.startContainer.parentElement?.scrollIntoView({
+      block: "center",
+      inline: "nearest"
+    });
+  };
+  var search = (keepPosition = false) => {
+    const query = input?.value ?? "";
+    searchedFor = query;
+    matches = query ? collect(query) : [];
+    current2 = matches.length ? keepPosition ? Math.min(current2, matches.length - 1) : 0 : -1;
+    paint();
+    showCount();
+    reveal2();
+  };
+  var findStep = (direction) => {
+    const stale = matches.some((range) => !range.startContainer.isConnected);
+    if (input?.value !== searchedFor || stale) {
+      search(true);
+    }
+    if (!matches.length) {
+      return;
+    }
+    current2 = (current2 + direction + matches.length) % matches.length;
+    paint();
+    showCount();
+    reveal2();
+  };
+  var closeFind = () => {
+    bar?.remove();
+    bar = input = counter = null;
+    matches = [];
+    current2 = -1;
+    registry()?.delete("find-all");
+    registry()?.delete("find-current");
+  };
+  var button = (label, title, onClick) => {
+    const element = document.createElement("button");
+    element.type = "button";
+    element.textContent = label;
+    element.title = title;
+    element.addEventListener("click", onClick);
+    return element;
+  };
+  var openFind = () => {
+    if (bar && input) {
+      input.focus();
+      input.select();
+      return;
+    }
+    bar = document.createElement("div");
+    bar.className = "findbar";
+    input = document.createElement("input");
+    input.type = "search";
+    input.placeholder = "Find in page";
+    input.setAttribute("aria-label", "Find in page");
+    counter = document.createElement("span");
+    counter.className = "findbar-count";
+    input.addEventListener("input", () => search());
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        findStep(event.shiftKey ? -1 : 1);
+      } else if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeFind();
+      }
+    });
+    bar.append(
+      input,
+      counter,
+      button("\u2191", "Previous match (Shift+Enter)", () => findStep(-1)),
+      button("\u2193", "Next match (Enter)", () => findStep(1)),
+      button("\u2715", "Close (Esc)", closeFind)
+    );
+    document.body.append(bar);
+    const selected = window.getSelection()?.toString().trim() ?? "";
+    if (selected && selected.length < 100 && !selected.includes("\n")) {
+      input.value = selected;
+      search();
+    }
+    input.focus();
+    input.select();
+  };
+
   // src/app/inboxtools.ts
   var put = (key2, value) => {
     try {
@@ -7330,6 +7482,11 @@ ${pull.html_url}`;
     }
     if ((event.metaKey || event.ctrlKey) && !event.altKey) {
       const key2 = event.key.toLowerCase();
+      if (key2 === "f" && !event.shiftKey) {
+        event.preventDefault();
+        openFind();
+        return;
+      }
       if (key2 === "t" && !event.shiftKey) {
         event.preventDefault();
         appState.tabMenu = !appState.tabMenu;
@@ -7839,7 +7996,7 @@ ${pull.html_url}`;
     const frRange = appState.fr && cs[appState.fr.a] && cs[appState.fr.b] ? appState.fr : null;
     const single = !!frRange && frRange.a === frRange.b;
     const sh = (index) => cs[index].sha.slice(0, 7);
-    const bar = /* @__PURE__ */ u3(
+    const bar2 = /* @__PURE__ */ u3(
       FcBar,
       {
         label: !frRange ? "All commits" : single ? "Commit" : `${frRange.b - frRange.a + 1} commits`,
@@ -7853,19 +8010,19 @@ ${pull.html_url}`;
     );
     if (!frRange) {
       return /* @__PURE__ */ u3(S, { children: [
-        bar,
+        bar2,
         filesList(bundle.files, true)
       ] });
     }
     const value = frDiff(bundle);
     return /* @__PURE__ */ u3(S, { children: [
-      bar,
+      bar2,
       value === void 0 || value === "loading" ? /* @__PURE__ */ u3("div", { class: "diff-empty", children: "Loading\u2026" }) : typeof value === "string" ? /* @__PURE__ */ u3("div", { class: "diff-empty err", children: value }) : filesList(value)
     ] });
   }
   var b0open = () => !!appState.bundle && !appState.bundle.pull.merged && appState.bundle.pull.state === "open";
-  function filesList(input, canComment = false) {
-    let files = input;
+  function filesList(input2, canComment = false) {
+    let files = input2;
     if (!files.length) {
       return /* @__PURE__ */ u3("div", { class: "diff-empty", children: "No files changed." });
     }
@@ -9344,8 +9501,8 @@ ${pull.html_url}`;
     if (!gone.length) {
       return;
     }
-    const current2 = curRef();
-    const wasOpen = gone.some((tab) => tab.ref === current2);
+    const current3 = curRef();
+    const wasOpen = gone.some((tab) => tab.ref === current3);
     for (const tab of gone) {
       appState.alive.delete(tab.ref);
     }
@@ -9576,7 +9733,7 @@ ${pull.html_url}`;
       return promise;
     }
   };
-  var loadPr = (input) => tauri ? tauri.invoke("fetch_pr", { url: input }) : fetch(new URL(input, location.href)).then((response) => response.json());
+  var loadPr = (input2) => tauri ? tauri.invoke("fetch_pr", { url: input2 }) : fetch(new URL(input2, location.href)).then((response) => response.json());
   function prefetch(ref) {
     if (tauri && !qc.fresh(ref)) {
       qc.fetch(ref, () => loadPr(ref))?.catch(() => {
@@ -13614,6 +13771,9 @@ ${ev.currentTarget.dataset.code}
   async function openRepo(name, { nav = false } = {}) {
     appState.view = "repo";
     appState.pAuthor = appState.pLabel = appState.pStatus = "";
+    if (!nav) {
+      appState.prState = "open";
+    }
     appState.repo = name;
     appState.prs = null;
     appState.error = "";
@@ -13673,7 +13833,7 @@ ${ev.currentTarget.dataset.code}
     }
   );
   var elId = (text) => `c-${text.replace(/^c-/, "")}`;
-  async function openPr(input, {
+  async function openPr(input2, {
     nav = false,
     keepTab = false,
     manual = false,
@@ -13681,7 +13841,7 @@ ${ev.currentTarget.dataset.code}
     restore = ""
   } = {}) {
     {
-      const bm = String(input).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/);
+      const bm = String(input2).match(/^([^#\s@]+\/[^#\s@]+)@(.+)$/);
       if (bm) {
         return openNewPr(bm[1], bm[2]);
       }
@@ -13695,7 +13855,7 @@ ${ev.currentTarget.dataset.code}
     }
     appState.tabPending = "";
     if (!keepTab) {
-      const match = String(input).match(/^([^#\s@/]+\/[^#\s@]+)#(\d+)$/) || String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
+      const match = String(input2).match(/^([^#\s@/]+\/[^#\s@]+)#(\d+)$/) || String(input2).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
       if (match) {
         const ref = `${match[1]}#${match[2]}`;
         appState.tabPending = ref;
@@ -13737,12 +13897,12 @@ ${ev.currentTarget.dataset.code}
       appState.focus = "";
     }
     if (keepTab && tauri) {
-      await tauri.invoke("invalidate_pr", { url: input }).catch(() => {
+      await tauri.invoke("invalidate_pr", { url: input2 }).catch(() => {
       });
     }
-    const mem2 = qc.peek(input);
-    const disk = mem2 || (tauri && !keepTab ? await tauri.invoke("cached_pr", { url: input }).then((bundle) => bundle && { data: bundle }).catch(() => null) : null);
-    const fresh = !!mem2 && qc.fresh(input) && !keepTab;
+    const mem2 = qc.peek(input2);
+    const disk = mem2 || (tauri && !keepTab ? await tauri.invoke("cached_pr", { url: input2 }).then((bundle) => bundle && { data: bundle }).catch(() => null) : null);
+    const fresh = !!mem2 && qc.fresh(input2) && !keepTab;
     const stale = !!disk && !fresh;
     const had = fresh || stale || keepTab && appState.bundle;
     if (fresh) {
@@ -13785,7 +13945,7 @@ ${ev.currentTarget.dataset.code}
     };
     const focused = focusNow();
     try {
-      const got = hot ? mem2.data : await qc.fetch(input, () => loadPr(input));
+      const got = hot ? mem2.data : await qc.fetch(input2, () => loadPr(input2));
       if (stale_()) {
         return;
       }
