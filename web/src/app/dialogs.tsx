@@ -13,6 +13,7 @@ import {
   RepoPickDialog,
   ReviewDialog,
   TokenDialog,
+  WhatsNewDialog,
 } from '../components/Dialogs';
 import { ProfPop } from '../components/Overlays';
 import { closeDlg, errMsg } from './actions';
@@ -24,6 +25,7 @@ import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { metaSave } from './meta';
 import { repoPickSave } from './repopick';
 import { oauthGo, tokenSave } from './token';
+import { installUpdate, renderNotes } from './whatsnew';
 import { getZoom, setZoom } from './zoom';
 
 import type { CpHandlers } from '../components/Merge';
@@ -78,7 +80,8 @@ export function Dialogs() {
       dlg.k !== 'token' &&
       dlg.k !== 'repos' &&
       dlg.k !== 'meta' &&
-      dlg.k !== 'appearance'
+      dlg.k !== 'appearance' &&
+      dlg.k !== 'whatsnew'
     ) {
       dlg.ok();
     }
@@ -123,6 +126,21 @@ export function Dialogs() {
           }}
           close={close}
         />
+      );
+    case 'whatsnew':
+      return (
+        <WhatsNewDialog
+          version={dlg.version}
+          after={dlg.after}
+          close={close}
+          install={installUpdate}
+        >
+          {dlg.body ? (
+            renderNotes(dlg.body)
+          ) : (
+            <p>No release notes were published for this version.</p>
+          )}
+        </WhatsNewDialog>
       );
     case 'repos': {
       const rp = appState.rpick!;

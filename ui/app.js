@@ -4045,6 +4045,38 @@
       )
     ] })
   ] }) });
+  var WhatsNewDialog = (props) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide wn-dlg", children: [
+    /* @__PURE__ */ u3("h2", { children: props.after ? `Updated to v${props.version}` : `What's new in v${props.version}` }),
+    /* @__PURE__ */ u3("div", { class: "wn-body", children: props.children }),
+    /* @__PURE__ */ u3("div", { class: "btns", children: props.after ? /* @__PURE__ */ u3(
+      "button",
+      {
+        class: "btn primary",
+        title: "Close the release notes",
+        onClick: props.close,
+        children: "Got it"
+      }
+    ) : /* @__PURE__ */ u3(S, { children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "btn",
+          title: "Keep the current version for now",
+          onClick: props.close,
+          children: "Later"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "btn primary",
+          title: "Download and install the new version, then restart",
+          onClick: props.install,
+          children: "Update and restart"
+        }
+      )
+    ] }) })
+  ] }) });
   var ZOOM_STEPS = [0.8, 0.9, 1, 1.1, 1.25, 1.5];
   var AppearanceDialog = (props) => /* @__PURE__ */ u3("div", { class: "dlg-bg", id: "dlgbg", children: /* @__PURE__ */ u3("div", { class: "dlg wide ap-dlg", children: [
     /* @__PURE__ */ u3("h2", { children: "Appearance" }),
@@ -8603,10 +8635,98 @@ ${pull.html_url}`;
     }
   }
 
+  // src/app/whatsnew.tsx
+  var INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/;
+  var inline = (text) => text.split(INLINE).filter(Boolean).map(
+    (part) => part.startsWith("**") ? /* @__PURE__ */ u3("b", { children: part.slice(2, -2) }) : part.startsWith("`") ? /* @__PURE__ */ u3("code", { children: part.slice(1, -1) }) : part.startsWith("*") ? /* @__PURE__ */ u3("i", { children: part.slice(1, -1) }) : part
+  );
+  var renderNotes = (body) => {
+    const blocks = [];
+    let bullets = [];
+    const flush = () => {
+      if (bullets.length) {
+        blocks.push(/* @__PURE__ */ u3("ul", { children: bullets }));
+        bullets = [];
+      }
+    };
+    for (const line of body.split("\n")) {
+      const text = line.trim();
+      const heading = /^#{1,6}\s+(.*)$/.exec(text);
+      if (heading) {
+        flush();
+        blocks.push(/* @__PURE__ */ u3("h3", { children: inline(heading[1]) }));
+      } else if (/^[-*]\s+/.test(text)) {
+        bullets.push(/* @__PURE__ */ u3("li", { children: inline(text.replace(/^[-*]\s+/, "")) }));
+      } else if (text) {
+        flush();
+        blocks.push(/* @__PURE__ */ u3("p", { children: inline(text) }));
+      }
+    }
+    flush();
+    return blocks;
+  };
+  var KEY2 = "whatsnew";
+  function showUpdateNotes() {
+    const item = appState.update;
+    if (!item) {
+      return;
+    }
+    appState.dlg = {
+      k: "whatsnew",
+      version: item.version,
+      body: item.body || "",
+      after: false
+    };
+    render();
+  }
+  async function installUpdate() {
+    const item = appState.update;
+    if (!item || item.busy) {
+      return;
+    }
+    item.busy = true;
+    appState.dlg = null;
+    render();
+    try {
+      localStorage.setItem(
+        KEY2,
+        JSON.stringify({ version: item.version, body: item.body || "" })
+      );
+    } catch {
+    }
+    try {
+      await item.obj.downloadAndInstall();
+      await window.__TAURI__.process.relaunch();
+    } catch (error) {
+      item.busy = false;
+      appState.actErr = { k: "update", m: `Update failed: ${String(error)}` };
+      render();
+    }
+  }
+  function showInstalledNotes(running) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY2) ?? "null");
+      if (!saved) {
+        return;
+      }
+      localStorage.removeItem(KEY2);
+      if (saved.version === running) {
+        appState.dlg = {
+          k: "whatsnew",
+          version: saved.version,
+          body: saved.body,
+          after: true
+        };
+        paintDlg();
+      }
+    } catch {
+    }
+  }
+
   // src/app/zoom.ts
   var MIN = 0.5;
   var MAX = 2.5;
-  var KEY2 = "zoom";
+  var KEY3 = "zoom";
   var level = 1;
   var getZoom = () => level;
   var view = () => window.__TAURI__?.webview?.getCurrentWebview?.();
@@ -8615,14 +8735,14 @@ ${pull.html_url}`;
     view()?.setZoom(level).catch(() => {
     });
     try {
-      localStorage.setItem(KEY2, String(level));
+      localStorage.setItem(KEY3, String(level));
     } catch {
     }
   };
   var restoreZoom = () => {
     let saved = 1;
     try {
-      saved = parseFloat(localStorage.getItem(KEY2) || "1");
+      saved = parseFloat(localStorage.getItem(KEY3) || "1");
     } catch {
     }
     if (saved && saved !== 1) {
@@ -8686,7 +8806,7 @@ ${pull.html_url}`;
     }
     const close = () => closeDlg();
     const ok = () => {
-      if (dlg.k !== "commits" && dlg.k !== "token" && dlg.k !== "repos" && dlg.k !== "meta" && dlg.k !== "appearance") {
+      if (dlg.k !== "commits" && dlg.k !== "token" && dlg.k !== "repos" && dlg.k !== "meta" && dlg.k !== "appearance" && dlg.k !== "whatsnew") {
         dlg.ok();
       }
     };
@@ -8728,6 +8848,17 @@ ${pull.html_url}`;
               paintDlg();
             },
             close
+          }
+        );
+      case "whatsnew":
+        return /* @__PURE__ */ u3(
+          WhatsNewDialog,
+          {
+            version: dlg.version,
+            after: dlg.after,
+            close,
+            install: installUpdate,
+            children: dlg.body ? renderNotes(dlg.body) : /* @__PURE__ */ u3("p", { children: "No release notes were published for this version." })
           }
         );
       case "repos": {
@@ -9929,22 +10060,7 @@ ${pull.html_url}`;
     focus: (event) => addrFocus(event),
     blur: () => addrBlur(),
     key: (event) => addrKey(event),
-    upd: async () => {
-      const item = appState.update;
-      if (!item || item.busy) {
-        return;
-      }
-      item.busy = true;
-      render();
-      try {
-        await item.obj.downloadAndInstall();
-        await window.__TAURI__.process.relaunch();
-      } catch (error) {
-        item.busy = false;
-        appState.actErr = { k: "update", m: `Update failed: ${String(error)}` };
-        render();
-      }
-    },
+    upd: showUpdateNotes,
     retry: (ev) => {
       const sel = btnSel(ev.currentTarget);
       setBusy(sel, true);
@@ -13386,6 +13502,7 @@ ${ev.currentTarget.dataset.code}
   restoreAppearance();
   window.__TAURI__?.app?.getVersion?.().then((value) => {
     appState.ver = value;
+    showInstalledNotes(value);
   }).catch(() => {
   });
   setGlobals({
@@ -13470,7 +13587,11 @@ ${ev.currentTarget.dataset.code}
     try {
       const updateHandle = await up.check();
       if (updateHandle) {
-        appState.update = { version: updateHandle.version, obj: updateHandle };
+        appState.update = {
+          version: updateHandle.version,
+          body: updateHandle.body,
+          obj: updateHandle
+        };
         render();
       }
     } catch {

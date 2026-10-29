@@ -23,6 +23,7 @@ import { go } from './render';
 import { repoPickOpen } from './repopick';
 import { closeTab, curRef, reopenTab, saveTabs, tabSnap } from './tabs';
 import { tokenDialog } from './token';
+import { showUpdateNotes } from './whatsnew';
 
 import type { TabHandlers } from '../components/TabStrip';
 import type { ToolbarHandlers } from '../components/Toolbar';
@@ -166,25 +167,7 @@ const tb: ToolbarHandlers = {
   focus: event => addrFocus(event),
   blur: () => addrBlur(),
   key: event => addrKey(event),
-  upd: async () => {
-    const item = appState.update;
-
-    if (!item || item.busy) {
-      return;
-    }
-
-    item.busy = true;
-    render();
-
-    try {
-      await item.obj.downloadAndInstall();
-      await window.__TAURI__!.process.relaunch();
-    } catch (error) {
-      item.busy = false;
-      appState.actErr = { k: 'update', m: `Update failed: ${String(error)}` };
-      render();
-    }
-  },
+  upd: showUpdateNotes,
   retry: ev => {
     const sel = btnSel(ev.currentTarget as HTMLElement);
     setBusy(sel, true);

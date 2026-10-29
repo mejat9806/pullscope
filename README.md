@@ -140,7 +140,7 @@ Writing actions need the desktop app; in the browser preview they are disabled.
 
 ### Releases
 
-Installed builds check for updates on launch and offer a one-click update (signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret). Unit tests run in CI (`cargo test --lib`).
+Installed builds check for updates on launch and offer a one-click update: the button first shows the release notes, and they show once more after the restart (signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret). Unit tests run in CI (`cargo test --lib`).
 
 Add the changes to the `## [Unreleased]` section of `CHANGELOG.md` as you go. To release, rename that section to the new version, bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock`, and tag.
 

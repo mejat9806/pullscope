@@ -7,6 +7,7 @@ import {
 import { DraftBox } from './Actions';
 import { CommitsDialog } from './Merge';
 
+import type { ComponentChildren } from 'preact';
 import type { Appearance, FontChoice } from '../app/appearance';
 import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
@@ -121,6 +122,55 @@ export const EditPrDialog = (
         >
           Save
         </button>
+      </div>
+    </div>
+  </div>
+);
+
+export interface WhatsNewDlgProps {
+  version: string;
+  after: boolean;
+  close: () => void;
+  install: () => void;
+  children: ComponentChildren;
+}
+
+export const WhatsNewDialog = (props: WhatsNewDlgProps) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide wn-dlg">
+      <h2>
+        {props.after
+          ? `Updated to v${props.version}`
+          : `What's new in v${props.version}`}
+      </h2>
+      <div class="wn-body">{props.children}</div>
+      <div class="btns">
+        {props.after ? (
+          <button
+            class="btn primary"
+            title="Close the release notes"
+            onClick={props.close}
+          >
+            Got it
+          </button>
+        ) : (
+          <>
+            <button
+              class="btn"
+              title="Keep the current version for now"
+              onClick={props.close}
+            >
+              Later
+            </button>
+            <button
+              class="btn primary"
+              title="Download and install the new version, then restart"
+              onClick={props.install}
+            >
+              Update and restart
+            </button>
+          </>
+        )}
       </div>
     </div>
   </div>

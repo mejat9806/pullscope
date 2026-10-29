@@ -460,7 +460,12 @@ export interface AppState {
   fadeMain?: boolean;
   draftRef?: string;
   cpick?: FrRange | null;
-  update?: { version: string; obj: UpdateHandle; busy?: boolean } | null;
+  update?: {
+    version: string;
+    body?: string;
+    obj: UpdateHandle;
+    busy?: boolean;
+  } | null;
   pending?: Record<string, PendingComment[]>;
   pStatus?: string;
   pLabel?: string;
@@ -755,6 +760,7 @@ export type Dlg =
   | { k: 'repos' }
   | { k: 'meta' }
   | { k: 'appearance' }
+  | { k: 'whatsnew'; version: string; body: string; after: boolean }
   | { k: 'review'; ev: string; ok: () => void | Promise<void> }
   | { k: 'editpr'; title: string; ok: () => void | Promise<void> }
   | {

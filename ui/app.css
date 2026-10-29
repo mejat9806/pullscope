@@ -1088,3 +1088,12 @@ table.diff { contain: layout paint; }
   .toolbar .tb-group { gap: 0; flex: none; }
   .toolbar #back, .toolbar #fwd, .toolbar #inboxbtn, .toolbar .prof-btn span, .toolbar .prof-btn svg { display: none; }
 }
+
+/* Release notes dialog */
+.wn-dlg { width: min(560px, calc(100vw - 24px)); }
+.wn-body { max-height: 52vh; overflow-y: auto; font-size: 13px; line-height: 1.5; padding-right: 4px; }
+.wn-body h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--fgColor-muted); margin: 14px 0 6px; }
+.wn-body h3:first-child { margin-top: 0; }
+.wn-body ul { margin: 0; padding-left: 18px; } .wn-body li { margin: 4px 0; }
+.wn-body p { color: var(--fgColor-default); margin: 6px 0; }
+.wn-body code { font-size: 12px; background: var(--bgColor-neutral-muted); border-radius: 6px; padding: 1px 5px; }

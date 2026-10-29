@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Release notes in the app.** The *Update to vX* button now opens *What's new in vX* with the release notes, and you choose *Update and restart* or *Later*. After the restart the notes show once more as *Updated to vX*.
+
 ## [1.3.3]
 
 ### Added

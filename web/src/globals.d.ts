@@ -31,6 +31,7 @@ interface TauriEvent {
 
 interface UpdateHandle {
   version: string;
+  body?: string;
   downloadAndInstall(): Promise<void>;
 }
 

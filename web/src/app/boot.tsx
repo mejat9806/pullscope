@@ -14,6 +14,7 @@ import { render } from './pages';
 import { helpKey } from './palette';
 import { paintToTop } from './scrolling';
 import { homeKey } from './scrolling';
+import { showInstalledNotes } from './whatsnew';
 import { restoreZoom, zoomKey, zoomWheel } from './zoom';
 
 export const urlParams = new URLSearchParams(location.search);
@@ -57,6 +58,7 @@ window.__TAURI__?.app
   ?.getVersion?.()
   .then(value => {
     appState.ver = value;
+    showInstalledNotes(value);
   })
   .catch(() => {});
 
@@ -164,7 +166,12 @@ export async function checkUpdate() {
     const updateHandle = await up.check();
 
     if (updateHandle) {
-      appState.update = { version: updateHandle.version, obj: updateHandle };
+      appState.update = {
+        version: updateHandle.version,
+        body: updateHandle.body,
+        obj: updateHandle,
+      };
+
       render();
     }
   } catch {}
