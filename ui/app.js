@@ -7314,14 +7314,16 @@ ${pull.html_url}`;
     return true;
   }
   var menuAway = (event) => {
-    if (appState.tabMenu && !event.target.closest(".pt-menu, #tabadd")) {
+    if ((appState.tabMenu || appState.tabCtx) && !event.target.closest(".pt-menu, #tabadd")) {
       appState.tabMenu = false;
+      appState.tabCtx = null;
       rerender();
     }
   };
   function shortcut(event) {
-    if (appState.tabMenu && event.key === "Escape") {
+    if ((appState.tabMenu || appState.tabCtx) && event.key === "Escape") {
       appState.tabMenu = false;
+      appState.tabCtx = null;
       rerender();
       return;
     }
@@ -9202,6 +9204,7 @@ ${pull.html_url}`;
     appState.tabs = Array.isArray(item.list) ? item.list : [];
     appState.closed = [];
     appState.tabMenu = false;
+    appState.tabCtx = null;
   }
   var curRef = () => appState.view === "pr" && appState.bundle ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}` : "";
   var saveTabs = () => {
@@ -9288,6 +9291,36 @@ ${pull.html_url}`;
       return render();
     }
     const otherTab = appState.tabs[Math.min(index, appState.tabs.length - 1)];
+    appState.fadeMain = true;
+    if (otherTab) {
+      openPr(otherTab.ref, { restore: otherTab.tab, nav: true });
+    } else {
+      appState.view = "home";
+      appState.bundle = null;
+      render();
+    }
+  }
+  function closeTabs(keep5) {
+    const gone = appState.tabs.filter((tab, index) => !keep5(tab, index));
+    if (!gone.length) {
+      return;
+    }
+    const current2 = curRef();
+    const wasOpen = gone.some((tab) => tab.ref === current2);
+    for (const tab of gone) {
+      appState.alive.delete(tab.ref);
+    }
+    appState.closed = [
+      ...gone.map((tab) => ({ ref: tab.ref, tab: tab.tab })).reverse(),
+      ...appState.closed.filter((item) => !gone.some((tab) => tab.ref === item.ref))
+    ].slice(0, 10);
+    appState.tabs = appState.tabs.filter((tab, index) => keep5(tab, index));
+    appState.tabCtx = null;
+    saveTabs();
+    if (!wasOpen) {
+      return render();
+    }
+    const otherTab = appState.tabs[0];
     appState.fadeMain = true;
     if (otherTab) {
       openPr(otherTab.ref, { restore: otherTab.tab, nav: true });
@@ -9633,6 +9666,7 @@ ${pull.html_url}`;
     recents,
     menu,
     menuAt,
+    ctx,
     drag: drag2,
     closedFirst,
     on: on3
@@ -9651,6 +9685,7 @@ ${pull.html_url}`;
             on3.open(index);
           },
           onAuxClick: (event) => on3.aux(event, index),
+          onContextMenu: (event) => on3.ctx(event, index),
           onMouseDown: (event) => on3.down(event, index),
           title: `${tab.ref} \xB7 ${tab.title}`,
           children: [
@@ -9685,6 +9720,47 @@ ${pull.html_url}`;
           children: [
             /* @__PURE__ */ u3(Icon, { n: "plus" }),
             tabs.length < 2 && /* @__PURE__ */ u3("span", { children: "New tab" })
+          ]
+        }
+      ),
+      ctx && /* @__PURE__ */ u3(
+        "div",
+        {
+          class: "pt-menu pt-ctx",
+          style: `top:${ctx.top}px;left:${ctx.left}px;margin-top:0`,
+          children: [
+            /* @__PURE__ */ u3("a", { title: "Close this tab", onClick: () => on3.closeOne(ctx.index), children: [
+              /* @__PURE__ */ u3(Icon, { n: "x" }),
+              " Close tab"
+            ] }),
+            /* @__PURE__ */ u3(
+              "a",
+              {
+                title: "Close every tab except this one",
+                class: tabs.length < 2 ? "off" : "",
+                onClick: () => on3.closeOthers(ctx.index),
+                children: [
+                  /* @__PURE__ */ u3(Icon, { n: "x" }),
+                  " Close other tabs"
+                ]
+              }
+            ),
+            /* @__PURE__ */ u3(
+              "a",
+              {
+                title: "Close the tabs after this one",
+                class: ctx.index >= tabs.length - 1 ? "off" : "",
+                onClick: () => on3.closeRight(ctx.index),
+                children: [
+                  /* @__PURE__ */ u3(Icon, { n: "x" }),
+                  " Close tabs to the right"
+                ]
+              }
+            ),
+            /* @__PURE__ */ u3("a", { title: "Close every open tab", onClick: on3.closeAll, children: [
+              /* @__PURE__ */ u3(Icon, { n: "x-circle" }),
+              " Close all tabs"
+            ] })
           ]
         }
       ),
@@ -10170,6 +10246,27 @@ ${pull.html_url}`;
       appState.view = "home";
       render();
     },
+    ctx: (event, index) => {
+      event.preventDefault();
+      event.stopPropagation();
+      appState.tabMenu = false;
+      appState.tabCtx = {
+        index,
+        top: event.clientY + 4,
+        left: Math.max(8, Math.min(event.clientX, innerWidth - 200))
+      };
+      rerender();
+    },
+    closeOne: (index) => {
+      appState.tabCtx = null;
+      closeTab(index);
+    },
+    closeOthers: (index) => {
+      const keepRef = appState.tabs[index]?.ref;
+      closeTabs((tab) => tab.ref === keepRef);
+    },
+    closeRight: (index) => closeTabs((_tab, position) => position <= index),
+    closeAll: () => closeTabs(() => false),
     reopen: () => {
       appState.tabMenu = false;
       reopenTab();
@@ -10207,6 +10304,7 @@ ${pull.html_url}`;
           recents: appState.recent.filter((recentEntry) => !open2.has(recentEntry.ref)).slice(0, 8),
           menu: appState.tabMenu,
           menuAt: appState.tabMenuAt || null,
+          ctx: appState.tabCtx || null,
           drag: appState.drag || null,
           closedFirst: appState.closed.length ? appState.closed[0].ref : null,
           on: ts

@@ -437,6 +437,7 @@ export interface AppState {
   dragging?: boolean;
   flashPop?: boolean;
   drag?: { from: number; to: number; dx: number; w: number } | null;
+  tabCtx?: { index: number; top: number; left: number } | null;
   tabMenuAt?: { top: number; left: number } | null;
   busySels?: string[];
   dlg?: Dlg | null;

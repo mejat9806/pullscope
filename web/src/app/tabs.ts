@@ -16,6 +16,7 @@ export const KEY_TABS = 'tabs';
   appState.tabs = Array.isArray(item.list) ? item.list : [];
   appState.closed = [];
   appState.tabMenu = false;
+  appState.tabCtx = null;
 }
 
 export const curRef = () =>
@@ -131,6 +132,46 @@ export function closeTab(index: number) {
   }
 
   const otherTab = appState.tabs[Math.min(index, appState.tabs.length - 1)];
+  appState.fadeMain = true;
+
+  if (otherTab) {
+    openPr(otherTab.ref, { restore: otherTab.tab, nav: true });
+  } else {
+    appState.view = 'home';
+    appState.bundle = null;
+    render();
+  }
+}
+
+// Close several tabs at once (context menu: others, to the right, all). They stay reopenable with ⌘⇧T, newest first.
+export function closeTabs(keep: (tab: Tab, index: number) => boolean) {
+  const gone = appState.tabs.filter((tab, index) => !keep(tab, index));
+
+  if (!gone.length) {
+    return;
+  }
+
+  const current = curRef();
+  const wasOpen = gone.some(tab => tab.ref === current);
+
+  for (const tab of gone) {
+    appState.alive.delete(tab.ref);
+  }
+
+  appState.closed = [
+    ...gone.map(tab => ({ ref: tab.ref, tab: tab.tab })).reverse(),
+    ...appState.closed.filter(item => !gone.some(tab => tab.ref === item.ref)),
+  ].slice(0, 10);
+
+  appState.tabs = appState.tabs.filter((tab, index) => keep(tab, index));
+  appState.tabCtx = null;
+  saveTabs();
+
+  if (!wasOpen) {
+    return render();
+  }
+
+  const otherTab = appState.tabs[0];
   appState.fadeMain = true;
 
   if (otherTab) {

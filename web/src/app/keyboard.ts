@@ -81,17 +81,19 @@ export function setComposer(open: boolean, focus?: boolean) {
 
 export const menuAway = (event: MouseEvent) => {
   if (
-    appState.tabMenu &&
+    (appState.tabMenu || appState.tabCtx) &&
     !(event.target as HTMLElement).closest<HTMLElement>('.pt-menu, #tabadd')
   ) {
     appState.tabMenu = false;
+    appState.tabCtx = null;
     rerender();
   }
 };
 
 export function shortcut(event: KeyboardEvent) {
-  if (appState.tabMenu && event.key === 'Escape') {
+  if ((appState.tabMenu || appState.tabCtx) && event.key === 'Escape') {
     appState.tabMenu = false;
+    appState.tabCtx = null;
     rerender();
 
     return;

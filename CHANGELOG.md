@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Close several tabs at once**: right-click a tab for *Close tab*, *Close other tabs*, *Close tabs to the right* and *Close all tabs*. Closed tabs can still be brought back with `⌘⇧T`. (Requested in issue #3.)
+
 ## [1.3.4]
 
 ### Added

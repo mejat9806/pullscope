@@ -1097,3 +1097,6 @@ table.diff { contain: layout paint; }
 .wn-body ul { margin: 0; padding-left: 18px; } .wn-body li { margin: 4px 0; }
 .wn-body p { color: var(--fgColor-default); margin: 6px 0; }
 .wn-body code { font-size: 12px; background: var(--bgColor-neutral-muted); border-radius: 6px; padding: 1px 5px; }
+
+.pt-ctx { width: 210px; }
+.pt-menu a.off { opacity: .4; pointer-events: none; }

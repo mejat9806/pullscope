@@ -21,7 +21,14 @@ import { setBell } from './notes';
 import { openInbox, openNewPr, render, setDragging } from './pages';
 import { go } from './render';
 import { repoPickOpen } from './repopick';
-import { closeTab, curRef, reopenTab, saveTabs, tabSnap } from './tabs';
+import {
+  closeTab,
+  closeTabs,
+  curRef,
+  reopenTab,
+  saveTabs,
+  tabSnap,
+} from './tabs';
 import { tokenDialog } from './token';
 import { showUpdateNotes } from './whatsnew';
 
@@ -307,6 +314,29 @@ const ts: TabHandlers = {
     appState.view = 'home';
     render();
   },
+  ctx: (event, index) => {
+    event.preventDefault();
+    event.stopPropagation();
+    appState.tabMenu = false;
+
+    appState.tabCtx = {
+      index,
+      top: event.clientY + 4,
+      left: Math.max(8, Math.min(event.clientX, innerWidth - 200)),
+    };
+
+    rerender();
+  },
+  closeOne: index => {
+    appState.tabCtx = null;
+    closeTab(index);
+  },
+  closeOthers: index => {
+    const keepRef = appState.tabs[index]?.ref;
+    closeTabs(tab => tab.ref === keepRef);
+  },
+  closeRight: index => closeTabs((_tab, position) => position <= index),
+  closeAll: () => closeTabs(() => false),
   reopen: () => {
     appState.tabMenu = false;
     reopenTab();
@@ -353,6 +383,7 @@ export function Top() {
           .slice(0, 8)}
         menu={appState.tabMenu}
         menuAt={appState.tabMenuAt || null}
+        ctx={appState.tabCtx || null}
         drag={appState.drag || null}
         closedFirst={appState.closed.length ? appState.closed[0].ref : null}
         on={ts}

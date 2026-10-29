@@ -11,6 +11,11 @@ export interface TabHandlers {
   fresh: (ref: string) => void;
   home: () => void;
   reopen: () => void;
+  ctx: (event: MouseEvent, index: number) => void;
+  closeOthers: (index: number) => void;
+  closeRight: (index: number) => void;
+  closeAll: () => void;
+  closeOne: (index: number) => void;
 }
 
 export interface TabStripProps {
@@ -19,6 +24,7 @@ export interface TabStripProps {
   recents: RecentEntry[];
   menu: boolean;
   menuAt: { top: number; left: number } | null;
+  ctx: { index: number; top: number; left: number } | null;
   drag: { from: number; to: number; dx: number; w: number } | null;
   closedFirst: string | null;
   on: TabHandlers;
@@ -42,6 +48,7 @@ export function TabStrip({
   recents,
   menu,
   menuAt,
+  ctx,
   drag,
   closedFirst,
   on,
@@ -61,6 +68,7 @@ export function TabStrip({
             on.open(index);
           }}
           onAuxClick={event => on.aux(event, index)}
+          onContextMenu={event => on.ctx(event, index)}
           onMouseDown={event => on.down(event, index)}
           title={`${tab.ref} · ${tab.title}`}
         >
@@ -91,6 +99,33 @@ export function TabStrip({
         <Icon n="plus" />
         {tabs.length < 2 && <span>New tab</span>}
       </button>
+      {ctx && (
+        <div
+          class="pt-menu pt-ctx"
+          style={`top:${ctx.top}px;left:${ctx.left}px;margin-top:0`}
+        >
+          <a title="Close this tab" onClick={() => on.closeOne(ctx.index)}>
+            <Icon n="x" /> Close tab
+          </a>
+          <a
+            title="Close every tab except this one"
+            class={tabs.length < 2 ? 'off' : ''}
+            onClick={() => on.closeOthers(ctx.index)}
+          >
+            <Icon n="x" /> Close other tabs
+          </a>
+          <a
+            title="Close the tabs after this one"
+            class={ctx.index >= tabs.length - 1 ? 'off' : ''}
+            onClick={() => on.closeRight(ctx.index)}
+          >
+            <Icon n="x" /> Close tabs to the right
+          </a>
+          <a title="Close every open tab" onClick={on.closeAll}>
+            <Icon n="x-circle" /> Close all tabs
+          </a>
+        </div>
+      )}
       {menu && (
         <div
           class="pt-menu"
