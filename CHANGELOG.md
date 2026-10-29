@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.6]
+
 ### Added
 - **Find in page** with `⌘F` / `Ctrl+F`: highlights every match in the current view, with a match counter and next/previous. (Requested in issue #5.)
 
