@@ -22,12 +22,20 @@ import { openInbox, openNewPr, render, setDragging } from './pages';
 import { go } from './render';
 import { repoPickOpen } from './repopick';
 import {
+  closeGroup,
   closeTab,
   closeTabs,
   curRef,
+  dropGroup,
+  groupEdit,
+  leaveGroup,
+  newGroup,
+  pinTab,
   reopenTab,
   saveTabs,
   tabSnap,
+  toGroup,
+  ungroup,
 } from './tabs';
 import { tokenDialog } from './token';
 import { showUpdateNotes } from './whatsnew';
@@ -216,7 +224,7 @@ const tabDown = (event: MouseEvent, from: number) => {
   ].map(element => {
     const rect = element.getBoundingClientRect();
 
-    return rect.left + rect.width / 2;
+    return rect.width ? rect.left + rect.width / 2 : Infinity;
   });
 
   const mv = (ev: MouseEvent) => {
@@ -256,6 +264,7 @@ const tabDown = (event: MouseEvent, from: number) => {
     if (to !== from) {
       const [tab] = appState.tabs.splice(from, 1);
       appState.tabs.splice(to, 0, tab);
+      dropGroup(to);
       saveTabs();
     }
 
@@ -314,6 +323,53 @@ const ts: TabHandlers = {
     appState.view = 'home';
     render();
   },
+  groupCtx: (event, id) => {
+    event.preventDefault();
+    event.stopPropagation();
+    appState.tabMenu = false;
+
+    appState.tabCtx = {
+      index: -1,
+      group: id,
+      top: event.clientY + 4,
+      left: Math.max(8, Math.min(event.clientX, innerWidth - 200)),
+    };
+
+    rerender();
+  },
+  toggleGroup: id => {
+    const group = appState.tabGroups.find(item => item.id === id);
+
+    if (group) {
+      groupEdit(id, { collapsed: !group.collapsed });
+    }
+  },
+  rename: (id, name) => {
+    // Enter removes the focused input, which fires its blur in the middle of the repaint; only the first call counts.
+    if (appState.groupEdit !== id) {
+      return;
+    }
+
+    appState.groupEdit = null;
+
+    if (name !== null) {
+      groupEdit(id, { name: name.trim() });
+    } else {
+      rerender();
+    }
+  },
+  renameStart: id => {
+    appState.tabCtx = null;
+    appState.groupEdit = id;
+    rerender();
+  },
+  color: (id, color) => groupEdit(id, { color }),
+  ungroup,
+  closeGroup,
+  pin: pinTab,
+  newGroup,
+  toGroup,
+  leaveGroup,
   ctx: (event, index) => {
     event.preventDefault();
     event.stopPropagation();
@@ -333,10 +389,11 @@ const ts: TabHandlers = {
   },
   closeOthers: index => {
     const keepRef = appState.tabs[index]?.ref;
-    closeTabs(tab => tab.ref === keepRef);
+    closeTabs(tab => tab.ref === keepRef || !!tab.pinned);
   },
-  closeRight: index => closeTabs((_tab, position) => position <= index),
-  closeAll: () => closeTabs(() => false),
+  closeRight: index =>
+    closeTabs((tab, position) => position <= index || !!tab.pinned),
+  closeAll: () => closeTabs(tab => !!tab.pinned),
   reopen: () => {
     appState.tabMenu = false;
     reopenTab();
@@ -384,6 +441,8 @@ export function Top() {
         menu={appState.tabMenu}
         menuAt={appState.tabMenuAt || null}
         ctx={appState.tabCtx || null}
+        groups={appState.tabGroups}
+        editing={appState.groupEdit || null}
         drag={appState.drag || null}
         closedFirst={appState.closed.length ? appState.closed[0].ref : null}
         on={ts}

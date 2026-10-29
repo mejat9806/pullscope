@@ -201,6 +201,7 @@ export const appState: AppState = {
   busy: '',
   actErr: null,
   tabs: [],
+  tabGroups: [],
   alive: new Map(),
   tabMenu: false,
   closed: [],

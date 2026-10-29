@@ -128,6 +128,7 @@
     busy: "",
     actErr: null,
     tabs: [],
+    tabGroups: [],
     alive: /* @__PURE__ */ new Map(),
     tabMenu: false,
     closed: [],
@@ -9202,27 +9203,65 @@ ${pull.html_url}`;
   {
     const item = load(KEY_TABS, {});
     appState.tabs = Array.isArray(item.list) ? item.list : [];
+    appState.tabGroups = Array.isArray(item.groups) ? item.groups : [];
     appState.closed = [];
     appState.tabMenu = false;
     appState.tabCtx = null;
   }
   var curRef = () => appState.view === "pr" && appState.bundle ? `${appState.bundle.pull.base.repo.full_name}#${appState.bundle.pull.number}` : "";
+  var GROUP_COLORS = [
+    "#5f6368",
+    "#1a73e8",
+    "#d93025",
+    "#f9ab00",
+    "#188038",
+    "#d01884",
+    "#9334e6",
+    "#007b83"
+  ];
+  var normalizeTabs = () => {
+    const known = new Set(appState.tabGroups.map((group) => group.id));
+    for (const tab of appState.tabs) {
+      if (tab.pinned || tab.group && !known.has(tab.group)) {
+        delete tab.group;
+      }
+    }
+    const used = new Set(appState.tabs.map((tab) => tab.group));
+    appState.tabGroups = appState.tabGroups.filter((group) => used.has(group.id));
+    const pinned = appState.tabs.filter((tab) => tab.pinned);
+    const rest = appState.tabs.filter((tab) => !tab.pinned);
+    const placed = /* @__PURE__ */ new Set();
+    const ordered = [];
+    for (const tab of rest) {
+      if (!tab.group) {
+        ordered.push(tab);
+      } else if (!placed.has(tab.group)) {
+        placed.add(tab.group);
+        ordered.push(...rest.filter((other) => other.group === tab.group));
+      }
+    }
+    appState.tabs = [...pinned, ...ordered];
+  };
   var saveTabs = () => {
+    normalizeTabs();
     try {
       localStorage.setItem(
         KEY_TABS,
         JSON.stringify({
           list: appState.tabs.map(
-            ({ ref, title, state, icon: icon2, tab, dot, scroll }) => ({
+            ({ ref, title, state, icon: icon2, tab, dot, scroll, group, pinned }) => ({
               ref,
               title,
               state,
               icon: icon2,
               tab,
               dot,
-              scroll
+              scroll,
+              group,
+              pinned
             })
-          )
+          ),
+          groups: appState.tabGroups
         })
       );
     } catch {
@@ -9344,6 +9383,88 @@ ${pull.html_url}`;
     const index = tabIdx();
     const tab = appState.tabs[(index + delta + appState.tabs.length) % appState.tabs.length];
     openTab2(tab.ref);
+  }
+  var groupById = (id) => appState.tabGroups.find((group) => group.id === id);
+  function pinTab(index) {
+    const tab = appState.tabs[index];
+    if (tab) {
+      tab.pinned = !tab.pinned;
+      appState.tabCtx = null;
+      saveTabs();
+      render();
+    }
+  }
+  function newGroup(index) {
+    const tab = appState.tabs[index];
+    if (!tab) {
+      return;
+    }
+    const id = Math.random().toString(36).slice(2, 8);
+    appState.tabGroups.push({
+      id,
+      name: "",
+      color: GROUP_COLORS[appState.tabGroups.length % GROUP_COLORS.length],
+      collapsed: false
+    });
+    tab.pinned = false;
+    tab.group = id;
+    appState.tabCtx = null;
+    appState.groupEdit = id;
+    saveTabs();
+    render();
+  }
+  function toGroup(index, id) {
+    const tab = appState.tabs[index];
+    if (!tab || !groupById(id)) {
+      return;
+    }
+    tab.pinned = false;
+    tab.group = id;
+    appState.tabCtx = null;
+    saveTabs();
+    render();
+  }
+  function leaveGroup(index) {
+    const tab = appState.tabs[index];
+    if (tab) {
+      delete tab.group;
+      appState.tabCtx = null;
+      saveTabs();
+      render();
+    }
+  }
+  function groupEdit(id, patch) {
+    const group = groupById(id);
+    if (group) {
+      Object.assign(group, patch);
+      appState.tabCtx = null;
+      saveTabs();
+      render();
+    }
+  }
+  function ungroup(id) {
+    for (const tab of appState.tabs) {
+      if (tab.group === id) {
+        delete tab.group;
+      }
+    }
+    appState.tabCtx = null;
+    saveTabs();
+    render();
+  }
+  var closeGroup = (id) => closeTabs((tab) => tab.group !== id);
+  function dropGroup(index) {
+    const tab = appState.tabs[index];
+    const before = appState.tabs[index - 1];
+    const after = appState.tabs[index + 1];
+    if (!tab || tab.pinned) {
+      return;
+    }
+    if (before?.group && before.group === after?.group) {
+      tab.group = before.group;
+    } else if (tab.group && before?.group !== tab.group && after?.group !== tab.group) {
+      delete tab.group;
+    }
   }
 
   // src/app/data.ts
@@ -9667,48 +9788,67 @@ ${pull.html_url}`;
     menu,
     menuAt,
     ctx,
+    groups,
+    editing,
     drag: drag2,
     closedFirst,
     on: on3
   }) {
     return /* @__PURE__ */ u3("div", { class: "ptabs", children: [
-      tabs.map((tab, index) => /* @__PURE__ */ u3(
-        "div",
-        {
-          class: `ptab ${tab.ref === cur ? "on" : ""}${drag2 && drag2.from === index ? " drag" : ""}`,
-          style: tabShift(drag2, index),
-          "data-tab": index,
-          onClick: (event) => {
-            if (event.target.closest(".pt-x")) {
-              return;
+      tabs.map((tab, index) => {
+        const group = tab.group ? groups.find((item) => item.id === tab.group) : void 0;
+        const startsGroup = !!group && (index === 0 || tabs[index - 1].group !== tab.group);
+        const hidden = !!group?.collapsed && tab.ref !== cur;
+        return /* @__PURE__ */ u3(S, { children: [
+          startsGroup && group && /* @__PURE__ */ u3(
+            GroupChip,
+            {
+              group,
+              count: tabs.filter((item) => item.group === group.id).length,
+              editing: editing === group.id,
+              on: on3
             }
-            on3.open(index);
-          },
-          onAuxClick: (event) => on3.aux(event, index),
-          onContextMenu: (event) => on3.ctx(event, index),
-          onMouseDown: (event) => on3.down(event, index),
-          title: `${tab.ref} \xB7 ${tab.title}`,
-          children: [
-            /* @__PURE__ */ u3("span", { class: `rc-i ${tab.state}`, children: /* @__PURE__ */ u3(Icon, { n: tab.icon }) }),
-            /* @__PURE__ */ u3("span", { class: "pt-t", children: [
-              /* @__PURE__ */ u3("i", { children: tab.ref.split("/").pop() }),
-              " ",
-              tab.title
-            ] }),
-            tab.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
-            /* @__PURE__ */ u3(
-              "button",
-              {
-                class: "pt-x",
-                "data-tabx": index,
-                onClick: (event) => on3.close(event, index),
-                "aria-label": "Close tab",
-                children: /* @__PURE__ */ u3(Icon, { n: "x" })
-              }
-            )
-          ]
-        }
-      )),
+          ),
+          /* @__PURE__ */ u3(
+            "div",
+            {
+              class: `ptab ${tab.ref === cur ? "on" : ""}${drag2 && drag2.from === index ? " drag" : ""}${group ? " grp" : ""}${tab.pinned ? " pin" : ""}${hidden ? " hid" : ""}`,
+              style: `${tabShift(drag2, index) ?? ""}${group ? `;--gc:${group.color}` : ""}`,
+              "data-tab": index,
+              onClick: (event) => {
+                if (event.target.closest(".pt-x")) {
+                  return;
+                }
+                on3.open(index);
+              },
+              onAuxClick: (event) => on3.aux(event, index),
+              onContextMenu: (event) => on3.ctx(event, index),
+              onMouseDown: (event) => on3.down(event, index),
+              title: `${tab.ref} \xB7 ${tab.title}`,
+              children: [
+                /* @__PURE__ */ u3("span", { class: `rc-i ${tab.state}`, children: /* @__PURE__ */ u3(Icon, { n: tab.icon }) }),
+                /* @__PURE__ */ u3("span", { class: "pt-t", children: [
+                  /* @__PURE__ */ u3("i", { children: tab.ref.split("/").pop() }),
+                  " ",
+                  tab.title
+                ] }),
+                tab.dot && /* @__PURE__ */ u3("span", { class: "pt-dot" }),
+                !tab.pinned && /* @__PURE__ */ u3(
+                  "button",
+                  {
+                    class: "pt-x",
+                    "data-tabx": index,
+                    onClick: (event) => on3.close(event, index),
+                    "aria-label": "Close tab",
+                    title: "Close this tab",
+                    children: /* @__PURE__ */ u3(Icon, { n: "x" })
+                  }
+                )
+              ]
+            }
+          )
+        ] });
+      }),
       /* @__PURE__ */ u3(
         "button",
         {
@@ -9728,40 +9868,13 @@ ${pull.html_url}`;
         {
           class: "pt-menu pt-ctx",
           style: `top:${ctx.top}px;left:${ctx.left}px;margin-top:0`,
-          children: [
-            /* @__PURE__ */ u3("a", { title: "Close this tab", onClick: () => on3.closeOne(ctx.index), children: [
-              /* @__PURE__ */ u3(Icon, { n: "x" }),
-              " Close tab"
-            ] }),
-            /* @__PURE__ */ u3(
-              "a",
-              {
-                title: "Close every tab except this one",
-                class: tabs.length < 2 ? "off" : "",
-                onClick: () => on3.closeOthers(ctx.index),
-                children: [
-                  /* @__PURE__ */ u3(Icon, { n: "x" }),
-                  " Close other tabs"
-                ]
-              }
-            ),
-            /* @__PURE__ */ u3(
-              "a",
-              {
-                title: "Close the tabs after this one",
-                class: ctx.index >= tabs.length - 1 ? "off" : "",
-                onClick: () => on3.closeRight(ctx.index),
-                children: [
-                  /* @__PURE__ */ u3(Icon, { n: "x" }),
-                  " Close tabs to the right"
-                ]
-              }
-            ),
-            /* @__PURE__ */ u3("a", { title: "Close every open tab", onClick: on3.closeAll, children: [
-              /* @__PURE__ */ u3(Icon, { n: "x-circle" }),
-              " Close all tabs"
-            ] })
-          ]
+          children: ctx.group ? /* @__PURE__ */ u3(
+            GroupMenu,
+            {
+              group: groups.find((item) => item.id === ctx.group),
+              on: on3
+            }
+          ) : /* @__PURE__ */ u3(TabMenu, { index: ctx.index, tabs, groups, on: on3 })
         }
       ),
       menu && /* @__PURE__ */ u3(
@@ -9805,6 +9918,187 @@ ${pull.html_url}`;
       )
     ] });
   }
+  var GroupChip = ({ group, count, editing, on: on3 }) => /* @__PURE__ */ u3(
+    "div",
+    {
+      class: `pt-group${group.collapsed ? " collapsed" : ""}`,
+      style: `--gc:${group.color}`,
+      onContextMenu: (event) => on3.groupCtx(event, group.id),
+      title: `${group.name || "Tab group"}: click to ${group.collapsed ? "expand" : "collapse"}, right-click for more`,
+      children: editing ? /* @__PURE__ */ u3(
+        "input",
+        {
+          class: "pt-gname",
+          value: group.name,
+          placeholder: "Name this group",
+          maxLength: 24,
+          ref: (element) => element?.focus(),
+          onClick: (event) => event.stopPropagation(),
+          onBlur: (event) => on3.rename(group.id, event.currentTarget.value),
+          onKeyDown: (event) => {
+            if (event.key === "Enter") {
+              on3.rename(
+                group.id,
+                event.currentTarget.value
+              );
+            } else if (event.key === "Escape") {
+              on3.rename(group.id, null);
+            }
+          }
+        }
+      ) : /* @__PURE__ */ u3("button", { class: "pt-gbtn", onClick: () => on3.toggleGroup(group.id), children: [
+        group.name || (group.collapsed ? `${count} tabs` : ""),
+        group.name && group.collapsed ? /* @__PURE__ */ u3("small", { children: count }) : null
+      ] })
+    }
+  );
+  var TabMenu = ({ index, tabs, groups, on: on3 }) => {
+    const tab = tabs[index];
+    if (!tab) {
+      return null;
+    }
+    const others = groups.filter((group) => group.id !== tab.group);
+    return /* @__PURE__ */ u3(S, { children: [
+      /* @__PURE__ */ u3(
+        "a",
+        {
+          title: tab.pinned ? "Let this tab move and close again" : "Keep this tab small, first in line and out of Close all",
+          onClick: () => on3.pin(index),
+          children: [
+            /* @__PURE__ */ u3(Icon, { n: "bookmark" }),
+            " ",
+            tab.pinned ? "Unpin tab" : "Pin tab"
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "a",
+        {
+          title: "Put this tab in a new, named group",
+          onClick: () => on3.newGroup(index),
+          children: [
+            /* @__PURE__ */ u3(Icon, { n: "plus" }),
+            " Add to new group"
+          ]
+        }
+      ),
+      others.map((group) => /* @__PURE__ */ u3(
+        "a",
+        {
+          title: "Move this tab into this group",
+          onClick: () => on3.toGroup(index, group.id),
+          children: [
+            /* @__PURE__ */ u3("span", { class: "pt-swatch", style: `background:${group.color}` }),
+            "Add to ",
+            group.name || "unnamed group"
+          ]
+        }
+      )),
+      tab.group && /* @__PURE__ */ u3(
+        "a",
+        {
+          title: "Take this tab out of its group",
+          onClick: () => on3.leaveGroup(index),
+          children: [
+            /* @__PURE__ */ u3(Icon, { n: "x" }),
+            " Remove from group"
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3("hr", {}),
+      /* @__PURE__ */ u3("a", { title: "Close this tab", onClick: () => on3.closeOne(index), children: [
+        /* @__PURE__ */ u3(Icon, { n: "x" }),
+        " Close tab"
+      ] }),
+      /* @__PURE__ */ u3(
+        "a",
+        {
+          title: "Close every tab except this one and the pinned ones",
+          class: tabs.filter((item) => !item.pinned).length < 2 ? "off" : "",
+          onClick: () => on3.closeOthers(index),
+          children: [
+            /* @__PURE__ */ u3(Icon, { n: "x" }),
+            " Close other tabs"
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "a",
+        {
+          title: "Close the tabs after this one",
+          class: index >= tabs.length - 1 ? "off" : "",
+          onClick: () => on3.closeRight(index),
+          children: [
+            /* @__PURE__ */ u3(Icon, { n: "x" }),
+            " Close tabs to the right"
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3("a", { title: "Close every tab except the pinned ones", onClick: on3.closeAll, children: [
+        /* @__PURE__ */ u3(Icon, { n: "x-circle" }),
+        " Close all tabs"
+      ] })
+    ] });
+  };
+  var GroupMenu = ({
+    group,
+    on: on3
+  }) => group ? /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "a",
+      {
+        title: "Give this group a name",
+        onClick: () => on3.renameStart(group.id),
+        children: [
+          /* @__PURE__ */ u3(Icon, { n: "pencil" }),
+          " Rename group"
+        ]
+      }
+    ),
+    /* @__PURE__ */ u3("div", { class: "pt-colors", children: GROUP_COLORS.map((color) => /* @__PURE__ */ u3(
+      "button",
+      {
+        class: color === group.color ? "on" : "",
+        style: `background:${color}`,
+        title: "Colour this group",
+        onClick: () => on3.color(group.id, color)
+      }
+    )) }),
+    /* @__PURE__ */ u3(
+      "a",
+      {
+        title: group.collapsed ? "Show the tabs of this group" : "Hide the tabs of this group",
+        onClick: () => on3.toggleGroup(group.id),
+        children: [
+          /* @__PURE__ */ u3(Icon, { n: group.collapsed ? "chevron-right" : "chevron-down" }),
+          " ",
+          group.collapsed ? "Expand group" : "Collapse group"
+        ]
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "a",
+      {
+        title: "Keep the tabs, drop the group",
+        onClick: () => on3.ungroup(group.id),
+        children: [
+          /* @__PURE__ */ u3(Icon, { n: "x" }),
+          " Ungroup"
+        ]
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "a",
+      {
+        title: "Close every tab in this group",
+        onClick: () => on3.closeGroup(group.id),
+        children: [
+          /* @__PURE__ */ u3(Icon, { n: "x-circle" }),
+          " Close group"
+        ]
+      }
+    )
+  ] }) : null;
 
   // src/components/Toolbar.tsx
   var NL2 = "\n  ";
@@ -10166,7 +10460,7 @@ ${pull.html_url}`;
       ...el.parentElement.querySelectorAll(".ptab")
     ].map((element) => {
       const rect = element.getBoundingClientRect();
-      return rect.left + rect.width / 2;
+      return rect.width ? rect.left + rect.width / 2 : Infinity;
     });
     const mv = (ev) => {
       if (!moved && Math.abs(ev.clientX - x0) < 6) {
@@ -10196,6 +10490,7 @@ ${pull.html_url}`;
       if (to !== from) {
         const [tab] = appState.tabs.splice(from, 1);
         appState.tabs.splice(to, 0, tab);
+        dropGroup(to);
         saveTabs();
       }
       render();
@@ -10246,6 +10541,47 @@ ${pull.html_url}`;
       appState.view = "home";
       render();
     },
+    groupCtx: (event, id) => {
+      event.preventDefault();
+      event.stopPropagation();
+      appState.tabMenu = false;
+      appState.tabCtx = {
+        index: -1,
+        group: id,
+        top: event.clientY + 4,
+        left: Math.max(8, Math.min(event.clientX, innerWidth - 200))
+      };
+      rerender();
+    },
+    toggleGroup: (id) => {
+      const group = appState.tabGroups.find((item) => item.id === id);
+      if (group) {
+        groupEdit(id, { collapsed: !group.collapsed });
+      }
+    },
+    rename: (id, name) => {
+      if (appState.groupEdit !== id) {
+        return;
+      }
+      appState.groupEdit = null;
+      if (name !== null) {
+        groupEdit(id, { name: name.trim() });
+      } else {
+        rerender();
+      }
+    },
+    renameStart: (id) => {
+      appState.tabCtx = null;
+      appState.groupEdit = id;
+      rerender();
+    },
+    color: (id, color) => groupEdit(id, { color }),
+    ungroup,
+    closeGroup,
+    pin: pinTab,
+    newGroup,
+    toGroup,
+    leaveGroup,
     ctx: (event, index) => {
       event.preventDefault();
       event.stopPropagation();
@@ -10263,10 +10599,10 @@ ${pull.html_url}`;
     },
     closeOthers: (index) => {
       const keepRef = appState.tabs[index]?.ref;
-      closeTabs((tab) => tab.ref === keepRef);
+      closeTabs((tab) => tab.ref === keepRef || !!tab.pinned);
     },
-    closeRight: (index) => closeTabs((_tab, position) => position <= index),
-    closeAll: () => closeTabs(() => false),
+    closeRight: (index) => closeTabs((tab, position) => position <= index || !!tab.pinned),
+    closeAll: () => closeTabs((tab) => !!tab.pinned),
     reopen: () => {
       appState.tabMenu = false;
       reopenTab();
@@ -10305,6 +10641,8 @@ ${pull.html_url}`;
           menu: appState.tabMenu,
           menuAt: appState.tabMenuAt || null,
           ctx: appState.tabCtx || null,
+          groups: appState.tabGroups,
+          editing: appState.groupEdit || null,
           drag: appState.drag || null,
           closedFirst: appState.closed.length ? appState.closed[0].ref : null,
           on: ts

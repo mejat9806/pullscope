@@ -264,6 +264,15 @@ export interface Tab {
   tab: string;
   dot: boolean;
   scroll?: number;
+  group?: string;
+  pinned?: boolean;
+}
+
+export interface TabGroup {
+  id: string;
+  name: string;
+  color: string;
+  collapsed: boolean;
 }
 
 export interface Note {
@@ -437,7 +446,14 @@ export interface AppState {
   dragging?: boolean;
   flashPop?: boolean;
   drag?: { from: number; to: number; dx: number; w: number } | null;
-  tabCtx?: { index: number; top: number; left: number } | null;
+  tabCtx?: {
+    index: number;
+    group?: string;
+    top: number;
+    left: number;
+  } | null;
+  tabGroups: TabGroup[];
+  groupEdit?: string | null;
   tabMenuAt?: { top: number; left: number } | null;
   busySels?: string[];
   dlg?: Dlg | null;

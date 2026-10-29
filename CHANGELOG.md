@@ -6,6 +6,7 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ### Added
 - **Close several tabs at once**: right-click a tab for *Close tab*, *Close other tabs*, *Close tabs to the right* and *Close all tabs*. Closed tabs can still be brought back with `⌘⇧T`. (Requested in issue #3.)
+- **Tab groups and pinned tabs.** Right-click a tab to *Pin tab* or add it to a *New group* or an existing one. Groups have a name and colour, collapse to one chip, and can be ungrouped or closed together. Pinned tabs are kept by the bulk-close actions. Both are saved across restarts.
 
 ## [1.3.4]
 

@@ -42,7 +42,9 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 
   ![Appearance settings](docs/screenshots/appearance.png)
 - Filter the conversation by person, by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates) and flip it **newest first / oldest first**. A scroll button (or `Home` / `End`) appears on every long page: a down arrow at the top, an up arrow further down.
-- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them.
+- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them. Right-click a tab to pin it (pinned tabs stay at the left, lose their close button and survive *Close others / to the right / all*), add it to a group, or close several tabs at once. Groups have a name and a colour, can be collapsed to a single chip, ungrouped, or closed together, and are restored after a restart.
+
+  ![Tab group menu](docs/screenshots/tab-groups.png)
 
 ![Files changed](docs/screenshots/files-split.png)
 
