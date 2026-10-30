@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.8]
+
 ### Fixed
 - After you send a comment, reply, review or edit, the text box is now emptied and its saved draft removed. Before, the sent text could reappear in the box. (Issue #7.)
 
