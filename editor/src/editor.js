@@ -143,6 +143,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   });
   return {
     getMarkdown: () => editor.storage.markdown.getMarkdown(),
+    setMarkdown: (md) => editor.commands.setContent(md || '', false),
     focus: () => editor.commands.focus('end'),
     isFocused: () => editor.isFocused,
     destroy: () => { editor.destroy(); bubble.remove(); document.querySelectorAll('.tt-slash').forEach((n) => n.remove()); },

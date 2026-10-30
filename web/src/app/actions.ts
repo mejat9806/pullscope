@@ -71,6 +71,13 @@ export function saveDrafts() {
   }
 }
 
+// After a successful send: drop the text from memory, empty the live editor and overwrite the saved copy, so it cannot come back.
+export function clearDraft(key: string) {
+  delete appState.draft[key];
+  syncDraft(key);
+  saveDrafts();
+}
+
 export const prRef = () => ({
   repo: appState.bundle!.pull.base.repo.full_name,
   number: appState.bundle!.pull.number,
@@ -186,7 +193,7 @@ export function reviewDialog() {
         return;
       }
 
-      delete appState.draft.review;
+      clearDraft('review');
       delete appState.pending![pendKey()];
       savePending();
       appState.dlg = null;
@@ -218,7 +225,7 @@ export function editPrDialog() {
         return;
       }
 
-      delete appState.draft.prbody;
+      clearDraft('prbody');
       appState.dlg = null;
       await refreshPr();
     },
@@ -533,7 +540,7 @@ export function editCommentDialog(
         return;
       }
 
-      delete appState.draft.editc;
+      clearDraft('editc');
       appState.dlg = null;
       await refreshPr(value.id);
     },
@@ -772,7 +779,7 @@ export async function sendComment() {
     return;
   }
 
-  delete appState.draft.comment;
+  clearDraft('comment');
   appState.cOpen = false;
 
   if (!addLocal('commented', actResult)) {
@@ -1086,7 +1093,7 @@ export async function sendReply(id: string) {
     return;
   }
 
-  delete appState.draft[`reply-${id}`];
+  clearDraft(`reply-${id}`);
 
   if (!addLocal('reply', actResult, +id)) {
     await refreshPr(actResult.id);
