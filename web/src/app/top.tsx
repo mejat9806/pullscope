@@ -13,7 +13,7 @@ import {
   winDrag,
 } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
-import { appState, isDark, isOff, setFlash, tauri } from './core';
+import { appState, isDark, isOff, tauri } from './core';
 import { closePop, openPop, paintDlg } from './dialogs';
 import { beginDrag, setSlot } from './frame';
 import { openPr, reload } from './nav';
@@ -123,8 +123,8 @@ const prof = (event: MouseEvent) => {
       } else if (hash === 'web') {
         try {
           await tauri?.invoke('web_login');
-        } catch (error) {
-          setFlash(String(error));
+        } catch {
+          /* the window could not open */
         }
       } else if (hash === 'repos') {
         repoPickOpen();
