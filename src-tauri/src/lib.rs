@@ -252,9 +252,7 @@ async fn web_upload(cookie: &str, repo: &str, number: Option<u64>, name: &str, m
     pol["asset"]["href"].as_str().map(String::from).ok_or_else(|| "no image link returned".into())
 }
 
-/// Add a dropped/pasted image. Preferred: the github.com upload flow (needs the web sign-in), which gives a
-/// `user-attachments` link like the website. Otherwise (or if that fails) the image is committed to a
-/// `pullscope-attachments` branch of the repository and linked from there.
+/// Add a dropped/pasted image through the github.com upload flow (needs the web sign-in), giving a `user-attachments` link like the website.
 #[tauri::command]
 async fn upload_image(app: tauri::AppHandle, repo: String, number: Option<u64>, name: String, data: String) -> Result<String, String> {
     use base64::Engine;
@@ -269,30 +267,8 @@ async fn upload_image(app: tauri::AppHandle, repo: String, number: Option<u64>, 
         _ => return Err("Only PNG, JPG, GIF and WebP images are supported.".into()),
     };
     let stem: String = name.rsplit_once('.').map_or(name.as_str(), |x| x.0).chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' }).take(40).collect();
-    if let Some(cookie) = web_cookies(&app).await {
-        match web_upload(&cookie, &repo, number, &format!("{stem}.{ext}"), mime, bytes.clone()).await {
-            Ok(url) => return Ok(url),
-            Err(e) => eprintln!("github.com image upload failed, using the repository branch instead: {e}"),
-        }
-    }
-    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
-    let path = format!("pullscope-attachments/{stamp}-{stem}.{ext}");
-    let token = github::load_token().ok_or("Add an access token first.")?;
-    let (c, t) = (github::client(), Some(token.as_str()));
-    let api = format!("https://api.github.com/repos/{repo}");
-    let branch = "pullscope-attachments";
-    if github::get(&c, &format!("{api}/git/ref/heads/{branch}"), t).await.is_err() {
-        let info = github::get(&c, &api, t).await.map_err(|e| format!("Cannot read {repo}: {e}"))?;
-        let default = info["default_branch"].as_str().unwrap_or("main").to_string();
-        let head = github::get(&c, &format!("{api}/git/ref/heads/{default}"), t).await?;
-        let sha = head["object"]["sha"].as_str().ok_or("Cannot find the default branch.")?;
-        github::send(&c, reqwest::Method::POST, &format!("{api}/git/refs"), t, serde_json::json!({ "ref": format!("refs/heads/{branch}"), "sha": sha })).await
-            .map_err(|e| format!("Could not create the {branch} branch (write access to {repo} is needed): {e}"))?;
-    }
-    let r = github::send(&c, reqwest::Method::PUT, &format!("{api}/contents/{path}"), t, serde_json::json!({ "message": format!("Add {stem}.{ext}"), "content": data, "branch": branch })).await
-        .map_err(|e| format!("Could not upload (write access to {repo} is needed): {e}"))?;
-    let sha = r["commit"]["sha"].as_str().ok_or("Upload returned no commit.")?;
-    Ok(format!("https://github.com/{repo}/blob/{sha}/{path}?raw=true"))
+    let cookie = web_cookies(&app).await.ok_or("Sign in first: profile menu → Image uploads…, then log in to github.com.")?;
+    web_upload(&cookie, &repo, number, &format!("{stem}.{ext}"), mime, bytes).await.map_err(|e| format!("Upload to github.com failed: {e}"))
 }
 
 /// Render Markdown the way GitHub does (for the Preview tab); `repo` lets #123 and @user links resolve.

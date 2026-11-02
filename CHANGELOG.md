@@ -5,7 +5,7 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 ## [Unreleased]
 
 ### Added
-- **Images in comments**: drag image files onto the comment editor, paste a screenshot, or use the new 🖼 toolbar button. An `[Uploading name…]()` placeholder shows while uploading and is replaced by the image. PNG, JPG, GIF and WebP up to 10 MB; failures show a message and leave your text untouched. With *Image uploads…* in the profile menu you sign in to github.com once and images upload the way the website does (`user-attachments` links); without that they are committed to a `pullscope-attachments` branch of the repository (needs write access). (Issue #8.)
+- **Images in comments**: drag image files onto the comment editor, paste a screenshot, or use the new 🖼 toolbar button. An `[Uploading name…]()` placeholder shows while uploading and is replaced by the image. PNG, JPG, GIF and WebP up to 10 MB; failures show a message and leave your text untouched. Use *Image uploads…* in the profile menu to sign in to github.com once; images then upload the way the website does and get `user-attachments` links. (Issue #8.)
 
 ## [1.3.8]
 
