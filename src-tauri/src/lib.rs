@@ -191,6 +191,27 @@ async fn render_markdown(text: String, repo: Option<String>) -> Result<String, S
     resp.text().await.map_err(|e| e.to_string())
 }
 
+/// Upload an image the way GitHub's own drag-and-drop does, so it can be linked from a comment or description of `repo`.
+/// `data` is the file as base64. Returns the attachment URL.
+#[tauri::command]
+async fn upload_image(repo: String, name: String, content_type: String, data: String) -> Result<String, String> {
+    use base64::Engine;
+    const MAX_BYTES: usize = 10 * 1024 * 1024;
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    if !matches!(content_type.as_str(), "image/png" | "image/jpeg" | "image/gif" | "image/webp") {
+        return Err("Only PNG, JPEG, GIF and WebP images can be uploaded.".into());
+    }
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data.as_bytes()).map_err(|_| "The image could not be read.".to_string())?;
+    if bytes.is_empty() { return Err("The image is empty.".into()); }
+    if bytes.len() > MAX_BYTES { return Err("Images can be at most 10 MB.".into()); }
+    let token = github::load_token().filter(|t| !t.is_empty()).ok_or("Add an access token first.")?;
+    let file_name: String = name.rsplit(['/', '\\']).next().unwrap_or("image").chars().take(100).collect();
+    let c = github::client();
+    let info = github::get(&c, &format!("https://api.github.com/repos/{repo}"), Some(&token)).await?;
+    let repository_id = info["id"].as_u64().ok_or("GitHub did not return the repository id.")?;
+    github::upload_attachment(&c, "https://uploads.github.com/user-attachments/assets", &token, repository_id, &file_name, &content_type, bytes).await
+}
+
 /// Assignable people, labels and open milestones of a repository, for the New pull request page.
 #[tauri::command]
 async fn repo_meta(repo: String) -> Result<serde_json::Value, String> {
@@ -778,7 +799,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, upload_image, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

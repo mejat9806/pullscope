@@ -1168,6 +1168,30 @@ export const rerender = () => {
   appState.keepScroll = false;
 };
 
+// Uploads a pasted, dropped or picked image to the repository of the PR being read (or created) and returns its link.
+async function uploadImage(file: File): Promise<string> {
+  const repo = appState.bundle?.pull.base.repo.full_name || appState.np?.repo;
+
+  if (!repo) {
+    throw new Error('Open a pull request first.');
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  let binary = '';
+
+  for (let start = 0; start < bytes.length; start += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(start, start + 0x8000));
+  }
+
+  return tauri!.invoke('upload_image', {
+    repo,
+    name: file.name || 'image.png',
+    contentType: file.type,
+    data: btoa(binary),
+  });
+}
+
 // Live editors, so a new draft can be pushed into one and the newest can be focused.
 // A focus request for an editor that is not built yet (it mounts lazily) waits in wantFocus.
 const live = new Map<EditorHandle, string>();
@@ -1226,6 +1250,7 @@ editorMount.fn = (host, key, ph) => {
         saveDrafts();
       },
       onSubmit: send,
+      onUpload: tauri ? uploadImage : undefined,
     });
 
     live.set(ed, key);

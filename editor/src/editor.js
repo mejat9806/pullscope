@@ -8,7 +8,33 @@ import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
 import Strike from '@tiptap/extension-strike';
 import Code from '@tiptap/extension-code';
+import Image from '@tiptap/extension-image';
 // Inline styles only when asked for (toolbar, ⌘B/⌘I, or `backticks` for code): no auto-conversion of *, _ or ~, and typing after a code span or link leaves it.
+// GitHub's attachment links need a sign-in to load, so right after an upload the picture comes from the local file; otherwise it falls back to a card.
+const previews = new Map();
+const ImageCard = Image.extend({
+  addNodeView() {
+    return ({ node }) => {
+      const dom = document.createElement('span');
+      dom.className = 'tt-img broken';
+      dom.contentEditable = 'false';
+      const draw = (current) => {
+        const name = current.attrs.alt || 'image', src = current.attrs.src || '';
+        const icon = document.createElement('span'); icon.className = 'tt-img-ic'; icon.textContent = '🖼';
+        const picture = document.createElement('img'); picture.alt = name; picture.draggable = false;
+        picture.addEventListener('load', () => dom.classList.remove('broken'));
+        picture.addEventListener('error', () => dom.classList.add('broken'));
+        picture.src = previews.get(src) || src;
+        const label = document.createElement('span'); label.className = 'tt-img-name'; label.textContent = name;
+        const kind = document.createElement('span'); kind.className = 'tt-img-kind'; kind.textContent = 'Image';
+        dom.replaceChildren(icon, picture, label, kind);
+      };
+      draw(node);
+      return { dom, update: (updated) => { if (updated.type !== node.type) return false; draw(updated); return true; } };
+    };
+  },
+});
+const imageFiles = (list) => [...(list || [])].filter((f) => /^image\/(png|jpeg|gif|webp)$/.test(f.type));
 const plain = (M, extra = {}) => M.extend({ addInputRules() { return []; }, addPasteRules() { return []; }, ...extra });
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
@@ -79,7 +105,7 @@ const MarkdownPaste = Extension.create({
   },
 });
 
-window.createEditor = (host, { value = '', placeholder = '', people = [], onChange = () => {}, onSubmit = () => {} } = {}) => {
+window.createEditor = (host, { value = '', placeholder = '', people = [], onChange = () => {}, onSubmit = () => {}, onUpload = null } = {}) => {
   host.innerHTML = '<div class="tt-bar"></div><div class="tt-body"></div>';
   const bar = host.querySelector('.tt-bar'), body = host.querySelector('.tt-body');
   const bubble = document.createElement('div');
@@ -94,6 +120,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
       plain(Bold), plain(Italic), plain(Strike), Code.extend({ inclusive: false }),
       Placeholder.configure({ placeholder }),
       Link.extend({ inclusive: false }).configure({ openOnClick: false, autolink: true }),
+      ImageCard.configure({ inline: true }),
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
       Emoji, EmojiRule, mentionExt(people), MarkdownPaste,
@@ -102,6 +129,8 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
     content: value,
     editorProps: {
       attributes: { class: 'tt-content' },
+      // Pasted or dropped images are uploaded (when the host can) and inserted as ![](url).
+      handlePaste: (_v, e) => { const files = imageFiles(e.clipboardData?.files); if (!files.length || !onUpload) return false; e.preventDefault(); upload(files); return true; },
       handleKeyDown: (_v, e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { onSubmit(); return true; }
         if (e.shiftKey && e.key === 'Enter' && editor.isActive('blockquote')) {
@@ -115,9 +144,40 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   });
   const TB = [['bold', '<b>B</b>', 'Bold (⌘B)', (c) => c.toggleBold()], ['italic', '<i>I</i>', 'Italic (⌘I)', (c) => c.toggleItalic()], ['strike', '<s>S</s>', 'Strikethrough', (c) => c.toggleStrike()], ['code', '&lt;/&gt;', 'Inline code', (c) => c.toggleCode()],
     ['h2', 'H', 'Heading', (c) => c.toggleHeading({ level: 2 })], ['bulletList', '•', 'Bulleted list', (c) => c.toggleBulletList()], ['orderedList', '1.', 'Numbered list', (c) => c.toggleOrderedList()], ['taskList', '☑', 'Task list', (c) => c.toggleTaskList()],
-    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })], ['link', '🔗', 'Link (⌘K)', () => openLink()]];
+    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })], ['link', '🔗', 'Link (⌘K)', () => openLink()], ...(onUpload ? [['image', '🖼', 'Attach an image', (c) => { pickImage(); return c; }]] : [])];
   bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<input class="tt-link" placeholder="https://… ↵" hidden><span class="tt-sp"></span><span class="tt-tip">@ mention · : emoji · markdown shortcuts</span>';
+  // The whole editor box takes dropped images (not only the text area), with a dashed outline while dragging over it.
+  const hasFiles = (e) => !!onUpload && [...(e.dataTransfer?.types || [])].includes('Files');
+  const outline = host.closest('.tt') || host;
+  host.addEventListener('dragenter', (e) => { if (hasFiles(e)) { e.preventDefault(); outline.classList.add('dropping'); } }, true);
+  host.addEventListener('dragover', (e) => { if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; outline.classList.add('dropping'); } }, true);
+  host.addEventListener('dragleave', (e) => { if (!host.contains(e.relatedTarget)) outline.classList.remove('dropping'); }, true);
+  host.addEventListener('drop', (e) => {
+    outline.classList.remove('dropping');
+    const files = imageFiles(e.dataTransfer?.files);
+    if (!hasFiles(e) || !files.length) return;
+    e.preventDefault(); e.stopPropagation(); upload(files);
+  }, true);
   const linkIn = bar.querySelector('.tt-link');
+  const tip = bar.querySelector('.tt-tip'), tipText = tip.textContent;
+  const showTip = (text, failed = false) => { tip.textContent = text; tip.classList.toggle('err', failed); tip.classList.toggle('busy', !failed && text !== tipText); };
+  const upload = async (files) => {
+    for (const file of files) {
+      showTip(`Uploading ${file.name || 'image'}…`);
+      try {
+        const src = await onUpload(file);
+        previews.set(src, URL.createObjectURL(file));
+        editor.chain().focus().setImage({ src, alt: (file.name || 'image').replace(/\.[^.]+$/, '') }).run();
+        showTip(tipText);
+      } catch (err) { showTip(String(err).replace(/^Error: /, ''), true); return; }
+    }
+  };
+  const pickImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = 'image/png,image/jpeg,image/gif,image/webp'; input.multiple = true;
+    input.addEventListener('change', () => { upload(imageFiles(input.files)); });
+    input.click();
+  };
   const openLink = () => { linkIn.value = editor.getAttributes('link').href || ''; linkIn.hidden = false; linkIn.focus(); linkIn.select(); };
   linkIn.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter' && e.key !== 'Escape') return; e.preventDefault(); e.stopPropagation();

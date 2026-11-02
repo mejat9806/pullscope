@@ -1126,3 +1126,19 @@ table.diff { contain: layout paint; }
 .findbar button:hover { background: var(--control-transparent-bgColor-hover, rgba(128,128,128,.14)); }
 ::highlight(find-all) { background: rgba(255, 213, 0, .4); color: inherit; }
 ::highlight(find-current) { background: #ff9632; color: #000; }
+
+/* images in the comment editor */
+/* an image in the editor: the picture with its name, or a compact card when it cannot be loaded */
+.tt-img { display: inline-flex; flex-direction: column; gap: 4px; max-width: 100%; margin: 2px 0; padding: 6px; vertical-align: top; border: 1px solid var(--borderColor-default); border-radius: 8px; background: var(--bgColor-muted); }
+.tt-img img { max-width: 100%; max-height: 220px; width: auto; height: auto; border-radius: 6px; object-fit: contain; }
+.tt-img-ic, .tt-img-kind { display: none; }
+.tt-img-name { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--fgColor-muted); }
+.tt-img.broken { flex-direction: row; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; }
+.tt-img.broken img { display: none; }
+.tt-img.broken .tt-img-ic { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: var(--bgColor-neutral-muted); font-size: 15px; }
+.tt-img.broken .tt-img-name { font-size: 13px; color: var(--fgColor-default); }
+.tt-img.broken .tt-img-kind { display: inline; font-size: 11px; color: var(--fgColor-muted); }
+.tt-img.ProseMirror-selectednode { outline: 2px solid var(--borderColor-accent-emphasis, #1f6feb); }
+.tt-tip.err { color: var(--fgColor-danger); }
+.reply .tt-tip.err, .reply .tt-tip.busy { display: inline; }
+.tt.dropping { outline: 2px dashed var(--borderColor-accent-emphasis, #1f6feb); outline-offset: 2px; border-radius: 8px; }

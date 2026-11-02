@@ -87,6 +87,9 @@ Line comments with a rich editor: a toolbar with a link button and `⌘K`, `` `c
 
 ![Line comment](docs/screenshots/line-comment.png)
 
+#### Images in any text box
+Paste an image, drag it into the box, or use the 🖼 button in the toolbar. It works in the PR description, comments, replies and reviews. The app uploads the image to the repository the way github.com does and inserts `![name](link)`; PNG, JPEG, GIF and WebP up to 10 MB are accepted. The editor shows the picture, or a small card when it cannot be loaded.
+
 #### Write / Preview
 Every text box has Write and Preview tabs. The preview is rendered by GitHub, so it matches what gets posted. Unsent text is kept as a draft and cleared once it is sent.
 

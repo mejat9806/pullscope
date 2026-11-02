@@ -401,6 +401,39 @@ fn gh_token() -> Option<String> {
     None
 }
 
+/// The attachment link in the upload response: the first string that points at github.com/user-attachments.
+pub fn attachment_url(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) if text.starts_with("https://github.com/user-attachments/") => Some(text.clone()),
+        Value::Array(items) => items.iter().find_map(attachment_url),
+        Value::Object(fields) => fields.values().find_map(attachment_url),
+        _ => None,
+    }
+}
+
+/// POST an image to GitHub's attachment endpoint (what drag-and-drop on github.com uses) and return its link.
+/// The body must carry the image's own `Content-Type`; without it GitHub answers "Invalid Content-Type".
+pub async fn upload_attachment(c: &reqwest::Client, endpoint: &str, token: &str, repository_id: u64, name: &str, content_type: &str, bytes: Vec<u8>) -> Result<String, String> {
+    let resp = c
+        .post(endpoint)
+        .query(&[("name", name), ("content_type", content_type), ("repository_id", repository_id.to_string().as_str())])
+        .header("Accept", "application/json")
+        .header("Content-Type", content_type)
+        .bearer_auth(token)
+        .body(bytes)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = resp.status();
+    let text = resp.text().await.map_err(|e| e.to_string())?;
+    let body: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
+    if !status.is_success() {
+        let detail = body["message"].as_str().map(String::from).unwrap_or_else(|| text.chars().take(160).collect());
+        return Err(format!("GitHub refused the image upload ({status}): {detail}"));
+    }
+    attachment_url(&body).ok_or_else(|| format!("GitHub accepted the upload but returned no link: {}", text.chars().take(160).collect::<String>()))
+}
+
 /// Token lookup order: `gh auth token`, then the OS keychain. Cached for the process lifetime.
 pub fn load_token() -> Option<String> {
     let mut slot = TOKEN.lock().ok()?;
@@ -461,6 +494,56 @@ mod tests {
             s.write_all(resp.as_bytes()).await.unwrap();
         });
         format!("http://{addr}/x")
+    }
+
+    /// Like `serve_once`, but also hands back the raw request (head and body) the client sent.
+    async fn serve_capturing(status: &str, body: &str) -> (String, tokio::sync::oneshot::Receiver<String>) {
+        let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = l.local_addr().unwrap();
+        let resp = format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+        let (send, receive) = tokio::sync::oneshot::channel();
+        tokio::spawn(async move {
+            let (mut s, _) = l.accept().await.unwrap();
+            let mut seen = Vec::new();
+            let mut buf = [0u8; 4096];
+            loop {
+                let n = s.read(&mut buf).await.unwrap_or(0);
+                seen.extend_from_slice(&buf[..n]);
+                let text = String::from_utf8_lossy(&seen).to_string();
+                let length = text.to_lowercase().split("content-length: ").nth(1).and_then(|r| r.split("\r\n").next()).and_then(|v| v.trim().parse::<usize>().ok()).unwrap_or(0);
+                let body_len = text.split("\r\n\r\n").nth(1).map_or(0, |b| b.len());
+                if n == 0 || body_len >= length { break; }
+            }
+            let _ = send.send(String::from_utf8_lossy(&seen).to_string());
+            s.write_all(resp.as_bytes()).await.unwrap();
+        });
+        (format!("http://{addr}/user-attachments/assets"), receive)
+    }
+
+    #[tokio::test]
+    async fn upload_sends_the_image_with_its_own_content_type() {
+        let (url, request) = serve_capturing("200 OK", r#"{"asset":{"href":"https://github.com/user-attachments/assets/abc-123"}}"#).await;
+        let link = upload_attachment(&client(), &url, "tok", 42, "shot.png", "image/png", vec![137, 80, 78, 71]).await.unwrap();
+        assert_eq!(link, "https://github.com/user-attachments/assets/abc-123");
+        let sent = request.await.unwrap().to_lowercase();
+        assert!(sent.starts_with("post /user-attachments/assets?"), "{sent}");
+        assert!(sent.contains("name=shot.png") && sent.contains("content_type=image%2fpng") && sent.contains("repository_id=42"), "{sent}");
+        assert!(sent.contains("content-type: image/png"), "the body needs the image's Content-Type: {sent}");
+        assert!(sent.contains("authorization: bearer tok"), "{sent}");
+    }
+
+    #[tokio::test]
+    async fn upload_reports_why_github_refused() {
+        let (url, _) = serve_capturing("400 Bad Request", r#"{"message":"Invalid Content-Type"}"#).await;
+        let err = upload_attachment(&client(), &url, "tok", 1, "a.png", "image/png", vec![1]).await.unwrap_err();
+        assert!(err.contains("400") && err.contains("Invalid Content-Type"), "{err}");
+    }
+
+    #[test]
+    fn finds_the_attachment_link_in_an_upload_response() {
+        let body: Value = serde_json::from_str(r#"{"id":1,"asset":{"name":"a.png","href":"https://github.com/user-attachments/assets/abc-123"}}"#).unwrap();
+        assert_eq!(attachment_url(&body).as_deref(), Some("https://github.com/user-attachments/assets/abc-123"));
+        assert_eq!(attachment_url(&serde_json::json!({"url": "https://example.com/x.png"})), None);
     }
 
     #[tokio::test]
