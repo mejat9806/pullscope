@@ -178,6 +178,42 @@ async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Array(out))
 }
 
+/// Store a dropped/pasted image in the repository (GitHub has no public API for comment attachments) and return a URL
+/// that renders in comments for anyone who can read the repo. It is committed to a `pullscope-attachments` branch.
+#[tauri::command]
+async fn upload_image(repo: String, name: String, data: String) -> Result<String, String> {
+    use base64::Engine;
+    if !valid_repo(&repo) { return Err("bad repository".into()); }
+    let bytes = base64::engine::general_purpose::STANDARD.decode(&data).map_err(|_| "Bad image data.".to_string())?;
+    if bytes.len() > 10 * 1024 * 1024 { return Err("Images can be at most 10 MB.".into()); }
+    let ext = match bytes.as_slice() {
+        [0x89, b'P', b'N', b'G', ..] => "png",
+        [0xFF, 0xD8, 0xFF, ..] => "jpg",
+        [b'G', b'I', b'F', b'8', ..] => "gif",
+        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => "webp",
+        _ => return Err("Only PNG, JPG, GIF and WebP images are supported.".into()),
+    };
+    let stem: String = name.rsplit_once('.').map_or(name.as_str(), |x| x.0).chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' }).take(40).collect();
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+    let path = format!("pullscope-attachments/{stamp}-{stem}.{ext}");
+    let token = github::load_token().ok_or("Add an access token first.")?;
+    let (c, t) = (github::client(), Some(token.as_str()));
+    let api = format!("https://api.github.com/repos/{repo}");
+    let branch = "pullscope-attachments";
+    if github::get(&c, &format!("{api}/git/ref/heads/{branch}"), t).await.is_err() {
+        let info = github::get(&c, &api, t).await.map_err(|e| format!("Cannot read {repo}: {e}"))?;
+        let default = info["default_branch"].as_str().unwrap_or("main").to_string();
+        let head = github::get(&c, &format!("{api}/git/ref/heads/{default}"), t).await?;
+        let sha = head["object"]["sha"].as_str().ok_or("Cannot find the default branch.")?;
+        github::send(&c, reqwest::Method::POST, &format!("{api}/git/refs"), t, serde_json::json!({ "ref": format!("refs/heads/{branch}"), "sha": sha })).await
+            .map_err(|e| format!("Could not create the {branch} branch (write access to {repo} is needed): {e}"))?;
+    }
+    let r = github::send(&c, reqwest::Method::PUT, &format!("{api}/contents/{path}"), t, serde_json::json!({ "message": format!("Add {stem}.{ext}"), "content": data, "branch": branch })).await
+        .map_err(|e| format!("Could not upload (write access to {repo} is needed): {e}"))?;
+    let sha = r["commit"]["sha"].as_str().ok_or("Upload returned no commit.")?;
+    Ok(format!("https://github.com/{repo}/blob/{sha}/{path}?raw=true"))
+}
+
 /// Render Markdown the way GitHub does (for the Preview tab); `repo` lets #123 and @user links resolve.
 #[tauri::command]
 async fn render_markdown(text: String, repo: Option<String>) -> Result<String, String> {
@@ -778,7 +814,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, upload_image, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

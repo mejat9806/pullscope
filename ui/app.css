@@ -243,7 +243,8 @@ button, input, select, textarea { font-family: inherit; }
 .tt-bar button.on { background: var(--bgColor-accent-muted); color: var(--fgColor-accent); }
 .tt-sp { flex: 1; } .tt-tip { font-size: 11px; color: var(--fgColor-muted); }
 .tt { min-height: 0; } .tt .tt-body { min-height: calc(var(--rows, 4) * 22px + 28px); }
-.reply .tt .tt-body { min-height: 0; } .reply .tt-tip { display: none; }
+.reply .tt .tt-body { min-height: 0; } .reply .tt-tip:not(.err) { display: none; } .tt-tip.err { color: var(--fgColor-danger); }
+.tt .tt-content img { max-width: 100%; height: auto; border-radius: 6px; vertical-align: middle; }
 .react-add { border: 1px dashed var(--borderColor-default); background: transparent; color: var(--fgColor-muted); border-radius: 8px; height: 26px; width: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .react-add:hover { color: var(--fgColor-accent); border-color: var(--fgColor-accent); }
 .react-pop { position: fixed; z-index: 300; display: flex; gap: 2px; padding: 4px; background: var(--bgColor-default); border: 1px solid var(--borderColor-default); border-radius: 12px; box-shadow: 0 12px 36px rgba(31, 35, 40, .28); }

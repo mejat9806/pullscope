@@ -13,6 +13,7 @@ interface EditorOptions {
   people?: string[];
   onChange?: (md: string) => void;
   onSubmit?: () => void;
+  uploadImage?: (file: { name: string; type: string; data: string }) => Promise<string>;
 }
 
 interface TauriCore {

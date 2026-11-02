@@ -1226,6 +1226,20 @@ editorMount.fn = (host, key, ph) => {
         saveDrafts();
       },
       onSubmit: send,
+      uploadImage: file => {
+        const repo =
+          appState.bundle?.pull.base.repo.full_name || appState.np?.repo;
+
+        if (!tauri || !repo) {
+          return Promise.reject(new Error('Open a pull request first.'));
+        }
+
+        return tauri.invoke('upload_image', {
+          repo,
+          name: file.name,
+          data: file.data,
+        });
+      },
     });
 
     live.set(ed, key);
