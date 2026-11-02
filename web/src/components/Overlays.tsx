@@ -48,13 +48,6 @@ export const ProfPop = (props: ProfPopProps) => (
       {renderIcon('sliders')} Appearance…
     </button>
     <button
-      title="Sign in on github.com so pasted images upload the way the website does"
-      data-h="web"
-      onClick={() => props.pick('web')}
-    >
-      {renderIcon('link-external')} Image uploads…
-    </button>
-    <button
       title="View or change your GitHub access token"
       data-h="token"
       onClick={() => props.pick('token')}

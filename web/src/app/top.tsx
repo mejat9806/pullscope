@@ -120,12 +120,6 @@ const prof = (event: MouseEvent) => {
         openExternal(pr.html_url!);
       } else if (hash === 'token') {
         tokenDialog();
-      } else if (hash === 'web') {
-        try {
-          await tauri?.invoke('web_login');
-        } catch {
-          /* the window could not open */
-        }
       } else if (hash === 'repos') {
         repoPickOpen();
       } else if (hash === 'appearance') {

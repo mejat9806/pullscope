@@ -53,7 +53,6 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 
 **Review**
 - Line comments with a rich editor (toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions, `:` emoji; pasted Markdown, including fenced code, lists and headings, is parsed like on GitHub), saved as a draft review and submitted together.
-- **Images in comments**: drop image files on the editor, paste a screenshot, or click the 🖼 button. A placeholder shows while uploading, then the image appears as `![name](url)` Markdown. GitHub has no public API for comment attachments, so sign in to github.com once via *Image uploads…* in the profile menu (a small window); images then go through the same upload flow as the website and get a `user-attachments` link. That flow is undocumented and may change. PNG, JPG, GIF and WebP, up to 10 MB each.
 - Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
 - A **docked comment bar** stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft).
 - Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.

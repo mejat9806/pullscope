@@ -8,7 +8,6 @@ import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
 import Strike from '@tiptap/extension-strike';
 import Code from '@tiptap/extension-code';
-import Image from '@tiptap/extension-image';
 // Inline styles only when asked for (toolbar, ⌘B/⌘I, or `backticks` for code): no auto-conversion of *, _ or ~, and typing after a code span or link leaves it.
 const plain = (M, extra = {}) => M.extend({ addInputRules() { return []; }, addPasteRules() { return []; }, ...extra });
 import TaskList from '@tiptap/extension-task-list';
@@ -80,11 +79,7 @@ const MarkdownPaste = Extension.create({
   },
 });
 
-// Image upload: dropped, pasted or picked image files are sent through uploadImage(file) (returns a URL); a "[Uploading name…]()" placeholder shows meanwhile.
-const IMG_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], IMG_MAX = 10 * 1024 * 1024;
-const toBase64 = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(new Error('Could not read the file.')); r.readAsDataURL(file); });
-
-window.createEditor = (host, { value = '', placeholder = '', people = [], onChange = () => {}, onSubmit = () => {}, uploadImage = null } = {}) => {
+window.createEditor = (host, { value = '', placeholder = '', people = [], onChange = () => {}, onSubmit = () => {} } = {}) => {
   host.innerHTML = '<div class="tt-bar"></div><div class="tt-body"></div>';
   const bar = host.querySelector('.tt-bar'), body = host.querySelector('.tt-body');
   const bubble = document.createElement('div');
@@ -101,18 +96,12 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
       Link.extend({ inclusive: false }).configure({ openOnClick: false, autolink: true }),
       TaskList, TaskItem.configure({ nested: true }),
       BubbleMenu.configure({ element: bubble, tippyOptions: { duration: 100, appendTo: () => document.body } }),
-      Image.configure({ inline: true, allowBase64: false }),
       Emoji, EmojiRule, mentionExt(people), MarkdownPaste,
       Markdown.configure({ html: false, tightLists: true, bulletListMarker: '-', linkify: true, breaks: true, transformPastedText: true }),
     ],
     content: value,
     editorProps: {
       attributes: { class: 'tt-content' },
-      handlePaste: (_v, e) => { const files = [...(e.clipboardData?.files || [])]; if (!files.length) return false; e.preventDefault(); addImages(files, editor.state.selection.to); return true; },
-      handleDrop: (view, e, _slice, moved) => {
-        const files = [...(e.dataTransfer?.files || [])]; if (moved || !files.length) return false;
-        e.preventDefault(); addImages(files, view.posAtCoords({ left: e.clientX, top: e.clientY })?.pos ?? editor.state.selection.to); return true;
-      },
       handleKeyDown: (_v, e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { onSubmit(); return true; }
         if (e.shiftKey && e.key === 'Enter' && editor.isActive('blockquote')) {
@@ -124,37 +113,10 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
     },
     onUpdate: ({ editor: ed }) => onChange(ed.storage.markdown.getMarkdown()),
   });
-  const tip = '@ mention · : emoji · markdown shortcuts';
-  let tipTimer;
-  const say = (msg, err) => { const t = bar.querySelector('.tt-tip'); if (!t) return; clearTimeout(tipTimer); t.textContent = msg; t.classList.toggle('err', !!err); if (err) tipTimer = setTimeout(() => say(tip), 6000); };
-  const mark = (name) => `[Uploading ${name}…]()`;
-  const findText = (text) => { let hit = null; editor.state.doc.descendants((n, pos) => { if (hit || !n.isText) return; const i = n.text.indexOf(text); if (i >= 0) hit = { from: pos + i, to: pos + i + text.length }; }); return hit; };
-  const addImages = async (files, pos) => {
-    const imgs = files.filter((f) => IMG_TYPES.includes(f.type));
-    if (!uploadImage) return say('Image upload is not available here.', true);
-    if (imgs.length < files.length) say(imgs.length ? 'Skipped files that are not PNG, JPG, GIF or WebP images.' : 'Only PNG, JPG, GIF and WebP images can be added.', true);
-    if (!imgs.length) return;
-    imgs.forEach((f, i) => { if (!f.name) Object.defineProperty(f, 'name', { value: `image-${Date.now()}-${i}.${f.type.split('/')[1].replace('jpeg', 'jpg')}` }); });
-    editor.chain().focus().insertContentAt(Math.min(pos, editor.state.doc.content.size), imgs.map((f) => ({ type: 'text', text: mark(f.name) + ' ' }))).run();
-    for (const f of imgs) {
-      let url = null;
-      try {
-        if (f.size > IMG_MAX) throw new Error(`${f.name} is larger than 10 MB.`);
-        url = await uploadImage({ name: f.name, type: f.type, data: await toBase64(f) });
-      } catch (err) { say(`Image upload failed: ${String(err?.message || err).replace(/^Error: /, '')}`, true); }
-      const at = findText(mark(f.name) + ' ') || findText(mark(f.name));
-      if (!at || editor.isDestroyed) continue;
-      const tr = editor.state.tr;
-      if (url) tr.replaceWith(at.from, at.to, editor.schema.nodes.image.create({ src: url, alt: f.name.replace(/\.[^.]+$/, '') })); else tr.delete(at.from, at.to);
-      editor.view.dispatch(tr);
-    }
-  };
   const TB = [['bold', '<b>B</b>', 'Bold (⌘B)', (c) => c.toggleBold()], ['italic', '<i>I</i>', 'Italic (⌘I)', (c) => c.toggleItalic()], ['strike', '<s>S</s>', 'Strikethrough', (c) => c.toggleStrike()], ['code', '&lt;/&gt;', 'Inline code', (c) => c.toggleCode()],
     ['h2', 'H', 'Heading', (c) => c.toggleHeading({ level: 2 })], ['bulletList', '•', 'Bulleted list', (c) => c.toggleBulletList()], ['orderedList', '1.', 'Numbered list', (c) => c.toggleOrderedList()], ['taskList', '☑', 'Task list', (c) => c.toggleTaskList()],
-    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })], ['link', '🔗', 'Link (⌘K)', () => openLink()], ...(uploadImage ? [['image', '🖼', 'Attach image (or drop / paste one)', () => fileIn.click()]] : [])];
-  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<input class="tt-link" placeholder="https://… ↵" hidden><input class="tt-file" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden><span class="tt-sp"></span><span class="tt-tip">' + tip + '</span>';
-  const fileIn = bar.querySelector('.tt-file');
-  fileIn.addEventListener('change', () => { const fs = [...fileIn.files]; fileIn.value = ''; if (fs.length) addImages(fs, editor.state.selection.to); });
+    ['blockquote', '❝', 'Quote', (c) => c.toggleBlockquote()], ['codeBlock', '{ }', 'Code block', (c) => c.toggleCodeBlock()], ['suggestion', '±', 'Suggested change', (c) => c.setCodeBlock({ language: 'suggestion' })], ['link', '🔗', 'Link (⌘K)', () => openLink()]];
+  bar.innerHTML = TB.map(([k, h, t]) => `<button type="button" data-k="${k}" title="${t}">${h}</button>`).join('') + '<input class="tt-link" placeholder="https://… ↵" hidden><span class="tt-sp"></span><span class="tt-tip">@ mention · : emoji · markdown shortcuts</span>';
   const linkIn = bar.querySelector('.tt-link');
   const openLink = () => { linkIn.value = editor.getAttributes('link').href || ''; linkIn.hidden = false; linkIn.focus(); linkIn.select(); };
   linkIn.addEventListener('keydown', (e) => {
@@ -165,7 +127,7 @@ window.createEditor = (host, { value = '', placeholder = '', people = [], onChan
   linkIn.addEventListener('blur', () => { linkIn.hidden = true; });
   bar.addEventListener('mousedown', (ev) => { if (ev.target !== linkIn) ev.preventDefault(); });
   body.addEventListener('keydown', (ev) => { if ((ev.metaKey || ev.ctrlKey) && !ev.shiftKey && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openLink(); } });
-  bar.addEventListener('click', (ev) => { const k = ev.target.closest('[data-k]')?.dataset.k; const t = TB.find((x) => x[0] === k); if (!t) return; if (k === 'image') t[3](); else t[3](editor.chain().focus()).run(); });
+  bar.addEventListener('click', (ev) => { const k = ev.target.closest('[data-k]')?.dataset.k; const t = TB.find((x) => x[0] === k); if (t) t[3](editor.chain().focus()).run(); });
   const sync = () => bar.querySelectorAll('[data-k]').forEach((b) => b.classList.toggle('on', editor.isActive(b.dataset.k)));
   editor.on('transaction', sync);
   bubble.addEventListener('mousedown', (e) => { if (e.target !== input) e.preventDefault(); });

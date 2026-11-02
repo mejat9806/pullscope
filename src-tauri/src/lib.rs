@@ -178,99 +178,6 @@ async fn recent_pushes(repo: String) -> Result<serde_json::Value, String> {
     Ok(serde_json::Value::Array(out))
 }
 
-/// Cookies of the github.com web session (the app's own login window), as a `Cookie` header, if the user is signed in there.
-async fn web_cookies(app: &tauri::AppHandle) -> Option<String> {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
-    let url: tauri::Url = "https://github.com/".parse().ok()?;
-    let win = match app.get_webview_window("ghweb") {
-        Some(w) => w,
-        None => WebviewWindowBuilder::new(app, "ghweb", WebviewUrl::External(url.clone())).title("GitHub sign-in").inner_size(520.0, 720.0).visible(false).build().ok()?,
-    };
-    let jar = win.cookies_for_url(url).ok()?;
-    if !jar.iter().any(|c| c.name() == "user_session" && !c.value().is_empty()) { return None; }
-    Some(jar.iter().map(|c| format!("{}={}", c.name(), c.value())).collect::<Vec<_>>().join("; "))
-}
-
-/// Open github.com in a window so the user can sign in; the session is kept for image uploads (the same way github.com uploads them).
-#[tauri::command]
-async fn web_login(app: tauri::AppHandle) -> Result<(), String> {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
-    if let Some(w) = app.get_webview_window("ghweb") {
-        let _ = w.navigate("https://github.com/login".parse().map_err(|_| "bad url")?);
-        w.show().map_err(|e| e.to_string())?; let _ = w.set_focus();
-        return Ok(());
-    }
-    WebviewWindowBuilder::new(&app, "ghweb", WebviewUrl::External("https://github.com/login".parse().map_err(|_| "bad url")?)).title("Sign in to GitHub (for image uploads)").inner_size(520.0, 720.0).build().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Whether a github.com web session is available; also hides the sign-in window once the user is in.
-#[tauri::command]
-async fn web_status(app: tauri::AppHandle) -> bool {
-    let ok = web_cookies(&app).await.is_some();
-    if ok { if let Some(w) = app.get_webview_window("ghweb") { let _ = w.hide(); } }
-    ok
-}
-
-/// Text between `start` and the next `end` after the first occurrence of `marker`'s enclosing tag attribute.
-fn attr_in_tag(html: &str, marker: &str, attr: &str) -> Option<String> {
-    let at = html.find(marker)?;
-    let open = html[..at].rfind('<')?;
-    let close = open + html[open..].find('>')?;
-    let tag = &html[open..close];
-    let key = format!("{attr}=\"");
-    let s = tag.find(&key)? + key.len();
-    Some(tag[s..s + tag[s..].find('"')?].replace("&amp;", "&"))
-}
-
-/// The github.com upload flow: ask for an upload policy, send the file to the storage URL it names, then confirm.
-async fn web_upload(cookie: &str, repo: &str, number: Option<u64>, name: &str, mime: &str, bytes: Vec<u8>) -> Result<String, String> {
-    use reqwest::multipart::{Form, Part};
-    let c = github::client();
-    let page = match number { Some(n) => format!("https://github.com/{repo}/pull/{n}"), None => format!("https://github.com/{repo}/issues/new") };
-    let hdr = |r: reqwest::RequestBuilder| r.header("Cookie", cookie).header("Referer", page.clone()).header("Origin", "https://github.com").header("X-Requested-With", "XMLHttpRequest").header("Accept", "application/json");
-    let html = hdr(c.get(&page)).header("Accept", "text/html").send().await.map_err(|e| e.to_string())?.text().await.map_err(|e| e.to_string())?;
-    let repo_id = attr_in_tag(&html, "data-upload-repository-id=", "data-upload-repository-id").ok_or("not signed in to github.com (or uploads unavailable)")?;
-    let csrf = attr_in_tag(&html, "js-data-upload-policy-url-csrf", "value").ok_or("no upload token on the page")?;
-    let policy_url = attr_in_tag(&html, "data-upload-policy-url=", "data-upload-policy-url").unwrap_or_else(|| "/upload/policies/assets".into());
-    let form = Form::new().text("name", name.to_string()).text("size", bytes.len().to_string()).text("content_type", mime.to_string()).text("authenticity_token", csrf).text("repository_id", repo_id);
-    let resp = hdr(c.post(format!("https://github.com{policy_url}"))).multipart(form).send().await.map_err(|e| e.to_string())?;
-    if !resp.status().is_success() { return Err(format!("upload policy refused ({})", resp.status())); }
-    let pol: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-    let upload_url = pol["upload_url"].as_str().ok_or("no upload url")?;
-    let mut storage = Form::new();
-    for (k, v) in pol["form"].as_object().ok_or("no upload form")? { storage = storage.text(k.clone(), v.as_str().map(String::from).unwrap_or_else(|| v.to_string())); }
-    storage = storage.part("file", Part::bytes(bytes).file_name(name.to_string()).mime_str(mime).map_err(|e| e.to_string())?);
-    let mut req = c.post(upload_url).multipart(storage);
-    if pol["same_origin"].as_bool() == Some(true) { req = req.header("Cookie", cookie).header("X-Requested-With", "XMLHttpRequest"); }
-    let up = req.send().await.map_err(|e| e.to_string())?;
-    if !up.status().is_success() { return Err(format!("storage refused the file ({})", up.status())); }
-    if let (Some(path), Some(tok)) = (pol["asset_upload_url"].as_str(), pol["asset_upload_authenticity_token"].as_str()) {
-        let fin = hdr(c.put(format!("https://github.com{path}"))).multipart(Form::new().text("authenticity_token", tok.to_string())).send().await.map_err(|e| e.to_string())?;
-        if !fin.status().is_success() { return Err(format!("could not confirm the upload ({})", fin.status())); }
-    }
-    pol["asset"]["href"].as_str().map(String::from).ok_or_else(|| "no image link returned".into())
-}
-
-/// Add a dropped/pasted image through the github.com upload flow (needs the web sign-in), giving a `user-attachments` link like the website.
-#[tauri::command]
-async fn upload_image(app: tauri::AppHandle, repo: String, number: Option<u64>, name: String, data: String) -> Result<String, String> {
-    use base64::Engine;
-    if !valid_repo(&repo) { return Err("bad repository".into()); }
-    let bytes = base64::engine::general_purpose::STANDARD.decode(&data).map_err(|_| "Bad image data.".to_string())?;
-    if bytes.len() > 10 * 1024 * 1024 { return Err("Images can be at most 10 MB.".into()); }
-    let (ext, mime) = match bytes.as_slice() {
-        [0x89, b'P', b'N', b'G', ..] => ("png", "image/png"),
-        [0xFF, 0xD8, 0xFF, ..] => ("jpg", "image/jpeg"),
-        [b'G', b'I', b'F', b'8', ..] => ("gif", "image/gif"),
-        [b'R', b'I', b'F', b'F', _, _, _, _, b'W', b'E', b'B', b'P', ..] => ("webp", "image/webp"),
-        _ => return Err("Only PNG, JPG, GIF and WebP images are supported.".into()),
-    };
-    let stem: String = name.rsplit_once('.').map_or(name.as_str(), |x| x.0).chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' }).take(40).collect();
-    let cookie = web_cookies(&app).await.ok_or("Sign in first: profile menu → Image uploads…, then log in to github.com.")?;
-    web_upload(&cookie, &repo, number, &format!("{stem}.{ext}"), mime, bytes).await.map_err(|e| format!("Upload to github.com failed: {e}"))
-}
-
 /// Render Markdown the way GitHub does (for the Preview tab); `repo` lets #123 and @user links resolve.
 #[tauri::command]
 async fn render_markdown(text: String, repo: Option<String>) -> Result<String, String> {
@@ -871,7 +778,7 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, upload_image, web_login, web_status, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
