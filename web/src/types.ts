@@ -602,6 +602,8 @@ export interface Commands {
   recent_pushes: Push[];
   render_markdown: string;
   upload_image: string;
+  web_login: void;
+  web_status: boolean;
   repo_meta: RepoMeta;
   pr_templates: Template[];
   create_pr: CreatedPr;

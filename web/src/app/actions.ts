@@ -1236,6 +1236,7 @@ editorMount.fn = (host, key, ph) => {
 
         return tauri.invoke('upload_image', {
           repo,
+          number: appState.bundle?.pull.number ?? null,
           name: file.name,
           data: file.data,
         });

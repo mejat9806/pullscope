@@ -13,7 +13,7 @@ import {
   winDrag,
 } from './addressbar';
 import { fastTab, stashCurrent } from './bind';
-import { appState, isDark, isOff, tauri } from './core';
+import { appState, isDark, isOff, setFlash, tauri } from './core';
 import { closePop, openPop, paintDlg } from './dialogs';
 import { beginDrag, setSlot } from './frame';
 import { openPr, reload } from './nav';
@@ -120,6 +120,12 @@ const prof = (event: MouseEvent) => {
         openExternal(pr.html_url!);
       } else if (hash === 'token') {
         tokenDialog();
+      } else if (hash === 'web') {
+        try {
+          await tauri?.invoke('web_login');
+        } catch (error) {
+          setFlash(String(error));
+        }
       } else if (hash === 'repos') {
         repoPickOpen();
       } else if (hash === 'appearance') {
