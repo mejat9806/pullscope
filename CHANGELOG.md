@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.3.9]
+
 ### Added
 - **Upload images in any text box.** Paste an image, drag it into the box, or use the 🖼 button in the toolbar: the app uploads it to the repository like github.com does and inserts the link. Images show in the editor as a picture or a card. (Issue #8.)
 
