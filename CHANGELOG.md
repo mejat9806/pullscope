@@ -13,6 +13,7 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ### Changed
 - The app checks for updates every hour (was every 6 hours), so the green update button appears without relaunching.
+- Developer tooling: the built `ui/app.js` is no longer committed; `scripts/bundle.sh` and the release workflow build it from `web/`. CI runs type checking, ESLint and Prettier as separate jobs. No behaviour change.
 
 ## [1.3.6]
 
@@ -108,3 +109,166 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ### Performance
 - Lower idle memory: removed always-on blur effects on the toolbar and sidebar, and avatars load lazily.
+
+## [0.1.23]
+
+### Added
+- **Docked comment bar** at the bottom of the conversation: collapsed by default, `C` opens it, `Esc` folds it, it opens when you reach the end of the thread and folds when you scroll back up (never while it holds a draft).
+- **Conversation sort and date range:** flip newest first / oldest first and limit the conversation to the last hour, 24 hours, 7 or 30 days, or custom dates.
+- A scroll-to-top button on long conversations.
+- README: how Pullscope compares with reviewing on github.com.
+
+## [0.1.22]
+
+### Changed
+- Ticking a task-list checkbox keeps its new state at once instead of waiting for a refresh.
+- New pull request: reviewers and labels sit beside the description, and typing backticks makes inline code.
+
+## [0.1.21]
+
+### Added
+- **Repository picker** for new pull requests: search, recently pushed first, grouped by owner.
+- **Branch picker:** search, your branches first, the rest grouped by prefix, with the age of the last commit.
+- **Clickable task lists:** tick a checkbox in a description or comment and the change is saved to GitHub.
+- A link button and `⌘K` in the editor toolbar.
+
+## [0.1.20]
+
+### Changed
+- Conversation threads also show replies that were posted in a separate review.
+- The open pull request refreshes more reliably: it also reacts to new comments and skips the 30-second cache.
+- Editor: typing markdown characters no longer turns text bold, italic, struck or code by itself, and typing after a code span or link leaves it.
+
+## [0.1.19]
+
+### Changed
+- Drag the window from any empty spot of the toolbar; double-click it to zoom.
+- The floating formatting popup over selected text is gone.
+
+## [0.1.18]
+
+### Added
+- **Comment menu:** edit, hide and delete your own comments, edit the PR description, and reference a comment in a new issue.
+
+## [0.1.17]
+
+### Changed
+- Reviewers you asked to review again show as pending; the first three reviewers show and the rest fold away.
+
+## [0.1.16]
+
+### Changed
+- New pull request: every field has its own box.
+
+## [0.1.15]
+
+### Changed
+- The open pull request refreshes when the background check sees it change, so the Details panel stays current.
+
+## [0.1.14]
+
+### Added
+- New pull request: the description is filled in from the repository's PR template, with a picker when there are several.
+
+## [0.1.13]
+
+### Added
+- **Address bar autocomplete:** open tabs, recent PRs, repositories and a repository's PR numbers.
+
+## [0.1.12]
+
+### Changed
+- Notifications watch every open tab and the PRs you wrote or were asked to review, without opening them, and skip comment lookups on idle PRs.
+- Closing the window quits the app (a short-lived background mode was removed).
+
+## [0.1.11]
+
+### Added
+- Profile picture and name in the toolbar, with a menu for your profile, the token and signing out.
+
+## [0.1.10]
+
+### Added
+- **Review threads in Files changed:** read, reply to and resolve threads inline, and sort the files.
+- **Commit picker in Files changed:** a single commit with Prev / Next, a range of commits, or everything since your last review.
+
+### Changed
+- Reactions show at once, and clicking your reaction again removes it, like on github.com.
+
+## [0.1.9]
+
+### Fixed
+- A slow PR load no longer replaces the page after you have switched to another tab.
+
+## [0.1.8]
+
+### Added
+- **Home filters:** public / private toggle, more sort options and grouping by owner for repositories; a filter and status toggle on the Recent tab.
+- Right-click a PR in a list for *Open in new tab*; opening a PR that already has a tab switches to it.
+
+### Changed
+- Tabs keep their page alive and remember their sub-tab and scroll position, also across restarts. New tabs open at the top.
+
+### Performance
+- Smoother scrolling through long diffs; heavy files on big PRs start collapsed and render when opened.
+
+## [0.1.7]
+
+### Added
+- **In-app updates:** an update button installs a signed new version.
+- Drag tabs to reorder them; **Required** badges on checks.
+- Rust unit tests run in CI.
+
+### Changed
+- Long diffs load progressively.
+
+## [0.1.6]
+
+### Changed
+- Sign-in is required: without a GitHub token or login the app shows a sign-in screen.
+
+## [0.1.5]
+
+### Fixed
+- The installers and all platform icons use the new logo.
+
+## [0.1.4]
+
+### Added
+- **Sign in with GitHub** (OAuth device flow).
+- **Tabs:** keep several PRs open, with a recent-PRs menu, shortcuts, activity dots, and tabs restored after a restart.
+- Filters on a repository's pull request list: search, author, label, status and sort.
+
+### Changed
+- The app is renamed Pullscope, with a new icon.
+- Launch opens Home instead of the last PR.
+- The `/` block menu is removed from the editor; the toolbar and markdown shortcuts stay.
+
+## [0.1.3]
+
+### Added
+- **Write / Preview** tabs on every rich editor, rendered by GitHub.
+- **Breadcrumbs** on every page, and a full-page **Home** with your repositories and recent PRs.
+- The left sidebar can be collapsed.
+
+## [0.1.2]
+
+### Added
+- **Manage pull requests:** create a PR (repository, base and head, title, rich description, draft, reviewers, assignees, labels, milestone, linked issues), edit the title and description, mark ready or draft, and a GitHub-style merge box with auto-merge, *Re-run failed* checks and *Update branch*.
+- Rich editor for line comments, with a *Suggest change* button.
+- Notifications for new branches pushed to repositories you follow, and a *Compare & pull request* banner.
+- Collapse or expand every conversation at once.
+
+## [0.1.1]
+
+### Added
+- Inbox, menu-bar / tray unread count, keyboard shortcuts, resolving threads, draft reviews and applying suggestions.
+- **Split view** with syntax-highlighted diffs: `s` toggles it, `d` switches unified / side by side, `F` flips the sides.
+
+### Changed
+- Buttons show a spinner while their action runs; resolving and applying suggestions update at once.
+- The offline banner is now a quiet toolbar indicator, and the view keeps its scroll position on refresh.
+
+## [0.1.0]
+
+First release, as *Reviewer*: a Tauri desktop app (and a separate SwiftUI app) for reading GitHub pull requests.

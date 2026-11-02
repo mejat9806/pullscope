@@ -32,64 +32,162 @@ Pullscope is only about pull requests. It has no issues, projects, discussions, 
 
 ## What it does
 
-**Read a pull request**
-- Conversation, timeline, commits, checks and files tabs, with attention chips (unresolved threads, requested changes, failing checks) and a filter by author.
-- Syntax-highlighted diffs, unified or side by side, with collapsible files. Long diffs load progressively so big PRs stay fast.
-- **Split view**: commits and their diff beside the conversation, resizable, with a flip button and per-pane collapse.
-- Collapse or expand every conversation, review and thread in one click.
-- **Zoom** the whole interface with `Ctrl/⌘` + mouse wheel or `Ctrl/⌘` + `+` / `-` / `0`; the level is remembered.
-- **Appearance** (profile menu → *Appearance…*): pick the font (System, Classic, Serif, Rounded, Monospace), the size of reading text and of code in diffs, the window zoom, and comfortable or compact lists. A preview shows the result and *Reset* restores the defaults. The toolbar and dialogs adapt to narrow windows.
+Each feature has its own section below, grouped by what you are doing. The [changelog](CHANGELOG.md) says which release added it.
 
-  ![Appearance settings](docs/screenshots/appearance.png)
-- Filter the conversation by person, by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates) and flip it **newest first / oldest first**. A scroll button (or `Home` / `End`) appears on every long page: a down arrow at the top, an up arrow further down.
-- **Find in page** (`⌘F` / `Ctrl+F`): search everything visible in the current view, such as the conversation or a diff. All matches are highlighted, `Enter` and `Shift+Enter` step through them, `Esc` closes the bar.
-- **Tabs**: keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T`, `⌘1–9`; `⌘`-click or middle-click a PR to open it in a new tab). Tabs survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them. Right-click a tab to pin it (pinned tabs stay at the left, lose their close button and survive *Close others / to the right / all*), add it to a group, or close several tabs at once. Groups have a name and a colour, can be collapsed to a single chip, ungrouped, or closed together, and are restored after a restart.
+### Reading a pull request
 
-  ![Tab group menu](docs/screenshots/tab-groups.png)
+#### Conversation and attention chips
+Conversation, timeline, commits, checks and files tabs. **Attention chips** at the top count unresolved threads, requested changes and failing checks and jump to each one. Collapse or expand every conversation, review and thread in one click.
+
+#### Conversation filters
+Filter the conversation by person and by **date range** (last hour, 24 hours, 7 or 30 days, or custom dates), and flip it **newest first / oldest first**.
+
+#### Diffs
+Syntax-highlighted diffs, unified or side by side (`d` switches), with collapsible files. Long diffs load progressively, and heavy files on big PRs start collapsed, so big PRs stay fast.
 
 ![Files changed](docs/screenshots/files-split.png)
 
+#### Files changed tab
+Review threads appear inline next to their lines, where you can reply to and resolve them. Sort the files, and use the commit picker to see a single commit (with Prev / Next), a range of commits, or everything since your last review.
+
+#### Viewed files
+Tick *Viewed* on a file to fold it away. The files bar shows progress (`5/12 viewed`) and marks or clears every file. A mark is dropped when the file changes.
+
+#### Split view
+Commits and their diff beside the conversation, resizable, with per-pane collapse. `s` toggles it and `F` flips the sides.
+
 ![Split view](docs/screenshots/split-view.png)
 
-**Review**
-- Line comments with a rich editor (toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions, `:` emoji; pasted Markdown, including fenced code, lists and headings, is parsed like on GitHub), saved as a draft review and submitted together.
-- Suggested changes, plus an **Apply suggestion** button that commits the change to the PR branch.
-- A **docked comment bar** stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft).
-- Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.
-- The Reviewers list shows people with a verdict first (changes requested, approved, commented), then people who still have to answer, then bots; five show before the fold. A grey refresh button asks someone to review again, and a yellow clock marks someone you already asked.
+#### Find in page
+`⌘F` / `Ctrl+F` searches everything visible in the current view, such as the conversation or a diff. All matches are highlighted with a match counter, `Enter` and `Shift+Enter` step through them, `Esc` closes the bar.
 
-![Reviewers in the Details panel](docs/screenshots/details-panel.png)
-- Resolve and unresolve threads, re-request a review, react to comments. A comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
-- Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
-- **Write / Preview** tabs on every text box. The preview is rendered by GitHub, so it matches what gets posted.
+#### Scroll button
+On every long page a down arrow at the top jumps to the bottom, and further down it becomes an up arrow back to the top. `End` and `Home` do the same.
+
+#### Copy summary
+A button beside the PR title copies the title, status, size, reviewers and link.
+
+### Tabs
+
+#### PR tabs
+Keep several PRs open at once (`⌘T`, `⌘W`, `⌘⇧T` to reopen a closed tab, `⌘1–9`; `⌘`-click or middle-click a PR, or right-click it and choose *Open in new tab*). Opening a PR that already has a tab switches to it. Tabs keep their page, sub-tab and scroll position, survive a restart and show a dot when a background tab has new activity; the + menu lists recent PRs. Drag tabs to reorder them.
+
+#### Closing several tabs
+Right-click a tab for *Close tab*, *Close other tabs*, *Close tabs to the right* and *Close all tabs*.
+
+#### Pinned tabs and tab groups
+Right-click a tab to pin it: pinned tabs stay at the left, lose their close button and are kept by the bulk-close actions. Or add it to a new or existing group. Groups have a name and a colour, can be collapsed to a single chip, ungrouped, or closed together, and are restored after a restart.
+
+![Tab group menu](docs/screenshots/tab-groups.png)
+
+### Reviewing
+
+#### Line comments and the rich editor
+Line comments with a rich editor: a toolbar with a link button and `⌘K`, `` `code` `` as you type, GitHub-style markdown shortcuts, `@` mentions and `:` emoji. Pasted Markdown, including fenced code, lists and headings, is parsed like on GitHub. Comments are saved as a draft review and submitted together.
 
 ![Line comment](docs/screenshots/line-comment.png)
 
-**Manage the pull request**
-- Create a PR: pick the repo, base and head from searchable pickers (your branches first, the rest grouped by prefix with last-commit age), title, rich description, draft option, reviewers, assignees, labels, milestone and linked issues (`Closes #N`).
-- Edit the title and description, mark ready for review or convert back to draft, close and reopen.
-- A GitHub-style merge box: review status, grouped checks with **Required** badges, **Re-run failed** (GitHub Actions), **Update branch**, merge method, **auto-merge**.
+#### Write / Preview
+Every text box has Write and Preview tabs. The preview is rendered by GitHub, so it matches what gets posted. Unsent text is kept as a draft and cleared once it is sent.
 
-![Merge box](docs/screenshots/merge-box.png)
+#### Docked comment bar
+A comment bar stays at the bottom of the conversation, collapsed by default. It opens when you click it, press `C`, or scroll to the end of the thread, and folds away when you scroll back up (never while it holds a draft). `Esc` folds it.
+
+#### Suggested changes
+Suggest a change from a line comment, and use **Apply suggestion** to commit a suggestion to the PR branch.
+
+#### Reviewers list
+People with a verdict come first (changes requested, approved, commented), then people who still have to answer, then bots; five show before the fold. A grey refresh button asks someone to review again, and a yellow clock marks someone you already asked. Approve and Request changes are hidden on your own pull request, where GitHub only allows Comment.
+
+![Reviewers in the Details panel](docs/screenshots/details-panel.png)
+
+#### Threads, reactions and the comment menu
+Resolve and unresolve threads and react to comments (click your reaction again to remove it). The comment menu copies a link or the Markdown, quotes, references a comment in a new issue, and edits, hides or deletes your own.
+
+#### Task lists
+Tick task-list checkboxes directly in a description or comment; the change is saved to GitHub.
+
+### Managing the pull request
+
+#### Creating a pull request
+Pick the repository (search, recently pushed first, grouped by owner) and the base and head branches (your branches first, the rest grouped by prefix with last-commit age). Add a title, a rich description pre-filled from the repository's PR template (with a picker when there are several), a draft option, reviewers, assignees, labels, milestone and linked issues (`Closes #N`).
 
 ![New pull request](docs/screenshots/new-pr.png)
 
-**Stay on top of things**
-- **Choose repositories**: tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
-- **Rearrange**: drag the ⋮⋮ grip to reorder the Inbox sections, the sidebar's repository list and the blocks of a PR's side panel. The order is remembered.
-- **Viewed files**: tick *Viewed* on a file in the Files tab to fold it away; the files bar shows progress (`5/12 viewed`) and marks or clears every file. A mark is dropped when the file changes.
-- **Copy summary** (button beside the PR title) copies the title, status, size, reviewers and link; **Compact** lists in Appearance make rows denser.
-- **Edit PR details**: the gear on a PR's Assignees, Labels and Milestone opens a picker and saves to GitHub (the token needs write access).
-- **Home**: all your repositories and recently opened PRs as a full page. Breadcrumbs on every page.
-- **Inbox**: PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in. Sections collapse, every section sorts, a filter box narrows them, and you can drag a section by its grip (or use the arrows) to put what matters to you first. Hover a row to **pin** it to a *Pinned* section or **snooze** it (until tomorrow, next week or new activity); snoozed PRs wait in a *Snoozed* section. Save a filter and sort as a named **view**. Keyboard: `j`/`k` or arrows move, `Enter` opens, `p` pins, `s` snoozes, `e` folds a section, `/` filters.
-- Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), an unread count in the menu bar / tray, and a quiet offline indicator that falls back to the last saved copy.
-- Keyboard shortcuts (press `?` in the app).
+#### Editing a pull request
+Edit the title and description, mark ready for review or convert back to draft, close and reopen.
+
+#### Editing labels, assignees and milestone
+The gear on a PR's Assignees, Labels and Milestone opens a picker and saves to GitHub (the token needs write access).
+
+#### Merge box
+A GitHub-style merge box: review status, grouped checks with **Required** badges, **Re-run failed** (GitHub Actions), **Update branch**, merge method and **auto-merge**.
+
+![Merge box](docs/screenshots/merge-box.png)
+
+### Finding your way
+
+#### Address bar
+Paste `owner/repo#123` or a URL. Autocomplete suggests open tabs, recent PRs, repositories and a repository's PR numbers.
+
+#### Home and breadcrumbs
+Home shows all your repositories and recently opened PRs as a full page. Repositories can be filtered by public or private, sorted and grouped by owner; the Recent tab has a filter and a status toggle. Breadcrumbs on every page.
 
 ![Home](docs/screenshots/home.png)
 
+#### Repository pull request list
+Opening a repository lists its open pull requests, with a search box and filters for author, label, status and sort.
+
+#### Choose repositories
+Tick the repositories you care about (profile menu → *Choose repositories…*, or the Repos tab). The sidebar, address-bar suggestions, inbox and notification polling then fetch only those, which also saves API rate limit. Tick none or all to use every repository; pasting a PR link still opens any repository.
+
+#### Rearranging
+Drag the ⋮⋮ grip to reorder the Inbox sections, the sidebar's repository list and the blocks of a PR's side panel. The order is remembered.
+
+### Inbox
+
+#### Inbox sections
+PRs waiting on your review, your approved PRs ready to merge, your own open PRs, PRs where you were mentioned, PRs you took part in, and recently closed or merged PRs you were involved in. Sections collapse, every section sorts, a filter box narrows them, and you can drag a section by its grip (or use the arrows) to put what matters to you first.
+
 ![Inbox](docs/screenshots/inbox.png)
 
+#### Pin and snooze
+Hover a row to **pin** it to a *Pinned* section or **snooze** it (until tomorrow, next week or new activity). Snoozed PRs wait in a *Snoozed* section and come back by themselves.
+
 ![Inbox with a pinned PR](docs/screenshots/inbox-pin-snooze.png)
+
+#### Saved views
+Save the Inbox filter and sort under a name and pick it again later.
+
+#### Inbox keyboard control
+`j`/`k` or the arrow keys move, `Enter` opens, `p` pins, `s` snoozes, `e` folds a section, `/` jumps to the filter.
+
+### Staying current
+
+#### Notifications
+Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), and an unread count in the menu bar / tray. Every open tab and the PRs you wrote or were asked to review are watched without opening them.
+
+#### Live refresh and offline mode
+The open PR refreshes itself when something changes. Without a network, a quiet offline indicator appears and the last saved copy is shown. GitHub replies are cached by ETag, so unchanged data costs no API rate limit.
+
+#### In-app updates
+The app checks for updates on launch and every hour. The *Update to vX* button opens *What's new in vX* with the release notes, and you choose *Update and restart* or *Later*. After the restart the notes show once more.
+
+### Look and feel
+
+#### Appearance
+Profile menu → *Appearance…*: pick the font (System, Classic, Serif, Rounded, Monospace), the size of reading text and of code in diffs, the window zoom, and comfortable or compact lists. A preview shows the result and *Reset* restores the defaults.
+
+![Appearance settings](docs/screenshots/appearance.png)
+
+#### Zoom
+`Ctrl/⌘` + mouse wheel or `Ctrl/⌘` + `+` / `-` / `0` zooms the whole interface; the level is remembered.
+
+#### Narrow windows
+The toolbar keeps the address bar, new tab, notifications, theme switch and account button and folds the rest away; dialogs fit the window width. Drag the window from any empty spot of the toolbar, and double-click it to zoom.
+
+#### Tooltips and shortcuts
+Every button has a tooltip that says what it does. Press `?` for the keyboard shortcuts. Clicking outside a dialog closes it.
 
 ## Install
 
@@ -143,7 +241,7 @@ Writing actions need the desktop app; in the browser preview they are disabled.
 
 ### Releases
 
-Installed builds check for updates on launch and then every hour while the app stays open, and offer a one-click update (signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret). The update button first shows the release notes, and they show once more after the restart. Unit tests run in CI (`cargo test --lib`).
+Installed builds update themselves (see [In-app updates](#in-app-updates)); updates are signed with `TAURI_SIGNING_PRIVATE_KEY`, set as a repository secret. Unit tests run in CI (`cargo test --lib`).
 
 Add the changes to the `## [Unreleased]` section of `CHANGELOG.md` as you go. To release, rename that section to the new version, bump the version in `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` and `Cargo.lock`, and tag.
 
