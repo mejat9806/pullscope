@@ -3,10 +3,14 @@ import { openAux, openClick, openCtx } from './bind';
 import { appState, whenParts } from './core';
 import { pollNotes } from './data';
 import { setSlot } from './frame';
+import { noteTypesOf } from './noteTypes';
 import { render, saveNotes } from './pages';
 import { paintTop } from './top';
 
 import type { NoteHandlers } from '../components/NotePanel';
+import type { NoteType } from './noteTypes';
+
+let panelType: NoteType | '' = '';
 
 // The notifications drawer is state (S.bell, S.notes) painted into its own host; opening or closing never redraws the page underneath.
 export function paintNotes() {
@@ -19,10 +23,12 @@ export function paintNotes() {
         ref: note.ref,
         target: note.target || '',
         read: !!note.read,
+        types: noteTypesOf(note.ref, note.text),
         title: note.title,
         text: note.text,
         when: whenParts(note.at).text,
       }))}
+      type={panelType}
       on={noteOn}
     />,
   );
@@ -81,6 +87,10 @@ const noteOn: NoteHandlers = {
     pollNotes();
   },
   clear: noteClear,
+  filter: type => {
+    panelType = type;
+    paintNotes();
+  },
   open: noteOpen,
   aux: event => openAux(row(event), event),
   ctx: event => openCtx(row(event), event),

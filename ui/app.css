@@ -1145,3 +1145,22 @@ table.diff { contain: layout paint; }
 .nk-row { cursor: pointer; }
 .nk-row small { display: block; margin-top: 2px; font-weight: 400; color: var(--fgColor-muted); }
 .nk-row input { width: 16px; height: 16px; flex: none; }
+.note-types { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--borderColor-muted); }
+.note-types button { border: 0; background: var(--bgColor-neutral-muted); color: var(--fgColor-muted); font: inherit; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
+.note-types button span { margin-left: 4px; font-weight: 500; opacity: .8; }
+.note-types button.sel { background: var(--bgColor-accent-muted); color: var(--fgColor-accent); }
+.note-panel .note { flex-direction: row; align-items: flex-start; gap: 10px; padding: 10px 14px; }
+.note-badge { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-style: normal; background: var(--bgColor-neutral-muted); color: var(--fgColor-muted); }
+.note-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.note-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.note-top b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-top time { flex: none; font-size: 11px; color: var(--fgColor-muted); }
+.note-panel .note-body > span { color: var(--fgColor-default); font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.note-meta { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.note-meta i { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note-chip { text-decoration: none; flex: none; font-size: 11px; font-weight: 600; padding: 0 7px; line-height: 18px; border-radius: 999px; background: var(--bgColor-neutral-muted); color: var(--fgColor-muted); }
+.t-commits { background: rgba(9, 105, 218, .15); color: #3b82f6; }
+.t-comments { background: rgba(26, 127, 55, .15); color: #3fb950; }
+.t-reviews { background: rgba(130, 80, 223, .18); color: #a371f7; }
+.t-branches { background: rgba(191, 135, 0, .18); color: #d29922; }
+.t-state { background: rgba(207, 34, 46, .15); color: #f85149; }
