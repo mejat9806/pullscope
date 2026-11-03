@@ -1143,7 +1143,7 @@ table.diff { contain: layout paint; }
 .reply .tt-tip.err, .reply .tt-tip.busy { display: inline; }
 .tt.dropping { outline: 2px dashed var(--borderColor-accent-emphasis, #1f6feb); outline-offset: 2px; border-radius: 8px; }
 .nk-row { cursor: pointer; }
-.nk-row small { display: block; margin-top: 2px; font-weight: 400; color: var(--fgColor-muted); }
+.ap-row > span small, .nk-row small { display: block; margin-top: 2px; font-weight: 400; color: var(--fgColor-muted); }
 .nk-row input { width: 16px; height: 16px; flex: none; }
 .note-types { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px; border-bottom: 1px solid var(--borderColor-muted); }
 .note-types button { border: 0; background: var(--bgColor-neutral-muted); color: var(--fgColor-muted); font: inherit; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; cursor: pointer; }
