@@ -19,18 +19,28 @@ import {
 import { ProfPop } from '../components/Overlays';
 import { closeDlg, errMsg } from './actions';
 import { getAppearance, resetAppearance, setAppearance } from './appearance';
-import { appState, isOwnPr, REACTS } from './core';
+import { appState, isOwnPr, REACTS, selNames } from './core';
 import { pendList } from './diff';
 import { setSlot } from './frame';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { metaSave } from './meta';
-import { notifyKinds, setNoteKind } from './notifyPrefs';
+import {
+  getDialogRepo,
+  NOTE_KINDS,
+  notifyKinds,
+  overriddenRepos,
+  repoChoice,
+  setDialogRepo,
+  setNoteKind,
+  setRepoChoice,
+} from './notifyPrefs';
 import { repoPickSave } from './repopick';
 import { oauthGo, tokenSave } from './token';
 import { installUpdate, renderNotes } from './whatsnew';
 import { getZoom, setZoom } from './zoom';
 
 import type { CpHandlers } from '../components/Merge';
+import type { NoteKind, RepoChoice } from './notifyPrefs';
 
 // Dialogs and popups are plain state (S.dlg / S.pop) painted by Preact: dialogs into #dlg (repainted with every page render), popups into their own host on <body>.
 export const paintDlg = () => setSlot('dlg', <Dialogs />);
@@ -66,6 +76,18 @@ const cpOn: CpHandlers = {
     paintDlg();
   },
 };
+
+// Repositories you follow or recently opened, plus any that already have their own settings.
+const notifyRepoList = () =>
+  [
+    ...new Set([
+      ...selNames(),
+      ...appState.recent.map(recentEntry =>
+        recentEntry.ref.replace(/#\d+$/, ''),
+      ),
+      ...overriddenRepos(),
+    ]),
+  ].sort((left, right) => left.localeCompare(right));
 
 export function Dialogs() {
   const dlg = appState.dlg;
@@ -134,8 +156,26 @@ export function Dialogs() {
       return (
         <NotificationsDialog
           value={notifyKinds()}
+          repos={notifyRepoList()}
+          repo={getDialogRepo()}
+          choices={
+            Object.fromEntries(
+              NOTE_KINDS.map(entry => [
+                entry.kind,
+                repoChoice(getDialogRepo(), entry.kind),
+              ]),
+            ) as Record<NoteKind, RepoChoice>
+          }
+          pickRepo={repo => {
+            setDialogRepo(repo);
+            paintDlg();
+          }}
           change={(kind, on) => {
             setNoteKind(kind, on);
+            paintDlg();
+          }}
+          changeRepo={(kind, choice) => {
+            setRepoChoice(getDialogRepo(), kind, choice);
             paintDlg();
           }}
           close={close}

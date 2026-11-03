@@ -18,6 +18,7 @@ import { closePop, openPop, paintDlg } from './dialogs';
 import { beginDrag, setSlot } from './frame';
 import { openPr, reload } from './nav';
 import { setBell } from './notes';
+import { setDialogRepo } from './notifyPrefs';
 import { openInbox, openNewPr, render, setDragging } from './pages';
 import { go } from './render';
 import { repoPickOpen } from './repopick';
@@ -123,6 +124,7 @@ const prof = (event: MouseEvent) => {
       } else if (hash === 'repos') {
         repoPickOpen();
       } else if (hash === 'notifications') {
+        setDialogRepo('');
         appState.dlg = { k: 'notifications' };
         paintDlg();
       } else if (hash === 'appearance') {

@@ -170,7 +170,7 @@ Save the Inbox filter and sort under a name and pick it again later.
 #### Notifications
 Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), and an unread count in the menu bar / tray. Every open tab and the PRs you wrote or were asked to review are watched without opening them.
 
-Profile menu → *Notifications…* has a switch for each kind (commits, comments, reviews, branch pushes). A switched-off kind shows no desktop notification, no bell entry and no unread count. All kinds are on by default and the choice is remembered. It applies to every repository.
+Profile menu → *Notifications…* has a switch for each kind (commits, comments, reviews, branch pushes). A switched-off kind shows no desktop notification, no bell entry and no unread count. All kinds are on by default and the choice is remembered. Those switches are the default for every repository. Pick a repository in the same dialog to set each kind to *Default*, *On* or *Off* for just that repository.
 
 The bell dropdown shows each notification with an icon and a type label (Commits, Comments, Reviews, Branches, Status), and chips at the top filter the list by type. A notification stays highlighted and counted as unread until you click it (or mark it read on the full page).
 

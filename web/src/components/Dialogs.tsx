@@ -10,7 +10,7 @@ import { CommitsDialog } from './Merge';
 
 import type { ComponentChildren } from 'preact';
 import type { Appearance, FontChoice } from '../app/appearance';
-import type { NoteKind } from '../app/notifyPrefs';
+import type { NoteKind, RepoChoice } from '../app/notifyPrefs';
 import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
 
@@ -305,9 +305,20 @@ export const AppearanceDialog = (props: AppearanceDlgProps) => (
 
 export interface NotificationsDlgProps {
   value: Record<NoteKind, boolean>;
+  repos: string[];
+  repo: string;
+  choices: Record<NoteKind, RepoChoice>;
+  pickRepo: (repo: string) => void;
   change: (kind: NoteKind, on: boolean) => void;
+  changeRepo: (kind: NoteKind, choice: RepoChoice) => void;
   close: () => void;
 }
+
+const REPO_CHOICES: { choice: RepoChoice; label: string }[] = [
+  { choice: 'default', label: 'Default' },
+  { choice: 'on', label: 'On' },
+  { choice: 'off', label: 'Off' },
+];
 
 export const NotificationsDialog = (props: NotificationsDlgProps) => (
   <div class="dlg-bg" id="dlgbg">
@@ -317,22 +328,60 @@ export const NotificationsDialog = (props: NotificationsDlgProps) => (
         A switched-off kind shows no desktop notification, no bell entry and no
         unread count.
       </p>
-      {NOTE_KINDS.map(entry => (
-        <label key={entry.kind} class="ap-row nk-row">
-          <span>
-            {entry.label}
-            <small>{entry.hint}</small>
-          </span>
-          <input
-            type="checkbox"
-            checked={props.value[entry.kind]}
-            title={`Notify about ${entry.label.toLowerCase()}`}
-            onChange={event =>
-              props.change(entry.kind, event.currentTarget.checked)
-            }
-          />
-        </label>
-      ))}
+      <div class="ap-row">
+        <span>Settings for</span>
+        <select
+          title="Choose a repository to give it its own notification settings"
+          value={props.repo}
+          onChange={event => props.pickRepo(event.currentTarget.value)}
+        >
+          <option value="">All repositories (default)</option>
+          {props.repos.map(repo => (
+            <option key={repo} value={repo}>
+              {repo}
+            </option>
+          ))}
+        </select>
+      </div>
+      {NOTE_KINDS.map(entry =>
+        props.repo ? (
+          <div key={entry.kind} class="ap-row">
+            <span>
+              {entry.label}
+              <small>Default is {props.value[entry.kind] ? 'on' : 'off'}</small>
+            </span>
+            <div class="seg">
+              {REPO_CHOICES.map(option => (
+                <button
+                  key={option.choice}
+                  class={
+                    props.choices[entry.kind] === option.choice ? 'on' : ''
+                  }
+                  title={`${option.label} for ${props.repo}`}
+                  onClick={() => props.changeRepo(entry.kind, option.choice)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <label key={entry.kind} class="ap-row nk-row">
+            <span>
+              {entry.label}
+              <small>{entry.hint}</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={props.value[entry.kind]}
+              title={`Notify about ${entry.label.toLowerCase()}`}
+              onChange={event =>
+                props.change(entry.kind, event.currentTarget.checked)
+              }
+            />
+          </label>
+        ),
+      )}
       <div class="btns">
         <button
           class="btn primary"

@@ -4,6 +4,9 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+### Added
+- **Notification settings per repository.** In *Notifications…* pick a repository and set each kind to Default, On or Off. A repository without an override follows the global switches. (Issue #14.)
+
 ## [1.4.0]
 
 ### Added
