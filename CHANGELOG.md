@@ -4,6 +4,8 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.4.0]
+
 ### Added
 - **Choose which notifications you get.** Profile menu → *Notifications…* has a switch for commits, comments, reviews and branch pushes. A switched-off kind shows no desktop notification, bell entry or unread count. (Issue #11.)
 
