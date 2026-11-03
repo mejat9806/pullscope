@@ -122,6 +122,9 @@ const prof = (event: MouseEvent) => {
         tokenDialog();
       } else if (hash === 'repos') {
         repoPickOpen();
+      } else if (hash === 'notifications') {
+        appState.dlg = { k: 'notifications' };
+        paintDlg();
       } else if (hash === 'appearance') {
         appState.dlg = { k: 'appearance' };
         paintDlg();

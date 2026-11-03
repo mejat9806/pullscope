@@ -48,6 +48,13 @@ export const ProfPop = (props: ProfPopProps) => (
       {renderIcon('sliders')} Appearance…
     </button>
     <button
+      title="Choose which kinds of activity notify you"
+      data-h="notifications"
+      onClick={() => props.pick('notifications')}
+    >
+      {renderIcon('bell')} Notifications…
+    </button>
+    <button
       title="View or change your GitHub access token"
       data-h="token"
       onClick={() => props.pick('token')}

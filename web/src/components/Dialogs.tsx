@@ -4,11 +4,13 @@ import {
   FONT_STACKS,
   TEXT_SIZES,
 } from '../app/appearance';
+import { NOTE_KINDS } from '../app/notifyPrefs';
 import { DraftBox } from './Actions';
 import { CommitsDialog } from './Merge';
 
 import type { ComponentChildren } from 'preact';
 import type { Appearance, FontChoice } from '../app/appearance';
+import type { NoteKind } from '../app/notifyPrefs';
 import type { PalRow } from '../types';
 import type { CommitsDialogProps, CpHandlers } from './Merge';
 
@@ -292,6 +294,49 @@ export const AppearanceDialog = (props: AppearanceDlgProps) => (
         <button
           class="btn primary"
           title="Close the appearance settings"
+          onClick={props.close}
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+export interface NotificationsDlgProps {
+  value: Record<NoteKind, boolean>;
+  change: (kind: NoteKind, on: boolean) => void;
+  close: () => void;
+}
+
+export const NotificationsDialog = (props: NotificationsDlgProps) => (
+  <div class="dlg-bg" id="dlgbg">
+    <div class="dlg wide ap-dlg">
+      <h2>Notifications</h2>
+      <p class="muted">
+        A switched-off kind shows no desktop notification, no bell entry and no
+        unread count.
+      </p>
+      {NOTE_KINDS.map(entry => (
+        <label key={entry.kind} class="ap-row nk-row">
+          <span>
+            {entry.label}
+            <small>{entry.hint}</small>
+          </span>
+          <input
+            type="checkbox"
+            checked={props.value[entry.kind]}
+            title={`Notify about ${entry.label.toLowerCase()}`}
+            onChange={event =>
+              props.change(entry.kind, event.currentTarget.checked)
+            }
+          />
+        </label>
+      ))}
+      <div class="btns">
+        <button
+          class="btn primary"
+          title="Close the notification settings"
           onClick={props.close}
         >
           Done

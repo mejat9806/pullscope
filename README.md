@@ -170,6 +170,8 @@ Save the Inbox filter and sort under a name and pick it again later.
 #### Notifications
 Notifications for new commits, comments, reviews and new branch pushes (with GitHub's "Compare & pull request" prompt), and an unread count in the menu bar / tray. Every open tab and the PRs you wrote or were asked to review are watched without opening them.
 
+Profile menu → *Notifications…* has a switch for each kind (commits, comments, reviews, branch pushes). A switched-off kind shows no desktop notification, no bell entry and no unread count. All kinds are on by default and the choice is remembered. It applies to every repository.
+
 #### Live refresh and offline mode
 The open PR refreshes itself when something changes. Without a network, a quiet offline indicator appears and the last saved copy is shown. GitHub replies are cached by ETag, so unchanged data costs no API rate limit.
 

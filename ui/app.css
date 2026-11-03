@@ -1142,3 +1142,6 @@ table.diff { contain: layout paint; }
 .tt-tip.err { color: var(--fgColor-danger); }
 .reply .tt-tip.err, .reply .tt-tip.busy { display: inline; }
 .tt.dropping { outline: 2px dashed var(--borderColor-accent-emphasis, #1f6feb); outline-offset: 2px; border-radius: 8px; }
+.nk-row { cursor: pointer; }
+.nk-row small { display: block; margin-top: 2px; font-weight: 400; color: var(--fgColor-muted); }
+.nk-row input { width: 16px; height: 16px; flex: none; }

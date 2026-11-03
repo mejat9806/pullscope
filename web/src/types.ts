@@ -778,6 +778,7 @@ export type Dlg =
   | { k: 'repos' }
   | { k: 'meta' }
   | { k: 'appearance' }
+  | { k: 'notifications' }
   | { k: 'whatsnew'; version: string; body: string; after: boolean }
   | { k: 'review'; ev: string; ok: () => void | Promise<void> }
   | { k: 'editpr'; title: string; ok: () => void | Promise<void> }

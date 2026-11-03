@@ -9,6 +9,7 @@ import {
   EditPrDialog,
   HideCommentDialog,
   MetaDialog,
+  NotificationsDialog,
   ReactPop,
   RepoPickDialog,
   ReviewDialog,
@@ -23,6 +24,7 @@ import { pendList } from './diff';
 import { setSlot } from './frame';
 import { commitList, commitsDialogProps, setFr, sinceReview } from './mergebox';
 import { metaSave } from './meta';
+import { notifyKinds, setNoteKind } from './notifyPrefs';
 import { repoPickSave } from './repopick';
 import { oauthGo, tokenSave } from './token';
 import { installUpdate, renderNotes } from './whatsnew';
@@ -81,6 +83,7 @@ export function Dialogs() {
       dlg.k !== 'repos' &&
       dlg.k !== 'meta' &&
       dlg.k !== 'appearance' &&
+      dlg.k !== 'notifications' &&
       dlg.k !== 'whatsnew'
     ) {
       dlg.ok();
@@ -122,6 +125,17 @@ export function Dialogs() {
           reset={() => {
             resetAppearance();
             setZoom(1);
+            paintDlg();
+          }}
+          close={close}
+        />
+      );
+    case 'notifications':
+      return (
+        <NotificationsDialog
+          value={notifyKinds()}
+          change={(kind, on) => {
+            setNoteKind(kind, on);
             paintDlg();
           }}
           close={close}

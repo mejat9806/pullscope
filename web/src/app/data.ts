@@ -1,6 +1,7 @@
 import { rerender } from './actions';
 import { appState, flags, load, selNames, tauri } from './core';
 import { openPr } from './nav';
+import { isNoteKindOn } from './notifyPrefs';
 import { render } from './pages';
 import { curRef, saveTabs } from './tabs';
 
@@ -66,19 +67,19 @@ export function noteDiff(
   const compare = (firstFirst: number, secondSecond: number) =>
     secondSecond - firstFirst;
 
-  if (compare(was.commits, now.commits) > 0) {
+  if (isNoteKindOn('commits') && compare(was.commits, now.commits) > 0) {
     out.push(
       `${compare(was.commits, now.commits)} new commit${compare(was.commits, now.commits) > 1 ? 's' : ''}`,
     );
   }
 
-  if (compare(was.comments, now.comments) > 0) {
+  if (isNoteKindOn('comments') && compare(was.comments, now.comments) > 0) {
     out.push(
       `${compare(was.comments, now.comments)} new comment${compare(was.comments, now.comments) > 1 ? 's' : ''}`,
     );
   }
 
-  if (compare(was.rc, now.rc) > 0) {
+  if (isNoteKindOn('reviews') && compare(was.rc, now.rc) > 0) {
     out.push(
       `${compare(was.rc, now.rc)} new review comment${compare(was.rc, now.rc) > 1 ? 's' : ''}`,
     );
@@ -89,6 +90,9 @@ export function noteDiff(
   }
 
   const last = fresh
+    .filter(freshItem =>
+      isNoteKindOn(freshItem.kind === 'review' ? 'reviews' : 'comments'),
+    )
     .filter(freshItem => !was.at || freshItem.created_at > was.at)
     .sort((leftFreshItem, rightFreshItem) =>
       leftFreshItem.created_at < rightFreshItem.created_at ? -1 : 1,
@@ -363,7 +367,7 @@ export async function pollBranches(refs: string[], cur: string) {
       const branchInfo = await tauri!.invoke('list_branches', { repo });
       const names = branchInfo.branches || [];
 
-      if (branchSeen[repo]) {
+      if (branchSeen[repo] && isNoteKindOn('branches')) {
         names
           .filter(
             name =>
