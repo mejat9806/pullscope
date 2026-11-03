@@ -18,6 +18,8 @@ Pullscope does not replace GitHub. It reads and writes the same pull requests th
 | What needs your attention | You read the page to find unresolved threads, failing checks and requested changes | **Attention chips** summarise them at the top and jump you to each one |
 | Your review queue | Notifications and the PR list, spread over several pages | An **Inbox** of PRs waiting on you, your approved PRs ready to merge, and your own open PRs |
 | Staying current | You reload the page | The open PR refreshes itself when something changes; a notification and a menu-bar count appear for new commits, comments, reviews and branch pushes |
+| Choosing what notifies you | Per-repository watch levels and a few event categories; commits are not a separate setting | A switch for each kind (commits, comments, reviews, branch pushes), with a per-repository override set to Default, On or Off |
+| Reading your notifications | One list; every item looks alike and a read item can drop out of view | A bell dropdown with a type icon and label on each item, filter chips by type, and a highlight and unread count that stay until you click each notification |
 | Slow or no network | Page fails to load | Shows the last saved copy and a quiet offline indicator; GitHub replies are cached by ETag, so unchanged data costs no API rate limit |
 | Opening a PR | Navigate through repo pages | Paste `owner/repo#123` or a URL in the address bar, with autocomplete |
 | Starting a PR | One long form | Searchable repository and branch pickers (your branches first, grouped by prefix, with last-commit age), PR templates filled in for you, reviewers and labels beside the description |
@@ -28,7 +30,7 @@ Pullscope does not replace GitHub. It reads and writes the same pull requests th
 
 ### What github.com still does better
 
-Pullscope is only about pull requests. It has no issues, projects, discussions, code search or file browsing, no repository settings, and no Actions log viewer (failed checks open on GitHub). Re-running checks works for GitHub Actions only, and notifications are polled about once a minute because GitHub has no push channel for third-party apps. For anything outside the review loop, use github.com.
+Pullscope is only about pull requests. It has no issues, projects, discussions, code search or file browsing, no repository settings, and no Actions log viewer (failed checks open on GitHub). Re-running checks works for GitHub Actions only, and notifications are polled about once a minute, only while the app is running, because GitHub has no push channel for third-party apps. They cover pull requests you wrote, were asked to review, have open in a tab or opened recently, but not mentions, review requests, CI results, issues or releases, and read state does not sync to other devices. For anything outside the review loop, use github.com.
 
 ## What it does
 
