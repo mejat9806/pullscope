@@ -9,6 +9,7 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ### Changed
 - **A clearer notifications dropdown.** Each notification has a type icon and label, the title and time sit on one line, long text is trimmed to two lines, and chips at the top filter the list by type. (Issue #12.)
+- **Notifications stay highlighted until clicked.** Closing the dropdown or opening another notification no longer marks everything read; each one keeps its highlight and unread count until you click it. (Issue #13.)
 
 ## [1.3.9]
 

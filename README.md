@@ -172,7 +172,7 @@ Notifications for new commits, comments, reviews and new branch pushes (with Git
 
 Profile menu → *Notifications…* has a switch for each kind (commits, comments, reviews, branch pushes). A switched-off kind shows no desktop notification, no bell entry and no unread count. All kinds are on by default and the choice is remembered. It applies to every repository.
 
-The bell dropdown shows each notification with an icon and a type label (Commits, Comments, Reviews, Branches, Status), and chips at the top filter the list by type.
+The bell dropdown shows each notification with an icon and a type label (Commits, Comments, Reviews, Branches, Status), and chips at the top filter the list by type. A notification stays highlighted and counted as unread until you click it (or mark it read on the full page).
 
 #### Live refresh and offline mode
 The open PR refreshes itself when something changes. Without a network, a quiet offline indicator appears and the last saved copy is shown. GitHub replies are cached by ETag, so unchanged data costs no API rate limit.

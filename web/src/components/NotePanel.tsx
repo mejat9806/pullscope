@@ -107,6 +107,7 @@ export const NotePanel = ({
             class={`note ${noteRow.read ? '' : 'new'}`}
             data-open={noteRow.ref}
             data-target={noteRow.target}
+            data-note={noteRow.id}
             onClick={on.open}
             onAuxClick={on.aux}
             onContextMenu={on.ctx}

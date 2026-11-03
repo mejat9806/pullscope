@@ -4,7 +4,7 @@ import { appState, whenParts } from './core';
 import { pollNotes } from './data';
 import { setSlot } from './frame';
 import { noteTypesOf } from './noteTypes';
-import { render, saveNotes } from './pages';
+import { render } from './pages';
 import { paintTop } from './top';
 
 import type { NoteHandlers } from '../components/NotePanel';
@@ -36,16 +36,6 @@ export function paintNotes() {
 
 export function setBell(open: boolean) {
   appState.bell = open;
-
-  if (!open && appState.notes.some(note => !note.read)) {
-    appState.notes.forEach(note => {
-      note.read = true;
-    });
-
-    saveNotes();
-    paintTop();
-  }
-
   paintNotes();
 }
 
@@ -73,12 +63,7 @@ function noteClear() {
 function noteOpen(event: MouseEvent) {
   openClick(row(event), event);
   appState.bell = false;
-
-  appState.notes.forEach(note => {
-    note.read = true;
-  });
-
-  saveNotes();
+  paintTop();
 }
 
 const noteOn: NoteHandlers = {
@@ -96,7 +81,7 @@ const noteOn: NoteHandlers = {
   ctx: event => openCtx(row(event), event),
 };
 
-// Click outside (or Esc) closes the drawer; closing marks everything read.
+// Click outside (or Esc) closes the drawer. A notification stays highlighted until it is clicked.
 export function notesAway(event: MouseEvent) {
   if (
     !appState.bell ||
