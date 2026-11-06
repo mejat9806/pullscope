@@ -1,6 +1,7 @@
 import { act, prRef, rerender } from './actions';
 import { appState, ASSOC, flashFor, REACTS, tauri } from './core';
 import { qc } from './data';
+import { hasStack } from './stack';
 
 import type {
   CommentBoxProps,
@@ -25,6 +26,14 @@ export function stateOf(pull: Pull) {
 
   return ['open', 'git-pull-request', 'Open'];
 }
+
+export const stackRows = (bundle: Bundle) => {
+  const ref = `${bundle.pull.base.repo.full_name}#${bundle.pull.number}`;
+
+  return appState.stack?.ref === ref && hasStack(appState.stack.rows)
+    ? appState.stack.rows
+    : [];
+};
 
 export function prHeaderProps(bundle: Bundle): PrHeaderProps {
   const pull = bundle.pull;
@@ -57,7 +66,8 @@ export function prHeaderProps(bundle: Bundle): PrHeaderProps {
   const splitOk =
     appState.tab !== 'files' &&
     appState.tab !== 'checks' &&
-    appState.tab !== 'timeline';
+    appState.tab !== 'timeline' &&
+    appState.tab !== 'stack';
 
   return {
     b: bundle,
@@ -70,6 +80,7 @@ export function prHeaderProps(bundle: Bundle): PrHeaderProps {
     splitOk,
     commentsTotal,
     sq,
+    stack: stackRows(bundle),
   };
 }
 

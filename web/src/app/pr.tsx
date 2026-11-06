@@ -2,6 +2,7 @@ import { PrHeader } from '../components/Comments';
 import { PrSide, SIDE_KEYS } from '../components/Merge';
 import { PrLayout, SplitLayout } from '../components/Pages';
 import { Crumbs } from '../components/PrList';
+import { StackView } from '../components/Stack';
 import { Attention } from '../components/Timeline';
 import { renderIcon } from '../components/ui';
 import {
@@ -10,13 +11,14 @@ import {
   rerequestReview,
   reviewDialog,
 } from './actions';
-import { isFolded, prHeaderProps, stateOf } from './comments';
+import { isFolded, prHeaderProps, stackRows, stateOf } from './comments';
 import { appState, esc, icon } from './core';
 import { attOn, keep, openTab, tlOn } from './handlers';
 import { crumbs } from './home';
 import { commitsView, filesView, sidebarProps, splitView } from './mergebox';
 import { metaOpen } from './meta';
 import { arrange, roGrip, saveOrder } from './reorder';
+import { groupStack, openTab as switchTab } from './tabs';
 import {
   attentionProps,
   checksView,
@@ -74,7 +76,8 @@ export const toggleSplit = () => {
     appState.bundle &&
     appState.tab !== 'files' &&
     appState.tab !== 'checks' &&
-    appState.tab !== 'timeline'
+    appState.tab !== 'timeline' &&
+    appState.tab !== 'stack'
   ) {
     head.split();
   }
@@ -174,19 +177,29 @@ export function PrView() {
     appState.split &&
     appState.tab !== 'files' &&
     appState.tab !== 'checks' &&
-    appState.tab !== 'timeline'
+    appState.tab !== 'timeline' &&
+    appState.tab !== 'stack'
   ) {
     return <SplitLayout header={<Header />} split={splitView(bundle)} />;
   }
 
   const body =
-    appState.tab === 'files'
-      ? filesView(bundle)
-      : appState.tab === 'commits'
-        ? commitsView(bundle)
-        : appState.tab === 'checks'
-          ? checksView(bundle)
-          : null;
+    appState.tab === 'files' ? (
+      filesView(bundle)
+    ) : appState.tab === 'commits' ? (
+      commitsView(bundle)
+    ) : appState.tab === 'checks' ? (
+      checksView(bundle)
+    ) : appState.tab === 'stack' ? (
+      <StackView
+        repo={bundle.pull.base.repo.full_name}
+        rows={stackRows(bundle)}
+        open={event => {
+          groupStack(stackRows(bundle), bundle.pull.base.repo.full_name);
+          switchTab((event.currentTarget as HTMLElement).dataset.open!);
+        }}
+      />
+    ) : null;
 
   const side =
     appState.tab !== 'conversation'

@@ -5,6 +5,7 @@ import { openPr } from './nav';
 import { render } from './pages';
 
 import type { Pull, Tab, TabGroup } from '../types';
+import type { StackRow } from './stack';
 
 // Native-app chrome: toolbar (history, address bar, actions) and a recent-PRs sidebar.
 
@@ -290,6 +291,52 @@ export function newGroup(index: number) {
   appState.groupEdit = id;
   saveTabs();
   render();
+}
+
+// Every PR of a stack gets a tab (opened lazily, from the cache or GitHub) and all of them share one group; a stack already grouped together is reused.
+export function groupStack(rows: StackRow[], repo: string) {
+  const prRows = rows.filter(row => row.number);
+
+  prRows.forEach(row => {
+    const ref = `${repo}#${row.number}`;
+
+    if (!appState.tabs.some(tab => tab.ref === ref)) {
+      appState.tabs.push({
+        ref,
+        title: row.title,
+        state: row.draft ? 'draft' : 'open',
+        icon: row.draft ? 'git-pull-request-draft' : 'git-pull-request',
+        tab: 'conversation',
+        dot: false,
+      });
+    }
+  });
+
+  const stackTabs = prRows.map(row =>
+    appState.tabs.find(tab => tab.ref === `${repo}#${row.number}`)!,
+  );
+
+  const shared = stackTabs[0]?.group;
+
+  if (shared && stackTabs.every(tab => tab.group === shared)) {
+    return;
+  }
+
+  const id = Math.random().toString(36).slice(2, 8);
+
+  appState.tabGroups.push({
+    id,
+    name: 'Stack',
+    color: GROUP_COLORS[appState.tabGroups.length % GROUP_COLORS.length],
+    collapsed: false,
+  });
+
+  stackTabs.forEach(tab => {
+    tab.pinned = false;
+    tab.group = id;
+  });
+
+  saveTabs();
 }
 
 // The tab joins the group and sits right after its last tab.

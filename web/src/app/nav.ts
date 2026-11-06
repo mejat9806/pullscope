@@ -4,6 +4,7 @@ import { appState, flashLive, KEY_RECENT, setFlash, tauri } from './core';
 import { loadPr, qc, refreshPushes, remember } from './data';
 import { enterAnim } from './fun';
 import { openNewPr, render, scrollMain } from './pages';
+import { loadStack, showSavedStack, warmStack } from './stack';
 import { saveTabs, tabIdx, tabPut, tabSnap } from './tabs';
 
 export async function loadRepos() {
@@ -160,6 +161,17 @@ export async function openPr(
   // Show the tab at once; the title and state fill in when the PR arrives.
   appState.tabPending = '';
 
+  {
+    const early =
+      String(input).match(/^([^#\s@/]+\/[^#\s@]+)#(\d+)$/) ||
+      String(input).match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
+
+    if (early) {
+      warmStack(early[1]);
+      showSavedStack(`${early[1]}#${early[2]}`);
+    }
+  }
+
   if (!keepTab) {
     const match =
       String(input).match(/^([^#\s@/]+\/[^#\s@]+)#(\d+)$/) ||
@@ -311,6 +323,7 @@ export async function openPr(
     localStorage.setItem(KEY_RECENT, JSON.stringify(appState.recent));
     localStorage.setItem('last', ref);
     remember(ref, pull);
+    loadStack(got!);
 
     if (!keepTab || tabIdx() >= 0) {
       tabPut(ref, pull, { at: fromTab, newTab });

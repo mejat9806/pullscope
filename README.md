@@ -21,6 +21,7 @@ Pullscope does not replace GitHub. It reads and writes the same pull requests th
 | Choosing what notifies you | Per-repository watch levels and a few event categories; commits are not a separate setting | A switch for each kind (commits, comments, reviews, branch pushes), with a per-repository override set to Default, On or Off |
 | Reading your notifications | One list; every item looks alike and a read item can drop out of view | A bell dropdown with a type icon and label on each item, filter chips by type, and a highlight and unread count that stay until you click each notification |
 | Slow or no network | Page fails to load | Shows the last saved copy and a quiet offline indicator; GitHub replies are cached by ETag, so unchanged data costs no API rate limit |
+| Where a PR sits in a stack | You work it out from branch names, or open each PR | A **Stack** tab draws the parent and child PRs as a branch path, each one a click away |
 | Opening a PR | Navigate through repo pages | Paste `owner/repo#123` or a URL in the address bar, with autocomplete |
 | Starting a PR | One long form | Searchable repository and branch pickers (your branches first, grouped by prefix, with last-commit age), PR templates filled in for you, reviewers and labels beside the description |
 | Writing a comment | The box is at the very bottom of a long page | A docked comment bar that is always in reach (`C` to open) |
@@ -59,6 +60,9 @@ Tick *Viewed* on a file to fold it away. The files bar shows progress (`5/12 vie
 Commits and their diff beside the conversation, resizable, with per-pane collapse. `s` toggles it and `F` flips the sides.
 
 ![Split view](docs/screenshots/split-view.png)
+
+#### Branch path and stacked PRs
+When other open PRs are stacked with this one, a *Stack* tab appears next to *Files changed*. It draws the branches as a path from where the stack lands (`main`, say) up to the tip: one card per pull request with its title, number, branch → base, author, draft state and last update, and this PR highlighted. A PR's parent is the open PR whose head branch is its base branch, and its children are the open PRs based on its head branch, so stacks made by Graphite, ghstack or by hand all show up. Click a card and the whole stack becomes one tab group (named *Stack*, rename it like any group) with a tab for every PR, and that PR opens; a stack that is already grouped is reused. Pull requests from forks are left out.
 
 #### Find in page
 `⌘F` / `Ctrl+F` searches everything visible in the current view, such as the conversation or a diff. All matches are highlighted with a match counter, `Enter` and `Shift+Enter` step through them, `Esc` closes the bar.

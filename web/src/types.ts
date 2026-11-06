@@ -1,4 +1,5 @@
 import type { VNode } from 'preact';
+import type { StackRow } from './app/stack';
 
 // Domain types for the data Pullscope receives from the Rust backend (GitHub REST/GraphQL, trimmed to what the UI reads).
 
@@ -516,6 +517,7 @@ export interface AppState {
   flashUntil?: number;
   cOpen?: boolean;
   watchAt?: number;
+  stack?: { ref: string; rows: StackRow[] };
   watch?: string[];
   recentState?: string;
   nf?: string;
@@ -607,6 +609,7 @@ export interface Commands {
   create_pr: CreatedPr;
   list_repos: RepoSummary[];
   list_prs: PrListItem[];
+  stack_prs: PrListItem[];
   fetch_commit: { files: FileChange[] };
   fetch_range: { files: FileChange[] };
   viewer_profile: Profile;

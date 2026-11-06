@@ -329,6 +329,38 @@ async fn list_prs(repo: String, state: String) -> Result<serde_json::Value, Stri
     }).await.map_err(|e: Arc<String>| (*e).clone())
 }
 
+/// The open pull requests of a repository, trimmed to what the Stack tab needs (title, branches, author, update time). One light GraphQL request instead of the heavy REST pull list.
+#[tauri::command]
+async fn stack_prs(repo: String) -> Result<serde_json::Value, String> {
+    let Some((owner, name)) = repo.split_once('/').filter(|_| repo.matches('/').count() == 1) else { return Err("bad request".into()) };
+    let (owner, name) = (owner.to_string(), name.to_string());
+    PR_LIST_CACHE.try_get_with(format!("stack|{repo}").to_lowercase(), async move {
+        let token = github::load_token();
+        let c = github::client();
+        let q = "query($o:String!,$n:String!,$a:String){repository(owner:$o,name:$n){pullRequests(states:OPEN,first:100,after:$a,orderBy:{field:UPDATED_AT,direction:DESC}){pageInfo{hasNextPage endCursor}nodes{number title isDraft headRefName baseRefName updatedAt author{login avatarUrl} headRepository{nameWithOwner}}}}}";
+        let mut after = Value::Null;
+        let mut shaped: Vec<Value> = Vec::new();
+        for _ in 0..3 {
+            let g = github::send(&c, reqwest::Method::POST, "https://api.github.com/graphql", token.as_deref(), serde_json::json!({ "query": q, "variables": { "o": owner, "n": name, "a": after } })).await?;
+            let page = &g["data"]["repository"]["pullRequests"];
+            shaped.extend(shape_stack_prs(page));
+            if page["pageInfo"]["hasNextPage"].as_bool() != Some(true) { break; }
+            after = page["pageInfo"]["endCursor"].clone();
+        }
+        Ok::<Value, String>(Value::Array(shaped))
+    }).await.map_err(|e: Arc<String>| (*e).clone())
+}
+
+/// GraphQL pull request nodes in the shape of the REST pull list the frontend already reads.
+fn shape_stack_prs(page: &Value) -> Vec<Value> {
+    page["nodes"].as_array().cloned().unwrap_or_default().iter().map(|n| serde_json::json!({
+        "number": n["number"], "title": n["title"], "draft": n["isDraft"], "updated_at": n["updatedAt"],
+        "user": { "login": n["author"]["login"].as_str().unwrap_or("ghost"), "avatar_url": n["author"]["avatarUrl"] },
+        "head": { "ref": n["headRefName"], "repo": { "full_name": n["headRepository"]["nameWithOwner"].as_str().unwrap_or("") } },
+        "base": { "ref": n["baseRefName"] },
+    })).collect()
+}
+
 /// One commit with its file patches (for the split view's commit pane).
 #[tauri::command]
 async fn fetch_commit(repo: String, sha: String) -> Result<serde_json::Value, String> {
@@ -799,13 +831,32 @@ pub fn run() {
             build_tray(app.handle())?;
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, upload_image, recent_pushes, list_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
+        .invoke_handler(tauri::generate_handler![pr_meta_options, pr_meta_set, cached_pr, fetch_pr, invalidate_pr, set_unread, inbox, fetch_commit, fetch_range, viewer_login, viewer_profile, toggle_reaction, my_reactions, pr_action, check_pr, notify, list_repos, list_branches, compare_branches, create_pr, repo_meta, pr_templates, render_markdown, upload_image, recent_pushes, list_prs, stack_prs, open_external, initial_arg, has_token, set_token, device_start, device_poll])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn stack_prs_are_shaped_like_the_rest_pull_list() {
+        let page = serde_json::json!({ "nodes": [
+            { "number": 42, "title": "UI", "isDraft": true, "headRefName": "feat/ui", "baseRefName": "feat/api", "updatedAt": "2026-11-06T10:00:00Z",
+              "author": { "login": "sam", "avatarUrl": "https://a/sam.png" }, "headRepository": { "nameWithOwner": "o/r" } },
+            { "number": 43, "title": "From a deleted fork", "isDraft": false, "headRefName": "x", "baseRefName": "main", "updatedAt": "2026-11-06T11:00:00Z",
+              "author": null, "headRepository": null }
+        ] });
+        let shaped = super::shape_stack_prs(&page);
+        assert_eq!(shaped.len(), 2);
+        assert_eq!(shaped[0]["head"]["ref"], "feat/ui");
+        assert_eq!(shaped[0]["head"]["repo"]["full_name"], "o/r");
+        assert_eq!(shaped[0]["base"]["ref"], "feat/api");
+        assert_eq!(shaped[0]["user"]["login"], "sam");
+        assert_eq!(shaped[0]["draft"], true);
+        assert_eq!(shaped[1]["user"]["login"], "ghost");
+        assert_eq!(shaped[1]["head"]["repo"]["full_name"], "");
+    }
+
     #[test]
     fn finds_pr_templates() {
         let l: Vec<serde_json::Value> = serde_json::from_str(r#"[{"name":"PULL_REQUEST_TEMPLATE.md","path":".github/PULL_REQUEST_TEMPLATE.md","type":"file"},{"name":"README.md","path":"README.md","type":"file"},{"name":"PULL_REQUEST_TEMPLATE","path":".github/PULL_REQUEST_TEMPLATE","type":"dir"}]"#).unwrap();

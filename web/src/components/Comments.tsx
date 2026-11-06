@@ -2,6 +2,7 @@ import { flashClass, useFlash } from './flash';
 import { useReveal } from './req';
 import { Av, renderIcon, SP, When } from './ui';
 
+import type { StackRow } from '../app/stack';
 import type { Bundle, CommentLike, Pull, Reactions } from '../types';
 import type { FlashProps } from './flash';
 
@@ -18,6 +19,7 @@ export interface PrHeaderProps {
   splitOk: boolean;
   commentsTotal: number;
   sq: string[];
+  stack: StackRow[];
 }
 
 function Who({ p: pull, st }: { p: Pull; st: string }) {
@@ -65,6 +67,7 @@ export function PrHeader({
   splitOk,
   commentsTotal,
   sq,
+  stack,
   on,
 }: PrHeaderProps & { on?: PrHeaderHandlers }) {
   const pull = bundle.pull;
@@ -84,6 +87,10 @@ export function PrHeader({
     ['checks', 'checklist', 'Checks', (bundle.checks || []).length],
     ['files', 'file-diff', 'Files changed', pull.changed_files],
   ];
+
+  if (stack.length) {
+    tabs.push(['stack', 'git-branch', 'Stack', stack.length - 1]);
+  }
 
   return (
     <>
