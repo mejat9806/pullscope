@@ -64,6 +64,8 @@ Commits and their diff beside the conversation, resizable, with per-pane collaps
 #### Branch path and stacked PRs
 When other open PRs are stacked with this one, a *Stack* tab appears next to *Files changed*. It draws the branches as a path from where the stack lands (`main`, say) up to the tip: one card per pull request with its title, number, branch → base, author, draft state and last update, and this PR highlighted. A PR's parent is the open PR whose head branch is its base branch, and its children are the open PRs based on its head branch, so stacks made by Graphite, ghstack or by hand all show up. Click a card and the whole stack becomes one tab group (named *Stack*, rename it like any group) with a tab for every PR, and that PR opens; a stack that is already grouped is reused. Pull requests from forks are left out.
 
+![The Stack tab: a path of cards from main up to the tip, with this PR highlighted](docs/screenshots/stack-tab.png)
+
 #### Find in page
 `⌘F` / `Ctrl+F` searches everything visible in the current view, such as the conversation or a diff. All matches are highlighted with a match counter, `Enter` and `Shift+Enter` step through them, `Esc` closes the bar.
 

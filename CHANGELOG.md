@@ -4,8 +4,10 @@ All notable changes to Pullscope. Release notes on GitHub are taken from the sec
 
 ## [Unreleased]
 
+## [1.5.0]
+
 ### Added
-- **Branch path and stacked PRs.** A *Stack* tab, shown when other open PRs are stacked with this one, draws the branches from where the stack lands up to the tip: a card per PR with its title, branch → base, author and last update. Click a card to put the whole stack in one tab group and open that PR. (Issue #16.)
+- **Branch path and stacked PRs.** A *Stack* tab, shown when other open PRs are stacked with this one, draws the branches from where the stack lands up to the tip: a card per PR with its title, branch → base, author and last update. Click a card to put the whole stack in one tab group and open that PR. The tab loads quickly: a light query fetches only the stack, and the last stack seen for a PR is shown at once. (Issue #16.)
 
 ## [1.4.1]
 
